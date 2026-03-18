@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Lagoinha Consolidação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #F4F5F7;
+            --bg-card: #FFFFFF;
+            --text-dark: #1A1A1A;
+            --text-muted: #6B7280;
+            --accent: #FFD700;
+            --accent-dark: #E6C200;
+            --border: #E5E7EB;
+            --shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05);
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .logo span {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-item:hover {
+            background-color: #F9FAFB;
+            color: var(--text-dark);
+        }
+
+        .nav-item.active {
+            background-color: #FFF9E6; /* Light yellow background */
+            color: var(--text-dark);
+            border-left: 4px solid var(--accent);
+        }
+
+        .user-profile {
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--text-dark);
+            color: #FFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background-color: var(--text-dark);
+            color: #FFF;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #333;
+        }
+
+        .btn-accent {
+            background-color: var(--accent);
+            color: var(--text-dark);
+        }
+
+        .btn-accent:hover {
+            background-color: var(--accent-dark);
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .kpi-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* Lead Kanban / Timeline */
+        .leads-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .leads-list {
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .lead-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .lead-info h4 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .lead-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .lead-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background-color: #FFF9E6;
+            color: #B28800;
+        }
+
+        .badge-ai {
+            background-color: #E6F3FF;
+            color: #0066CC;
+        }
+
+        /* Timeline Sidebar */
+        .timeline-sidebar {
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 24px;
+            margin-bottom: 24px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--border);
+            border: 2px solid #FFF;
+        }
+
+        .timeline-item.active::before {
+            background-color: var(--accent);
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 20px;
+            bottom: -20px;
+            width: 2px;
+            background-color: var(--border);
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .timeline-content h5 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .timeline-content p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <span>⚡</span> Lagoinha Consolidação
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active">📊 Dashboard</li>
+            <li class="nav-item">👥 Liderança (Leads)</li>
+            <li class="nav-item">💬 Mensagens</li>
+            <li class="nav-item">⚙️ Settings (Workspaces)</li>
+        </ul>
+        <div class="user-profile">
+            <div class="avatar">G</div>
+            <div class="user-info">
+                <div style="font-weight: 600; font-size: 0.9rem;">Gabriel T.</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Master Admin</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <h1>Bem-vindo de volta! 👋</h1>
+                <p style="color: var(--text-muted); margin-top: 4px;">Visão Geral da Consolidação - Lagoinha Orlando</p>
+            </div>
+            <div>
+                <button class="btn-primary" style="margin-right: 12px;">+ Adicionar Lead Manual</button>
+                <button class="btn-primary btn-accent">Ver QR Code WhatsApp</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Total de Consolidações</div>
+                <div class="kpi-value" id="kpi-total">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Pendentes (Humanos)</div>
+                <div class="kpi-value" style="color: var(--text-dark);">24</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Mensagens Enviadas (AI)</div>
+                <div class="kpi-value">8,450</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Taxa de Conversão</div>
+                <div class="kpi-value">68%</div>
+            </div>
+        </div>
+
+        <!-- Leads & Timeline Grid -->
+        <div class="leads-section">
+            
+            <div class="leads-list">
+                <div class="section-title">Leads Recentes (Ao Vivo)</div>
+                
+                <div id="leads-container">
+                    <!-- Data will be injected here by Javascript -->
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Carregando banco de dados...</p>
+                </div>
+            </div>
+
+            <div class="timeline-sidebar">
+                <div class="section-title">Processo de Consolidação (Padrão)</div>
+                
+                <div class="timeline-item active">
+                    <div class="timeline-content">
+                        <h5>1. Ficha Preenchida</h5>
+                        <p>Lead entra no sistema via Formulário (Salvo/Visitante).</p>
+                    </div>
+                </div>
+                <div class="timeline-item active">
+                    <div class="timeline-content">
+                        <h5>2. Boas-Vindas Automatizada (IA)</h5>
+                        <p>Evolution API envia saudação pelo WhatsApp + PDF da Igreja.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>3. Interação com a IA</h5>
+                        <p>IA responde perguntas com base na Base de Conhecimento (KB).</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>4. Triagem Humana</h5>
+                        <p>Lead pede para falar com humano e a IA pausa por 30 minutos.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h5>5. Conclusão em GC/Batismo</h5>
+                        <p>Lead é guiado para um Pequeno Grupo ou Aula de Batismo.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Supabase JS Client & Logic -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // UI Elements
+        const leadsContainer = document.getElementById('leads-container');
+        const kpiTotal = document.getElementById('kpi-total');
+
+        async function checkLoginStatus() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                // For demonstration, quickly ask for email to send magic link
+                const email = prompt("Bem-vindo! Para ver os dados ao vivo, insira seu Master Admin email (gtorreshbl@gmail.com):");
+                if (email) {
+                    const { error } = await supabase.auth.signInWithOtp({ email: email });
+                    if(error) alert("Erro: " + error.message);
+                    else alert("Magic Link enviado para seu email! Clique nele para fazer o login.");
+                }
+            } else {
+                console.log("Logged in!", session.user.email);
+                fetchLiveLeads();
+                
+                // Set up Realtime Subscription
+                supabase.channel('custom-all-channel')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
+                        console.log('Change received!', payload);
+                        fetchLiveLeads(); // Refresh UI on any DB change
+                    })
+                    .subscribe();
+            }
+        }
+
+        async function fetchLiveLeads() {
+            const { data: leads, error } = await supabase
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Error fetching leads:", error);
+                return;
+            }
+
+            // Update KPI
+            if(kpiTotal) kpiTotal.innerText = leads.length;
+
+            // Render Leads
+            if (leadsContainer) {
+                leadsContainer.innerHTML = '';
+                leads.forEach(lead => {
+                    leadsContainer.innerHTML += `
+                    <div class="lead-card">
+                        <div class="lead-info">
+                            <h4>${lead.name}</h4>
+                            <p>Preferência: ${lead.preferred_language.toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
+                            <p style="font-size: 0.75rem; color: #888; margin-top: 4px;">📞 ${lead.phone || 'Sem número'}</p>
+                        </div>
+                        <div class="lead-status">
+                            <span class="badge badge-ai">Novo Lead</span>
+                            <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; background-color: white; color: var(--text-dark); border: 1px solid var(--border);">Ver Perfil</button>
+                        </div>
+                    </div>`;
+                });
+            }
+        }
+
+        window.onload = checkLoginStatus;
+    </script>
+</body>
+</html>
