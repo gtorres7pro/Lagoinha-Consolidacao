@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitor Form - Lagoinha</title>
+    <title>Consolidação - Lagoinha Orlando</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Intl-Tel-Input CSS for Phone Formatting -->
@@ -269,9 +269,34 @@
             </select>
         </div>
 
-        <h2 data-i18n="personal_info">Informações Pessoais</h2>
+        <h2 data-i18n="decision_info">Decisão Espiritual</h2>
         
         <form id="visitorForm" onsubmit="handleFormSubmit(event)">
+            
+            <div class="form-group">
+                <label data-i18n="decision">Qual a sua decisão hoje? *</label>
+                <select id="decision" required>
+                    <option value="" disabled selected data-i18n="decision_select">Selecione...</option>
+                    <option value="Aceitei Jesus pela primeira vez" data-i18n="dec_first" data-val-i18n="dec_first">Aceitei Jesus pela primeira vez</option>
+                    <option value="Eu voltei para Jesus, reconciliação" data-i18n="dec_return" data-val-i18n="dec_return">Eu voltei para Jesus, reconciliação</option>
+                    <option value="Quero ser membro" data-i18n="dec_member" data-val-i18n="dec_member">Quero ser membro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label data-i18n="service">Qual culto você está participando? *</label>
+                <select id="service" required>
+                    <option value="" disabled selected data-i18n="service_select">Selecione o Culto...</option>
+                    <option value="Domingo Manhã">Domingo Manhã</option>
+                    <option value="Domingo Noite">Domingo Noite</option>
+                    <option value="Hope">Hope (Terça)</option>
+                    <option value="Fé">Fé (Quarta)</option>
+                    <option value="Legacy">Legacy (Sexta)</option>
+                    <option value="Rocket">Rocket (Sábado)</option>
+                </select>
+            </div>
+
+            <h2 data-i18n="personal_info" style="margin-top: 20px;">Informações Pessoais</h2>
             
             <div class="grid-2">
                 <div class="form-group">
@@ -410,7 +435,14 @@
     <script>
         // -- Advanced Realtime Translations --
         const translations = {
-            pt: {
+                decision_info: "Decisão Espiritual",
+                decision: "Qual a sua decisão hoje? *",
+                decision_select: "Selecione a decisão...",
+                dec_first: "Aceitei Jesus pela primeira vez",
+                dec_return: "Eu voltei para Jesus",
+                dec_member: "Quero ser membro",
+                service: "Qual culto você está participando? *",
+                service_select: "Selecione o Culto...",
                 church_name: "Lagoinha Orlando",
                 personal_info: "Informações Pessoais",
                 first_name: "Primeiro Nome *",
@@ -456,6 +488,14 @@
                 redirecting: "Redirecionando em"
             },
             en: {
+                decision_info: "Spiritual Decision",
+                decision: "What is your decision today? *",
+                decision_select: "Select decision...",
+                dec_first: "I accepted Jesus for the first time",
+                dec_return: "I returned back to Jesus",
+                dec_member: "I want to be a member",
+                service: "Which service are you attending? *",
+                service_select: "Select Service...",
                 church_name: "Lagoinha Orlando",
                 personal_info: "Personal Information",
                 first_name: "First Name *",
@@ -501,6 +541,14 @@
                 redirecting: "Redirecting in"
             },
             es: {
+                decision_info: "Decisión Espiritual",
+                decision: "¿Cuál es tu decisión hoy? *",
+                decision_select: "Seleccionar decisión...",
+                dec_first: "Acepté a Jesús por primera vez",
+                dec_return: "Volví a Jesús, reconciliación",
+                dec_member: "Quiero ser miembro",
+                service: "¿A qué culto/servicio asistes? *",
+                service_select: "Seleccionar Culto...",
                 church_name: "Lagoinha Orlando",
                 personal_info: "Información Personal",
                 first_name: "Nombre *",
@@ -649,12 +697,16 @@
                 const addressStr = `${document.getElementById('address').value}, ${document.getElementById('apt').value || ''} - ${document.getElementById('city').value}, ${finalState} - ${country} (${document.getElementById('zip').value})`;
 
                 const leadData = {
-                    workspace_id: '00000000-0000-0000-0000-000000000000',
+                    workspace_id: '9c4e23cf-26e3-4632-addb-f28325aedac3', // Or any string if unused validation
                     name: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
                     phone: fullPhoneStr,
                     preferred_language: lang,
-                    type: "visitor",
-                    tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
+                    type: "saved",
+                    decisao: document.getElementById('decision').value,
+                    culto: document.getElementById('service').value,
+                    pais: country,
+                    gc_status: Array.from(document.getElementsByName('gc')).find(r => r.checked)?.value || "Não Informado",
+                    tasks: [{"task_name": "Boas Vindas", "status": "pending", "assigned_to": "ai"}]
                 };
 
                 const { data, error } = await supabase.from('leads').insert([leadData]).select();

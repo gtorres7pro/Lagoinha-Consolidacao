@@ -149,10 +149,8 @@
             <span class="sub">ORLANDO</span>
         </div>
         <ul class="nav">
-            <li id="nav-home" onclick="switchTab('home')">Início</li>
-            <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">Consolidados</li>
-            <li id="nav-visitors" onclick="switchTab('visitors')">Visitantes</li>
-            <li id="nav-users" onclick="switchTab('users')">Equipe / Usuários</li>
+            <li id="nav-home" class="active" onclick="switchTab('home')">Início</li>
+            <li id="nav-dashboard" onclick="switchTab('dashboard')">Consolidados</li>
             <li class="disabled" title="Em Construção">Mensagens IA</li>
             <li class="disabled" title="Em Construção">Agenda Batismos</li>
             <li id="nav-logs" onclick="switchTab('logs')">Auditoria de Logs</li>
@@ -328,159 +326,6 @@
             </div>
         </div>
 
-        <!-- View: Visitors -->
-        <div id="view-visitors" class="view-section">
-            <header class="top-bar">
-                <div class="page-title">
-                    <h1>Mapeamento de Visitantes</h1>
-                    <p>Controle das primeiras visitas e roteamento de conexão.</p>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-outline" style="background: var(--text-main); color: var(--bg-color);" onclick="window.open('./visitor-form.html', '_blank')">+ Novo Visitante</button>
-                    <button class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar DB</button>
-                </div>
-            </header>
-
-            <div class="kpi-row">
-                <div class="kpi-box">
-                    <div class="kpi-title">Welcome Message (IA)</div>
-                    <div class="kpi-number">
-                        <span id="vkpi-t1" style="color: var(--accent);">0</span>
-                        <span class="kpi-total">/ <span id="vkpi-total-1">0</span></span>
-                    </div>
-                </div>
-                <div class="kpi-box">
-                    <div class="kpi-title">Follow-up Humano</div>
-                    <div class="kpi-number">
-                        <span id="vkpi-t2" style="color: #00BFFF;">0</span>
-                        <span class="kpi-total">/ <span id="vkpi-total-1">0</span></span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="filters">
-                <div class="search-box">
-                    <span>🔍</span>
-                    <input type="text" id="vSearchInput" placeholder="Busque por nome ou telefone..." class="search-input" oninput="applyFilters()">
-                </div>
-                
-                <select class="select-filter" id="vFilterCountry" onchange="applyFilters()">
-                    <option value="all">Todos os Países...</option>
-                </select>
-
-                <select class="select-filter" id="vFilterTimeRange" onchange="applyFilters()">
-                    <option value="all">Todo o Período</option>
-                    <option value="today">Hoje</option>
-                    <option value="7" selected>Últimos 7 Dias</option>
-                    <option value="30">Últimos 30 Dias</option>
-                    <option value="this_month">Este Mês</option>
-                    <option value="last_month">Mês Passado</option>
-                    <option value="this_year">Este Ano</option>
-                    <option value="last_year">Ano Passado</option>
-                    <option value="custom">Data Específica...</option>
-                </select>
-            </div>
-
-            <div class="leads-grid" id="visitors-container"></div>
-        </div>
-
-        <!-- View: Users -->
-        <div id="view-users" class="view-section">
-            <header class="top-bar">
-                <div class="page-title">
-                    <h1>Membros da Equipe e Níveis de Acesso</h1>
-                    <p>Controle de permissões para consolidação, visitantes, e ajustes locais.</p>
-                </div>
-                <div class="actions">
-                    <button class="btn" style="background: var(--accent); color: #000;">+ Adicionar Membro</button>
-                </div>
-            </header>
-            <div style="padding: 40px; display: flex; flex-direction: column; gap: 20px; max-width: 1200px;">
-                <div class="kpi-box" style="padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: var(--bg-color);">
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">NOME</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">STATUS</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">NÍVEL (ROLE)</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">AÇÕES</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: var(--accent); color: #000; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">GT</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">gtorreshbl@gmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Gabriel Torres</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Master Admin</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #2E8B57; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">JV</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">juveloso@lagoinhaorlando.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Juliana Veloso</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Admin</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #4682B4; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">CR</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">criszinharodrigues@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Cris Rodrigues</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Líder</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #DA70D6; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">RB</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">rafasbarbosa@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Rafael Barbosa</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Líder</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #808080; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">👤</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">exemplo_voluntario@team.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Perfil Base (Voluntário)</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #FFB347; border: 1px solid rgba(255,179,71,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Draft</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Voluntário</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div style="font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;">
-                    📋 <strong>Visão de Níveis de Acesso:</strong> <br><br>
-                    <b style="color: var(--text-main);">Master Admin:</b> Acesso total ao sistema (incluindo exclusão de logs e config global da Igreja).<br>
-                    <b style="color: var(--text-main);">Admin:</b> Acesso a quase tudo, exceto edição estrutural da IA e manipulação de Master Admins.<br>
-                    <b style="color: var(--text-main);">Líder:</b> Visualização de relatórios, acompanhamento de métricas, cards e conversas geradas da IA.<br>
-                    <b style="color: var(--text-main);">Voluntário:</b> Acesso focado somente em tarefas operacionais e forms, sem histórico de IA oculto ou configs.
-                </div>
-            </div>
-        </div>
-
         <!-- View: Logs -->
         <div id="view-logs" class="view-section">
             <header class="top-bar">
@@ -642,13 +487,11 @@ REGRAS:
 
             const leadsContainer = document.getElementById('leads-container');
             let globalLeads = [];
-            let globalConsolidados = [];
-            let globalVisitors = [];
             let chartInstances = {};
 
             function reportError(msg) {
                 if (leadsContainer) {
-                    tContainer.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
+                    leadsContainer.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
                 }
             }
 
@@ -783,7 +626,7 @@ REGRAS:
                 try {
                     const leadsContainer = document.getElementById('leads-container');
                     if (leadsContainer) {
-                        tContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
+                        leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
                     }
 
                     let allLeads = [];
@@ -823,59 +666,33 @@ REGRAS:
                     const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal", "Reino Unido", "Japão"];
                     const mock_gcs = ["Sim", "Quero Participar", "Não"];
 
-                    // Tag Mapping
-                    const mappedByPhone = {};
-                    leads.forEach(l => {
-                        const p = String(l.phone||'').replace(/\D/g, '');
-                        if(!mappedByPhone[p]) mappedByPhone[p] = [];
-                        mappedByPhone[p].push(l);
-                    });
-
                     let setDecisao = new Set();
                     let setCultos = new Set();
-                    let setPaises = new Set();
 
                     globalLeads = leads.map(lead => {
                         if (!lead.decisao) lead.decisao = "Não Informado";
                         if (!lead.culto) lead.culto = "Não Informado";
                         if (!lead.pais) lead.pais = "Não Informado";
                         if (!lead.gc_status) lead.gc_status = "Não Informado";
-                        if (!lead.created_at) lead.created_at = new Date().toISOString();
+                        
+                        // Default created_at if absent
+                        if (!lead.created_at) {
+                            lead.created_at = new Date().toISOString();
+                        }
 
+                        // No more mocks, rely directly on what was placed on DB (if any) or default false.
                         lead.task_start = Boolean(lead.task_start);
                         lead.task_gc = Boolean(lead.task_gc);
                         lead.task_batismo = Boolean(lead.task_batismo);
                         lead.task_cafe = Boolean(lead.task_cafe);
                         
-                        const myDate = new Date(lead.created_at);
-                        const myType = lead.type || 'saved';
-                        const p = String(lead.phone||'').replace(/\D/g, '');
-                        const related = mappedByPhone[p].find(other => {
-                            if(other.id === lead.id) return false;
-                            const otherType = other.type || 'saved';
-                            if(otherType === myType) return false;
-                            const otherDate = new Date(other.created_at);
-                            return Math.abs(myDate - otherDate) / (1000 * 3600) <= 24;
-                        });
-
-                        lead.hasCrossTag = !!related;
-                        lead.crossTagType = related ? (related.type || 'saved') : null;
-
-                        if (myType !== 'visitor') {
-                            setDecisao.add(String(lead.decisao));
-                            setCultos.add(String(lead.culto));
-                        } else {
-                            setPaises.add(String(lead.pais));
-                        }
+                        setDecisao.add(String(lead.decisao));
+                        setCultos.add(String(lead.culto));
                         return lead;
                     });
                     
-                    globalConsolidados = globalLeads.filter(l => l.type !== 'visitor');
-                    globalVisitors = globalLeads.filter(l => l.type === 'visitor');
-
                     populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
                     populateSelect('filterCulto', setCultos, 'Qualquer Culto');
-                    populateSelect('vFilterCountry', setPaises, 'Todos os Países...');
 
                     if(Object.keys(chartInstances).length === 0) {
                         initCharts();
@@ -930,7 +747,7 @@ REGRAS:
                     const sortOrder = document.getElementById('filterDate').value;
                     const timeRangeDays = document.getElementById('filterTimeRange').value;
 
-                    let filtered = globalConsolidados.filter(lead => {
+                    let filtered = globalLeads.filter(lead => {
                         const decisao = String(lead.decisao || '').toLowerCase();
                         const cultoVal = String(lead.culto || '').toLowerCase();
                         const nameStr = String(lead.name || '').toLowerCase();
@@ -997,62 +814,18 @@ REGRAS:
 
                     updateTopKPIs(filtered);
                     updateCharts(filtered);
-                    renderCards(filtered, 'leads-container');
-
-                    // Visitors Filter
-                    const vSearch = String(document.getElementById('vSearchInput').value || '').toLowerCase();
-                    const vCountry = document.getElementById('vFilterCountry').value;
-                    const vSortOrder = document.getElementById('vFilterDate') ? document.getElementById('vFilterDate').value : 'newest';
-                    const vTimeRangeDays = document.getElementById('vFilterTimeRange').value;
-                    
-                    let vFiltered = globalVisitors.filter(lead => {
-                        const nameStr = String(lead.name || '').toLowerCase();
-                        const phoneStr = String(lead.phone || '').toLowerCase();
-                        const matchName = nameStr.includes(vSearch) || phoneStr.includes(vSearch);
-                        const matchC = (vCountry === 'all') || (String(lead.pais||'') === vCountry);
-                        
-                        let matchTime = true;
-                        if (vTimeRangeDays !== 'all') {
-                            const leadDate = new Date(lead.created_at);
-                            if (isNaN(leadDate.valueOf())) { matchTime = false; }
-                            else {
-                                const now = new Date();
-                                const diffTime = now - leadDate;
-                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                
-                                if (vTimeRangeDays === '7') matchTime = diffDays <= 7;
-                                else if (vTimeRangeDays === '30') matchTime = diffDays <= 30;
-                                else if (vTimeRangeDays === 'today') matchTime = diffDays <= 1;
-                            }
-                        }
-                        return matchName && matchC && matchTime;
-                    });
-                    
-                    if(vSortOrder === 'oldest') {
-                        vFiltered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                    } else {
-                        vFiltered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-                    }
-                    
-                    renderCards(vFiltered, 'visitors-container');
-                    
-                    // Update Visitor KPIs
-                    const vtop1 = vFiltered.length;
-                    document.querySelectorAll('#vkpi-total-1').forEach(el => el.innerText = vtop1);
-                    document.getElementById('vkpi-t1').innerText = vtop1; // Assuming welcome message is for all
-
+                    renderCards(filtered);
                 } catch(err) {
                     reportError("Erro na Aplicação de Filtros: " + err.message);
                 }
             }
 
-            function renderCards(leadsToRender, targetContainerId = 'leads-container') {
-                const tContainer = document.getElementById(targetContainerId);
-                if (!tContainer) return;
-                tContainer.innerHTML = '';
+            function renderCards(leadsToRender) {
+                if (!leadsContainer) return;
+                leadsContainer.innerHTML = '';
                 
                 if (!Array.isArray(leadsToRender) || leadsToRender.length === 0) {
-                    tContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">Busca sem resultados nesse período ou combo de filtros.</div>';
+                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">Busca sem resultados nesse período ou combo de filtros.</div>';
                     return;
                 }
 
@@ -1074,35 +847,31 @@ REGRAS:
 
                     const mkMeta = (val) => val ? `<span style="color: rgba(255,215,0,0.8);">Realizado por <b>Admin</b> no passado</span>` : '';
 
-                    
                     const card = document.createElement('div');
-                    let crossTagHtml = '';
-                    if (lead.hasCrossTag) {
-                        crossTagHtml = `<div style="font-size:0.7rem; color:#2E8B57; border:1px solid #2E8B57; padding:2px 6px; border-radius:4px; display:inline-block; margin-bottom:10px;">Visitou & Consolidou Hojé</div>`;
-                    }
-
                     card.className = 'person-card';
-                                        
-                    let visitorTasksHtml = `
-                        <div class="tasks-list">
-                            <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" checked disabled style="cursor: default; opacity: 1;">
-                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
-                                    <span>Welcome Message (IA)</span>
-                                    <span class="task-meta"><span style="color:rgba(255,215,0,0.8);">WhatsApp Enviado</span></span>
-                                </div>
-                            </label>
-                            <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Follow-up Humano', this)">
-                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
-                                    <span>Follow-up Humano</span>
-                                    <span class="task-meta"></span>
-                                </div>
-                            </label>
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <div class="person-info">
+                                <h3>${lead.name || 'Sem Nome'}</h3>
+                                <p style="margin-top:2px;">📱 ${lead.phone || 'Sem número'}</p>
+                            </div>
+                            <div style="display:flex; gap: 6px;">
+                                ${cleanPhone ? `
+                                <a href="tel:+${cleanPhone}" class="icon-btn tooltip-container" aria-label="Ligar Normal">📞</a>
+                                <a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn tooltip-container" aria-label="Abrir WhatsApp">
+                                    <svg style="width: 16px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
+                                </a>` : ''}
+                                <div class="icon-btn tooltip-container" aria-label="Histórico de IA" style="background: rgba(255,215,0,0.1); color: var(--accent);">💬</div>
+                            </div>
                         </div>
-                    `;
 
-                    let consoliTasksHtml = `
+                        <div class="tags-area">
+                            <span class="tag decision">🔥 Decisão: ${cap(lead.decisao)}</span>
+                            <span class="tag service">🏛 Culto: ${cap(lead.culto)}</span>
+                            <span class="tag baptism" style="background: rgba(255, 255, 255, 0.05); color: #FFF; border-color: rgba(255, 255, 255, 0.1);">🌍 País: ${cap(lead.pais)}</span>
+                            <span class="tag gc">👥 GC: ${cap(lead.gc_status)}</span>
+                        </div>
+
                         <div class="tasks-list">
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" checked disabled style="cursor: default; opacity: 1;">
@@ -1140,41 +909,13 @@ REGRAS:
                                 </div>
                             </label>
                         </div>
-                    `;
-
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <div class="person-info">
-                                <h3>${lead.name || 'Sem Nome'}</h3>
-                                <p style="margin-top:2px;">📱 ${lead.phone || 'Sem número'}</p>
-                            </div>
-                            <div style="display:flex; gap: 6px;">
-                                ${cleanPhone ? `
-                                <a href="tel:+${cleanPhone}" class="icon-btn tooltip-container" aria-label="Ligar Normal">📞</a>
-                                <a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn tooltip-container" aria-label="Abrir WhatsApp">
-                                    <svg style="width: 16px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
-                                </a>` : ''}
-                                <div class="icon-btn tooltip-container" aria-label="Histórico de IA" style="background: rgba(255,215,0,0.1); color: var(--accent);">💬</div>
-                            </div>
-                        </div>
-                        
-                        ${crossTagHtml}
-
-                        <div class="tags-area">
-                            ${lead.type !== 'visitor' ? `<span class="tag decision">🔥 Decisão: ${cap(lead.decisao)}</span>` : ''}
-                            ${lead.type !== 'visitor' ? `<span class="tag service">🏛 Culto: ${cap(lead.culto)}</span>` : ''}
-                            <span class="tag baptism" style="background: rgba(255, 255, 255, 0.05); color: #FFF; border-color: rgba(255, 255, 255, 0.1);">🌍 País: ${cap(lead.pais)}</span>
-                            ${lead.type !== 'visitor' ? `<span class="tag gc">👥 GC: ${cap(lead.gc_status)}</span>` : ''}
-                        </div>
-
-                        ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
 
                         <div class="card-footer">
                             <span class="date">Registrado em ${dateStr}</span>
                             <a href="#" class="card-action">Acessar Histórico ➔</a>
                         </div>
                     `;
-                    tContainer.appendChild(card);
+                    leadsContainer.appendChild(card);
                 });
             }
 
