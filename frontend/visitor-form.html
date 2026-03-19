@@ -20,8 +20,6 @@
             --border-color: #E2E8F0;
             --input-bg: #F8F9FA;
             --shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
-            
-            --dynamic-redirect-url: "https://www.lagoinhaorlandochurch.com";
         }
 
         * {
@@ -105,7 +103,7 @@
             color: var(--text-main);
         }
 
-        input[type="text"], input[type="email"], input[type="number"], select {
+        input[type="text"], input[type="email"], input[type="number"], input[type="tel"], select {
             width: 100%;
             padding: 14px 16px;
             border-radius: 12px;
@@ -122,10 +120,14 @@
             box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
         }
 
-        /* Fix intl-tel-input width inside our form */
+        /* Essential intl-tel-input override so it stretches properly */
         .iti {
             width: 100%;
             display: block;
+        }
+        .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png");}
+        @media (min-resolution: 2x) {
+            .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png");}
         }
 
         .radio-group {
@@ -136,9 +138,8 @@
         }
 
         @media (max-width: 500px) {
-            .radio-group {
-                grid-template-columns: 1fr;
-            }
+            .radio-group { grid-template-columns: 1fr; }
+            .container { padding: 24px; }
         }
 
         .radio-option {
@@ -205,11 +206,7 @@
             z-index: 10;
         }
 
-        .success-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
+        .success-overlay.active { opacity: 1; pointer-events: auto; }
         .success-overlay h3 { font-size: 2rem; margin-bottom: 10px; color: var(--text-main); }
         .success-overlay p { color: var(--text-muted); margin-bottom: 20px; font-size: 1.1rem; }
 
@@ -217,11 +214,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
-        }
-
-        @media (max-width: 500px) {
-            .grid-2 { grid-template-columns: 1fr; }
-            .container { padding: 24px; }
         }
     </style>
 </head>
@@ -270,8 +262,8 @@
                     <label data-i18n="gender">Sexo *</label>
                     <select id="gender" required>
                         <option value="" disabled selected data-i18n="gender_select">Selecione...</option>
-                        <option value="Masculino" data-i18n="gender_m">Masculino</option>
-                        <option value="Feminino" data-i18n="gender_f">Feminino</option>
+                        <option value="Masculino" data-i18n="gender_m" data-val-i18n="gender_m">Masculino</option>
+                        <option value="Feminino" data-i18n="gender_f" data-val-i18n="gender_f">Feminino</option>
                     </select>
                 </div>
             </div>
@@ -280,10 +272,10 @@
                 <label data-i18n="marital">Estado Civil *</label>
                 <select id="maritalStatus" required>
                     <option value="" disabled selected data-i18n="marital_select">Selecione...</option>
-                    <option value="Solteiro(a)" data-i18n="single">Solteiro(a)</option>
-                    <option value="Casado(a)" data-i18n="married">Casado(a)</option>
-                    <option value="Divorciado(a)" data-i18n="divorced">Divorciado(a)</option>
-                    <option value="Viúvo(a)" data-i18n="widowed">Viúvo(a)</option>
+                    <option value="Solteiro(a)" data-i18n="single" data-val-i18n="single">Solteiro(a)</option>
+                    <option value="Casado(a)" data-i18n="married" data-val-i18n="married">Casado(a)</option>
+                    <option value="Divorciado(a)" data-i18n="divorced" data-val-i18n="divorced">Divorciado(a)</option>
+                    <option value="Viúvo(a)" data-i18n="widowed" data-val-i18n="widowed">Viúvo(a)</option>
                 </select>
             </div>
 
@@ -292,7 +284,6 @@
             <div class="grid-2">
                 <div class="form-group">
                     <label data-i18n="phone">Telefone (WhatsApp) *</label>
-                    <!-- intl-tel-input will inject the country flag dropdown here -->
                     <input type="tel" id="phone" required>
                 </div>
                 <div class="form-group">
@@ -307,32 +298,51 @@
                     <option value="" disabled selected data-i18n="country_select">Selecione o País...</option>
                     <option value="US" data-i18n="country_us">Estados Unidos</option>
                     <option value="BR" data-i18n="country_br">Brasil</option>
-                    <option value="OTHER" data-i18n="country_other">Outro...</option>
+                    <option value="" disabled>──────────</option>
+                    <!-- Exhaustive Standard Country List -->
+                    <option value="AF">Afghanistan</option><option value="AL">Albania</option><option value="DZ">Algeria</option><option value="AD">Andorra</option><option value="AO">Angola</option><option value="AR">Argentina</option><option value="AM">Armenia</option><option value="AU">Australia</option><option value="AT">Austria</option><option value="AZ">Azerbaijan</option><option value="BS">Bahamas</option><option value="BH">Bahrain</option><option value="BD">Bangladesh</option><option value="BB">Barbados</option><option value="BY">Belarus</option><option value="BE">Belgium</option><option value="BZ">Belize</option><option value="BJ">Benin</option><option value="BT">Bhutan</option><option value="BO">Bolivia</option><option value="BA">Bosnia and Herzegovina</option><option value="BW">Botswana</option><option value="BN">Brunei</option><option value="BG">Bulgaria</option><option value="BF">Burkina Faso</option><option value="BI">Burundi</option><option value="CV">Cabo Verde</option><option value="KH">Cambodia</option><option value="CM">Cameroon</option><option value="CA">Canada</option><option value="CF">Central African Republic</option><option value="TD">Chad</option><option value="CL">Chile</option><option value="CN">China</option><option value="CO">Colombia</option><option value="KM">Comoros</option><option value="CG">Congo</option><option value="CR">Costa Rica</option><option value="HR">Croatia</option><option value="CU">Cuba</option><option value="CY">Cyprus</option><option value="CZ">Czechia</option><option value="DK">Denmark</option><option value="DJ">Djibouti</option><option value="DM">Dominica</option><option value="DO">Dominican Republic</option><option value="EC">Ecuador</option><option value="EG">Egypt</option><option value="SV">El Salvador</option><option value="GQ">Equatorial Guinea</option><option value="ER">Eritrea</option><option value="EE">Estonia</option><option value="SZ">Eswatini</option><option value="ET">Ethiopia</option><option value="FJ">Fiji</option><option value="FI">Finland</option><option value="FR">France</option><option value="GA">Gabon</option><option value="GM">Gambia</option><option value="GE">Georgia</option><option value="DE">Germany</option><option value="GH">Ghana</option><option value="GR">Greece</option><option value="GD">Grenada</option><option value="GT">Guatemala</option><option value="GN">Guinea</option><option value="GW">Guinea-Bissau</option><option value="GY">Guyana</option><option value="HT">Haiti</option><option value="HN">Honduras</option><option value="HU">Hungary</option><option value="IS">Iceland</option><option value="IN">India</option><option value="ID">Indonesia</option><option value="IR">Iran</option><option value="IQ">Iraq</option><option value="IE">Ireland</option><option value="IL">Israel</option><option value="IT">Italy</option><option value="JM">Jamaica</option><option value="JP">Japan</option><option value="JO">Jordan</option><option value="KZ">Kazakhstan</option><option value="KE">Kenya</option><option value="KI">Kiribati</option><option value="KP">North Korea</option><option value="KR">South Korea</option><option value="KW">Kuwait</option><option value="KG">Kyrgyzstan</option><option value="LA">Laos</option><option value="LV">Latvia</option><option value="LB">Lebanon</option><option value="LS">Lesotho</option><option value="LR">Liberia</option><option value="LY">Libya</option><option value="LI">Liechtenstein</option><option value="LT">Lithuania</option><option value="LU">Luxembourg</option><option value="MG">Madagascar</option><option value="MW">Malawi</option><option value="MY">Malaysia</option><option value="MV">Maldives</option><option value="ML">Mali</option><option value="MT">Malta</option><option value="MH">Marshall Islands</option><option value="MR">Mauritania</option><option value="MU">Mauritius</option><option value="MX">Mexico</option><option value="FM">Micronesia</option><option value="MD">Moldova</option><option value="MC">Monaco</option><option value="MN">Mongolia</option><option value="ME">Montenegro</option><option value="MA">Morocco</option><option value="MZ">Mozambique</option><option value="MM">Myanmar</option><option value="NA">Namibia</option><option value="NR">Nauru</option><option value="NP">Nepal</option><option value="NL">Netherlands</option><option value="NZ">New Zealand</option><option value="NI">Nicaragua</option><option value="NE">Niger</option><option value="NG">Nigeria</option><option value="MK">North Macedonia</option><option value="NO">Norway</option><option value="OM">Oman</option><option value="PK">Pakistan</option><option value="PW">Palau</option><option value="PS">Palestine</option><option value="PA">Panama</option><option value="PG">Papua New Guinea</option><option value="PY">Paraguay</option><option value="PE">Peru</option><option value="PH">Philippines</option><option value="PL">Poland</option><option value="PT">Portugal</option><option value="QA">Qatar</option><option value="RO">Romania</option><option value="RU">Russia</option><option value="RW">Rwanda</option><option value="WS">Samoa</option><option value="SM">San Marino</option><option value="ST">Sao Tome and Principe</option><option value="SA">Saudi Arabia</option><option value="SN">Senegal</option><option value="RS">Serbia</option><option value="SC">Seychelles</option><option value="SL">Sierra Leone</option><option value="SG">Singapore</option><option value="SK">Slovakia</option><option value="SI">Slovenia</option><option value="SB">Solomon Islands</option><option value="SO">Somalia</option><option value="ZA">South Africa</option><option value="ES">Spain</option><option value="LK">Sri Lanka</option><option value="SD">Sudan</option><option value="SR">Suriname</option><option value="SE">Sweden</option><option value="CH">Switzerland</option><option value="SY">Syria</option><option value="TW">Taiwan</option><option value="TJ">Tajikistan</option><option value="TZ">Tanzania</option><option value="TH">Thailand</option><option value="TL">Timor-Leste</option><option value="TG">Togo</option><option value="TO">Tonga</option><option value="TT">Trinidad and Tobago</option><option value="TN">Tunisia</option><option value="TR">Turkey</option><option value="TM">Turkmenistan</option><option value="TV">Tuvalu</option><option value="UG">Uganda</option><option value="UA">Ukraine</option><option value="AE">United Arab Emirates</option><option value="GB">United Kingdom</option><option value="UY">Uruguay</option><option value="UZ">Uzbekistan</option><option value="VU">Vanuatu</option><option value="VE">Venezuela</option><option value="VN">Vietnam</option><option value="YE">Yemen</option><option value="ZM">Zambia</option><option value="ZW">Zimbabwe</option>
                 </select>
+            </div>
+
+            <!-- Enhanced Address Area -->
+            <div class="form-group">
+                <label data-i18n="address">Endereço (Rua, Número) *</label>
+                <input type="text" id="address" required>
             </div>
 
             <div class="grid-2">
                 <div class="form-group">
-                    <label data-i18n="state">Estado *</label>
-                    <!-- Wrapper for dynamics states -->
-                    <div id="state-wrapper">
-                        <!-- Default text input for "Other" countries or startup -->
-                        <input type="text" id="state-text" style="display: none;">
-                        
-                        <!-- USA States Dropdown -->
-                        <select id="state-us" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
-                        </select>
-                        
-                        <!-- Brazil States Dropdown -->
-                        <select id="state-br" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
-                        </select>
-                    </div>
+                    <label data-i18n="zip">CEP / Zip Code *</label>
+                    <input type="text" id="zip" required>
                 </div>
+                <div class="form-group">
+                    <label data-i18n="apt">Apto / Casa / Compl. (Opcional)</label>
+                    <input type="text" id="apt">
+                </div>
+            </div>
+
+            <div class="grid-2">
                 <div class="form-group">
                     <label data-i18n="city">Cidade *</label>
                     <input type="text" id="city" required>
+                </div>
+                <!-- Dynamic State Selects Hardcoded for stability -->
+                <div class="form-group">
+                    <label data-i18n="state">Estado / Província *</label>
+                    <div id="state-wrapper">
+                        <!-- US States -->
+                        <select id="state-us" style="display: none;">
+                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
+                            <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
+                        </select>
+                        <!-- Brazil States -->
+                        <select id="state-br" style="display: none;">
+                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
+                            <option value="AC">Acre</option><option value="AL">Alagoas</option><option value="AP">Amapá</option><option value="AM">Amazonas</option><option value="BA">Bahia</option><option value="CE">Ceará</option><option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option><option value="GO">Goiás</option><option value="MA">Maranhão</option><option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option><option value="MG">Minas Gerais</option><option value="PA">Pará</option><option value="PB">Paraíba</option><option value="PR">Paraná</option><option value="PE">Pernambuco</option><option value="PI">Piauí</option><option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option><option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option><option value="RR">Roraima</option><option value="SC">Santa Catarina</option><option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
+                        </select>
+                        <!-- Other State Text Input -->
+                        <input type="text" id="state-text" style="display: none;" placeholder="Digite o Estado">
+                    </div>
                 </div>
             </div>
 
@@ -341,19 +351,19 @@
             <div class="form-group">
                 <label data-i18n="baptized">Você é Batizado? *</label>
                 <div class="radio-group" id="radio-baptized">
-                    <label class="radio-option"><input type="radio" name="baptized" value="Católico" required> <span data-i18n="bap_catholic">Católico</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Evangélico"> <span data-i18n="bap_christian">Evangélico</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Quero me batizar"> <span data-i18n="bap_want">Quero me Batizar</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Não"> <span data-i18n="bap_no">Não</span></label>
+                    <label class="radio-option"><input type="radio" name="baptized" value="Católico" data-val-i18n="bap_catholic" required> <span data-i18n="bap_catholic">Católico</span></label>
+                    <label class="radio-option"><input type="radio" name="baptized" value="Evangélico" data-val-i18n="bap_christian"> <span data-i18n="bap_christian">Evangélico</span></label>
+                    <label class="radio-option"><input type="radio" name="baptized" value="Quero me batizar" data-val-i18n="bap_want"> <span data-i18n="bap_want">Quero me Batizar</span></label>
+                    <label class="radio-option"><input type="radio" name="baptized" value="Não" data-val-i18n="bap_no"> <span data-i18n="bap_no">Não</span></label>
                 </div>
             </div>
 
             <div class="form-group" style="margin-top: 24px;">
                 <label data-i18n="gc">Você participa de um GC (Small Group)? *</label>
                 <div class="radio-group" id="radio-gc">
-                    <label class="radio-option"><input type="radio" name="gc" value="Sim" required> <span data-i18n="gc_yes">Sim</span></label>
-                    <label class="radio-option"><input type="radio" name="gc" value="Quero participar"> <span data-i18n="gc_want">Quero participar</span></label>
-                    <label class="radio-option"><input type="radio" name="gc" value="Não"> <span data-i18n="gc_no">Não</span></label>
+                    <label class="radio-option"><input type="radio" name="gc" value="Sim" data-val-i18n="gc_yes" required> <span data-i18n="gc_yes">Sim</span></label>
+                    <label class="radio-option"><input type="radio" name="gc" value="Quero participar" data-val-i18n="gc_want"> <span data-i18n="gc_want">Quero participar</span></label>
+                    <label class="radio-option"><input type="radio" name="gc" value="Não" data-val-i18n="gc_no"> <span data-i18n="gc_no">Não</span></label>
                 </div>
             </div>
 
@@ -366,60 +376,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
     
     <script>
-        // Supabase Initialization
-        const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // International Phone Setup
-        const phoneInputField = document.querySelector("#phone");
-        const phoneInput = window.intlTelInput(phoneInputField, {
-            initialCountry: "us", // Auto selects US +1
-            preferredCountries: ["us", "br"], // Pins US and Brazil to top
-            separateDialCode: true,
-            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
-        });
-
-        // 50 US States & 27 BR States Array Initialization
-        const usStates = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
-        const brStates = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
-        
-        function populateStates() {
-            const usSelect = document.getElementById("state-us");
-            usStates.forEach(state => usSelect.add(new Option(state, state)));
-            const brSelect = document.getElementById("state-br");
-            brStates.forEach(state => brSelect.add(new Option(state, state)));
-        }
-        populateStates(); // run once
-
-        // Logic to swap state dropdowns based on country
-        function handleCountryChange() {
-            const country = document.getElementById('country').value;
-            const stateText = document.getElementById('state-text');
-            const stateUS = document.getElementById('state-us');
-            const stateBR = document.getElementById('state-br');
-
-            // Hide and un-require all first
-            [stateText, stateUS, stateBR].forEach(el => {
-                el.style.display = 'none';
-                el.required = false;
-                el.value = ""; // clear value when swapped
-            });
-
-            if (country === 'US') {
-                stateUS.style.display = 'block';
-                stateUS.required = true;
-            } else if (country === 'BR') {
-                stateBR.style.display = 'block';
-                stateBR.required = true;
-            } else {
-                stateText.style.display = 'block';
-                stateText.required = true;
-                stateText.placeholder = translations[document.getElementById('languageSelector').value].state_text_ph;
-            }
-        }
-
-        // --- Translations System ---
+        // -- Advanced Realtime Translations --
         const translations = {
             pt: {
                 church_name: "Lagoinha Orlando",
@@ -440,14 +397,16 @@
                 contact_info: "Contato e Residência",
                 phone: "Telefone (WhatsApp) *",
                 email: "E-mail *",
-                country: "País *",
+                address: "Endereço (Rua, Número) *",
+                zip: "CEP / Zip Code *",
+                apt: "Apto / Casa / Compl. (Opcional)",
+                country: "País de Residência *",
                 country_select: "Selecione o País...",
-                country_us: "Estados Unidos",
+                country_us: "Estados Unidos (USA)",
                 country_br: "Brasil",
-                country_other: "Outro País...",
                 state: "Estado / Província *",
-                state_select: "Selecione...",
-                state_text_ph: "Digite o Estado",
+                state_select: "Selecione o Estado...",
+                state_text_ph: "Digite seu Estado",
                 city: "Cidade *",
                 additional_info: "Informação Adicional",
                 baptized: "Você é Batizado? *",
@@ -483,11 +442,13 @@
                 contact_info: "Contact and Address",
                 phone: "WhatsApp Number *",
                 email: "Email *",
+                address: "Street Address *",
+                zip: "Zip / Postal Code *",
+                apt: "Apt / Suite / Other (Optional)",
                 country: "Country *",
                 country_select: "Select Country...",
                 country_us: "United States",
                 country_br: "Brazil",
-                country_other: "Other...",
                 state: "State / Province *",
                 state_select: "Select State...",
                 state_text_ph: "Enter your state",
@@ -526,11 +487,13 @@
                 contact_info: "Contacto y Dirección",
                 phone: "Teléfono (WhatsApp) *",
                 email: "Correo Electrónico *",
+                address: "Dirección (Calle) *",
+                zip: "Código Postal *",
+                apt: "Apto / Casa (Opcional)",
                 country: "País *",
                 country_select: "Seleccione un País...",
                 country_us: "Estados Unidos",
                 country_br: "Brasil",
-                country_other: "Otro...",
                 state: "Estado / Provincia *",
                 state_select: "Seleccionar...",
                 state_text_ph: "Ingrese su estado",
@@ -553,56 +516,76 @@
         };
 
         function changeLanguage() {
-            const lang = document.getElementById('languageSelector').value;
-            const t = translations[lang];
+            try {
+                const lang = document.getElementById('languageSelector').value;
+                const t = translations[lang];
 
-            // 1. Update all inner texts via data-attribute
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (t[key]) {
-                    el.innerText = t[key];
-                }
-            });
+                // 1. Text Labels (Robust loop, never crashes)
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (t[key]) {
+                        el.innerText = t[key];
+                    }
+                });
 
-            // 2. Also update the underlying "values" of the radio buttons and selects so the database records English answers!
-            // Radio: Baptized
-            const bapRadios = document.querySelectorAll('input[name="baptized"]');
-            bapRadios[0].value = t.bap_catholic;
-            bapRadios[1].value = t.bap_christian;
-            bapRadios[2].value = t.bap_want;
-            bapRadios[3].value = t.bap_no;
-
-            // Radio: GC
-            const gcRadios = document.querySelectorAll('input[name="gc"]');
-            gcRadios[0].value = t.gc_yes;
-            gcRadios[1].value = t.gc_want;
-            gcRadios[2].value = t.gc_no;
-
-            // Select: Marital Status
-            const marSelect = document.getElementById('maritalStatus');
-            marSelect.options[1].value = t.single;
-            marSelect.options[2].value = t.married;
-            marSelect.options[3].value = t.divorced;
-            marSelect.options[4].value = t.widowed;
-
-            // Select: Gender
-            const genSelect = document.getElementById('gender');
-            genSelect.options[1].value = t.gender_m;
-            genSelect.options[2].value = t.gender_f;
-            
-            // Re-eval placeholder if country is Other
-            const stateText = document.getElementById('state-text');
-            if(stateText.style.display !== 'none') {
-                stateText.placeholder = t.state_text_ph;
+                // 2. Values (for dropdowns and radios to save english to db)
+                document.querySelectorAll('[data-val-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-val-i18n');
+                    if (t[key]) {
+                        el.value = t[key];
+                    }
+                });
+                
+                // 3. Placeholders
+                const stateText = document.getElementById('state-text');
+                if(stateText) stateText.placeholder = t.state_text_ph;
+                
+            } catch(e) {
+                console.error("Translation Engine Warning: ", e);
             }
         }
         
-        // Initial defaults
-        handleCountryChange(); 
-        changeLanguage();
+        // -- Country Logic --
+        function handleCountryChange() {
+            try {
+                const country = document.getElementById('country').value;
+                const stateText = document.getElementById('state-text');
+                const stateUS = document.getElementById('state-us');
+                const stateBR = document.getElementById('state-br');
 
+                // Hide all
+                stateText.style.display = 'none'; stateText.required = false; stateText.value = "";
+                stateUS.style.display = 'none'; stateUS.required = false; stateUS.value = "";
+                stateBR.style.display = 'none'; stateBR.required = false; stateBR.value = "";
 
-        // Form Submit Handler
+                if (country === 'US') {
+                    stateUS.style.display = 'block';
+                    stateUS.required = true;
+                } else if (country === 'BR') {
+                    stateBR.style.display = 'block';
+                    stateBR.required = true;
+                } else {
+                    stateText.style.display = 'block';
+                    stateText.required = true;
+                }
+            } catch (e) { console.error("Country Logic Warning: ", e); }
+        }
+
+        // Apply on Start
+        window.addEventListener('DOMContentLoaded', () => {
+            handleCountryChange(); 
+            changeLanguage();
+            
+            // International Phone Setup (Waits for DOM to load to prevent CSS clashing)
+            window.phoneInput = window.intlTelInput(document.querySelector("#phone"), {
+                initialCountry: "us",
+                preferredCountries: ["us", "br"],
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
+            });
+        });
+
+        // -- Submit Logic --
         async function handleFormSubmit(event) {
             event.preventDefault();
             
@@ -614,8 +597,14 @@
             btn.disabled = true;
 
             try {
+                // Initialize Supabase
+                const supabase = window.supabase.createClient(
+                    'https://uyseheucqikgcorrygzc.supabase.co', 
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI'
+                );
+
                 // Fetch the full international phone number mapped by the plugin
-                const fullPhoneStr = phoneInput.getNumber(); 
+                const fullPhoneStr = window.phoneInput.getNumber(); 
 
                 // Resolve which State input was used
                 let finalState = "";
@@ -623,6 +612,9 @@
                 if(country === 'US') finalState = document.getElementById('state-us').value;
                 else if (country === 'BR') finalState = document.getElementById('state-br').value;
                 else finalState = document.getElementById('state-text').value;
+
+                // Format Full Address string
+                const addressStr = `${document.getElementById('address').value}, ${document.getElementById('apt').value || ''} - ${document.getElementById('city').value}, ${finalState} - ${country} (${document.getElementById('zip').value})`;
 
                 const leadData = {
                     workspace_id: '00000000-0000-0000-0000-000000000000',
@@ -633,21 +625,14 @@
                     tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
                 };
 
-                const { data, error } = await supabase
-                    .from('leads')
-                    .insert([leadData])
-                    .select();
-                
+                const { data, error } = await supabase.from('leads').insert([leadData]).select();
                 if (error) throw error;
                 
-                // Show Success Screen
                 document.getElementById('successScreen').classList.add('active');
-                
                 let count = 3;
-                const countEl = document.getElementById('countdown');
                 const interval = setInterval(() => {
                     count--;
-                    if(countEl) countEl.innerText = count;
+                    document.getElementById('countdown').innerText = count;
                     if(count <= 0) {
                         clearInterval(interval);
                         window.location.href = "https://www.lagoinhaorlandochurch.com";
