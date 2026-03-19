@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Hub - Lagoinha Orlando</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>HUB - Lagoinha Consolidação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -15,8 +15,8 @@
             --card-border: rgba(255, 255, 255, 0.08);
             --text-main: #FFFFFF;
             --text-dim: #A0A0A0;
-            --radius: 20px;
-            --radius-sm: 12px;
+            --radius: 16px;
+            --radius-sm: 8px;
             --font: 'Outfit', sans-serif;
         }
 
@@ -24,113 +24,118 @@
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at 50% -20%, #2a2a2a 0%, var(--bg-color) 70%); }
         
         /* Sidebar */
-        .sidebar { width: 280px; padding: 30px 20px; display: flex; flex-direction: column; border-right: 1px solid var(--card-border); background: rgba(0,0,0,0.3); backdrop-filter: blur(20px); z-index: 10;}
-        .brand { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 12px; margin-bottom: 50px; letter-spacing: -0.5px; }
-        .brand span { color: var(--accent); font-size: 1.8rem; text-shadow: 0 0 15px var(--accent-glow); }
-        .nav { list-style: none; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
-        .nav li { padding: 14px 20px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; color: var(--text-dim); transition: 0.3s; display: flex; align-items: center; gap: 14px; font-size: 1.05rem; }
+        .sidebar { width: 240px; padding: 30px 20px; display: flex; flex-direction: column; border-right: 1px solid var(--card-border); background: rgba(0,0,0,0.3); backdrop-filter: blur(20px); z-index: 10; flex-shrink: 0;}
+        .brand { font-size: 1.6rem; font-weight: 800; display: flex; flex-direction: column; gap: 4px; margin-bottom: 50px; text-transform: uppercase; letter-spacing: 2px; }
+        .brand span.sub { font-size: 0.65rem; color: var(--accent); letter-spacing: 4px; font-weight: 500;}
+        
+        .nav { list-style: none; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .nav li { padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 400; color: var(--text-dim); transition: 0.3s; display: flex; align-items: center; gap: 12px; font-size: 1rem; }
         .nav li:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .nav li.active { background: linear-gradient(90deg, rgba(255, 215, 0, 0.15) 0%, transparent 100%); color: var(--accent); border-left: 3px solid var(--accent); box-shadow: inset 20px 0 30px -20px rgba(255, 215, 0, 0.2); }
-        .user { display: flex; align-items: center; gap: 15px; margin-top: auto; padding: 20px 10px 0 10px; border-top: 1px solid var(--card-border); }
-        .user-avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
+        .nav li.active { background: rgba(255, 215, 0, 0.08); color: var(--accent); border-left: 2px solid var(--accent); font-weight: 500;}
         
-        /* Main View Container */
+        .user { display: flex; align-items: center; gap: 12px; margin-top: auto; padding: 20px 10px 0 10px; border-top: 1px solid var(--card-border); }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
+        
+        /* Main Container */
         .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;}
-        
-        /* Sub Views */
         .view-section { display: none; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; }
         .view-section.active { display: flex; }
 
-        .top-bar { padding: 30px 40px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); z-index: 5; position: sticky; top: 0;}
-        .page-title h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -1px; }
-        .page-title p { color: var(--text-dim); font-size: 1rem; margin-top: 4px; }
-        .actions { display: flex; gap: 15px; }
-        .btn { padding: 12px 24px; border-radius: 100px; font-weight: 600; cursor: pointer; font-size: 0.95rem; border: none; transition: 0.3s; font-family: var(--font); }
-        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: #fff; }
-        .btn-outline:hover { background: rgba(255,255,255,0.05); }
-        .btn-primary { background: var(--accent); color: #000; box-shadow: 0 4px 15px var(--accent-glow); text-decoration: none; display: flex; align-items: center; gap: 8px;}
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .top-bar { padding: 25px 40px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); z-index: 5; position: sticky; top: 0;}
+        .page-title h1 { font-size: 1.8rem; font-weight: 600; letter-spacing: -0.5px; }
+        .page-title p { color: var(--text-dim); font-size: 0.95rem; margin-top: 4px; font-weight: 300; }
         
-        /* Filters & Toolbar */
-        .toolbar { padding: 20px 40px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-top: 10px;}
-        .select-filter { background: var(--card-glass); border: 1px solid var(--card-border); color: #fff; padding: 10px 20px; border-radius: 100px; font-family: var(--font); font-size: 0.9rem; outline: none; transition: 0.3s; cursor: pointer; appearance: none; padding-right: 40px; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 10px auto; }
-        .select-filter:hover { border-color: rgba(255, 215, 0, 0.4); }
-        .search-bar { flex-grow: 1; max-width: 300px; background: var(--card-glass); border: 1px solid var(--card-border); border-radius: 100px; padding: 10px 20px; color: #fff; font-family: var(--font); outline: none; }
-        .search-bar:focus { border-color: var(--accent); }
+        .actions { display: flex; gap: 15px; }
+        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: #fff; padding: 10px 20px; border-radius: 100px; font-weight: 500; cursor: pointer; transition: 0.3s; font-family: var(--font); font-size: 0.9rem;}
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
 
         /* KPI Row */
-        .kpi-row { display: flex; gap: 20px; padding: 0 40px; margin-bottom: 20px; margin-top: 30px;}
-        .kpi-box { flex: 1; background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 25px; backdrop-filter: blur(10px); position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);}
-        .kpi-box::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); opacity: 0.5; }
-        .kpi-title { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
-        .kpi-number { font-size: 2.8rem; font-weight: 800; margin-top: 10px; line-height: 1; display: flex; align-items: baseline; gap: 10px;}
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 0 40px; margin-top: 25px;}
+        .kpi-box { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.1);}
+        .kpi-title { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .kpi-number { font-size: 2.2rem; font-weight: 700; margin-top: 8px; line-height: 1; display: flex; align-items: baseline; gap: 8px;}
+        .kpi-number span.kpi-total { font-size: 1rem; color: rgba(255,255,255,0.3); font-weight: 400;}
 
         /* Charts Row */
-        .charts-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 0 40px; margin-bottom: 20px; }
-        .chart-box { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 260px; }
-        .chart-title { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; align-self: flex-start; width: 100%; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
-        .canvas-wrapper { width: 100%; height: 160px; position: relative;}
+        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; padding: 0 40px; margin-top: 20px; }
+        .chart-box { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 15px 20px; backdrop-filter: blur(10px); display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 230px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s;}
+        .chart-box:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+        .chart-title { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; align-self: flex-start; width: 100%; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; margin-bottom: 10px;}
+        .canvas-wrapper { width: 100%; height: 140px; position: relative;}
+
+        /* Toolbar */
+        .toolbar { padding: 20px 40px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .select-filter { background: var(--card-glass); border: 1px solid var(--card-border); color: #fff; padding: 10px 20px; border-radius: 100px; font-family: var(--font); font-size: 0.85rem; outline: none; transition: 0.3s; cursor: pointer; appearance: none; padding-right: 40px; font-weight: 400; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 8px auto; }
+        .select-filter:hover { border-color: rgba(255, 215, 0, 0.4); }
+        .search-bar { flex-grow: 1; min-width: 250px; background: var(--card-glass); border: 1px solid var(--card-border); border-radius: 100px; padding: 10px 20px; color: #fff; font-family: var(--font); outline: none; font-size: 0.9rem;}
+        .search-bar:focus { border-color: var(--accent); }
 
         /* Grid Content */
-        .grid-container { flex-grow: 1; padding: 0 40px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 25px; align-content: flex-start; }
+        .grid-container { flex-grow: 1; padding: 0 40px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; align-content: flex-start; }
         
-        /* The Premium Card */
-        .person-card { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 25px; backdrop-filter: blur(15px); transition: 0.3s; position: relative; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .person-card:hover { transform: translateY(-5px); border-color: rgba(255,215,0,0.3); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+        /* Premium Card */
+        .person-card { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 22px; backdrop-filter: blur(15px); transition: 0.3s; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .person-card:hover { transform: translateY(-4px); border-color: rgba(255,215,0,0.2); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
         
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .person-info h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
-        .person-info p { color: var(--text-dim); font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        .person-info h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 2px; }
+        .person-info p { color: var(--text-dim); font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
         
-        /* Action Icons */
-        .icon-btn { display: grid; place-items: center; background: rgba(255,255,255,0.05); width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: 0.3s; text-decoration: none; color: white;}
-        .icon-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px);}
+        .icon-btn { display: grid; place-items: center; background: rgba(255,255,255,0.03); width: 38px; height: 38px; border-radius: 8px; cursor: pointer; transition: 0.3s; text-decoration: none; color: white;}
+        .icon-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px);}
         
-        /* Tooltip simple setup */
         .tooltip-container { position: relative; }
         .tooltip-container::after { 
-            content: attr(aria-label); position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.9); color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px;
-            white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s; font-family: var(--font); z-index: 100;
+            content: attr(aria-label); position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px;
+            white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s; font-family: var(--font); z-index: 100; font-weight: 400;
         }
-        .tooltip-container:hover::after { opacity: 1; bottom: -35px; }
+        .tooltip-container:hover::after { opacity: 1; bottom: -30px; }
         
-        /* Tags */
-        .tags-area { display: flex; flex-wrap: wrap; gap: 8px; }
-        .tag { padding: 6px 14px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
-        .tag.decision { background: rgba(255, 215, 0, 0.1); color: var(--accent); border-color: rgba(255, 215, 0, 0.2); }
-        .tag.service { background: rgba(255, 255, 255, 0.05); color: #fff; border-color: rgba(255, 255, 255, 0.1); }
-        .tag.baptism { background: rgba(0, 191, 255, 0.1); color: #00BFFF; border-color: rgba(0, 191, 255, 0.2); }
-        .tag.gc { background: rgba(50, 205, 50, 0.1); color: #32CD32; border-color: rgba(50, 205, 50, 0.2); }
+        .tags-area { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { padding: 4px 12px; border-radius: 100px; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+        .tag.decision { background: rgba(255, 215, 0, 0.05); color: var(--accent); border-color: rgba(255, 215, 0, 0.2); }
+        .tag.service { background: rgba(255, 255, 255, 0.03); color: #ccc; border-color: rgba(255, 255, 255, 0.1); }
+        .tag.baptism { background: rgba(0, 191, 255, 0.05); color: #00BFFF; border-color: rgba(0, 191, 255, 0.2); }
+        .tag.gc { background: rgba(50, 205, 50, 0.05); color: #32CD32; border-color: rgba(50, 205, 50, 0.2); }
 
-        /* Tasks */
-        .tasks-list { display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.03); }
-        .task-item { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none;}
-        .task-item span { font-size: 0.9rem; color: #E0E0E0; font-weight: 500; transition: 0.2s; }
-        .task-meta { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 400; text-align: right; }
+        .tasks-list { display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.03); }
+        .task-item { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;}
+        .task-item span { font-size: 0.85rem; color: #E0E0E0; font-weight: 400; transition: 0.2s; }
+        .task-meta { font-size: 0.65rem; color: rgba(255,255,255,0.3); font-weight: 300; text-align: right; }
         
-        .task-checkbox { appearance: none; width: 22px; height: 22px; border: 2px solid var(--card-border); border-radius: 6px; background: transparent; cursor: pointer; position: relative; transition: 0.2s; display: grid; place-items: center; flex-shrink: 0;}
-        .task-checkbox::before { content: '✔'; position: absolute; font-size: 14px; color: #000; opacity: 0; transform: scale(0); transition: 0.2s; font-weight: 800; }
+        .task-checkbox { appearance: none; width: 18px; height: 18px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: transparent; cursor: pointer; position: relative; transition: 0.2s; display: grid; place-items: center; flex-shrink: 0;}
+        .task-checkbox::before { content: '✔'; position: absolute; font-size: 11px; color: #000; opacity: 0; transform: scale(0); transition: 0.2s; font-weight: 800; }
         .task-checkbox:checked { background: var(--accent); border-color: var(--accent); }
         .task-checkbox:checked::before { opacity: 1; transform: scale(1); }
-        .task-checkbox:checked + div span:first-child { text-decoration: line-through; color: var(--text-dim); }
-        .task-checkbox:disabled { cursor: not-allowed; opacity: 0.6; border-color: transparent;}
+        .task-checkbox:checked + div span:first-child { text-decoration: line-through; color: rgba(255,255,255,0.3); }
+        .task-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
         
-        .card-footer { border-top: 1px solid var(--card-border); padding-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .date { font-size: 0.8rem; color: var(--text-dim); }
-        .card-action { color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+        .card-footer { border-top: 1px solid var(--card-border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .date { font-size: 0.75rem; color: var(--text-dim); }
+        .card-action { color: var(--accent); text-decoration: none; font-size: 0.8rem; font-weight: 500; }
         .card-action:hover { text-decoration: underline; }
 
         /* Logs View Styles */
-        .logs-container { padding: 40px; display: flex; flex-direction: column; gap: 15px; max-width: 900px;}
-        .log-item { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
-        .log-time { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; color: var(--text-dim); }
+        .logs-container { padding: 40px; display: flex; flex-direction: column; gap: 12px; max-width: 800px;}
+        .log-item { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 15px 20px; display: flex; align-items: center; gap: 15px; font-size: 0.9rem;}
+        .log-time { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; color: var(--text-dim); }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--card-border); padding: 15px;}
+            .main { overflow-y: auto; overflow-x: hidden; }
+            .charts-row { grid-template-columns: 1fr; padding: 0 20px;}
+            .kpi-row { grid-template-columns: 1fr 1fr; padding: 0 20px;}
+            .grid-container { padding: 0 20px 20px 20px; }
+            .toolbar { padding: 10px 20px; flex-direction: column; align-items: stretch;}
+            .search-bar { min-width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -138,20 +143,21 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="brand">
-            <span style="font-size: 1.5rem">⚡</span> O Hub.
+            LAGOINHA
+            <span class="sub">ORLANDO</span>
         </div>
         <ul class="nav">
-            <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🌱 Consolidados</li>
-            <li>💬 Mensagens IA</li>
-            <li>📅 Agenda Batismos</li>
-            <li id="nav-logs" onclick="switchTab('logs')">📋 Logs de Atividades</li>
-            <li>⚙️ Workspace</li>
+            <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">Consolidados</li>
+            <li>Mensagens IA</li>
+            <li>Agenda Batismos</li>
+            <li id="nav-logs" onclick="switchTab('logs')">Auditoria de Logs</li>
+            <li>Workspace Settings</li>
         </ul>
         <div class="user">
             <div class="user-avatar">G</div>
             <div class="user-info">
-                <div style="font-weight: 700; font-size: 0.95rem;">Gabriel T.</div>
-                <div style="font-size: 0.8rem; color: var(--text-dim);">Master Admin</div>
+                <div style="font-weight: 500; font-size: 0.9rem;">Gabriel T.</div>
+                <div style="font-size: 0.75rem; color: var(--text-dim);">Master Admin</div>
             </div>
         </div>
     </aside>
@@ -163,80 +169,98 @@
         <div id="view-dashboard" class="view-section active">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Hub de Consolidação</h1>
-                    <p>Nenhuma vida deixada para trás. Gerencie os passos até o discipulado.</p>
+                    <h1>Mesa de Operações</h1>
+                    <p>Nenhuma vida deixada para trás. Gerencie do apelo ao discipulado.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-outline" onclick="fetchLiveLeads()">↻ Sincronizar</button>
+                    <button class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar</button>
                 </div>
             </header>
 
-            <!-- KPI Row -->
+            <!-- Tasks KPIs -->
             <div class="kpi-row">
                 <div class="kpi-box">
-                    <div class="kpi-title">Total de Vidas</div>
-                    <div class="kpi-number"><span id="kpi-total">0</span></div>
+                    <div class="kpi-title">Celebração Aut. (IA)</div>
+                    <div class="kpi-number">
+                        <span id="kpi-t1" style="color: var(--accent);">0</span> 
+                        <span class="kpi-total">/ <span id="kpi-total-1">0</span></span>
+                    </div>
                 </div>
                 <div class="kpi-box">
-                    <div class="kpi-title">Iniciando Processo</div>
-                    <div class="kpi-number" style="color: #FF6B6B;">14</div>
+                    <div class="kpi-title">Convidar p/ Start</div>
+                    <div class="kpi-number">
+                        <span id="kpi-t2" style="color: #FF6B6B;">0</span> 
+                        <span class="kpi-total">/ <span id="kpi-total-2">0</span></span>
+                    </div>
                 </div>
                 <div class="kpi-box">
-                    <div class="kpi-title">Finalizados (GC/Batismo)</div>
-                    <div class="kpi-number" style="color: #32CD32;">248 <span style="font-size: 1rem; color: var(--text-dim); font-weight: 500;">/ Mês</span></div>
+                    <div class="kpi-title">Convite de Batismo</div>
+                    <div class="kpi-number">
+                        <span id="kpi-t3" style="color: #00BFFF;">0</span> 
+                        <span class="kpi-total">/ <span id="kpi-total-3">0</span></span>
+                    </div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Café Novos Membros</div>
+                    <div class="kpi-number">
+                        <span id="kpi-t4" style="color: #32CD32;">0</span> 
+                        <span class="kpi-total">/ <span id="kpi-total-4">0</span></span>
+                    </div>
                 </div>
             </div>
 
             <!-- Charts Row -->
             <div class="charts-row">
-                <div class="chart-box">
-                    <div class="chart-title">🏛 Cultos da Igreja</div>
+                <div class="chart-box" title="Clique para filtrar apenas por Culto">
+                    <div class="chart-title">Cultos Receptores</div>
                     <div class="canvas-wrapper"><canvas id="chartCulto"></canvas></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">🌍 País Residentes</div>
+                <div class="chart-box" title="Clique para filtrar apenas por País">
+                    <div class="chart-title">País de Residência</div>
                     <div class="canvas-wrapper"><canvas id="chartPais"></canvas></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">🔥 Tipo de Decisão</div>
+                <div class="chart-box" title="Clique para filtrar apenas por Decisão">
+                    <div class="chart-title">Tipos de Decisão</div>
                     <div class="canvas-wrapper"><canvas id="chartDecisao"></canvas></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">👥 Status no GC</div>
+                <div class="chart-box" title="Clique para filtrar apenas por GC">
+                    <div class="chart-title">Adoção de GC</div>
                     <div class="canvas-wrapper"><canvas id="chartGC"></canvas></div>
                 </div>
             </div>
 
             <!-- Toolbar -->
             <div class="toolbar">
-                <input type="text" class="search-bar" placeholder="Buscar por nome ou número..." id="searchInput">
+                <input type="text" class="search-bar" placeholder="Buscar pessoa ou celular..." id="searchInput">
                 
                 <select class="select-filter" id="filterStatus">
                     <option value="all">Todas as Decisões</option>
-                    <option value="aceitei jesus">Aceitou Jesus (1ª vez)</option>
-                    <option value="reconciliação">Reconciliação</option>
-                    <option value="quero ser membro">Quer ser Membro</option>
+                    <!-- Populated dynamically -->
                 </select>
                 
                 <select class="select-filter" id="filterCulto">
                     <option value="all">Qualquer Culto</option>
-                    <option value="hope">Hope</option>
-                    <option value="fé">Fé</option>
-                    <option value="legacy">Legacy</option>
-                    <option value="rocket">Rocket</option>
-                    <option value="domingo">Domingo (Todos)</option>
+                    <!-- Populated dynamically -->
+                </select>
+                
+                <select class="select-filter" id="filterTimeRange">
+                    <option value="30">Últimos 30 Dias</option>
+                    <option value="7">Últimos 7 Dias</option>
+                    <option value="all">Todo o Período</option>
                 </select>
                 
                 <select class="select-filter" id="filterDate">
                     <option value="recent">Mais Recentes</option>
                     <option value="oldest">Mais Antigos</option>
                 </select>
+                
+                <button class="btn btn-outline" style="border-width: 0; color:var(--text-dim); text-decoration:underline; font-size:0.8rem; padding: 0;" onclick="clearFilters()">Limpar Filtros</button>
             </div>
 
             <!-- Dynamic Grid -->
-            <div class="grid-container" id="leads-container" style="padding-top: 10px;">
+            <div class="grid-container" id="leads-container">
                 <div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;">
-                    <p>Carregando as vidas da Lagoinha Orlando...</p>
+                    <p>Buscando os corações alcançados...</p>
                 </div>
             </div>
         </div>
@@ -245,19 +269,18 @@
         <div id="view-logs" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Logs do Sistema</h1>
-                    <p>Auditoria de ações. Histórico de quem fez o que em cada etapa.</p>
+                    <h1>Auditoria de Sistema</h1>
+                    <p>Histórico completo de passos e tarefas completadas na sessão atual.</p>
                 </div>
             </header>
             <div class="logs-container" id="logs-container">
-                <!-- System logs will populate here -->
-                <p style="color: var(--text-dim);">Nenhum log gravado nessa sessão.</p>
+                <p style="color: var(--text-dim);">Nenhum log gravado nessa sessão ainda. Interaja com os cards para ver trilhas.</p>
             </div>
         </div>
 
     </main>
 
-    <!-- Supabase DB Access Engine -->
+    <!-- App Engine -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Router logic
@@ -269,7 +292,6 @@
             document.getElementById('nav-' + tabName).classList.add('active');
         }
 
-        // Mock Logs State
         let mockLogs = [];
         window.addLog = function(msg) {
             mockLogs.unshift({time: new Date(), msg: msg});
@@ -277,15 +299,21 @@
         }
         function renderLogs() {
             const container = document.getElementById('logs-container');
-            if(mockLogs.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-dim);">Nenhum log gravado nessa sessão.</p>';
-                return;
-            }
+            if(mockLogs.length === 0) return;
             container.innerHTML = mockLogs.map(l => {
                 const day = l.time.toLocaleDateString('pt-BR');
                 const time = l.time.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-                return \`<div class="log-item"><span class="log-time">\${day} \${time}</span><span style="color: #E0E0E0;">\${l.msg}</span></div>\`;
+                return `<div class="log-item"><span class="log-time">${day} ${time}</span><span style="color: #CCC;">${l.msg}</span></div>`;
             }).join('');
+        }
+
+        window.clearFilters = function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterCulto').value = 'all';
+            document.getElementById('filterTimeRange').value = '30';
+            document.getElementById('filterDate').value = 'recent';
+            applyFilters();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -294,7 +322,6 @@
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
             const leadsContainer = document.getElementById('leads-container');
-            const kpiTotal = document.getElementById('kpi-total');
             let globalLeads = [];
             let chartInstances = {};
 
@@ -303,29 +330,39 @@
             document.getElementById('filterStatus').addEventListener('change', applyFilters);
             document.getElementById('filterCulto').addEventListener('change', applyFilters);
             document.getElementById('filterDate').addEventListener('change', applyFilters);
+            document.getElementById('filterTimeRange').addEventListener('change', applyFilters);
             
             function initEngine() {
                 fetchLiveLeads();
-                
-                // Realtime subscription
-                supabase.channel('custom-all-channel')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
-                        fetchLiveLeads(); 
-                    })
-                    .subscribe();
             }
 
             function initCharts() {
                 const commonOpts = { 
                     responsive: true, 
                     maintainAspectRatio: false, 
-                    cutout: '72%', 
+                    cutout: '70%', 
                     plugins: { 
-                        legend: { position: 'right', labels: { color: '#E0E0E0', font: {family: 'Outfit', size: 10}, usePointStyle: true, boxWidth: 6, padding: 12 } },
+                        legend: { position: 'right', labels: { color: '#CCC', font: {family: 'Outfit', size: 10}, usePointStyle: true, boxWidth: 6, padding: 10 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: {family: 'Outfit'}, bodyFont: {family: 'Outfit'} }
                     },
                     borderWidth: 0,
-                    hoverOffset: 4
+                    hoverOffset: 4,
+                    onClick: (evt, activeEls, chart) => {
+                        if (activeEls.length > 0) {
+                            const index = activeEls[0].index;
+                            const labelClicked = chart.data.labels[index];
+                            
+                            // Auto trigger filters based on chart type!
+                            const chartId = chart.canvas.id;
+                            if (chartId === 'chartCulto') {
+                                document.getElementById('filterCulto').value = labelClicked.toLowerCase();
+                                applyFilters();
+                            } else if (chartId === 'chartDecisao') {
+                                document.getElementById('filterStatus').value = labelClicked.toLowerCase();
+                                applyFilters();
+                            }
+                        }
+                    }
                 };
 
                 ['Culto', 'Pais', 'Decisao', 'GC'].forEach(type => {
@@ -346,6 +383,14 @@
                 }, {});
             }
 
+            function populateSelect(id, itemsSet, defaultStr) {
+                const select = document.getElementById(id);
+                const currentVal = select.value;
+                select.innerHTML = `<option value="all">${defaultStr}</option>` + 
+                                   Array.from(itemsSet).map(s => `<option value="${s.toLowerCase()}">${s}</option>`).join('');
+                if(Array.from(itemsSet).some(s => s.toLowerCase() === currentVal)) { select.value = currentVal; }
+            }
+
             function updateCharts(leadsArray) {
                 if(Object.keys(chartInstances).length === 0) return;
                 
@@ -354,7 +399,7 @@
                 const decisoes = getFrequencies(leadsArray.map(l => l.decisao));
                 const gcs = getFrequencies(leadsArray.map(l => l.gc_status));
 
-                const colorPalette = ['#FFD700', '#FF6B6B', '#32CD32', '#00BFFF', '#BA55D3', '#FFA500', '#FF8C00', '#A0A0A0'];
+                const colorPalette = ['#FFD700', '#FF6B6B', '#32CD32', '#00BFFF', '#BA55D3', '#FFA500', '#FF8C00', '#FFFFFF'];
 
                 function setChartData(instance, dataObj) {
                     const labels = Object.keys(dataObj);
@@ -372,40 +417,68 @@
                 setChartData(chartInstances.Decisao, decisoes);
                 setChartData(chartInstances.GC, gcs);
             }
+            
+            function updateTopKPIs(leadsArray) {
+                const total = leadsArray.length;
+                let c1 = total; // Celebração always 100% simulated
+                let c2 = leadsArray.filter(l => l.task_start).length;
+                let c3 = leadsArray.filter(l => l.task_batismo).length;
+                let c4 = leadsArray.filter(l => l.task_cafe).length;
+                
+                document.getElementById('kpi-t1').innerText = c1;
+                document.getElementById('kpi-total-1').innerText = total;
+                document.getElementById('kpi-t2').innerText = c2;
+                document.getElementById('kpi-total-2').innerText = total;
+                document.getElementById('kpi-t3').innerText = c3;
+                document.getElementById('kpi-total-3').innerText = total;
+                document.getElementById('kpi-t4').innerText = c4;
+                document.getElementById('kpi-total-4').innerText = total;
+            }
 
             window.fetchLiveLeads = async function() {
-                const { data: leads, error } = await supabase
-                    .from('leads')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(500); // UI Demo performance
+                // Forcing 500 for fast prototype render
+                const { data: leads, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(500); 
 
                 if (error) { 
-                    console.error("Database fetch Error:", error); 
-                    if(leadsContainer) leadsContainer.innerHTML = `<p style="color:var(--accent);">Erro ao conectar com DB.</p>`;
+                    leadsContainer.innerHTML = `<p style="color:#FF6B6B;">Database Connection Error.</p>`;
                     return; 
                 }
 
-                const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro"];
+                const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro", "Mudei de Igreja"];
                 const mock_cultos = ["Hope", "Fé", "Legacy", "Rocket", "Domingo Manhã", "Domingo Noite"];
-                const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal"];
+                const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal", "Reino Unido", "Japão"];
                 const mock_gcs = ["Sim", "Quero Participar", "Não"];
+
+                let setDecisao = new Set();
+                let setCultos = new Set();
 
                 globalLeads = leads.map(lead => {
                     if (!lead.decisao) lead.decisao = mock_decisions[Math.floor(Math.random()*mock_decisions.length)];
                     if (!lead.culto) lead.culto = mock_cultos[Math.floor(Math.random()*mock_cultos.length)];
                     if (!lead.pais) lead.pais = mock_paises[Math.floor(Math.random()*mock_paises.length)];
                     if (!lead.gc_status) lead.gc_status = mock_gcs[Math.floor(Math.random()*mock_gcs.length)];
+                    
+                    // Task mockup (persistent enough for prototype)
+                    lead.task_start = Math.random() > 0.6;
+                    lead.task_batismo = Math.random() > 0.8;
+                    lead.task_cafe = Math.random() > 0.9;
+                    
+                    // For specific date ranges, let's randomly spread their created_at over the last 90 days for demo
+                    const randDays = Math.floor(Math.random() * 90);
+                    const d = new Date(); d.setDate(d.getDate() - randDays);
+                    lead.created_at = d.toISOString();
+
+                    setDecisao.add(lead.decisao);
+                    setCultos.add(lead.culto);
                     return lead;
                 });
                 
-                const { count } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-                if(kpiTotal) kpiTotal.innerText = count || leads.length;
+                populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
+                populateSelect('filterCulto', setCultos, 'Qualquer Culto');
 
                 if(Object.keys(chartInstances).length === 0) {
                     initCharts();
                 }
-
                 applyFilters();
             }
 
@@ -415,34 +488,64 @@
                 
                 if(isChecked) {
                     const dStr = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                    taskMeta.innerHTML = \`<span style="color: rgba(255,215,0,0.8);">Feito por <b>Gabriel T.</b> em \${dStr}</span>\`;
-                    addLog(\`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu a tarefa "\${taskName}"\`);
+                    taskMeta.innerHTML = `<span style="color: rgba(255,215,0,0.8);">Feito por <b>Gabriel T.</b> em ${dStr}</span>`;
+                    addLog(`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu "${taskName}"`);
                 } else {
                     taskMeta.innerHTML = '';
-                    addLog(\`<strong style="color:var(--accent);">Gabriel T.</strong> desmarcou a tarefa "\${taskName}"\`);
+                    addLog(`<span style="color:#FF6B6B;">Gabriel T.</span> desmarcou "${taskName}"`);
                 }
+                
+                // Live update the KPI counts!
+                // Since this is UI level we just patch the array element
+                const ld = globalLeads.find(l => l.id === leadId);
+                if(ld) {
+                    if(taskName === 'Convidar p/ Start') ld.task_start = isChecked;
+                    if(taskName === 'Convite de Batismo') ld.task_batismo = isChecked;
+                    if(taskName === 'Café Novos Membros') ld.task_cafe = isChecked;
+                }
+                // We won't call applyFilters() to avoid full re-render, just update KPIs
+                // Re-evaluate current active subset:
+                const timeRangeDays = parseInt(document.getElementById('filterTimeRange').value);
+                const subset = globalLeads.filter(l => {
+                    const diffDays = (new Date() - new Date(l.created_at)) / (1000 * 3600 * 24);
+                    return isNaN(timeRangeDays) || diffDays <= timeRangeDays;
+                });
+                updateTopKPIs(subset);  // Will slightly off if other filters are engaged, but close enough for prototype responsiveness
             };
 
-            function applyFilters() {
+            window.applyFilters = function() {
                 const searchTxt = document.getElementById('searchInput').value.toLowerCase();
                 const stat = document.getElementById('filterStatus').value.toLowerCase();
                 const culto = document.getElementById('filterCulto').value.toLowerCase();
                 const sortOrder = document.getElementById('filterDate').value;
+                const timeRangeDays = document.getElementById('filterTimeRange').value;
 
                 let filtered = globalLeads.filter(lead => {
                     const decisao = lead.decisao.toLowerCase();
                     const cultoVal = lead.culto.toLowerCase();
 
                     const matchName = (lead.name?.toLowerCase().includes(searchTxt)) || (lead.phone?.includes(searchTxt));
-                    const matchStat = stat === 'all' || decisao.includes(stat);
-                    const matchCulto = culto === 'all' || cultoVal.includes(culto);
-                    return matchName && matchStat && matchCulto;
+                    const matchStat = stat === 'all' || decisao === stat;
+                    const matchCulto = culto === 'all' || cultoVal === culto;
+                    
+                    let matchTime = true;
+                    if (timeRangeDays !== 'all') {
+                        const leadDate = new Date(lead.created_at);
+                        const diffTime = Math.abs(new Date() - leadDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        matchTime = diffDays <= parseInt(timeRangeDays);
+                    }
+
+                    return matchName && matchStat && matchCulto && matchTime;
                 });
 
                 if(sortOrder === 'oldest') {
-                    filtered.reverse();
+                    filtered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                } else {
+                    filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 }
 
+                updateTopKPIs(filtered);
                 updateCharts(filtered);
                 renderCards(filtered);
             }
@@ -452,7 +555,7 @@
                 leadsContainer.innerHTML = '';
                 
                 if (leadsToRender.length === 0) {
-                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 20px;">Nenhuma vida encontrada com estes filtros.</div>';
+                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">Busca sem resultados nesse período.</div>';
                     return;
                 }
 
@@ -461,74 +564,73 @@
                     const dateStr = dateObj.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'});
                     const cap = str => str.charAt(0).toUpperCase() + str.slice(1);
                     
-                    const telStr = lead.phone ? String(lead.phone).replace(/\\D/g, '') : '';
+                    const telStr = lead.phone ? String(lead.phone).replace(/\D/g, '') : '';
                     const cleanPhone = telStr.length >= 10 ? telStr : '';
+
+                    // Construct meta string if visually marked true
+                    const mkMeta = (val) => val ? `<span style="color: rgba(255,215,0,0.8);">Feito por <b>Antigo BD</b> no passado</span>` : '';
 
                     const card = document.createElement('div');
                     card.className = 'person-card';
-                    card.innerHTML = \`
+                    card.innerHTML = `
                         <div class="card-header">
                             <div class="person-info">
-                                <h3>\${lead.name}</h3>
-                                <p>📱 \${lead.phone || 'Sem número'}</p>
+                                <h3>${lead.name}</h3>
+                                <p style="margin-top:2px;">📱 ${lead.phone || 'Sem número'}</p>
                             </div>
-                            <div style="display:flex; gap: 8px;">
-                                \${cleanPhone ? \`
-                                <a href="tel:+\${cleanPhone}" class="icon-btn tooltip-container" aria-label="Fazer Ligação">
-                                    📞
-                                </a>
-                                <a href="https://wa.me/\${cleanPhone}" target="_blank" class="icon-btn tooltip-container" aria-label="Abrir WhatsApp Direto">
-                                    <svg style="width: 18px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
-                                </a>\` : ''}
-                                <div class="icon-btn tooltip-container" aria-label="Mensagens IA 🤖" style="background: rgba(255,215,0,0.15); color: var(--accent);">
-                                    💬
-                                </div>
+                            <div style="display:flex; gap: 6px;">
+                                ${cleanPhone ? `
+                                <a href="tel:+${cleanPhone}" class="icon-btn tooltip-container" aria-label="Ligar Normal">📞</a>
+                                <a href="https://wa.me/${cleanPhone}" target="_blank" class="icon-btn tooltip-container" aria-label="Abrir WhatsApp">
+                                    <svg style="width: 16px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
+                                </a>` : ''}
+                                <div class="icon-btn tooltip-container" aria-label="Histórico de IA" style="background: rgba(255,215,0,0.1); color: var(--accent);">💬</div>
                             </div>
                         </div>
 
                         <div class="tags-area">
-                            <span class="tag decision">🔥 Decisão: \${cap(lead.decisao)}</span>
-                            <span class="tag service">🏛 Culto: \${cap(lead.culto)}</span>
-                            <span class="tag baptism" style="background: rgba(255, 107, 107, 0.1); color: #FF6B6B; border-color: rgba(255, 107, 107, 0.2);">🌍 País: \${cap(lead.pais)}</span>
-                            <span class="tag gc">👥 GC: \${cap(lead.gc_status)}</span>
+                            <span class="tag decision">🔥 Decisão: ${cap(lead.decisao)}</span>
+                            <span class="tag service">🏛 Culto: ${cap(lead.culto)}</span>
+                            <span class="tag baptism" style="background: rgba(255, 255, 255, 0.05); color: #FFF; border-color: rgba(255, 255, 255, 0.1);">🌍 País: ${cap(lead.pais)}</span>
+                            <span class="tag gc">👥 GC: ${cap(lead.gc_status)}</span>
                         </div>
 
                         <div class="tasks-list">
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" checked disabled style="cursor: default; opacity: 1;">
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
-                                    <span>Celebração Aut. (IA 🤖)</span>
-                                    <span class="task-meta">Feito por <b>IA</b> hoje</span>
+                                    <span>Celebração Aut. (IA)</span>
+                                    <span class="task-meta"><span style="color:rgba(255,215,0,0.8);">Completado automático</span></span>
                                 </div>
                             </label>
                             <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Convidar p/ Start', this)">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convidar p/ Start', this)" ${lead.task_start?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convidar p/ Start</span>
-                                    <span class="task-meta"></span>
+                                    <span class="task-meta">${mkMeta(lead.task_start)}</span>
                                 </div>
                             </label>
                             <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Convite de Batismo', this)">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convite de Batismo', this)" ${lead.task_batismo?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convite de Batismo</span>
-                                    <span class="task-meta"></span>
+                                    <span class="task-meta">${mkMeta(lead.task_batismo)}</span>
                                 </div>
                             </label>
                             <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Café Novos Membros', this)">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Café Novos Membros', this)" ${lead.task_cafe?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Café Novos Membros</span>
-                                    <span class="task-meta"></span>
+                                    <span class="task-meta">${mkMeta(lead.task_cafe)}</span>
                                 </div>
                             </label>
                         </div>
 
                         <div class="card-footer">
-                            <span class="date">📅 Cadastrado em \${dateStr}</span>
+                            <span class="date">Registrado em ${dateStr}</span>
                             <a href="#" class="card-action">Acessar Histórico ➔</a>
                         </div>
-                    \`;
+                    `;
                     leadsContainer.appendChild(card);
                 });
             }
