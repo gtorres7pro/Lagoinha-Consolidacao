@@ -129,14 +129,73 @@
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
         
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--card-border); padding: 15px;}
-            .main { overflow-y: auto; overflow-x: hidden; }
+            body { flex-direction: column; background: var(--bg-color); }
+            .sidebar { 
+                width: 100%; 
+                height: auto; 
+                flex-shrink: 0;
+                border-right: none; 
+                border-bottom: 1px solid var(--card-border); 
+                padding: 15px 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                background: rgba(10, 10, 10, 0.95);
+                backdrop-filter: blur(10px);
+                position: relative; /* Removes fixed position artifacts */
+                z-index: 10;
+            }
+            .sidebar .logo-area { margin-bottom: 5px; border-bottom: none; padding-bottom: 0px; }
+            
+            /* Make Nav Horizontally Swipeable */
+            .sidebar .nav { 
+                display: flex; 
+                flex-direction: row; 
+                overflow-x: auto; 
+                padding-bottom: 10px; 
+                margin-bottom: 5px;
+                gap: 10px;
+                /* Optional fade edge for swipeability indication */
+                mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+            }
+            .sidebar .nav::-webkit-scrollbar { display: none; } /* Hide scrollbar for nav */
+            .sidebar .nav li { 
+                margin-bottom: 0; 
+                flex-shrink: 0; 
+                white-space: nowrap; 
+                padding: 12px 18px; 
+                border-radius: 8px;
+            }
+
+            .user-profile {
+                margin-top: 0;
+                padding-top: 10px;
+                border-top: 1px solid rgba(255,255,255,0.05);
+            }
+
+            .main { overflow-y: auto; overflow-x: hidden; height: auto; }
+            .top-bar { flex-direction: column; align-items: flex-start; gap: 15px; padding: 25px 20px; }
+            .actions { width: 100%; display: flex; flex-direction: row; gap: 10px; overflow-x: auto; padding-bottom: 5px;}
+            .actions button { flex-shrink: 0; }
+            
             .charts-row { grid-template-columns: 1fr; padding: 0 20px;}
-            .kpi-row { grid-template-columns: 1fr 1fr; padding: 0 20px;}
+            .kpi-row { grid-template-columns: 1fr; padding: 0 20px; }
+            .kpi-box { flex-direction: row; align-items: center; justify-content: space-between; padding: 20px; }
+            .kpi-title { margin-bottom: 0; }
+
             .grid-container { padding: 0 20px 20px 20px; }
-            .toolbar { padding: 10px 20px; flex-direction: column; align-items: stretch;}
+            .toolbar { padding: 10px 20px; flex-direction: column; align-items: stretch; gap: 10px;}
             .search-bar { min-width: 100%; }
+            .filters-group { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+            .select-filter { flex: 1; min-width: 120px; }
+
+            /* Table overflow on mobile */
+            div#view-users table { display: block; overflow-x: auto; white-space: nowrap; }
+            
+            /* Views fix */
+            .view-section .filters { flex-direction: column; padding: 20px; }
+            .view-section .search-box { min-width: 100%; }
         }
     </style>
 </head>
@@ -297,7 +356,7 @@
                 
                 <select class="select-filter" id="filterTimeRange" onchange="toggleCustomDates()">
                     <option value="all">Todo o Período</option>
-                    <option value="7">Últimos 7 Dias</option>
+                    <option value="7" selected>Últimos 7 Dias</option>
                     <option value="30">Últimos 30 Dias</option>
                     <option value="this_month">Este Mês</option>
                     <option value="last_month">Mês Passado</option>
@@ -629,7 +688,7 @@ REGRAS:
             document.getElementById('searchInput').value = '';
             document.getElementById('filterStatus').value = 'all';
             document.getElementById('filterCulto').value = 'all';
-            document.getElementById('filterTimeRange').value = 'all';
+            document.getElementById('filterTimeRange').value = '7';
             document.getElementById('filterDate').value = 'recent';
             if(window.toggleCustomDates) window.toggleCustomDates();
             if(window.applyFilters) window.applyFilters();
@@ -699,6 +758,17 @@ REGRAS:
                     }
                 };
 
+                ['EstadoCivil', 'Idade'].forEach(type => {
+                    const canvasEl = document.getElementById('vChart'+type);
+                    if(canvasEl) {
+                        chartInstances['v'+type] = new Chart(canvasEl.getContext('2d'), {
+                            type: 'pie',
+                            data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: 'transparent' }] },
+                            options: commonOpts
+                        });
+                    }
+                });
+
                 ['Culto', 'Pais', 'Decisao', 'GC'].forEach(type => {
                     const canvasEl = document.getElementById('chart'+type);
                     if(canvasEl) {
@@ -728,6 +798,43 @@ REGRAS:
                                    Array.from(itemsSet).map(s => `<option value="${String(s).toLowerCase()}">${s}</option>`).join('');
                 if(Array.from(itemsSet).some(s => String(s).toLowerCase() === currentVal)) { select.value = currentVal; }
             }
+
+            window.updateVisitorCharts = function(visitorsArray) {
+                if(Object.keys(chartInstances).length === 0) return;
+                
+                const getFrequencies = arr => {
+                    const counts = {};
+                    arr.forEach(val => { const str = (val || 'Não Informado'); counts[str] = (counts[str] || 0) + 1; });
+                    return Object.entries(counts).sort((a,b) => b[1] - a[1]); // Descending
+                };
+                
+                const civil = getFrequencies(visitorsArray.map(l => String(l.estado_civil)));
+                
+                // Group Idade
+                const idades = {'18 a 25': 0, '26 a 35': 0, '36 a 45': 0, 'Acima de 45': 0, 'Não Informado': 0};
+                visitorsArray.forEach(l => {
+                    let v = parseInt(String(l.idade).replace(/\D/g, ''));
+                    if (isNaN(v)) { idades['Não Informado']++; return; }
+                    if (v < 26) idades['18 a 25']++;
+                    else if (v <= 35) idades['26 a 35']++;
+                    else if (v <= 45) idades['36 a 45']++;
+                    else idades['Acima de 45']++;
+                });
+                const idadeFreq = Object.entries(idades).filter(x => x[1] > 0).sort((a,b) => b[1] - a[1]);
+
+                const colorPalette = ['#FFD700', '#FF6B6B', '#32CD32', '#00BFFF', '#BA55D3', '#FFA500', '#FF8C00', '#FFFFFF'];
+
+                function setChartData(instance, dataObj) {
+                    if(!instance) return;
+                    instance.data.labels = dataObj.map(d => d[0]);
+                    instance.data.datasets[0].data = dataObj.map(d => d[1]);
+                    instance.data.datasets[0].backgroundColor = dataObj.map((_, i) => colorPalette[i % colorPalette.length]);
+                    instance.update();
+                }
+
+                setChartData(chartInstances['vEstadoCivil'], civil);
+                setChartData(chartInstances['vIdade'], idadeFreq);
+            };
 
             function updateCharts(leadsArray) {
                 if(Object.keys(chartInstances).length === 0) return;
@@ -846,17 +953,31 @@ REGRAS:
                         lead.task_gc = Boolean(lead.task_gc);
                         lead.task_batismo = Boolean(lead.task_batismo);
                         lead.task_cafe = Boolean(lead.task_cafe);
+                        lead.task_followup = Boolean(lead.task_followup);
                         
                         const myDate = new Date(lead.created_at);
                         const myType = lead.type || 'saved';
                         const p = String(lead.phone||'').replace(/\D/g, '');
-                        const related = mappedByPhone[p].find(other => {
-                            if(other.id === lead.id) return false;
-                            const otherType = other.type || 'saved';
-                            if(otherType === myType) return false;
-                            const otherDate = new Date(other.created_at);
-                            return Math.abs(myDate - otherDate) / (1000 * 3600) <= 24;
-                        });
+                        const em = String(lead.email||'').trim().toLowerCase();
+                        
+                        let related = null;
+                        if (p !== '' || em !== '') {
+                            // Find any lead in the whole array that has different type and same phone OR email
+                            related = leads.find(other => {
+                                if(other.id === lead.id) return false;
+                                const otherType = other.type || 'saved';
+                                if(otherType === myType) return false; // Must be cross-form
+                                
+                                const op = String(other.phone||'').replace(/\D/g, '');
+                                const oem = String(other.email||'').trim().toLowerCase();
+                                
+                                const match = (p !== '' && p === op) || (em !== '' && em === oem);
+                                if (!match) return false;
+                                
+                                const otherDate = new Date(other.created_at);
+                                return Math.abs(myDate - otherDate) / (1000 * 3600) <= 24;
+                            });
+                        }
 
                         lead.hasCrossTag = !!related;
                         lead.crossTagType = related ? (related.type || 'saved') : null;
@@ -904,9 +1025,10 @@ REGRAS:
                     const ld = globalLeads.find(l => String(l.id) === String(leadId));
                     if(ld) {
                         if(taskName === 'Convidar p/ Start') ld.task_start = isChecked;
-                        if(taskName === 'Convidar p/ GC') ld.task_gc = isChecked;
+                        if(taskName === 'Convidar p/ GC' || taskName === 'Convite para GC') ld.task_gc = isChecked;
                         if(taskName === 'Convite de Batismo') ld.task_batismo = isChecked;
                         if(taskName === 'Café Novos Membros') ld.task_cafe = isChecked;
+                        if(taskName === 'Follow-up Humano') ld.task_followup = isChecked;
                     }
                     
                     // Light rebuild
@@ -1037,9 +1159,13 @@ REGRAS:
                     renderCards(vFiltered, 'visitors-container');
                     
                     // Update Visitor KPIs
-                    const vtop1 = vFiltered.length;
-                    document.querySelectorAll('#vkpi-total-1').forEach(el => el.innerText = vtop1);
-                    document.getElementById('vkpi-t1').innerText = vtop1; // Assuming welcome message is for all
+                    const vTotal = vFiltered.length;
+                    document.querySelectorAll('.vkpi-total-all').forEach(el => el.innerText = vTotal);
+                    document.getElementById('vkpi-t1').innerText = vTotal; // Welcome message (IA)
+                    document.getElementById('vkpi-t2').innerText = vFiltered.filter(l => l.task_gc).length;
+                    document.getElementById('vkpi-t3').innerText = vFiltered.filter(l => l.task_followup).length;
+                    
+                    if(window.updateVisitorCharts) window.updateVisitorCharts(vFiltered);
 
                 } catch(err) {
                     reportError("Erro na Aplicação de Filtros: " + err.message);
@@ -1093,10 +1219,17 @@ REGRAS:
                                 </div>
                             </label>
                             <label class="task-item">
-                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Follow-up Humano', this)">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convite para GC', this)" ${lead.task_gc?'checked':''}>
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Convite para GC</span>
+                                    <span class="task-meta">${mkMeta(lead.task_gc)}</span>
+                                </div>
+                            </label>
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Follow-up Humano', this)" ${lead.task_followup?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Follow-up Humano</span>
-                                    <span class="task-meta"></span>
+                                    <span class="task-meta">${mkMeta(lead.task_followup)}</span>
                                 </div>
                             </label>
                         </div>

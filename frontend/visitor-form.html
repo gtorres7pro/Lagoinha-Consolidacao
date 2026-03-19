@@ -652,6 +652,11 @@
                     workspace_id: '00000000-0000-0000-0000-000000000000',
                     name: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
                     phone: fullPhoneStr,
+                    email: document.getElementById('email').value,
+                    pais: country,
+                    idade: document.getElementById('age').value,
+                    estado_civil: document.getElementById('maritalStatus').value,
+                    sexo: document.getElementById('gender').value,
                     preferred_language: lang,
                     type: "visitor",
                     tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
