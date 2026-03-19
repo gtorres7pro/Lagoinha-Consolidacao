@@ -18,149 +18,32 @@
             --sidebar-width: 260px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-dark);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
+        body { background-color: var(--bg-body); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; }
 
         /* Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--bg-card);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            padding: 24px;
-            z-index: 10;
-        }
-
-        .logo {
-            font-size: 1.2rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 40px;
-        }
-
-        .logo span {
-            color: var(--accent);
-            font-size: 1.5rem;
-        }
-
-        .nav-menu {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex-grow: 1;
-        }
-
-        .nav-item {
-            padding: 12px 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--text-muted);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .nav-item:hover {
-            background-color: #F9FAFB;
-            color: var(--text-dark);
-        }
-
-        .nav-item.active {
-            background-color: #FFF9E6;
-            color: var(--text-dark);
-            border-left: 4px solid var(--accent);
-        }
-
-        .user-profile {
-            padding-top: 24px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
-            background-color: var(--text-dark);
-            color: #FFF;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
+        .sidebar { width: var(--sidebar-width); background-color: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px; z-index: 10; }
+        .logo { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+        .logo span { color: var(--accent); font-size: 1.5rem; }
+        .nav-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .nav-item { padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 500; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+        .nav-item:hover { background-color: #F9FAFB; color: var(--text-dark); }
+        .nav-item.active { background-color: #FFF9E6; color: var(--text-dark); border-left: 4px solid var(--accent); }
+        .user-profile { padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; background-color: var(--text-dark); color: #FFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
 
         /* Main Content Styles */
-        .main-content {
-            flex-grow: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-
-        .header h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-
-        .btn-primary {
-            background-color: var(--text-dark);
-            color: #FFF;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 100px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-primary:hover {
-            background-color: #333;
-        }
-
-        .btn-accent {
-            background-color: var(--accent);
-            color: var(--text-dark);
-        }
-
-        .btn-accent:hover {
-            background-color: var(--accent-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-        }
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .header h1 { font-size: 1.8rem; font-weight: 700; }
+        .btn-primary { background-color: var(--text-dark); color: #FFF; border: none; padding: 12px 24px; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-primary:hover { background-color: #333; }
+        .btn-accent { background-color: var(--accent); color: var(--text-dark); }
+        .btn-accent:hover { background-color: var(--accent-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3); }
 
         /* KPIs */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-            margin-bottom: 40px;
-        }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px; }
         .kpi-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
         .kpi-title { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; }
         .kpi-value { font-size: 2rem; font-weight: 700; color: var(--text-dark); }
@@ -192,7 +75,7 @@
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
             display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1000; /* Ensure strictly above all */
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content {
@@ -206,7 +89,7 @@
             display: flex; justify-content: space-between; align-items: center;
         }
         .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-dark); }
-        .modal-close { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+        .modal-close { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0 8px; }
         .modal-body { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
         
         .qr-container {
@@ -218,11 +101,13 @@
         
         .status-box {
             padding: 12px 16px; border-radius: 12px; background: #FFF9E6; border: 1px solid #FFD700;
-            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; width: 100%; justify-content: center;
+            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; width: 100%; justify-content: center; text-align:center;
         }
         .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #E6C200; }
         .status-box.connected { background: #E6F4EA; border-color: #34A853; color: #137333; }
         .status-box.connected .status-dot { background: #34A853; }
+        .status-box.error { background: #FEE; border-color: #E33; color: #A00; }
+        .status-box.error .status-dot { background: #A00; }
         
         .spinner {
             width: 40px; height: 40px; border: 4px solid var(--border);
@@ -240,7 +125,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>🚀 Conectar WhatsApp</h3>
-                <button class="modal-close" onclick="closeQrModal()">×</button>
+                <button class="modal-close" id="closeQrBtn">&times;</button>
             </div>
             
             <div class="modal-body">
@@ -257,7 +142,7 @@
                     <span class="status-dot"></span> <span id="waStatusText">Buscando QR Code...</span>
                 </div>
                 
-                <button class="btn-primary" style="width: 100%; margin-top: 24px;" onclick="checkWaStatus(true)">↻ Forçar Verificação</button>
+                <button class="btn-primary" id="forceStatusBtn" style="width: 100%; margin-top: 24px;">↻ Forçar Verificação</button>
             </div>
         </div>
     </div>
@@ -291,8 +176,7 @@
             </div>
             <div>
                 <button class="btn-primary" style="margin-right: 12px;">+ Adicionar Lead Manual</button>
-                <!-- Changed to call openQrModal() -->
-                <button class="btn-primary btn-accent" onclick="openQrModal()">Ver QR Code WhatsApp</button>
+                <button class="btn-primary btn-accent" id="openQrBtn">Ver QR Code WhatsApp</button>
             </div>
         </div>
 
@@ -363,134 +247,164 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- WhatsApp QR Engine logic completely isolated -->
     <script>
-        const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // --- WhatsApp Logic ---
-        const API_URL = "https://api.consolidacao.7pro.tech";
-        let statusInterval;
-
-        function openQrModal() {
-            document.getElementById('qrModal').classList.add('active');
-            fetchQrCode();
-            statusInterval = setInterval(() => checkWaStatus(false), 5000); // Check every 5 seconds
-        }
-
-        function closeQrModal() {
-            document.getElementById('qrModal').classList.remove('active');
-            clearInterval(statusInterval);
-        }
-
-        async function fetchQrCode() {
-            const qrContainer = document.getElementById('qrContainer');
-            qrContainer.innerHTML = '<div class="spinner"></div><p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>';
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM loaded. Attaching events.");
             
-            try {
-                const response = await fetch(`${API_URL}/whatsapp/connect`, { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.status === 'qr' && data.qr_code) {
-                    qrContainer.innerHTML = `<img src="${data.qr_code}" alt="WhatsApp QR Code">`;
-                    updateStatusBox('Aguardando leitura do QR...', 'pending');
-                } else if (data.status === 'connected') {
-                    qrContainer.innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância já conectada!</p>';
-                    updateStatusBox('Conectado Oficialmente', 'connected');
-                } else {
-                    qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Erro ao gerar QR Code.<br>A Evolution API pode estar offline.</p>';
-                    updateStatusBox('Falha na comunicação', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Falha ao comunicar com Orquestrador API (Backend).</p>';
-                updateStatusBox('Servidor Offline', 'error');
-            }
-        }
+            const openBtn = document.getElementById('openQrBtn');
+            const closeBtn = document.getElementById('closeQrBtn');
+            const forceStatusBtn = document.getElementById('forceStatusBtn');
+            const modal = document.getElementById('qrModal');
+            
+            const API_URL = "https://api.consolidacao.7pro.tech";
+            let statusInterval;
 
-        async function checkWaStatus(manualClick = false) {
-            try {
-                const response = await fetch(`${API_URL}/whatsapp/status`);
-                const data = await response.json();
-                
-                if (data.state === 'open') {
-                    document.getElementById('qrContainer').innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância Conectada!</p>';
-                    updateStatusBox('Conectado Oficialmente', 'connected');
+            if (openBtn) {
+                openBtn.addEventListener('click', () => {
+                    console.log("Opening QR Modal!");
+                    modal.classList.add('active');
+                    fetchQrCode();
+                    statusInterval = setInterval(() => checkWaStatus(false), 5000); // Check every 5 seconds
+                });
+            } else {
+                console.error("qr open button not found");
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
                     clearInterval(statusInterval);
-                } else if (data.state === 'connecting') {
-                    updateStatusBox('Sincronizando...', 'pending');
-                } else {
-                    if (manualClick) updateStatusBox('Ainda não pareado. Escaneie o QR.', 'pending');
-                }
-            } catch (err) {
-                if(manualClick) alert("Erro ao verificar status com a API.");
-            }
-        }
-
-        function updateStatusBox(text, state) {
-            const box = document.getElementById('waStatusBox');
-            const txt = document.getElementById('waStatusText');
-            txt.innerText = text;
-            if (state === 'connected') {
-                box.classList.add('connected');
-            } else {
-                box.classList.remove('connected');
-            }
-        }
-
-        // --- Supabase Login Logic ---
-        const leadsContainer = document.getElementById('leads-container');
-        const kpiTotal = document.getElementById('kpi-total');
-
-        async function checkLoginStatus() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                const email = prompt("Bem-vindo! Para ver os dados ao vivo, insira seu Master Admin email (gtorreshbl@gmail.com):");
-                if (email) {
-                    const { error } = await supabase.auth.signInWithOtp({ email: email });
-                    if(error) alert("Erro: " + error.message);
-                    else alert("Magic Link enviado para seu email! Clique nele para fazer o login.");
-                }
-            } else {
-                fetchLiveLeads();
-                supabase.channel('custom-all-channel')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
-                        fetchLiveLeads(); 
-                    })
-                    .subscribe();
-            }
-        }
-
-        async function fetchLiveLeads() {
-            const { data: leads, error } = await supabase
-                .from('leads')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) { console.error(error); return; }
-
-            if(kpiTotal) kpiTotal.innerText = leads.length;
-
-            if (leadsContainer) {
-                leadsContainer.innerHTML = '';
-                leads.forEach(lead => {
-                    leadsContainer.innerHTML += `
-                    <div class="lead-card">
-                        <div class="lead-info">
-                            <h4>${lead.name}</h4>
-                            <p>Preferência: ${(lead.preferred_language || 'PT').toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
-                            <p style="font-size: 0.75rem; color: #888; margin-top: 4px;">📞 ${lead.phone || 'Sem número'}</p>
-                        </div>
-                        <div class="lead-status">
-                            <span class="badge badge-ai">Novo Lead</span>
-                            <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; background-color: white; color: var(--text-dark); border: 1px solid var(--border);">Ver Perfil</button>
-                        </div>
-                    </div>`;
                 });
             }
-        }
 
-        window.onload = checkLoginStatus;
+            if (forceStatusBtn) {
+                forceStatusBtn.addEventListener('click', () => checkWaStatus(true));
+            }
+
+            async function fetchQrCode() {
+                const qrContainer = document.getElementById('qrContainer');
+                qrContainer.innerHTML = '<div class="spinner"></div><p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>';
+                
+                try {
+                    const response = await fetch(`${API_URL}/whatsapp/connect`, { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (data.status === 'qr' && data.qr_code) {
+                        qrContainer.innerHTML = `<img src="${data.qr_code}" alt="WhatsApp QR Code">`;
+                        updateStatusBox('Aguardando leitura do QR...', 'pending');
+                    } else if (data.status === 'connected') {
+                        qrContainer.innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância já conectada!</p>';
+                        updateStatusBox('Conectado Oficialmente', 'connected');
+                    } else {
+                        qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Erro ao gerar QR Code.<br>A Evolution API pode estar offline.</p>';
+                        updateStatusBox('Falha na comunicação', 'error');
+                    }
+                } catch (err) {
+                    console.error("API error:", err);
+                    qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Falha ao comunicar com Orquestrador API (Backend).</p>';
+                    updateStatusBox('Servidor Offline ou Erro CORS', 'error');
+                }
+            }
+
+            async function checkWaStatus(manualClick = false) {
+                try {
+                    const response = await fetch(`${API_URL}/whatsapp/status`);
+                    const data = await response.json();
+                    
+                    if (data.state === 'open') {
+                        document.getElementById('qrContainer').innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância Conectada!</p>';
+                        updateStatusBox('Conectado Oficialmente', 'connected');
+                        clearInterval(statusInterval);
+                    } else if (data.state === 'connecting') {
+                        updateStatusBox('Sincronizando...', 'pending');
+                    } else {
+                        if (manualClick) updateStatusBox('Ainda não pareado. Escaneie o QR.', 'pending');
+                    }
+                } catch (err) {
+                    if(manualClick) alert("Erro ao verificar status com a API.");
+                }
+            }
+
+            function updateStatusBox(text, state) {
+                const box = document.getElementById('waStatusBox');
+                const txt = document.getElementById('waStatusText');
+                txt.innerText = text;
+                box.className = 'status-box'; // reset classes
+                if (state === 'connected') {
+                    box.classList.add('connected');
+                } else if (state === 'error') {
+                    box.classList.add('error');
+                }
+            }
+        });
+    </script>
+
+    <!-- Supabase DB engine isolated -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+                const leadsContainer = document.getElementById('leads-container');
+                const kpiTotal = document.getElementById('kpi-total');
+
+                async function checkLoginStatus() {
+                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                    
+                    if (!session) {
+                        console.log("No session found. Need login.");
+                    } else {
+                        fetchLiveLeads();
+                        supabase.channel('custom-all-channel')
+                            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
+                                fetchLiveLeads(); 
+                            })
+                            .subscribe();
+                    }
+                }
+
+                async function fetchLiveLeads() {
+                    const { data: leads, error } = await supabase
+                        .from('leads')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (error) { console.error(error); return; }
+
+                    if(kpiTotal) kpiTotal.innerText = leads.length;
+
+                    if (leadsContainer) {
+                        leadsContainer.innerHTML = '';
+                        if (leads.length === 0) {
+                            leadsContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">Nenhum lead encontrado ainda.</p>';
+                        }
+                        leads.forEach(lead => {
+                            leadsContainer.innerHTML += `
+                            <div class="lead-card">
+                                <div class="lead-info">
+                                    <h4>${lead.name}</h4>
+                                    <p>Preferência: ${(lead.preferred_language || 'PT').toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
+                                    <p style="font-size: 0.75rem; color: #888; margin-top: 4px;">📞 ${lead.phone || 'Sem número'}</p>
+                                </div>
+                                <div class="lead-status">
+                                    <span class="badge badge-ai">Novo Lead</span>
+                                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; background-color: white; color: var(--text-dark); border: 1px solid var(--border);">Ver Perfil</button>
+                                </div>
+                            </div>`;
+                        });
+                    }
+                }
+
+                checkLoginStatus();
+
+            } catch (err) {
+                console.error("Supabase module failed to load:", err);
+            }
+        });
     </script>
 </body>
 </html>
