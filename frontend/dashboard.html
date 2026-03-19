@@ -32,6 +32,8 @@
         .nav li { padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 400; color: var(--text-dim); transition: 0.3s; display: flex; align-items: center; gap: 12px; font-size: 1rem; }
         .nav li:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .nav li.active { background: rgba(255, 215, 0, 0.08); color: var(--accent); border-left: 2px solid var(--accent); font-weight: 500;}
+        .nav li.disabled { opacity: 0.25; cursor: default; }
+        .nav li.disabled:hover { background: transparent; color: var(--text-dim); cursor: not-allowed;}
         
         .user { display: flex; align-items: center; gap: 12px; margin-top: auto; padding: 20px 10px 0 10px; border-top: 1px solid var(--card-border); }
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
@@ -148,10 +150,10 @@
         </div>
         <ul class="nav">
             <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">Consolidados</li>
-            <li>Mensagens IA</li>
-            <li>Agenda Batismos</li>
+            <li class="disabled" title="Em Construção">Mensagens IA</li>
+            <li class="disabled" title="Em Construção">Agenda Batismos</li>
             <li id="nav-logs" onclick="switchTab('logs')">Auditoria de Logs</li>
-            <li>Workspace Settings</li>
+            <li class="disabled" title="Em Construção">Workspace Settings</li>
         </ul>
         <div class="user">
             <div class="user-avatar">G</div>
@@ -191,6 +193,13 @@
                     <div class="kpi-number">
                         <span id="kpi-t2" style="color: #FF6B6B;">0</span> 
                         <span class="kpi-total">/ <span id="kpi-total-2">0</span></span>
+                    </div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Convidar p/ GC</div>
+                    <div class="kpi-number">
+                        <span id="kpi-tgc" style="color: #BA55D3;">0</span> 
+                        <span class="kpi-total">/ <span id="kpi-total-gc">0</span></span>
                     </div>
                 </div>
                 <div class="kpi-box">
@@ -243,11 +252,22 @@
                     <!-- Populated dynamically -->
                 </select>
                 
-                <select class="select-filter" id="filterTimeRange">
-                    <option value="30">Últimos 30 Dias</option>
-                    <option value="7">Últimos 7 Dias</option>
+                <select class="select-filter" id="filterTimeRange" onchange="toggleCustomDates()">
                     <option value="all">Todo o Período</option>
+                    <option value="7">Últimos 7 Dias</option>
+                    <option value="30">Últimos 30 Dias</option>
+                    <option value="this_month">Este Mês</option>
+                    <option value="last_month">Mês Passado</option>
+                    <option value="this_year">Este Ano</option>
+                    <option value="last_year">Ano Passado</option>
+                    <option value="custom">Período Customizado...</option>
                 </select>
+
+                <div id="custom-date-container" style="display: none; align-items: center; gap: 8px;">
+                    <input type="date" id="customDateStart" class="select-filter" style="padding: 8px 15px; background-image: none;" title="Data Inicial">
+                    <span style="color: var(--text-dim); font-size: 0.85rem;">até</span>
+                    <input type="date" id="customDateEnd" class="select-filter" style="padding: 8px 15px; background-image: none;" title="Data Final">
+                </div>
                 
                 <select class="select-filter" id="filterDate">
                     <option value="recent">Mais Recentes</option>
@@ -311,9 +331,10 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('filterStatus').value = 'all';
             document.getElementById('filterCulto').value = 'all';
-            document.getElementById('filterTimeRange').value = '30';
+            document.getElementById('filterTimeRange').value = 'all';
             document.getElementById('filterDate').value = 'recent';
-            applyFilters();
+            if(window.toggleCustomDates) window.toggleCustomDates();
+            if(window.applyFilters) window.applyFilters();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -325,15 +346,28 @@
             let globalLeads = [];
             let chartInstances = {};
 
+            function reportError(msg) {
+                if (leadsContainer) {
+                    leadsContainer.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
+                }
+            }
+
             // Bind filters
-            document.getElementById('searchInput').addEventListener('input', applyFilters);
-            document.getElementById('filterStatus').addEventListener('change', applyFilters);
-            document.getElementById('filterCulto').addEventListener('change', applyFilters);
-            document.getElementById('filterDate').addEventListener('change', applyFilters);
-            document.getElementById('filterTimeRange').addEventListener('change', applyFilters);
+            window.toggleCustomDates = function() {
+                const val = document.getElementById('filterTimeRange').value;
+                const container = document.getElementById('custom-date-container');
+                if(container) container.style.display = (val === 'custom') ? 'flex' : 'none';
+            };
+            document.getElementById('searchInput').addEventListener('input', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('filterStatus').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('filterCulto').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('filterDate').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('filterTimeRange').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('customDateStart').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
+            document.getElementById('customDateEnd').addEventListener('change', () => { if(window.applyFilters) applyFilters(); });
             
             function initEngine() {
-                fetchLiveLeads();
+                if(window.fetchLiveLeads) window.fetchLiveLeads();
             }
 
             function initCharts() {
@@ -355,23 +389,26 @@
                             // Auto trigger filters based on chart type!
                             const chartId = chart.canvas.id;
                             if (chartId === 'chartCulto') {
-                                document.getElementById('filterCulto').value = labelClicked.toLowerCase();
-                                applyFilters();
+                                document.getElementById('filterCulto').value = String(labelClicked).toLowerCase();
+                                if(window.applyFilters) applyFilters();
                             } else if (chartId === 'chartDecisao') {
-                                document.getElementById('filterStatus').value = labelClicked.toLowerCase();
-                                applyFilters();
+                                document.getElementById('filterStatus').value = String(labelClicked).toLowerCase();
+                                if(window.applyFilters) applyFilters();
                             }
                         }
                     }
                 };
 
                 ['Culto', 'Pais', 'Decisao', 'GC'].forEach(type => {
-                    const ctx = document.getElementById('chart'+type).getContext('2d');
-                    chartInstances[type] = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
-                        options: commonOpts
-                    });
+                    const canvasEl = document.getElementById('chart'+type);
+                    if(canvasEl) {
+                        const ctx = canvasEl.getContext('2d');
+                        chartInstances[type] = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                            options: commonOpts
+                        });
+                    }
                 });
             }
 
@@ -385,23 +422,25 @@
 
             function populateSelect(id, itemsSet, defaultStr) {
                 const select = document.getElementById(id);
+                if(!select) return;
                 const currentVal = select.value;
                 select.innerHTML = `<option value="all">${defaultStr}</option>` + 
-                                   Array.from(itemsSet).map(s => `<option value="${s.toLowerCase()}">${s}</option>`).join('');
-                if(Array.from(itemsSet).some(s => s.toLowerCase() === currentVal)) { select.value = currentVal; }
+                                   Array.from(itemsSet).map(s => `<option value="${String(s).toLowerCase()}">${s}</option>`).join('');
+                if(Array.from(itemsSet).some(s => String(s).toLowerCase() === currentVal)) { select.value = currentVal; }
             }
 
             function updateCharts(leadsArray) {
                 if(Object.keys(chartInstances).length === 0) return;
                 
-                const cultos = getFrequencies(leadsArray.map(l => l.culto));
-                const paises = getFrequencies(leadsArray.map(l => l.pais));
-                const decisoes = getFrequencies(leadsArray.map(l => l.decisao));
-                const gcs = getFrequencies(leadsArray.map(l => l.gc_status));
+                const cultos = getFrequencies(leadsArray.map(l => String(l.culto)));
+                const paises = getFrequencies(leadsArray.map(l => String(l.pais)));
+                const decisoes = getFrequencies(leadsArray.map(l => String(l.decisao)));
+                const gcs = getFrequencies(leadsArray.map(l => String(l.gc_status)));
 
                 const colorPalette = ['#FFD700', '#FF6B6B', '#32CD32', '#00BFFF', '#BA55D3', '#FFA500', '#FF8C00', '#FFFFFF'];
 
                 function setChartData(instance, dataObj) {
+                    if(!instance) return;
                     const labels = Object.keys(dataObj);
                     const data = Object.values(dataObj);
                     const bgColors = labels.map((_, i) => colorPalette[i % colorPalette.length]);
@@ -421,161 +460,239 @@
             function updateTopKPIs(leadsArray) {
                 const total = leadsArray.length;
                 let c1 = total; // Celebração always 100% simulated
-                let c2 = leadsArray.filter(l => l.task_start).length;
-                let c3 = leadsArray.filter(l => l.task_batismo).length;
-                let c4 = leadsArray.filter(l => l.task_cafe).length;
+                let c2 = leadsArray.filter(l => Boolean(l.task_start)).length;
+                let c_gc = leadsArray.filter(l => Boolean(l.task_gc)).length;
+                let c3 = leadsArray.filter(l => Boolean(l.task_batismo)).length;
+                let c4 = leadsArray.filter(l => Boolean(l.task_cafe)).length;
                 
-                document.getElementById('kpi-t1').innerText = c1;
-                document.getElementById('kpi-total-1').innerText = total;
-                document.getElementById('kpi-t2').innerText = c2;
-                document.getElementById('kpi-total-2').innerText = total;
-                document.getElementById('kpi-t3').innerText = c3;
-                document.getElementById('kpi-total-3').innerText = total;
-                document.getElementById('kpi-t4').innerText = c4;
-                document.getElementById('kpi-total-4').innerText = total;
+                function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
+
+                safeSetText('kpi-t1', c1);
+                safeSetText('kpi-total-1', total);
+                safeSetText('kpi-t2', c2);
+                safeSetText('kpi-total-2', total);
+                safeSetText('kpi-tgc', c_gc);
+                safeSetText('kpi-total-gc', total);
+                safeSetText('kpi-t3', c3);
+                safeSetText('kpi-total-3', total);
+                safeSetText('kpi-t4', c4);
+                safeSetText('kpi-total-4', total);
             }
 
             window.fetchLiveLeads = async function() {
-                // Forcing 500 for fast prototype render
-                const { data: leads, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(500); 
+                try {
+                    const leadsContainer = document.getElementById('leads-container');
+                    if (leadsContainer) {
+                        leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
+                    }
 
-                if (error) { 
-                    leadsContainer.innerHTML = `<p style="color:#FF6B6B;">Database Connection Error.</p>`;
-                    return; 
-                }
+                    let allLeads = [];
+                    let start = 0;
+                    const step = 1000;
+                    let hasMore = true;
 
-                const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro", "Mudei de Igreja"];
-                const mock_cultos = ["Hope", "Fé", "Legacy", "Rocket", "Domingo Manhã", "Domingo Noite"];
-                const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal", "Reino Unido", "Japão"];
-                const mock_gcs = ["Sim", "Quero Participar", "Não"];
+                    while(hasMore) {
+                        const { data, error } = await supabase.from('leads')
+                                .select('*')
+                                .order('created_at', { ascending: false })
+                                .range(start, start + step - 1);
+                        
+                        if (error) { 
+                            reportError("Erro de acesso ao banco Supabase: " + error.message);
+                            return; 
+                        }
 
-                let setDecisao = new Set();
-                let setCultos = new Set();
+                        if (data && data.length > 0) {
+                            allLeads.push(...data);
+                            start += step;
+                            if (data.length < step) hasMore = false;
+                        } else {
+                            hasMore = false;
+                        }
+                    }
 
-                globalLeads = leads.map(lead => {
-                    if (!lead.decisao) lead.decisao = mock_decisions[Math.floor(Math.random()*mock_decisions.length)];
-                    if (!lead.culto) lead.culto = mock_cultos[Math.floor(Math.random()*mock_cultos.length)];
-                    if (!lead.pais) lead.pais = mock_paises[Math.floor(Math.random()*mock_paises.length)];
-                    if (!lead.gc_status) lead.gc_status = mock_gcs[Math.floor(Math.random()*mock_gcs.length)];
+                    if(allLeads.length === 0) {
+                        reportError("A base de leads retornou vazia (0 registros).");
+                        return;
+                    }
+
+                    const leads = allLeads;
+
+                    const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro", "Mudei de Igreja"];
+                    const mock_cultos = ["Hope", "Fé", "Legacy", "Rocket", "Domingo Manhã", "Domingo Noite"];
+                    const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal", "Reino Unido", "Japão"];
+                    const mock_gcs = ["Sim", "Quero Participar", "Não"];
+
+                    let setDecisao = new Set();
+                    let setCultos = new Set();
+
+                    globalLeads = leads.map(lead => {
+                        if (!lead.decisao) lead.decisao = "Não Informado";
+                        if (!lead.culto) lead.culto = "Não Informado";
+                        if (!lead.pais) lead.pais = "Não Informado";
+                        if (!lead.gc_status) lead.gc_status = "Não Informado";
+                        
+                        // Default created_at if absent
+                        if (!lead.created_at) {
+                            lead.created_at = new Date().toISOString();
+                        }
+
+                        // No more mocks, rely directly on what was placed on DB (if any) or default false.
+                        lead.task_start = Boolean(lead.task_start);
+                        lead.task_gc = Boolean(lead.task_gc);
+                        lead.task_batismo = Boolean(lead.task_batismo);
+                        lead.task_cafe = Boolean(lead.task_cafe);
+                        
+                        setDecisao.add(String(lead.decisao));
+                        setCultos.add(String(lead.culto));
+                        return lead;
+                    });
                     
-                    // Task mockup (persistent enough for prototype)
-                    lead.task_start = Math.random() > 0.6;
-                    lead.task_batismo = Math.random() > 0.8;
-                    lead.task_cafe = Math.random() > 0.9;
-                    
-                    // For specific date ranges, let's randomly spread their created_at over the last 90 days for demo
-                    const randDays = Math.floor(Math.random() * 90);
-                    const d = new Date(); d.setDate(d.getDate() - randDays);
-                    lead.created_at = d.toISOString();
+                    populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
+                    populateSelect('filterCulto', setCultos, 'Qualquer Culto');
 
-                    setDecisao.add(lead.decisao);
-                    setCultos.add(lead.culto);
-                    return lead;
-                });
-                
-                populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
-                populateSelect('filterCulto', setCultos, 'Qualquer Culto');
+                    if(Object.keys(chartInstances).length === 0) {
+                        initCharts();
+                    }
+                    if(window.applyFilters) applyFilters();
 
-                if(Object.keys(chartInstances).length === 0) {
-                    initCharts();
+                } catch (err) {
+                    reportError("Erro JavaScript em fetchLiveLeads: " + err.message);
                 }
-                applyFilters();
             }
 
             window.toggleTask = async function(leadId, taskName, checkboxElem) {
-                const isChecked = checkboxElem.checked;
-                const taskMeta = checkboxElem.closest('.task-item').querySelector('.task-meta');
-                
-                if(isChecked) {
-                    const dStr = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                    taskMeta.innerHTML = `<span style="color: rgba(255,215,0,0.8);">Feito por <b>Gabriel T.</b> em ${dStr}</span>`;
-                    addLog(`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu "${taskName}"`);
-                } else {
-                    taskMeta.innerHTML = '';
-                    addLog(`<span style="color:#FF6B6B;">Gabriel T.</span> desmarcou "${taskName}"`);
+                try {
+                    const isChecked = checkboxElem.checked;
+                    const taskMeta = checkboxElem.closest('.task-item').querySelector('.task-meta');
+                    
+                    if(isChecked) {
+                        const dStr = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                        taskMeta.innerHTML = `<span style="color: rgba(255,215,0,0.8);">Realizado por <b>Gabriel T.</b> em ${dStr}</span>`;
+                        addLog(`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu "${taskName}"`);
+                    } else {
+                        taskMeta.innerHTML = '';
+                        addLog(`<span style="color:#FF6B6B;">Gabriel T.</span> desmarcou "${taskName}"`);
+                    }
+                    
+                    const ld = globalLeads.find(l => String(l.id) === String(leadId));
+                    if(ld) {
+                        if(taskName === 'Convidar p/ Start') ld.task_start = isChecked;
+                        if(taskName === 'Convidar p/ GC') ld.task_gc = isChecked;
+                        if(taskName === 'Convite de Batismo') ld.task_batismo = isChecked;
+                        if(taskName === 'Café Novos Membros') ld.task_cafe = isChecked;
+                    }
+                    
+                    // Light rebuild
+                    const timeRangeDays = parseInt(document.getElementById('filterTimeRange').value);
+                    const subset = globalLeads.filter(l => {
+                        const leadDate = new Date(l.created_at);
+                        const diffDays = (new Date() - leadDate) / (1000 * 3600 * 24);
+                        return isNaN(timeRangeDays) || diffDays <= timeRangeDays;
+                    });
+                    updateTopKPIs(subset);
+                } catch (err) {
+                    console.error("Erro toggleTask:", err);
                 }
-                
-                // Live update the KPI counts!
-                // Since this is UI level we just patch the array element
-                const ld = globalLeads.find(l => l.id === leadId);
-                if(ld) {
-                    if(taskName === 'Convidar p/ Start') ld.task_start = isChecked;
-                    if(taskName === 'Convite de Batismo') ld.task_batismo = isChecked;
-                    if(taskName === 'Café Novos Membros') ld.task_cafe = isChecked;
-                }
-                // We won't call applyFilters() to avoid full re-render, just update KPIs
-                // Re-evaluate current active subset:
-                const timeRangeDays = parseInt(document.getElementById('filterTimeRange').value);
-                const subset = globalLeads.filter(l => {
-                    const diffDays = (new Date() - new Date(l.created_at)) / (1000 * 3600 * 24);
-                    return isNaN(timeRangeDays) || diffDays <= timeRangeDays;
-                });
-                updateTopKPIs(subset);  // Will slightly off if other filters are engaged, but close enough for prototype responsiveness
             };
 
             window.applyFilters = function() {
-                const searchTxt = document.getElementById('searchInput').value.toLowerCase();
-                const stat = document.getElementById('filterStatus').value.toLowerCase();
-                const culto = document.getElementById('filterCulto').value.toLowerCase();
-                const sortOrder = document.getElementById('filterDate').value;
-                const timeRangeDays = document.getElementById('filterTimeRange').value;
+                try {
+                    const searchTxt = String(document.getElementById('searchInput').value || '').toLowerCase();
+                    const stat = document.getElementById('filterStatus').value.toLowerCase();
+                    const culto = document.getElementById('filterCulto').value.toLowerCase();
+                    const sortOrder = document.getElementById('filterDate').value;
+                    const timeRangeDays = document.getElementById('filterTimeRange').value;
 
-                let filtered = globalLeads.filter(lead => {
-                    const decisao = lead.decisao.toLowerCase();
-                    const cultoVal = lead.culto.toLowerCase();
+                    let filtered = globalLeads.filter(lead => {
+                        const decisao = String(lead.decisao || '').toLowerCase();
+                        const cultoVal = String(lead.culto || '').toLowerCase();
+                        const nameStr = String(lead.name || '').toLowerCase();
+                        const phoneStr = String(lead.phone || '').toLowerCase();
 
-                    const matchName = (lead.name?.toLowerCase().includes(searchTxt)) || (lead.phone?.includes(searchTxt));
-                    const matchStat = stat === 'all' || decisao === stat;
-                    const matchCulto = culto === 'all' || cultoVal === culto;
-                    
-                    let matchTime = true;
-                    if (timeRangeDays !== 'all') {
-                        const leadDate = new Date(lead.created_at);
-                        const diffTime = Math.abs(new Date() - leadDate);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        matchTime = diffDays <= parseInt(timeRangeDays);
+                        const matchName = nameStr.includes(searchTxt) || phoneStr.includes(searchTxt);
+                        const matchStat = (stat === 'all') || (decisao === stat);
+                        const matchCulto = (culto === 'all') || (cultoVal === culto);
+                        
+                        let matchTime = true;
+                        if (timeRangeDays !== 'all') {
+                            const leadDate = new Date(lead.created_at);
+                            if (isNaN(leadDate.valueOf())) {
+                                matchTime = false;
+                            } else {
+                                const now = new Date();
+                                const diffTime = now - leadDate;
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                
+                                if (timeRangeDays === '7') matchTime = diffDays <= 7;
+                                else if (timeRangeDays === '30') matchTime = diffDays <= 30;
+                                else if (timeRangeDays === 'this_month') {
+                                    matchTime = leadDate.getMonth() === now.getMonth() && leadDate.getFullYear() === now.getFullYear();
+                                }
+                                else if (timeRangeDays === 'last_month') {
+                                    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                    matchTime = leadDate.getMonth() === lm.getMonth() && leadDate.getFullYear() === lm.getFullYear();
+                                }
+                                else if (timeRangeDays === 'this_year') {
+                                    matchTime = leadDate.getFullYear() === now.getFullYear();
+                                }
+                                else if (timeRangeDays === 'last_year') {
+                                    matchTime = leadDate.getFullYear() === now.getFullYear() - 1;
+                                }
+                                else if (timeRangeDays === 'custom') {
+                                    const dStart = document.getElementById('customDateStart').value;
+                                    const dEnd = document.getElementById('customDateEnd').value;
+                                    const pStart = dStart ? new Date(dStart + 'T00:00:00') : null;
+                                    const pEnd = dEnd ? new Date(dEnd + 'T23:59:59') : null;
+                                    
+                                    if(pStart && leadDate < pStart) matchTime = false;
+                                    if(pEnd && leadDate > pEnd) matchTime = false;
+                                }
+                            }
+                        }
+
+                        return matchName && matchStat && matchCulto && matchTime;
+                    });
+
+                    if(sortOrder === 'oldest') {
+                        filtered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                    } else {
+                        filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                     }
 
-                    return matchName && matchStat && matchCulto && matchTime;
-                });
-
-                if(sortOrder === 'oldest') {
-                    filtered.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                } else {
-                    filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+                    updateTopKPIs(filtered);
+                    updateCharts(filtered);
+                    renderCards(filtered);
+                } catch(err) {
+                    reportError("Erro na Aplicação de Filtros: " + err.message);
                 }
-
-                updateTopKPIs(filtered);
-                updateCharts(filtered);
-                renderCards(filtered);
             }
 
             function renderCards(leadsToRender) {
                 if (!leadsContainer) return;
                 leadsContainer.innerHTML = '';
                 
-                if (leadsToRender.length === 0) {
-                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">Busca sem resultados nesse período.</div>';
+                if (!Array.isArray(leadsToRender) || leadsToRender.length === 0) {
+                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">Busca sem resultados nesse período ou combo de filtros.</div>';
                     return;
                 }
 
                 leadsToRender.forEach(lead => {
                     const dateObj = new Date(lead.created_at);
-                    const dateStr = dateObj.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'});
-                    const cap = str => str.charAt(0).toUpperCase() + str.slice(1);
+                    const dateStr = isNaN(dateObj.valueOf()) ? 'Recente' : dateObj.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'});
+                    const cap = str => String(str).charAt(0).toUpperCase() + String(str).slice(1);
                     
                     const telStr = lead.phone ? String(lead.phone).replace(/\D/g, '') : '';
                     const cleanPhone = telStr.length >= 10 ? telStr : '';
 
-                    // Construct meta string if visually marked true
-                    const mkMeta = (val) => val ? `<span style="color: rgba(255,215,0,0.8);">Feito por <b>Antigo BD</b> no passado</span>` : '';
+                    const mkMeta = (val) => val ? `<span style="color: rgba(255,215,0,0.8);">Realizado por <b>Admin</b> no passado</span>` : '';
 
                     const card = document.createElement('div');
                     card.className = 'person-card';
                     card.innerHTML = `
                         <div class="card-header">
                             <div class="person-info">
-                                <h3>${lead.name}</h3>
+                                <h3>${lead.name || 'Sem Nome'}</h3>
                                 <p style="margin-top:2px;">📱 ${lead.phone || 'Sem número'}</p>
                             </div>
                             <div style="display:flex; gap: 6px;">
@@ -608,6 +725,13 @@
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convidar p/ Start</span>
                                     <span class="task-meta">${mkMeta(lead.task_start)}</span>
+                                </div>
+                            </label>
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convidar p/ GC', this)" ${lead.task_gc?'checked':''}>
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Convidar p/ GC</span>
+                                    <span class="task-meta">${mkMeta(lead.task_gc)}</span>
                                 </div>
                             </label>
                             <label class="task-item">
