@@ -1,15 +1,25 @@
 import os
 from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from tools.db_tool import create_lead, log_message
-from tools.whatsapp_tool import send_welcome_message
+from tools.whatsapp_tool import send_welcome_message, get_whatsapp_status, get_whatsapp_qr
 from tools.llm_tool import generate_response
 
 load_dotenv()
 
 app = FastAPI(title="Lagoinha Consolidação - Orquestrador API")
+
+# --- CORS Settings (Allows Frontend Dashboard to talk to this API) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, restrict to https://app.consolidacao.7pro.tech
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- 1. JSON Data Schemas (Pydantic Models matching gemini.md) ---
 class LeadInput(BaseModel):
@@ -55,6 +65,19 @@ async def process_whatsapp_message(request: Request, background_tasks: Backgroun
     # background_tasks.add_task(handle_whatsapp_logic, payload)
     
     return {"status": "received"}
+
+
+# --- WHATSAPP CONNECTION ENDPOINTS ---
+
+@app.get("/whatsapp/status")
+def check_wa_status():
+    """ Called by the dashboard to see if WhatsApp is connected """
+    return get_whatsapp_status()
+
+@app.post("/whatsapp/connect")
+def generate_wa_qr():
+    """ Called by the dashboard to generate and fetch the base64 QR Image securely """
+    return get_whatsapp_qr()
 
 
 # --- 3. Business Logic Orchestrators ---

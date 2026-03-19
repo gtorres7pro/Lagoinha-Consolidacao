@@ -84,7 +84,7 @@
         }
 
         .nav-item.active {
-            background-color: #FFF9E6; /* Light yellow background */
+            background-color: #FFF9E6;
             color: var(--text-dark);
             border-left: 4px solid var(--accent);
         }
@@ -150,160 +150,117 @@
 
         .btn-accent:hover {
             background-color: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
         }
 
-        /* KPI Cards */
+        /* KPIs */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 24px;
             margin-bottom: 40px;
         }
+        .kpi-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+        .kpi-title { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: var(--text-dark); }
 
-        .kpi-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: var(--shadow);
-        }
-
-        .kpi-title {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        /* Lead Kanban / Timeline */
-        .leads-section {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-        }
-
-        .leads-list {
-            background-color: var(--bg-card);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            padding: 24px;
-        }
-
-        .section-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .lead-card {
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .lead-info h4 {
-            font-size: 1rem;
-            margin-bottom: 4px;
-        }
-
-        .lead-info p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .lead-status {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .badge {
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .badge-pending {
-            background-color: #FFF9E6;
-            color: #B28800;
-        }
-
-        .badge-ai {
-            background-color: #E6F3FF;
-            color: #0066CC;
-        }
+        /* Leads & Timeline */
+        .leads-section { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        .leads-list { background-color: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; }
+        .section-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
+        .lead-card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .lead-info h4 { font-size: 1rem; margin-bottom: 4px; }
+        .lead-info p { font-size: 0.85rem; color: var(--text-muted); }
+        .lead-status { display: flex; align-items: center; gap: 12px; }
+        .badge { padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600; }
+        .badge-pending { background-color: #FFF9E6; color: #B28800; }
+        .badge-ai { background-color: #E6F3FF; color: #0066CC; }
 
         /* Timeline Sidebar */
-        .timeline-sidebar {
-            background-color: var(--bg-card);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            padding: 24px;
-        }
+        .timeline-sidebar { background-color: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; }
+        .timeline-item { position: relative; padding-left: 24px; margin-bottom: 24px; }
+        .timeline-item::before { content: ''; position: absolute; left: 0; top: 5px; width: 12px; height: 12px; border-radius: 50%; background-color: var(--border); border: 2px solid #FFF; }
+        .timeline-item.active::before { background-color: var(--accent); }
+        .timeline-item::after { content: ''; position: absolute; left: 5px; top: 20px; bottom: -20px; width: 2px; background-color: var(--border); }
+        .timeline-item:last-child::after { display: none; }
+        .timeline-content h5 { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; }
+        .timeline-content p { font-size: 0.8rem; color: var(--text-muted); }
 
-        .timeline-item {
-            position: relative;
-            padding-left: 24px;
-            margin-bottom: 24px;
+        /* --- WHATSAPP QR MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100;
         }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 5px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: var(--border);
-            border: 2px solid #FFF;
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--bg-card); width: 100%; max-width: 420px;
+            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: translateY(20px); transition: 0.3s;
         }
-
-        .timeline-item.active::before {
-            background-color: var(--accent);
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header {
+            padding: 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
         }
-
-        .timeline-item::after {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 20px;
-            bottom: -20px;
-            width: 2px;
-            background-color: var(--border);
+        .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-dark); }
+        .modal-close { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+        .modal-body { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        
+        .qr-container {
+            width: 250px; height: 250px; border: 2px dashed var(--border);
+            border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            margin-bottom: 24px; overflow: hidden; background: #FAFAFA;
         }
-
-        .timeline-item:last-child::after {
-            display: none;
+        .qr-container img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .status-box {
+            padding: 12px 16px; border-radius: 12px; background: #FFF9E6; border: 1px solid #FFD700;
+            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; width: 100%; justify-content: center;
         }
-
-        .timeline-content h5 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 4px;
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #E6C200; }
+        .status-box.connected { background: #E6F4EA; border-color: #34A853; color: #137333; }
+        .status-box.connected .status-dot { background: #34A853; }
+        
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid var(--border);
+            border-top-color: var(--text-dark); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 12px;
         }
-
-        .timeline-content p {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
     </style>
 </head>
 <body>
+
+    <!-- WhatsApp QR Modal Overlay -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🚀 Conectar WhatsApp</h3>
+                <button class="modal-close" onclick="closeQrModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">
+                    Abra o WhatsApp no celular da Igreja e aponte a câmera para parear este sistema.
+                </p>
+                
+                <div class="qr-container" id="qrContainer">
+                    <div class="spinner"></div>
+                    <p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>
+                </div>
+                
+                <div class="status-box" id="waStatusBox">
+                    <span class="status-dot"></span> <span id="waStatusText">Buscando QR Code...</span>
+                </div>
+                
+                <button class="btn-primary" style="width: 100%; margin-top: 24px;" onclick="checkWaStatus(true)">↻ Forçar Verificação</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Sidebar -->
     <div class="sidebar">
@@ -334,7 +291,8 @@
             </div>
             <div>
                 <button class="btn-primary" style="margin-right: 12px;">+ Adicionar Lead Manual</button>
-                <button class="btn-primary btn-accent">Ver QR Code WhatsApp</button>
+                <!-- Changed to call openQrModal() -->
+                <button class="btn-primary btn-accent" onclick="openQrModal()">Ver QR Code WhatsApp</button>
             </div>
         </div>
 
@@ -360,19 +318,15 @@
 
         <!-- Leads & Timeline Grid -->
         <div class="leads-section">
-            
             <div class="leads-list">
                 <div class="section-title">Leads Recentes (Ao Vivo)</div>
-                
                 <div id="leads-container">
-                    <!-- Data will be injected here by Javascript -->
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Carregando banco de dados...</p>
                 </div>
             </div>
 
             <div class="timeline-sidebar">
                 <div class="section-title">Processo de Consolidação (Padrão)</div>
-                
                 <div class="timeline-item active">
                     <div class="timeline-content">
                         <h5>1. Ficha Preenchida</h5>
@@ -404,25 +358,93 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- Supabase JS Client & Logic -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // UI Elements
+        // --- WhatsApp Logic ---
+        const API_URL = "https://api.consolidacao.7pro.tech";
+        let statusInterval;
+
+        function openQrModal() {
+            document.getElementById('qrModal').classList.add('active');
+            fetchQrCode();
+            statusInterval = setInterval(() => checkWaStatus(false), 5000); // Check every 5 seconds
+        }
+
+        function closeQrModal() {
+            document.getElementById('qrModal').classList.remove('active');
+            clearInterval(statusInterval);
+        }
+
+        async function fetchQrCode() {
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.innerHTML = '<div class="spinner"></div><p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>';
+            
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/connect`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'qr' && data.qr_code) {
+                    qrContainer.innerHTML = `<img src="${data.qr_code}" alt="WhatsApp QR Code">`;
+                    updateStatusBox('Aguardando leitura do QR...', 'pending');
+                } else if (data.status === 'connected') {
+                    qrContainer.innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância já conectada!</p>';
+                    updateStatusBox('Conectado Oficialmente', 'connected');
+                } else {
+                    qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Erro ao gerar QR Code.<br>A Evolution API pode estar offline.</p>';
+                    updateStatusBox('Falha na comunicação', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Falha ao comunicar com Orquestrador API (Backend).</p>';
+                updateStatusBox('Servidor Offline', 'error');
+            }
+        }
+
+        async function checkWaStatus(manualClick = false) {
+            try {
+                const response = await fetch(`${API_URL}/whatsapp/status`);
+                const data = await response.json();
+                
+                if (data.state === 'open') {
+                    document.getElementById('qrContainer').innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância Conectada!</p>';
+                    updateStatusBox('Conectado Oficialmente', 'connected');
+                    clearInterval(statusInterval);
+                } else if (data.state === 'connecting') {
+                    updateStatusBox('Sincronizando...', 'pending');
+                } else {
+                    if (manualClick) updateStatusBox('Ainda não pareado. Escaneie o QR.', 'pending');
+                }
+            } catch (err) {
+                if(manualClick) alert("Erro ao verificar status com a API.");
+            }
+        }
+
+        function updateStatusBox(text, state) {
+            const box = document.getElementById('waStatusBox');
+            const txt = document.getElementById('waStatusText');
+            txt.innerText = text;
+            if (state === 'connected') {
+                box.classList.add('connected');
+            } else {
+                box.classList.remove('connected');
+            }
+        }
+
+        // --- Supabase Login Logic ---
         const leadsContainer = document.getElementById('leads-container');
         const kpiTotal = document.getElementById('kpi-total');
 
         async function checkLoginStatus() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                // For demonstration, quickly ask for email to send magic link
                 const email = prompt("Bem-vindo! Para ver os dados ao vivo, insira seu Master Admin email (gtorreshbl@gmail.com):");
                 if (email) {
                     const { error } = await supabase.auth.signInWithOtp({ email: email });
@@ -430,14 +452,10 @@
                     else alert("Magic Link enviado para seu email! Clique nele para fazer o login.");
                 }
             } else {
-                console.log("Logged in!", session.user.email);
                 fetchLiveLeads();
-                
-                // Set up Realtime Subscription
                 supabase.channel('custom-all-channel')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
-                        console.log('Change received!', payload);
-                        fetchLiveLeads(); // Refresh UI on any DB change
+                        fetchLiveLeads(); 
                     })
                     .subscribe();
             }
@@ -449,15 +467,10 @@
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error("Error fetching leads:", error);
-                return;
-            }
+            if (error) { console.error(error); return; }
 
-            // Update KPI
             if(kpiTotal) kpiTotal.innerText = leads.length;
 
-            // Render Leads
             if (leadsContainer) {
                 leadsContainer.innerHTML = '';
                 leads.forEach(lead => {
@@ -465,7 +478,7 @@
                     <div class="lead-card">
                         <div class="lead-info">
                             <h4>${lead.name}</h4>
-                            <p>Preferência: ${lead.preferred_language.toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
+                            <p>Preferência: ${(lead.preferred_language || 'PT').toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
                             <p style="font-size: 0.75rem; color: #888; margin-top: 4px;">📞 ${lead.phone || 'Sem número'}</p>
                         </div>
                         <div class="lead-status">
