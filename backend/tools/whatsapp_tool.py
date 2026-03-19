@@ -29,7 +29,9 @@ def get_whatsapp_status():
 def get_whatsapp_qr():
     """
     Attempts to create the instance if it doesn't exist, and fetches the base64 QR code.
+    Added a small retry loop because Evolution API takes a second to load the Baileys session.
     """
+    import time
     headers = {"apikey": EVOLUTION_GLOBAL_API_KEY, "Content-Type": "application/json"}
     
     # 1. Try to create the instance (fails silently if it already exists)
@@ -40,21 +42,23 @@ def get_whatsapp_qr():
     }
     requests.post(f"{EVOLUTION_API_URL}/instance/create", json=create_payload, headers=headers)
     
-    # 2. Fetch the QR code or connection state
+    # 2. Fetch the QR code or connection state (retry up to 3 times)
     try:
-        response = requests.get(f"{EVOLUTION_API_URL}/instance/connect/{INSTANCE_NAME}", headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            # Depending on Evolution version, base64 is in different spots
-            if "base64" in data:
-                return {"status": "qr", "qr_code": data["base64"]}
-            elif "qrcode" in data and "base64" in data["qrcode"]:
-                return {"status": "qr", "qr_code": data["qrcode"]["base64"]}
-            elif data.get("instance", {}).get("state") == "open":
-                return {"status": "connected"}
-            else:
-                return {"status": "wait"}
-        return {"status": "error"}
+        for _ in range(3):
+            response = requests.get(f"{EVOLUTION_API_URL}/instance/connect/{INSTANCE_NAME}", headers=headers)
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "base64" in data and data["base64"]:
+                    return {"status": "qr", "qr_code": data["base64"]}
+                elif "qrcode" in data and "base64" in data["qrcode"] and data["qrcode"]["base64"]:
+                    return {"status": "qr", "qr_code": data["qrcode"]["base64"]}
+                elif data.get("instance", {}).get("state") == "open":
+                    return {"status": "connected"}
+                
+            time.sleep(1.5) # Wait for Baileys to emit the QR code
+            
+        return {"status": "wait"} # Still connecting
     except Exception as e:
         print(f"Error fetching QR: {e}")
         return {"status": "error"}

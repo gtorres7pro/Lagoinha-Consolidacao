@@ -297,6 +297,11 @@
                     } else if (data.status === 'connected') {
                         qrContainer.innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância já conectada!</p>';
                         updateStatusBox('Conectado Oficialmente', 'connected');
+                    } else if (data.status === 'wait') {
+                        qrContainer.innerHTML = '<div class="spinner"></div><p style="margin-top: 10px; font-weight: 500;">Iniciando Motor do WhatsApp...</p>';
+                        updateStatusBox('Aguardando Geração...', 'pending');
+                        // Tenta buscar de novo em 3 segundos se ainda estiver carregando
+                        setTimeout(fetchQrCode, 3000);
                     } else {
                         qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Erro ao gerar QR Code.<br>A Evolution API pode estar offline.</p>';
                         updateStatusBox('Falha na comunicação', 'error');
