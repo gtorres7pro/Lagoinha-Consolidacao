@@ -400,19 +400,41 @@
                 </div>
             </header>
 
-            <div class="kpi-row">
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="kpi-box">
                     <div class="kpi-title">Welcome Message (IA)</div>
                     <div class="kpi-number">
                         <span id="vkpi-t1" style="color: var(--accent);">0</span>
-                        <span class="kpi-total">/ <span id="vkpi-total-1">0</span></span>
+                        <span class="kpi-total">/ <span class="vkpi-total-all">0</span></span>
+                    </div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Convite para GC</div>
+                    <div class="kpi-number">
+                        <span id="vkpi-t2" style="color: #00BFFF;">0</span>
+                        <span class="kpi-total">/ <span class="vkpi-total-all">0</span></span>
                     </div>
                 </div>
                 <div class="kpi-box">
                     <div class="kpi-title">Follow-up Humano</div>
                     <div class="kpi-number">
-                        <span id="vkpi-t2" style="color: #00BFFF;">0</span>
-                        <span class="kpi-total">/ <span id="vkpi-total-1">0</span></span>
+                        <span id="vkpi-t3" style="color: #32CD32;">0</span>
+                        <span class="kpi-total">/ <span class="vkpi-total-all">0</span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-row" style="grid-template-columns: 1fr 1fr; margin-top: 20px; gap: 20px; display: grid;">
+                <div class="kpi-box" style="flex-direction: column; align-items: flex-start;">
+                    <div class="kpi-title">ESTADO CIVIL</div>
+                    <div style="width: 100%; height: 250px; position: relative;">
+                        <canvas id="vChartEstadoCivil"></canvas>
+                    </div>
+                </div>
+                <div class="kpi-box" style="flex-direction: column; align-items: flex-start;">
+                    <div class="kpi-title">FAIXA ETÁRIA</div>
+                    <div style="width: 100%; height: 250px; position: relative;">
+                        <canvas id="vChartIdade"></canvas>
                     </div>
                 </div>
             </div>
@@ -1162,9 +1184,9 @@ REGRAS:
                     // Update Visitor KPIs
                     const vTotal = vFiltered.length;
                     document.querySelectorAll('.vkpi-total-all').forEach(el => el.innerText = vTotal);
-                    document.getElementById('vkpi-t1').innerText = vTotal; // Welcome message (IA)
-                    document.getElementById('vkpi-t2').innerText = vFiltered.filter(l => l.task_gc).length;
-                    document.getElementById('vkpi-t3').innerText = vFiltered.filter(l => l.task_followup).length;
+                    if(document.getElementById('vkpi-t1')) document.getElementById('vkpi-t1').innerText = vTotal; // Welcome message (IA)
+                    if(document.getElementById('vkpi-t2')) document.getElementById('vkpi-t2').innerText = vFiltered.filter(l => l.task_gc).length;
+                    if(document.getElementById('vkpi-t3')) document.getElementById('vkpi-t3').innerText = vFiltered.filter(l => l.task_followup).length;
                     
                     if(window.updateVisitorCharts) window.updateVisitorCharts(vFiltered);
 
