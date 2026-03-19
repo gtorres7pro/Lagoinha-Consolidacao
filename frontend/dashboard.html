@@ -706,9 +706,10 @@ REGRAS:
             let chartInstances = {};
 
             function reportError(msg) {
-                if (leadsContainer) {
-                    tContainer.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
-                }
+                const lc = document.getElementById('leads-container');
+                if (lc) lc.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
+                const vc = document.getElementById('visitors-container');
+                if (vc) vc.innerHTML = `<div style="grid-column:1/-1; color:#FF6B6B; padding:30px; text-align:center; background:rgba(255,107,107,0.1); border-radius:12px;">Erro Técnico Detectado:<br><b>${msg}</b></div>`;
             }
 
             // Bind filters
@@ -889,9 +890,9 @@ REGRAS:
             window.fetchLiveLeads = async function() {
                 try {
                     const leadsContainer = document.getElementById('leads-container');
-                    if (leadsContainer) {
-                        tContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
-                    }
+                    const visitorContainer = document.getElementById('visitors-container');
+                    if (leadsContainer) leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
+                    if (visitorContainer) visitorContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
 
                     let allLeads = [];
                     let start = 0;
