@@ -5,11 +5,23 @@ import os
 import sys
 
 # Get Supabase client from existing tools
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 try:
-    from tools.supabase_tool import supabase
-except ModuleNotFoundError:
-    from supabase_tool import supabase
+    from tools.db_tool import supabase
+except ImportError:
+    try:
+        from db_tool import supabase
+    except ImportError:
+        print("Erro: Não foi possível encontrar db_tool.py. Verifique se está na pasta backend/tools.")
+        sys.exit(1)
+
+
 
 
 def clean_phone(phone_str):

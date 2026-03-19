@@ -8,7 +8,8 @@ from tools.db_tool import create_lead, log_message
 from tools.whatsapp_tool import send_welcome_message, get_whatsapp_status, get_whatsapp_qr
 from tools.llm_tool import generate_response
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(env_path)
 
 app = FastAPI(title="Lagoinha Consolidação - Orquestrador API")
 

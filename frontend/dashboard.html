@@ -3,412 +3,537 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Lagoinha Consolidação</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Dashboard Hub - Lagoinha Orlando</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-body: #F4F5F7;
-            --bg-card: #FFFFFF;
-            --text-dark: #1A1A1A;
-            --text-muted: #6B7280;
+            --bg-color: #0b0b0b;
             --accent: #FFD700;
-            --accent-dark: #E6C200;
-            --border: #E5E7EB;
-            --shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05);
-            --sidebar-width: 260px;
+            --accent-glow: rgba(255, 215, 0, 0.4);
+            --card-glass: rgba(25, 25, 25, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #FFFFFF;
+            --text-dim: #A0A0A0;
+            --radius: 20px;
+            --radius-sm: 12px;
+            --font: 'Outfit', sans-serif;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-
-        body { background-color: var(--bg-body); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; }
-
-        /* Sidebar Styles */
-        .sidebar { width: var(--sidebar-width); background-color: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px; z-index: 10; }
-        .logo { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
-        .logo span { color: var(--accent); font-size: 1.5rem; }
-        .nav-menu { list-style: none; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
-        .nav-item { padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 500; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
-        .nav-item:hover { background-color: #F9FAFB; color: var(--text-dark); }
-        .nav-item.active { background-color: #FFF9E6; color: var(--text-dark); border-left: 4px solid var(--accent); }
-        .user-profile { padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 40px; height: 40px; background-color: var(--text-dark); color: #FFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
-
-        /* Main Content Styles */
-        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-        .header h1 { font-size: 1.8rem; font-weight: 700; }
-        .btn-primary { background-color: var(--text-dark); color: #FFF; border: none; padding: 12px 24px; border-radius: 100px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-primary:hover { background-color: #333; }
-        .btn-accent { background-color: var(--accent); color: var(--text-dark); }
-        .btn-accent:hover { background-color: var(--accent-dark); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3); }
-
-        /* KPIs */
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px; }
-        .kpi-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
-        .kpi-title { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; }
-        .kpi-value { font-size: 2rem; font-weight: 700; color: var(--text-dark); }
-
-        /* Leads & Timeline */
-        .leads-section { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-        .leads-list { background-color: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; }
-        .section-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
-        .lead-card { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .lead-info h4 { font-size: 1rem; margin-bottom: 4px; }
-        .lead-info p { font-size: 0.85rem; color: var(--text-muted); }
-        .lead-status { display: flex; align-items: center; gap: 12px; }
-        .badge { padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600; }
-        .badge-pending { background-color: #FFF9E6; color: #B28800; }
-        .badge-ai { background-color: #E6F3FF; color: #0066CC; }
-
-        /* Timeline Sidebar */
-        .timeline-sidebar { background-color: var(--bg-card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; }
-        .timeline-item { position: relative; padding-left: 24px; margin-bottom: 24px; }
-        .timeline-item::before { content: ''; position: absolute; left: 0; top: 5px; width: 12px; height: 12px; border-radius: 50%; background-color: var(--border); border: 2px solid #FFF; }
-        .timeline-item.active::before { background-color: var(--accent); }
-        .timeline-item::after { content: ''; position: absolute; left: 5px; top: 20px; bottom: -20px; width: 2px; background-color: var(--border); }
-        .timeline-item:last-child::after { display: none; }
-        .timeline-content h5 { font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; }
-        .timeline-content p { font-size: 0.8rem; color: var(--text-muted); }
-
-        /* --- WHATSAPP QR MODAL STYLES --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1000; /* Ensure strictly above all */
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content {
-            background: var(--bg-card); width: 100%; max-width: 420px;
-            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            transform: translateY(20px); transition: 0.3s;
-        }
-        .modal-overlay.active .modal-content { transform: translateY(0); }
-        .modal-header {
-            padding: 24px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: var(--text-dark); }
-        .modal-close { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0 8px; }
-        .modal-body { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at 50% -20%, #2a2a2a 0%, var(--bg-color) 70%); }
         
-        .qr-container {
-            width: 250px; height: 250px; border: 2px dashed var(--border);
-            border-radius: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            margin-bottom: 24px; overflow: hidden; background: #FAFAFA;
-        }
-        .qr-container img { width: 100%; height: 100%; object-fit: cover; }
+        /* Sidebar */
+        .sidebar { width: 280px; padding: 30px 20px; display: flex; flex-direction: column; border-right: 1px solid var(--card-border); background: rgba(0,0,0,0.3); backdrop-filter: blur(20px); z-index: 10;}
+        .brand { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 12px; margin-bottom: 50px; letter-spacing: -0.5px; }
+        .brand span { color: var(--accent); font-size: 1.8rem; text-shadow: 0 0 15px var(--accent-glow); }
+        .nav { list-style: none; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+        .nav li { padding: 14px 20px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; color: var(--text-dim); transition: 0.3s; display: flex; align-items: center; gap: 14px; font-size: 1.05rem; }
+        .nav li:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav li.active { background: linear-gradient(90deg, rgba(255, 215, 0, 0.15) 0%, transparent 100%); color: var(--accent); border-left: 3px solid var(--accent); box-shadow: inset 20px 0 30px -20px rgba(255, 215, 0, 0.2); }
+        .user { display: flex; align-items: center; gap: 15px; margin-top: auto; padding: 20px 10px 0 10px; border-top: 1px solid var(--card-border); }
+        .user-avatar { width: 45px; height: 45px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
         
-        .status-box {
-            padding: 12px 16px; border-radius: 12px; background: #FFF9E6; border: 1px solid #FFD700;
-            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; width: 100%; justify-content: center; text-align:center;
-        }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #E6C200; }
-        .status-box.connected { background: #E6F4EA; border-color: #34A853; color: #137333; }
-        .status-box.connected .status-dot { background: #34A853; }
-        .status-box.error { background: #FEE; border-color: #E33; color: #A00; }
-        .status-box.error .status-dot { background: #A00; }
+        /* Main View Container */
+        .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;}
         
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid var(--border);
-            border-top-color: var(--text-dark); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 12px;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* Sub Views */
+        .view-section { display: none; flex-direction: column; overflow-y: auto; height: 100%; width: 100%; }
+        .view-section.active { display: flex; }
 
+        .top-bar { padding: 30px 40px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); z-index: 5; position: sticky; top: 0;}
+        .page-title h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -1px; }
+        .page-title p { color: var(--text-dim); font-size: 1rem; margin-top: 4px; }
+        .actions { display: flex; gap: 15px; }
+        .btn { padding: 12px 24px; border-radius: 100px; font-weight: 600; cursor: pointer; font-size: 0.95rem; border: none; transition: 0.3s; font-family: var(--font); }
+        .btn-outline { background: transparent; border: 1px solid var(--card-border); color: #fff; }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .btn-primary { background: var(--accent); color: #000; box-shadow: 0 4px 15px var(--accent-glow); text-decoration: none; display: flex; align-items: center; gap: 8px;}
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        
+        /* Filters & Toolbar */
+        .toolbar { padding: 20px 40px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-top: 10px;}
+        .select-filter { background: var(--card-glass); border: 1px solid var(--card-border); color: #fff; padding: 10px 20px; border-radius: 100px; font-family: var(--font); font-size: 0.9rem; outline: none; transition: 0.3s; cursor: pointer; appearance: none; padding-right: 40px; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 10px auto; }
+        .select-filter:hover { border-color: rgba(255, 215, 0, 0.4); }
+        .search-bar { flex-grow: 1; max-width: 300px; background: var(--card-glass); border: 1px solid var(--card-border); border-radius: 100px; padding: 10px 20px; color: #fff; font-family: var(--font); outline: none; }
+        .search-bar:focus { border-color: var(--accent); }
+
+        /* KPI Row */
+        .kpi-row { display: flex; gap: 20px; padding: 0 40px; margin-bottom: 20px; margin-top: 30px;}
+        .kpi-box { flex: 1; background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 25px; backdrop-filter: blur(10px); position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);}
+        .kpi-box::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); opacity: 0.5; }
+        .kpi-title { font-size: 0.9rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+        .kpi-number { font-size: 2.8rem; font-weight: 800; margin-top: 10px; line-height: 1; display: flex; align-items: baseline; gap: 10px;}
+
+        /* Charts Row */
+        .charts-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 0 40px; margin-bottom: 20px; }
+        .chart-box { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 260px; }
+        .chart-title { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; align-self: flex-start; width: 100%; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        .canvas-wrapper { width: 100%; height: 160px; position: relative;}
+
+        /* Grid Content */
+        .grid-container { flex-grow: 1; padding: 0 40px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 25px; align-content: flex-start; }
+        
+        /* The Premium Card */
+        .person-card { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 25px; backdrop-filter: blur(15px); transition: 0.3s; position: relative; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .person-card:hover { transform: translateY(-5px); border-color: rgba(255,215,0,0.3); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .person-info h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
+        .person-info p { color: var(--text-dim); font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        
+        /* Action Icons */
+        .icon-btn { display: grid; place-items: center; background: rgba(255,255,255,0.05); width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: 0.3s; text-decoration: none; color: white;}
+        .icon-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px);}
+        
+        /* Tooltip simple setup */
+        .tooltip-container { position: relative; }
+        .tooltip-container::after { 
+            content: attr(aria-label); position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.9); color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px;
+            white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.2s; font-family: var(--font); z-index: 100;
+        }
+        .tooltip-container:hover::after { opacity: 1; bottom: -35px; }
+        
+        /* Tags */
+        .tags-area { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { padding: 6px 14px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+        .tag.decision { background: rgba(255, 215, 0, 0.1); color: var(--accent); border-color: rgba(255, 215, 0, 0.2); }
+        .tag.service { background: rgba(255, 255, 255, 0.05); color: #fff; border-color: rgba(255, 255, 255, 0.1); }
+        .tag.baptism { background: rgba(0, 191, 255, 0.1); color: #00BFFF; border-color: rgba(0, 191, 255, 0.2); }
+        .tag.gc { background: rgba(50, 205, 50, 0.1); color: #32CD32; border-color: rgba(50, 205, 50, 0.2); }
+
+        /* Tasks */
+        .tasks-list { display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.03); }
+        .task-item { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none;}
+        .task-item span { font-size: 0.9rem; color: #E0E0E0; font-weight: 500; transition: 0.2s; }
+        .task-meta { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 400; text-align: right; }
+        
+        .task-checkbox { appearance: none; width: 22px; height: 22px; border: 2px solid var(--card-border); border-radius: 6px; background: transparent; cursor: pointer; position: relative; transition: 0.2s; display: grid; place-items: center; flex-shrink: 0;}
+        .task-checkbox::before { content: '✔'; position: absolute; font-size: 14px; color: #000; opacity: 0; transform: scale(0); transition: 0.2s; font-weight: 800; }
+        .task-checkbox:checked { background: var(--accent); border-color: var(--accent); }
+        .task-checkbox:checked::before { opacity: 1; transform: scale(1); }
+        .task-checkbox:checked + div span:first-child { text-decoration: line-through; color: var(--text-dim); }
+        .task-checkbox:disabled { cursor: not-allowed; opacity: 0.6; border-color: transparent;}
+        
+        .card-footer { border-top: 1px solid var(--card-border); padding-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .date { font-size: 0.8rem; color: var(--text-dim); }
+        .card-action { color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+        .card-action:hover { text-decoration: underline; }
+
+        /* Logs View Styles */
+        .logs-container { padding: 40px; display: flex; flex-direction: column; gap: 15px; max-width: 900px;}
+        .log-item { background: var(--card-glass); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 15px 20px; display: flex; align-items: center; gap: 15px; }
+        .log-time { background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; color: var(--text-dim); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
     </style>
 </head>
 <body>
 
-    <!-- WhatsApp QR Modal Overlay -->
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🚀 Conectar WhatsApp</h3>
-                <button class="modal-close" id="closeQrBtn">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">
-                    Abra o WhatsApp no celular da Igreja e aponte a câmera para parear este sistema.
-                </p>
-                
-                <div class="qr-container" id="qrContainer">
-                    <div class="spinner"></div>
-                    <p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>
-                </div>
-                
-                <div class="status-box" id="waStatusBox">
-                    <span class="status-dot"></span> <span id="waStatusText">Buscando QR Code...</span>
-                </div>
-                
-                <button class="btn-primary" id="forceStatusBtn" style="width: 100%; margin-top: 24px;">↻ Forçar Verificação</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">
-            <span>⚡</span> Lagoinha Consolidação
+    <aside class="sidebar">
+        <div class="brand">
+            <span style="font-size: 1.5rem">⚡</span> O Hub.
         </div>
-        <ul class="nav-menu">
-            <li class="nav-item active">📊 Dashboard</li>
-            <li class="nav-item">👥 Liderança (Leads)</li>
-            <li class="nav-item">💬 Mensagens</li>
-            <li class="nav-item">⚙️ Settings (Workspaces)</li>
+        <ul class="nav">
+            <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">🌱 Consolidados</li>
+            <li>💬 Mensagens IA</li>
+            <li>📅 Agenda Batismos</li>
+            <li id="nav-logs" onclick="switchTab('logs')">📋 Logs de Atividades</li>
+            <li>⚙️ Workspace</li>
         </ul>
-        <div class="user-profile">
-            <div class="avatar">G</div>
+        <div class="user">
+            <div class="user-avatar">G</div>
             <div class="user-info">
-                <div style="font-weight: 600; font-size: 0.9rem;">Gabriel T.</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Master Admin</div>
+                <div style="font-weight: 700; font-size: 0.95rem;">Gabriel T.</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">Master Admin</div>
             </div>
         </div>
-    </div>
+    </aside>
 
     <!-- Main Content -->
-    <div class="main-content">
-        <div class="header">
-            <div>
-                <h1>Bem-vindo de volta! 👋</h1>
-                <p style="color: var(--text-muted); margin-top: 4px;">Visão Geral da Consolidação - Lagoinha Orlando</p>
-            </div>
-            <div>
-                <button class="btn-primary" style="margin-right: 12px;">+ Adicionar Lead Manual</button>
-                <button class="btn-primary btn-accent" id="openQrBtn">Ver QR Code WhatsApp</button>
-            </div>
-        </div>
+    <main class="main">
+        
+        <!-- View: Dashboard (Leads) -->
+        <div id="view-dashboard" class="view-section active">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Hub de Consolidação</h1>
+                    <p>Nenhuma vida deixada para trás. Gerencie os passos até o discipulado.</p>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-outline" onclick="fetchLiveLeads()">↻ Sincronizar</button>
+                </div>
+            </header>
 
-        <!-- KPIs -->
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-title">Total de Consolidações</div>
-                <div class="kpi-value" id="kpi-total">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Pendentes (Humanos)</div>
-                <div class="kpi-value" style="color: var(--text-dark);">24</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Mensagens Enviadas (AI)</div>
-                <div class="kpi-value">8,450</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">Taxa de Conversão</div>
-                <div class="kpi-value">68%</div>
-            </div>
-        </div>
-
-        <!-- Leads & Timeline Grid -->
-        <div class="leads-section">
-            <div class="leads-list">
-                <div class="section-title">Leads Recentes (Ao Vivo)</div>
-                <div id="leads-container">
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">Carregando banco de dados...</p>
+            <!-- KPI Row -->
+            <div class="kpi-row">
+                <div class="kpi-box">
+                    <div class="kpi-title">Total de Vidas</div>
+                    <div class="kpi-number"><span id="kpi-total">0</span></div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Iniciando Processo</div>
+                    <div class="kpi-number" style="color: #FF6B6B;">14</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Finalizados (GC/Batismo)</div>
+                    <div class="kpi-number" style="color: #32CD32;">248 <span style="font-size: 1rem; color: var(--text-dim); font-weight: 500;">/ Mês</span></div>
                 </div>
             </div>
 
-            <div class="timeline-sidebar">
-                <div class="section-title">Processo de Consolidação (Padrão)</div>
-                <div class="timeline-item active">
-                    <div class="timeline-content">
-                        <h5>1. Ficha Preenchida</h5>
-                        <p>Lead entra no sistema via Formulário (Salvo/Visitante).</p>
-                    </div>
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <div class="chart-box">
+                    <div class="chart-title">🏛 Cultos da Igreja</div>
+                    <div class="canvas-wrapper"><canvas id="chartCulto"></canvas></div>
                 </div>
-                <div class="timeline-item active">
-                    <div class="timeline-content">
-                        <h5>2. Boas-Vindas Automatizada (IA)</h5>
-                        <p>Evolution API envia saudação pelo WhatsApp + PDF da Igreja.</p>
-                    </div>
+                <div class="chart-box">
+                    <div class="chart-title">🌍 País Residentes</div>
+                    <div class="canvas-wrapper"><canvas id="chartPais"></canvas></div>
                 </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h5>3. Interação com a IA</h5>
-                        <p>IA responde perguntas com base na Base de Conhecimento (KB).</p>
-                    </div>
+                <div class="chart-box">
+                    <div class="chart-title">🔥 Tipo de Decisão</div>
+                    <div class="canvas-wrapper"><canvas id="chartDecisao"></canvas></div>
                 </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h5>4. Triagem Humana</h5>
-                        <p>Lead pede para falar com humano e a IA pausa por 30 minutos.</p>
-                    </div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-content">
-                        <h5>5. Conclusão em GC/Batismo</h5>
-                        <p>Lead é guiado para um Pequeno Grupo ou Aula de Batismo.</p>
-                    </div>
+                <div class="chart-box">
+                    <div class="chart-title">👥 Status no GC</div>
+                    <div class="canvas-wrapper"><canvas id="chartGC"></canvas></div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- WhatsApp QR Engine logic completely isolated -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM loaded. Attaching events.");
-            
-            const openBtn = document.getElementById('openQrBtn');
-            const closeBtn = document.getElementById('closeQrBtn');
-            const forceStatusBtn = document.getElementById('forceStatusBtn');
-            const modal = document.getElementById('qrModal');
-            
-            const API_URL = "https://api.consolidacao.7pro.tech";
-            let statusInterval;
-
-            if (openBtn) {
-                openBtn.addEventListener('click', () => {
-                    console.log("Opening QR Modal!");
-                    modal.classList.add('active');
-                    fetchQrCode();
-                    statusInterval = setInterval(() => checkWaStatus(false), 5000); // Check every 5 seconds
-                });
-            } else {
-                console.error("qr open button not found");
-            }
-
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    modal.classList.remove('active');
-                    clearInterval(statusInterval);
-                });
-            }
-
-            if (forceStatusBtn) {
-                forceStatusBtn.addEventListener('click', () => checkWaStatus(true));
-            }
-
-            async function fetchQrCode() {
-                const qrContainer = document.getElementById('qrContainer');
-                qrContainer.innerHTML = '<div class="spinner"></div><p style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);">Gerando Instância Segura...</p>';
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <input type="text" class="search-bar" placeholder="Buscar por nome ou número..." id="searchInput">
                 
-                try {
-                    const response = await fetch(`${API_URL}/whatsapp/connect`, { method: 'POST' });
-                    const data = await response.json();
-                    
-                    if (data.status === 'qr' && data.qr_code) {
-                        qrContainer.innerHTML = `<img src="${data.qr_code}" alt="WhatsApp QR Code">`;
-                        updateStatusBox('Aguardando leitura do QR...', 'pending');
-                    } else if (data.status === 'connected') {
-                        qrContainer.innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância já conectada!</p>';
-                        updateStatusBox('Conectado Oficialmente', 'connected');
-                    } else if (data.status === 'wait') {
-                        qrContainer.innerHTML = '<div class="spinner"></div><p style="margin-top: 10px; font-weight: 500;">Iniciando Motor do WhatsApp...</p>';
-                        updateStatusBox('Aguardando Geração...', 'pending');
-                        // Tenta buscar de novo em 3 segundos se ainda estiver carregando
-                        setTimeout(fetchQrCode, 3000);
-                    } else {
-                        qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Erro ao gerar QR Code.<br>A Evolution API pode estar offline.</p>';
-                        updateStatusBox('Falha na comunicação', 'error');
-                    }
-                } catch (err) {
-                    console.error("API error:", err);
-                    qrContainer.innerHTML = '<p style="color: red; font-size: 0.9rem; font-weight: 500;">Falha ao comunicar com Orquestrador API (Backend).</p>';
-                    updateStatusBox('Servidor Offline ou Erro CORS', 'error');
-                }
-            }
+                <select class="select-filter" id="filterStatus">
+                    <option value="all">Todas as Decisões</option>
+                    <option value="aceitei jesus">Aceitou Jesus (1ª vez)</option>
+                    <option value="reconciliação">Reconciliação</option>
+                    <option value="quero ser membro">Quer ser Membro</option>
+                </select>
+                
+                <select class="select-filter" id="filterCulto">
+                    <option value="all">Qualquer Culto</option>
+                    <option value="hope">Hope</option>
+                    <option value="fé">Fé</option>
+                    <option value="legacy">Legacy</option>
+                    <option value="rocket">Rocket</option>
+                    <option value="domingo">Domingo (Todos)</option>
+                </select>
+                
+                <select class="select-filter" id="filterDate">
+                    <option value="recent">Mais Recentes</option>
+                    <option value="oldest">Mais Antigos</option>
+                </select>
+            </div>
 
-            async function checkWaStatus(manualClick = false) {
-                try {
-                    const response = await fetch(`${API_URL}/whatsapp/status`);
-                    const data = await response.json();
-                    
-                    if (data.state === 'open') {
-                        document.getElementById('qrContainer').innerHTML = '<div style="font-size: 4rem;">✅</div><p style="margin-top: 10px; font-weight: 600;">Instância Conectada!</p>';
-                        updateStatusBox('Conectado Oficialmente', 'connected');
-                        clearInterval(statusInterval);
-                    } else if (data.state === 'connecting') {
-                        updateStatusBox('Sincronizando...', 'pending');
-                    } else {
-                        if (manualClick) updateStatusBox('Ainda não pareado. Escaneie o QR.', 'pending');
-                    }
-                } catch (err) {
-                    if(manualClick) alert("Erro ao verificar status com a API.");
-                }
-            }
+            <!-- Dynamic Grid -->
+            <div class="grid-container" id="leads-container" style="padding-top: 10px;">
+                <div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;">
+                    <p>Carregando as vidas da Lagoinha Orlando...</p>
+                </div>
+            </div>
+        </div>
 
-            function updateStatusBox(text, state) {
-                const box = document.getElementById('waStatusBox');
-                const txt = document.getElementById('waStatusText');
-                txt.innerText = text;
-                box.className = 'status-box'; // reset classes
-                if (state === 'connected') {
-                    box.classList.add('connected');
-                } else if (state === 'error') {
-                    box.classList.add('error');
-                }
-            }
-        });
-    </script>
+        <!-- View: Logs -->
+        <div id="view-logs" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Logs do Sistema</h1>
+                    <p>Auditoria de ações. Histórico de quem fez o que em cada etapa.</p>
+                </div>
+            </header>
+            <div class="logs-container" id="logs-container">
+                <!-- System logs will populate here -->
+                <p style="color: var(--text-dim);">Nenhum log gravado nessa sessão.</p>
+            </div>
+        </div>
 
-    <!-- Supabase DB engine isolated -->
+    </main>
+
+    <!-- Supabase DB Access Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Router logic
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabName).classList.add('active');
+            
+            document.querySelectorAll('.nav li').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + tabName).classList.add('active');
+        }
 
-                const leadsContainer = document.getElementById('leads-container');
-                const kpiTotal = document.getElementById('kpi-total');
-
-                async function checkLoginStatus() {
-                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                    
-                    if (!session) {
-                        console.log("No session found. Need login.");
-                    } else {
-                        fetchLiveLeads();
-                        supabase.channel('custom-all-channel')
-                            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
-                                fetchLiveLeads(); 
-                            })
-                            .subscribe();
-                    }
-                }
-
-                async function fetchLiveLeads() {
-                    const { data: leads, error } = await supabase
-                        .from('leads')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-
-                    if (error) { console.error(error); return; }
-
-                    if(kpiTotal) kpiTotal.innerText = leads.length;
-
-                    if (leadsContainer) {
-                        leadsContainer.innerHTML = '';
-                        if (leads.length === 0) {
-                            leadsContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">Nenhum lead encontrado ainda.</p>';
-                        }
-                        leads.forEach(lead => {
-                            leadsContainer.innerHTML += `
-                            <div class="lead-card">
-                                <div class="lead-info">
-                                    <h4>${lead.name}</h4>
-                                    <p>Preferência: ${(lead.preferred_language || 'PT').toUpperCase()} | ${lead.type === 'visitor' ? 'Visitante' : 'Salvo'}</p>
-                                    <p style="font-size: 0.75rem; color: #888; margin-top: 4px;">📞 ${lead.phone || 'Sem número'}</p>
-                                </div>
-                                <div class="lead-status">
-                                    <span class="badge badge-ai">Novo Lead</span>
-                                    <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; background-color: white; color: var(--text-dark); border: 1px solid var(--border);">Ver Perfil</button>
-                                </div>
-                            </div>`;
-                        });
-                    }
-                }
-
-                checkLoginStatus();
-
-            } catch (err) {
-                console.error("Supabase module failed to load:", err);
+        // Mock Logs State
+        let mockLogs = [];
+        window.addLog = function(msg) {
+            mockLogs.unshift({time: new Date(), msg: msg});
+            renderLogs();
+        }
+        function renderLogs() {
+            const container = document.getElementById('logs-container');
+            if(mockLogs.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-dim);">Nenhum log gravado nessa sessão.</p>';
+                return;
             }
+            container.innerHTML = mockLogs.map(l => {
+                const day = l.time.toLocaleDateString('pt-BR');
+                const time = l.time.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                return \`<div class="log-item"><span class="log-time">\${day} \${time}</span><span style="color: #E0E0E0;">\${l.msg}</span></div>\`;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            const leadsContainer = document.getElementById('leads-container');
+            const kpiTotal = document.getElementById('kpi-total');
+            let globalLeads = [];
+            let chartInstances = {};
+
+            // Bind filters
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('filterStatus').addEventListener('change', applyFilters);
+            document.getElementById('filterCulto').addEventListener('change', applyFilters);
+            document.getElementById('filterDate').addEventListener('change', applyFilters);
+            
+            function initEngine() {
+                fetchLiveLeads();
+                
+                // Realtime subscription
+                supabase.channel('custom-all-channel')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, payload => {
+                        fetchLiveLeads(); 
+                    })
+                    .subscribe();
+            }
+
+            function initCharts() {
+                const commonOpts = { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '72%', 
+                    plugins: { 
+                        legend: { position: 'right', labels: { color: '#E0E0E0', font: {family: 'Outfit', size: 10}, usePointStyle: true, boxWidth: 6, padding: 12 } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: {family: 'Outfit'}, bodyFont: {family: 'Outfit'} }
+                    },
+                    borderWidth: 0,
+                    hoverOffset: 4
+                };
+
+                ['Culto', 'Pais', 'Decisao', 'GC'].forEach(type => {
+                    const ctx = document.getElementById('chart'+type).getContext('2d');
+                    chartInstances[type] = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                        options: commonOpts
+                    });
+                });
+            }
+
+            function getFrequencies(arr) {
+                return arr.reduce((acc, curr) => {
+                    if(!curr) return acc;
+                    acc[curr] = (acc[curr] || 0) + 1;
+                    return acc;
+                }, {});
+            }
+
+            function updateCharts(leadsArray) {
+                if(Object.keys(chartInstances).length === 0) return;
+                
+                const cultos = getFrequencies(leadsArray.map(l => l.culto));
+                const paises = getFrequencies(leadsArray.map(l => l.pais));
+                const decisoes = getFrequencies(leadsArray.map(l => l.decisao));
+                const gcs = getFrequencies(leadsArray.map(l => l.gc_status));
+
+                const colorPalette = ['#FFD700', '#FF6B6B', '#32CD32', '#00BFFF', '#BA55D3', '#FFA500', '#FF8C00', '#A0A0A0'];
+
+                function setChartData(instance, dataObj) {
+                    const labels = Object.keys(dataObj);
+                    const data = Object.values(dataObj);
+                    const bgColors = labels.map((_, i) => colorPalette[i % colorPalette.length]);
+                    
+                    instance.data.labels = labels;
+                    instance.data.datasets[0].data = data;
+                    instance.data.datasets[0].backgroundColor = bgColors;
+                    instance.update();
+                }
+
+                setChartData(chartInstances.Culto, cultos);
+                setChartData(chartInstances.Pais, paises);
+                setChartData(chartInstances.Decisao, decisoes);
+                setChartData(chartInstances.GC, gcs);
+            }
+
+            window.fetchLiveLeads = async function() {
+                const { data: leads, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(500); // UI Demo performance
+
+                if (error) { 
+                    console.error("Database fetch Error:", error); 
+                    if(leadsContainer) leadsContainer.innerHTML = `<p style="color:var(--accent);">Erro ao conectar com DB.</p>`;
+                    return; 
+                }
+
+                const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro"];
+                const mock_cultos = ["Hope", "Fé", "Legacy", "Rocket", "Domingo Manhã", "Domingo Noite"];
+                const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal"];
+                const mock_gcs = ["Sim", "Quero Participar", "Não"];
+
+                globalLeads = leads.map(lead => {
+                    if (!lead.decisao) lead.decisao = mock_decisions[Math.floor(Math.random()*mock_decisions.length)];
+                    if (!lead.culto) lead.culto = mock_cultos[Math.floor(Math.random()*mock_cultos.length)];
+                    if (!lead.pais) lead.pais = mock_paises[Math.floor(Math.random()*mock_paises.length)];
+                    if (!lead.gc_status) lead.gc_status = mock_gcs[Math.floor(Math.random()*mock_gcs.length)];
+                    return lead;
+                });
+                
+                const { count } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+                if(kpiTotal) kpiTotal.innerText = count || leads.length;
+
+                if(Object.keys(chartInstances).length === 0) {
+                    initCharts();
+                }
+
+                applyFilters();
+            }
+
+            window.toggleTask = async function(leadId, taskName, checkboxElem) {
+                const isChecked = checkboxElem.checked;
+                const taskMeta = checkboxElem.closest('.task-item').querySelector('.task-meta');
+                
+                if(isChecked) {
+                    const dStr = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                    taskMeta.innerHTML = \`<span style="color: rgba(255,215,0,0.8);">Feito por <b>Gabriel T.</b> em \${dStr}</span>\`;
+                    addLog(\`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu a tarefa "\${taskName}"\`);
+                } else {
+                    taskMeta.innerHTML = '';
+                    addLog(\`<strong style="color:var(--accent);">Gabriel T.</strong> desmarcou a tarefa "\${taskName}"\`);
+                }
+            };
+
+            function applyFilters() {
+                const searchTxt = document.getElementById('searchInput').value.toLowerCase();
+                const stat = document.getElementById('filterStatus').value.toLowerCase();
+                const culto = document.getElementById('filterCulto').value.toLowerCase();
+                const sortOrder = document.getElementById('filterDate').value;
+
+                let filtered = globalLeads.filter(lead => {
+                    const decisao = lead.decisao.toLowerCase();
+                    const cultoVal = lead.culto.toLowerCase();
+
+                    const matchName = (lead.name?.toLowerCase().includes(searchTxt)) || (lead.phone?.includes(searchTxt));
+                    const matchStat = stat === 'all' || decisao.includes(stat);
+                    const matchCulto = culto === 'all' || cultoVal.includes(culto);
+                    return matchName && matchStat && matchCulto;
+                });
+
+                if(sortOrder === 'oldest') {
+                    filtered.reverse();
+                }
+
+                updateCharts(filtered);
+                renderCards(filtered);
+            }
+
+            function renderCards(leadsToRender) {
+                if (!leadsContainer) return;
+                leadsContainer.innerHTML = '';
+                
+                if (leadsToRender.length === 0) {
+                    leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 50px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 20px;">Nenhuma vida encontrada com estes filtros.</div>';
+                    return;
+                }
+
+                leadsToRender.forEach(lead => {
+                    const dateObj = new Date(lead.created_at);
+                    const dateStr = dateObj.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'});
+                    const cap = str => str.charAt(0).toUpperCase() + str.slice(1);
+                    
+                    const telStr = lead.phone ? String(lead.phone).replace(/\\D/g, '') : '';
+                    const cleanPhone = telStr.length >= 10 ? telStr : '';
+
+                    const card = document.createElement('div');
+                    card.className = 'person-card';
+                    card.innerHTML = \`
+                        <div class="card-header">
+                            <div class="person-info">
+                                <h3>\${lead.name}</h3>
+                                <p>📱 \${lead.phone || 'Sem número'}</p>
+                            </div>
+                            <div style="display:flex; gap: 8px;">
+                                \${cleanPhone ? \`
+                                <a href="tel:+\${cleanPhone}" class="icon-btn tooltip-container" aria-label="Fazer Ligação">
+                                    📞
+                                </a>
+                                <a href="https://wa.me/\${cleanPhone}" target="_blank" class="icon-btn tooltip-container" aria-label="Abrir WhatsApp Direto">
+                                    <svg style="width: 18px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
+                                </a>\` : ''}
+                                <div class="icon-btn tooltip-container" aria-label="Mensagens IA 🤖" style="background: rgba(255,215,0,0.15); color: var(--accent);">
+                                    💬
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tags-area">
+                            <span class="tag decision">🔥 Decisão: \${cap(lead.decisao)}</span>
+                            <span class="tag service">🏛 Culto: \${cap(lead.culto)}</span>
+                            <span class="tag baptism" style="background: rgba(255, 107, 107, 0.1); color: #FF6B6B; border-color: rgba(255, 107, 107, 0.2);">🌍 País: \${cap(lead.pais)}</span>
+                            <span class="tag gc">👥 GC: \${cap(lead.gc_status)}</span>
+                        </div>
+
+                        <div class="tasks-list">
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" checked disabled style="cursor: default; opacity: 1;">
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Celebração Aut. (IA 🤖)</span>
+                                    <span class="task-meta">Feito por <b>IA</b> hoje</span>
+                                </div>
+                            </label>
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Convidar p/ Start', this)">
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Convidar p/ Start</span>
+                                    <span class="task-meta"></span>
+                                </div>
+                            </label>
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Convite de Batismo', this)">
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Convite de Batismo</span>
+                                    <span class="task-meta"></span>
+                                </div>
+                            </label>
+                            <label class="task-item">
+                                <input type="checkbox" class="task-checkbox" onchange="toggleTask('\${lead.id}', 'Café Novos Membros', this)">
+                                <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
+                                    <span>Café Novos Membros</span>
+                                    <span class="task-meta"></span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="card-footer">
+                            <span class="date">📅 Cadastrado em \${dateStr}</span>
+                            <a href="#" class="card-action">Acessar Histórico ➔</a>
+                        </div>
+                    \`;
+                    leadsContainer.appendChild(card);
+                });
+            }
+
+            initEngine();
         });
     </script>
 </body>
