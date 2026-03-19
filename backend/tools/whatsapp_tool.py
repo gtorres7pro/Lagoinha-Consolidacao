@@ -9,7 +9,7 @@ EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "https://consolidacao.7p
 EVOLUTION_GLOBAL_API_KEY = os.environ.get("EVOLUTION_GLOBAL_API_KEY", "lagoinhazxcvbnm1234")
 
 # The name of the instance you will create inside Evolution API (e.g., "lagoinha_orlando")
-INSTANCE_NAME = os.environ.get("EVOLUTION_INSTANCE_NAME", "Lagoinha")
+INSTANCE_NAME = os.environ.get("EVOLUTION_INSTANCE_NAME", "LagoinhaBR")
 
 def get_whatsapp_status():
     """
