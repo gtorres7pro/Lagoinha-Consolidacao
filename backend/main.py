@@ -37,7 +37,17 @@ class LeadInput(BaseModel):
 
 @app.get("/")
 def health_check():
-    return {"status": "online", "message": "Lagoinha API is running ⚡"}
+    return {"status": "online", "message": "Lagoinha API is running ⚡", "version": "v2.1-hardcoded-keys"}
+
+@app.get("/debug")
+def debug_info():
+    from tools.db_tool import supabase
+    try:
+        res = supabase.table("workspaces").select("id, name").execute()
+        workspaces = [w.get("name") for w in (res.data or [])]
+        return {"supabase": "connected ✅", "workspaces": workspaces, "version": "v2.1-hardcoded-keys"}
+    except Exception as e:
+        return {"supabase": f"error ❌: {str(e)}", "version": "v2.1-hardcoded-keys"}
 
 @app.post("/webhook/new_lead")
 async def process_new_lead(lead: LeadInput, background_tasks: BackgroundTasks):
