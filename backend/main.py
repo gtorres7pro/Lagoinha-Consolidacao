@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from tools.db_tool import create_lead, log_message
-from tools.whatsapp_tool import send_welcome_message, get_whatsapp_status, get_whatsapp_qr
 from tools.llm_tool import generate_response
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
@@ -189,50 +188,6 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
         return {"status": "failed", "details": result}
     return {"status": "success", "meta_response": result}
 
-# --- WHATSAPP CONNECTION ENDPOINTS ---
-
-@app.get("/whatsapp/status")
-def check_wa_status():
-    """ Called by the dashboard to see if WhatsApp is connected """
-    return get_whatsapp_status()
-
-@app.post("/whatsapp/connect")
-def generate_wa_qr():
-    """ Called by the dashboard to generate and fetch the base64 QR Image securely """
-    return get_whatsapp_qr()
-
-class WAProviderPayload(BaseModel):
-    provider: str
-    phone_id: str
-    token: str
-
-@app.post("/whatsapp/set-provider")
-def set_wa_provider(data: WAProviderPayload):
-    """ Save and activate Cloud API credentials via Evolution API (WHATSAPP-BUSINESS) """
-    print(f"--> [WHATSAPP] Setup Cloud API for PhoneID={data.phone_id}")
-    import requests
-    from tools.whatsapp_tool import EVOLUTION_API_URL, EVOLUTION_GLOBAL_API_KEY
-    headers = {"apikey": EVOLUTION_GLOBAL_API_KEY}
-    
-    # Pre-emptively delete if it exists
-    requests.delete(f"{EVOLUTION_API_URL}/instance/delete/LagoinhaCloud", headers=headers)
-    
-    payload = {
-        "instanceName": "LagoinhaCloud",
-        "integration": "WHATSAPP-BUSINESS",
-        "phoneId": data.phone_id,
-        "token": data.token,
-        "number": "00000000000",   # Fake number placeholder required by Evo
-        "businessId": "00000000000" # Fake businessId placeholder required by Evo
-    }
-    
-    res = requests.post(f"{EVOLUTION_API_URL}/instance/create", json=payload, headers=headers)
-    
-    if res.status_code in [200, 201]:
-        return {"status": "success", "provider": "cloud_api", "message": "Instância Meta gerada na Evolution com sucesso!"}
-    else:
-        return {"status": "error", "error": res.text}
-
 # --- EMAIL ENDPOINTS (RESEND) ---
 from tools.email_tool import send_credentials_email, send_reset_password_email, send_report_email
 
@@ -287,8 +242,13 @@ def handle_lead_logic(lead: LeadInput):
     
     print(f"--> [WHATSAPP] Sending Welcome Template to {lead.phone}...")
     
-    # Trigger Evolution API
-    send_welcome_message(phone=lead.phone, name=lead.first_name, lang=lead.preferred_language)
+    # Trigger Meta API
+    welcome_msg = f"Olá {lead.first_name}, seja bem-vindo(a) à Lagoinha!"
+    process_send_whatsapp_message(SendWAMessagePayload(
+        phone=lead.phone,
+        text=welcome_msg,
+        workspace_id=lead.workspace_id
+    ))
     
     # Log the outbound message to the database
     if lead_id:

@@ -849,7 +849,8 @@ REGRAS:
         document.addEventListener('DOMContentLoaded', () => {
             const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const supabase = window.supabaseClient;
 
             const leadsContainer = document.getElementById('leads-container');
             let globalLeads = [];
@@ -1463,7 +1464,7 @@ REGRAS:
 
                         <div class="card-footer">
                             <span class="date">Registrado em ${dateStr}</span>
-                            <a href="#" class="card-action">Acessar Histórico ➔</a>
+                            <a href="#" class="card-action" onclick="showWAChatModal('${lead.id}'); return false;" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4; pointer-events:none; cursor:not-allowed;'}">${window.hasWhatsappConfig ? 'Acessar Histórico ➔' : 'IA Não Configurada'}</a>
                         </div>
                     `;
                     tContainer.appendChild(card);
@@ -1590,7 +1591,7 @@ REGRAS:
         }
         
         try {
-            const { error } = await supabase.from('workspaces').update({
+            const { error } = await window.supabaseClient.from('workspaces').update({
                 credentials: {whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
             }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3'); // workspace ID atrelado
             
@@ -1604,8 +1605,12 @@ REGRAS:
 
     async function checkWAStatus() {
         // Agora consultamos direto da tabela do Supabase para conferir se há Token
-        const { data, error } = await supabase.from('workspaces').select('credentials').eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').single();
+        if (!window.supabaseClient) return; // Prevent premature calls
+        window.hasWhatsappConfig = false;
+        
+        const { data, error } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').single();
         if (data && data.credentials && data.credentials.whatsapp_token) {
+            window.hasWhatsappConfig = true;
             document.getElementById('wa-status-text').innerText = 'Ativado (Cloud API)';
             document.getElementById('wa-status-text').style.color = '#4CAF50';
             document.getElementById('wa-status-dot').style.background = '#4CAF50';
@@ -1623,6 +1628,8 @@ REGRAS:
             document.getElementById('wa-status-text').style.color = "gray";
             document.getElementById('wa-status-dot').style.background = "gray";
         }
+        
+        if (window.applyFilters) window.applyFilters();
     }
 
     // --- WHATSAPP CLONE JS ---
@@ -1758,7 +1765,7 @@ REGRAS:
         container.scrollTop = container.scrollHeight;
         
         // Save to DB
-        await supabase.from('messages').insert([{
+        await window.supabaseClient.from('messages').insert([{
             lead_id: waActiveLeadId,
             workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3',
             direction: 'outbound',
@@ -1799,6 +1806,25 @@ REGRAS:
     });
 
     setTimeout(checkWAStatus, 500); // Trigger check on load
+    
+    window.showWAChatModal = function(leadId) {
+        // Change view to Mensagens IA tab programatically
+        document.querySelectorAll('.nav-items li').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+        
+        // Find the 'Mensagens IA' nav item (the 4th index usually) and activate it
+        const navItems = document.querySelectorAll('.nav-items li');
+        if(navItems[4]) navItems[4].classList.add('active');
+        
+        const iaView = document.getElementById('view-ia');
+        if(iaView) iaView.classList.add('active-view');
+        
+        // Render and select
+        setTimeout(() => {
+            renderWAChatList();
+            showWAChat(leadId);
+        }, 100);
+    };
     </script>
 </body>
 </html>
