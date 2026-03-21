@@ -6,8 +6,9 @@ env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.
 load_dotenv(env_path)
 
 # --- Initialize Supabase Connection ---
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+# Fallback values ensure the VPS works even without env vars set in Coolify
+url: str = os.environ.get("SUPABASE_URL", "https://uyseheucqikgcorrygzc.supabase.co")
+key: str = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI")
 supabase: Client = create_client(url, key)
 
 # --- Database Operations ---

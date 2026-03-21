@@ -6,7 +6,8 @@ from tools.db_tool import supabase, get_workspace_config
 load_dotenv()
 
 # Initialize Gemini Client
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Fallback ensures VPS works even without Coolify env vars
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAuyn3TwlJomME82CUmcWMP09h-ZeSKSXI")
 genai.configure(api_key=GEMINI_KEY)
 
 # gemini-2.5-flash: confirmed working with billing enabled
