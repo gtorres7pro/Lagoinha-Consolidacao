@@ -664,6 +664,11 @@
                     <b style="color: var(--text-main);">Líder:</b> Visualização de relatórios, acompanhamento de métricas, cards e conversas geradas da IA.<br>
                     <b style="color: var(--text-main);">Voluntário:</b> Acesso focado somente em tarefas operacionais e forms, sem histórico de IA oculto ou configs.
                 </div>
+
+                <!-- Live team list from Supabase -->
+                <div id="team-list-container" style="margin-top:20px;">
+                    <div style="color:var(--text-dim);text-align:center;padding:20px;">⏳ Carregando equipe...</div>
+                </div>
             </div>
         </div>
 
@@ -672,11 +677,20 @@
             <header class="top-bar">
                 <div class="page-title">
                     <h1>Auditoria de Sistema</h1>
-                    <p>Histórico completo de passos e tarefas completadas na sessão atual.</p>
+                    <p>Histórico de atualizações, bugs reportados e feedbacks do sistema.</p>
+                </div>
+                <div class="actions">
+                    <button class="btn-outline" onclick="loadAuditLogs()" style="display:flex;align-items:center;gap:6px;">🔄 Atualizar</button>
                 </div>
             </header>
+            <div style="padding: 20px 40px; display:flex; gap:10px; flex-wrap:wrap; margin-bottom:5px;">
+                <button onclick="filterLogs('all')" id="log-filter-all" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;background:rgba(255,215,0,0.15);border-color:var(--accent);color:var(--accent);">Todos</button>
+                <button onclick="filterLogs('update')" id="log-filter-update" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">🆕 Atualizações</button>
+                <button onclick="filterLogs('bug')" id="log-filter-bug" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">🐛 Bugs</button>
+                <button onclick="filterLogs('feature_request')" id="log-filter-feature_request" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">💡 Sugestões</button>
+            </div>
             <div class="logs-container" id="logs-container">
-                <p style="color: var(--text-dim);">Nenhum log gravado nessa sessão ainda. Interaja com os cards para ver trilhas.</p>
+                <div style="text-align:center;padding:40px;color:var(--text-dim);">⏳ Carregando logs...</div>
             </div>
         </div>
 
@@ -841,6 +855,10 @@ REGRAS:
             document.querySelectorAll('.nav li').forEach(el => el.classList.remove('active'));
             const navEl = document.getElementById('nav-' + tabName);
             if (navEl) navEl.classList.add('active');
+
+            // Phase 3: Lazy-load data for specific views
+            if (tabName === 'logs' && window.loadAuditLogs) window.loadAuditLogs();
+            if (tabName === 'team' && window.loadTeamList) window.loadTeamList();
         }
 
         // Custom Modal UI
@@ -865,20 +883,165 @@ REGRAS:
             }
         };
 
+        // ============================================================
+        // PHASE 3: LIVE AUDIT LOGS FROM SUPABASE
+        // ============================================================
+        let allAuditLogs = [];
+        let activeLogFilter = 'all';
+
+        window.loadAuditLogs = async function() {
+            const container = document.getElementById('logs-container');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">⏳ Carregando...</div>';
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('app_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                allAuditLogs = data || [];
+                renderAuditLogs();
+            } catch(e) {
+                container.innerHTML = `<div style="padding:20px;color:#ff6b6b;">❌ Erro ao carregar logs: ${e.message}</div>`;
+            }
+        };
+
+        window.filterLogs = function(type) {
+            activeLogFilter = type;
+            // Update button styles
+            ['all','update','bug','feature_request'].forEach(t => {
+                const btn = document.getElementById(`log-filter-${t}`);
+                if (btn) {
+                    btn.style.background = t === type ? 'rgba(255,215,0,0.15)' : '';
+                    btn.style.borderColor = t === type ? 'var(--accent)' : '';
+                    btn.style.color = t === type ? 'var(--accent)' : '';
+                }
+            });
+            renderAuditLogs();
+        };
+
+        function renderAuditLogs() {
+            const container = document.getElementById('logs-container');
+            if (!container) return;
+            const filtered = activeLogFilter === 'all'
+                ? allAuditLogs
+                : allAuditLogs.filter(l => l.type === activeLogFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-dim);">Nenhum log encontrado.</div>';
+                return;
+            }
+
+            const typeConfig = {
+                update: { icon: '🆕', color: '#4CAF50', label: 'Atualização' },
+                bug: { icon: '🐛', color: '#FF6B6B', label: 'Bug' },
+                feature_request: { icon: '💡', color: '#FFD700', label: 'Sugestão' }
+            };
+
+            container.innerHTML = filtered.map(log => {
+                const cfg = typeConfig[log.type] || { icon: '📋', color: '#8696a0', label: log.type };
+                const date = new Date(log.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+                const time = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+                const statusColors = { published: '#4CAF50', in_progress: '#FFD700', pending: '#8696a0' };
+                const statusLabels = { published: 'Publicado', in_progress: 'Em Progresso', pending: 'Pendente' };
+                return `
+                    <div class="log-item" style="border-left: 3px solid ${cfg.color}; padding: 14px 18px; margin-bottom: 8px; border-radius: 0 10px 10px 0; background: rgba(255,255,255,0.03);">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+                            <span style="font-size:1.1rem;">${cfg.icon}</span>
+                            <span style="color:${cfg.color};font-size:0.75rem;font-weight:600;border:1px solid ${cfg.color}40;padding:2px 8px;border-radius:6px;">${cfg.label}</span>
+                            <span style="color:var(--text-main);font-weight:600;">${log.title || '(sem título)'}</span>
+                            <span style="margin-left:auto;color:var(--text-dim);font-size:0.75rem;">${date} ${time}</span>
+                            <span style="color:${statusColors[log.status]||'#8696a0'};font-size:0.75rem;border:1px solid ${statusColors[log.status]||'#8696a0'}40;padding:2px 8px;border-radius:6px;">${statusLabels[log.status]||log.status}</span>
+                        </div>
+                        ${log.description ? `<div style="color:var(--text-dim);font-size:0.85rem;line-height:1.5;">${log.description}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Legacy session logger (kept for internal use)
         let mockLogs = [];
         window.addLog = function(msg) {
             mockLogs.unshift({time: new Date(), msg: msg});
-            renderLogs();
-        }
-        function renderLogs() {
-            const container = document.getElementById('logs-container');
-            if(mockLogs.length === 0) return;
-            container.innerHTML = mockLogs.map(l => {
-                const day = l.time.toLocaleDateString('pt-BR');
-                const time = l.time.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-                return `<div class="log-item"><span class="log-time">${day} ${time}</span><span style="color: #CCC;">${l.msg}</span></div>`;
-            }).join('');
-        }
+        };
+
+        // ============================================================
+        // PHASE 3: LIVE TEAM LIST FROM SUPABASE
+        // ============================================================
+        window.loadTeamList = async function() {
+            const container = document.getElementById('team-list-container');
+            if (!container || !window.supabaseClient) return;
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('users')
+                    .select('id, email, role, workspace_id')
+                    .order('role', { ascending: true });
+                if (error || !data || data.length === 0) {
+                    container.innerHTML = '<div style="color:var(--text-dim);font-size:0.85rem;padding:10px 0;">Nenhum usuário cadastrado ainda.</div>';
+                    return;
+                }
+                const roleColors = { master_admin: '#FFD700', church_admin: '#4CAF50', user: '#8696a0' };
+                const roleLabels = { master_admin: 'Master Admin', church_admin: 'Admin', user: 'Usuário' };
+                container.innerHTML = `
+                    <table style="width:100%;border-collapse:collapse;margin-top:10px;border-radius:10px;overflow:hidden;">
+                        <thead>
+                            <tr style="background:rgba(255,255,255,0.05);">
+                                <th style="padding:12px 15px;text-align:left;font-size:0.8rem;color:var(--text-dim);">USUÁRIO</th>
+                                <th style="padding:12px 15px;text-align:left;font-size:0.8rem;color:var(--text-dim);">NÍVEL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map(u => {
+                                const initials = (u.email || '?').substring(0,2).toUpperCase();
+                                const color = roleColors[u.role] || '#8696a0';
+                                const label = roleLabels[u.role] || u.role;
+                                return `
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <td style="padding:14px 15px;display:flex;align-items:center;gap:12px;">
+                                        <div style="background:${color}22;color:${color};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;border:1px solid ${color}44;">${initials}</div>
+                                        <span style="color:var(--text-main);font-size:0.88rem;">${u.email}</span>
+                                    </td>
+                                    <td style="padding:14px 15px;"><span style="color:${color};border:1px solid ${color}44;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;">${label}</span></td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch(e) {
+                container.innerHTML = `<div style="color:#ff6b6b;font-size:0.85rem;">Erro ao carregar equipe: ${e.message}</div>`;
+            }
+        };
+
+        // ============================================================
+        // PHASE 3: REAL KPIs FROM SUPABASE
+        // ============================================================
+        window.loadRealKPIs = async function() {
+            if (!window.supabaseClient) return;
+            try {
+                const [leadsRes, msgsRes] = await Promise.all([
+                    window.supabaseClient.from('leads').select('id, type', { count: 'exact', head: false }),
+                    window.supabaseClient.from('messages').select('id, automated, direction', { count: 'exact', head: false })
+                ]);
+                const leads = leadsRes.data || [];
+                const msgs = msgsRes.data || [];
+                const totalLeads = leads.length;
+                const consolidados = leads.filter(l => l.type !== 'visitor').length;
+                const visitors = leads.filter(l => l.type === 'visitor').length;
+                const aiMsgs = msgs.filter(m => m.automated && m.direction === 'outbound').length;
+                const humanMsgs = msgs.filter(m => !m.automated && m.direction === 'outbound').length;
+
+                // Update home KPIs if they exist
+                const kpiEl = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+                kpiEl('kpi-total-leads', totalLeads);
+                kpiEl('kpi-consolidados-count', consolidados);
+                kpiEl('kpi-visitors-count', visitors);
+                kpiEl('kpi-ai-messages', aiMsgs);
+                kpiEl('kpi-human-messages', humanMsgs);
+            } catch(e) {
+                console.warn('KPI load error:', e.message);
+            }
+        };
 
         window.clearFilters = function() {
             document.getElementById('searchInput').value = '';
@@ -889,6 +1052,7 @@ REGRAS:
             if(window.toggleCustomDates) window.toggleCustomDates();
             if(window.applyFilters) window.applyFilters();
         }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
@@ -928,6 +1092,7 @@ REGRAS:
             
             function initEngine() {
                 if(window.fetchLiveLeads) window.fetchLiveLeads();
+                setTimeout(() => { if(window.loadRealKPIs) window.loadRealKPIs(); }, 1500);
             }
 
             function initCharts() {
@@ -1868,9 +2033,27 @@ REGRAS:
         let html = '';
         const searchQ = (document.getElementById('waSearch')?.value || '').toLowerCase();
         
-        // Filter leads with phone numbers
-        const chats = globalLeads.filter(l => l.phone && (l.name || '').toLowerCase().includes(searchQ));
-        chats.sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
+        // Filter leads with phone numbers, sort by last_interaction (most recent first)
+        const chats = globalLeads
+            .filter(l => l.phone && (l.name || '').toLowerCase().includes(searchQ))
+            .sort((a, b) => {
+                const tA = a.last_interaction || a.created_at || '';
+                const tB = b.last_interaction || b.created_at || '';
+                return tB.localeCompare(tA);
+            });
+        
+        function relativeTime(ts) {
+            if (!ts) return '';
+            const diff = Date.now() - new Date(ts).getTime();
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (mins < 1) return 'agora';
+            if (mins < 60) return `${mins}m`;
+            if (hours < 24) return `${hours}h`;
+            if (days < 7) return `${days}d`;
+            return new Date(ts).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+        }
         
         if (chats.length === 0) {
             html = `<div style="padding: 20px; text-align: center; color: #8696a0;">Nenhuma conversa encontrada.</div>`;
@@ -1881,14 +2064,14 @@ REGRAS:
                 try {
                     initials = nameSafe.split(' ').map(n=>n?n[0]:'').join('').substring(0,2).toUpperCase() || 'WA';
                 } catch(e) {}
-                
+                const timeLabel = relativeTime(lead.last_interaction || lead.created_at);
                 html += `
                     <div class="wa-chat-item ${lead.id === waActiveLeadId ? 'active' : ''}" onclick="showWAChat('${lead.id}')">
                         <div class="wa-avatar">${initials}</div>
                         <div class="wa-chat-info">
                             <div class="wa-chat-top">
                                 <span class="wa-chat-name">${lead.name}</span>
-                                <span class="wa-chat-time">Hoje</span>
+                                <span class="wa-chat-time">${timeLabel}</span>
                             </div>
                             <div class="wa-chat-msg">${lead.phone}</div>
                         </div>
