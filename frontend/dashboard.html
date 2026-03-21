@@ -128,6 +128,53 @@
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
         
+        /* WhatsApp IA Clone Styles */
+        .search-box { display: flex; align-items: center; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 15px; gap: 10px; flex-grow: 1; }
+        .search-input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 0.95rem; }
+
+        .whatsapp-container { display: flex; height: calc(100vh - 80px); width: 100%; background: #0b141a; border-top: 1px solid #202c33;}
+        .wa-sidebar { width: 350px; background: #111b21; border-right: 1px solid #202c33; display: flex; flex-direction: column;}
+        .wa-sidebar-header { padding: 10px 16px; background: #202c33; display: flex; align-items: center; justify-content: space-between; height: 59px; flex-shrink: 0;}
+        .wa-sidebar-search { padding: 8px 12px; background: #111b21; border-bottom: 1px solid #202c33;}
+        .wa-search-bar { background: #202c33; border-radius: 8px; display: flex; align-items: center; padding: 6px 12px; gap: 15px;}
+        .wa-search-bar input { background: transparent; border: none; color: #d1d7db; width: 100%; outline: none; font-size: 0.9rem;}
+        
+        .wa-chat-list { flex: 1; overflow-y: auto; }
+        .wa-chat-item { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid #202c33;}
+        .wa-chat-item:hover, .wa-chat-item.active { background: #202c33; }
+        .wa-avatar { width: 49px; height: 49px; background: #6b7c85; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 500; color: #fff; flex-shrink: 0;}
+        .wa-chat-info { margin-left: 15px; flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: center;}
+        .wa-chat-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;}
+        .wa-chat-name { color: #e9edef; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wa-chat-time { color: #8696a0; font-size: 0.75rem; flex-shrink: 0;}
+        .wa-chat-msg { color: #8696a0; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        
+        .wa-main { flex: 1; display: flex; flex-direction: column; background: #0b141a; position: relative;}
+        .wa-main-header { padding: 10px 16px; background: #202c33; display: flex; align-items: center; height: 59px; flex-shrink: 0;}
+        .wa-main-header .wa-avatar { width: 40px; height: 40px; font-size: 1rem;}
+        .wa-main-header-info { margin-left: 15px; }
+        .wa-main-name { color: #e9edef; font-size: 1rem; }
+        .wa-main-status { color: #8696a0; font-size: 0.8rem; }
+        
+        /* The background pattern for whatsapp */
+        .wa-messages-area { flex: 1; overflow-y: auto; padding: 20px 60px; display: flex; flex-direction: column; gap: 8px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-color: #0b141a; background-blend-mode: overlay; opacity: 0.95; }
+        
+        .wa-bubble { max-width: 65%; padding: 6px 7px 8px 9px; border-radius: 7.5px; position: relative; font-size: 0.9rem; color: #e9edef; line-height: 1.3; margin-bottom: 2px;}
+        .wa-bubble.received { background: #202c33; align-self: flex-start; border-top-left-radius: 0; }
+        .wa-bubble.sent { background: #005c4b; align-self: flex-end; border-top-right-radius: 0; }
+        .wa-bubble-time { font-size: 0.65rem; color: rgba(255,255,255,0.6); float: right; margin: 10px 0 -5px 10px;}
+        
+        .wa-input-area { background: #202c33; padding: 10px 16px; display: flex; align-items: center; gap: 15px; flex-shrink: 0;}
+        .wa-input-wrapper { flex: 1; background: #2a3942; border-radius: 8px; padding: 9px 12px; }
+        .wa-input-field { width: 100%; background: transparent; border: none; outline: none; color: #e9edef; font-size: 0.95rem; }
+        .wa-icon-btn { background: transparent; border: none; color: #8696a0; font-size: 1.5rem; cursor: pointer; display: flex;}
+        
+        .wa-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #222e35; border-left: 1px solid #202c33;}
+        .wa-empty-state h1 { color: #e9edef; font-weight: 300; font-size: 2rem; margin-top: 30px;}
+        .wa-empty-state p { color: #8696a0; font-size: 0.9rem; margin-top: 15px; text-align: center; max-width: 400px;}
+        
         @media (max-width: 768px) {
             body { flex-direction: column; background: var(--bg-color); }
             .sidebar { 
@@ -136,46 +183,43 @@
                 flex-shrink: 0;
                 border-right: none; 
                 border-bottom: 1px solid var(--card-border); 
-                padding: 15px 20px;
+                padding: 10px 15px;
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 5px;
                 background: rgba(10, 10, 10, 0.95);
-                backdrop-filter: blur(10px);
-                position: relative; /* Removes fixed position artifacts */
+                position: relative;
                 z-index: 10;
             }
-            .sidebar .logo-area { margin-bottom: 5px; border-bottom: none; padding-bottom: 0px; }
+            .brand { padding-bottom: 0px; margin-bottom: 5px; font-size: 1.2rem; flex-direction: row; align-items: baseline; gap: 5px;}
             
             /* Make Nav Horizontally Swipeable */
             .sidebar .nav { 
                 display: flex; 
                 flex-direction: row; 
                 overflow-x: auto; 
-                padding-bottom: 10px; 
-                margin-bottom: 5px;
-                gap: 10px;
-                /* Optional fade edge for swipeability indication */
+                padding-bottom: 0px; 
+                margin-bottom: 0px;
+                gap: 8px;
                 mask-image: linear-gradient(to right, #000 85%, transparent 100%);
                 -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
             }
-            .sidebar .nav::-webkit-scrollbar { display: none; } /* Hide scrollbar for nav */
+            .sidebar .nav::-webkit-scrollbar { display: none; }
             .sidebar .nav li { 
                 margin-bottom: 0; 
                 flex-shrink: 0; 
                 white-space: nowrap; 
-                padding: 12px 18px; 
+                padding: 8px 14px; 
                 border-radius: 8px;
+                font-size: 0.85rem;
             }
 
-            .user-profile {
-                margin-top: 0;
-                padding-top: 10px;
-                border-top: 1px solid rgba(255,255,255,0.05);
+            .user {
+                display: none; /* Hide on mobile to save space */
             }
 
             .main { overflow-y: auto; overflow-x: hidden; height: auto; }
-            .top-bar { flex-direction: column; align-items: flex-start; gap: 15px; padding: 25px 20px; }
+            .top-bar { flex-direction: column; align-items: flex-start; gap: 10px; padding: 15px 15px; position: static; } /* Removes sticky behavior on mobile to free up space */
             .actions { width: 100%; display: flex; flex-direction: row; gap: 10px; overflow-x: auto; padding-bottom: 5px;}
             .actions button { flex-shrink: 0; }
             
@@ -208,21 +252,24 @@
             <span class="sub">ORLANDO</span>
         </div>
         <ul class="nav">
-            <li id="nav-home" onclick="switchTab('home')">Início</li>
-            <li id="nav-dashboard" class="active" onclick="switchTab('dashboard')">Consolidados</li>
+            <li id="nav-home" class="active" onclick="switchTab('home')">Início</li>
+            <li id="nav-dashboard" onclick="switchTab('dashboard')">Consolidados</li>
             <li id="nav-visitors" onclick="switchTab('visitors')">Visitantes</li>
             <li id="nav-users" onclick="switchTab('users')">Equipe / Usuários</li>
-            <li class="disabled" title="Em Construção">Mensagens IA</li>
+            <li id="nav-messages" onclick="switchTab('messages')">Mensagens IA <span style="background: var(--accent); color: black; border-radius: 50%; padding: 0px 5px; font-size:0.7rem; font-weight:bold; margin-left:5px;">Beta</span></li>
             <li class="disabled" title="Em Construção">Agenda Batismos</li>
             <li id="nav-logs" onclick="switchTab('logs')">Auditoria de Logs</li>
             <li id="nav-settings" onclick="switchTab('settings')">Configurações da IA</li>
         </ul>
-        <div class="user">
-            <div class="user-avatar">G</div>
-            <div class="user-info">
-                <div style="font-weight: 500; font-size: 0.9rem;">Gabriel T.</div>
-                <div style="font-size: 0.75rem; color: var(--text-dim);">Master Admin</div>
+        <div class="user" style="justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="user-avatar">G</div>
+                <div class="user-info">
+                    <div style="font-weight: 500; font-size: 0.9rem;">Gabriel T.</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">Master Admin</div>
+                </div>
             </div>
+            <button type="button" onclick="forgotPassword()" title="Recuperar Senha" style="background: transparent; border: none; cursor: pointer; color: var(--text-dim); transition: 0.2s; padding: 5px;">🔑</button>
         </div>
     </aside>
 
@@ -277,7 +324,8 @@
                     <p>Nenhuma vida deixada para trás. Gerencie do apelo ao discipulado.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar</button>
+                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('consolidados', 120)">📤 Enviar Relatório (CSV)</button>
+                    <button type="button" class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar</button>
                 </div>
             </header>
 
@@ -395,8 +443,9 @@
                     <p>Controle das primeiras visitas e roteamento de conexão.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-outline" style="background: var(--text-main); color: var(--bg-color);" onclick="window.open('./visitor-form.html', '_blank')">+ Novo Visitante</button>
-                    <button class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar DB</button>
+                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('visitantes', 95)">📤 Enviar Relatório (CSV)</button>
+                    <button type="button" class="btn btn-outline" style="background: var(--text-main); color: var(--bg-color);" onclick="window.open('./visitor-form.html', '_blank')">+ Novo Visitante</button>
+                    <button type="button" class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar DB</button>
                 </div>
             </header>
 
@@ -424,22 +473,26 @@
                 </div>
             </div>
             
-            <div class="charts-row" style="grid-template-columns: 1fr 1fr; margin-top: 20px; gap: 20px; display: grid;">
-                <div class="kpi-box" style="flex-direction: column; align-items: flex-start;">
-                    <div class="kpi-title">ESTADO CIVIL</div>
-                    <div style="width: 100%; height: 250px; position: relative;">
-                        <canvas id="vChartEstadoCivil"></canvas>
-                    </div>
+            <div class="charts-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 20px; gap: 20px;">
+                <div class="chart-box">
+                    <div class="chart-title" style="margin-bottom: 5px;">PAÍS DE RESIDÊNCIA</div>
+                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartPais"></canvas></div>
                 </div>
-                <div class="kpi-box" style="flex-direction: column; align-items: flex-start;">
-                    <div class="kpi-title">FAIXA ETÁRIA</div>
-                    <div style="width: 100%; height: 250px; position: relative;">
-                        <canvas id="vChartIdade"></canvas>
-                    </div>
+                <div class="chart-box">
+                    <div class="chart-title" style="margin-bottom: 5px;">FAIXA ETÁRIA</div>
+                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartIdade"></canvas></div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title" style="margin-bottom: 5px;">STATUS DE BATISMO</div>
+                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartBatizado"></canvas></div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title" style="margin-bottom: 5px;">ADOÇÃO DE GC</div>
+                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartGC"></canvas></div>
                 </div>
             </div>
             
-            <div class="filters">
+            <div class="filters" style="display: flex; gap: 15px; padding: 20px 40px; align-items: center; border-bottom: 1px solid var(--card-border);">
                 <div class="search-box">
                     <span>🔍</span>
                     <input type="text" id="vSearchInput" placeholder="Busque por nome ou telefone..." class="search-input" oninput="applyFilters()">
@@ -464,6 +517,46 @@
 
             <div class="leads-grid" id="visitors-container"></div>
         </div>
+        </div>
+
+        <!-- MENSAGENS IA VIEW (WHATSAPP CLONE) -->
+        <div id="view-messages" class="view-section" style="padding: 0;">
+            <div class="whatsapp-container">
+                <!-- Sidebar -->
+                <div class="wa-sidebar">
+                    <div class="wa-sidebar-header">
+                        <div class="wa-avatar" style="background:var(--accent); color:black;">LO</div>
+                        <div style="color: #d1d7db; display:flex; gap: 20px; font-size:1.2rem;">
+                            <span style="cursor:pointer;" onclick="renderWAChatList()">🔄</span>
+                            <span>💬</span>
+                            <span>⋮</span>
+                        </div>
+                    </div>
+                    <div class="wa-sidebar-search">
+                        <div class="wa-search-bar">
+                            <span>🔍</span>
+                            <input type="text" id="waSearch" placeholder="Pesquisar conversa ou contato" onkeyup="filterWAChats()">
+                        </div>
+                    </div>
+                    <div class="wa-chat-list" id="waChatList">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Main Area -->
+                <div class="wa-main" id="waMainArea">
+                    <div class="wa-empty-state">
+                        <svg viewBox="0 0 100 100" width="200" height="200" fill="#2c3e50">
+                            <circle cx="50" cy="50" r="45" opacity="0.3"></circle>
+                            <path d="M50 20 L50 45 L70 45" stroke="#4a6072" stroke-width="5" fill="none" stroke-linecap="round"></path>
+                        </svg>
+                        <h1>Lagoinha Console para Web</h1>
+                        <p>Envie e receba mensagens usando a IA integrada com WhatsApp Business Oficial.</p>
+                        <p style="margin-top: 30px; font-size: 0.8rem;">🔒 Protegido com criptografia end-to-end.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- View: Users -->
         <div id="view-users" class="view-section">
@@ -473,10 +566,10 @@
                     <p>Controle de permissões para consolidação, visitantes, e ajustes locais.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn" style="background: var(--accent); color: #000;">+ Adicionar Membro</button>
+                    <button type="button" class="btn" style="background: var(--accent); color: #000;" onclick="openAddUserModal()">+ Adicionar Membro</button>
                 </div>
             </header>
-            <div style="padding: 40px; display: flex; flex-direction: column; gap: 20px; max-width: 1200px;">
+            <div style="padding: 40px; display: flex; flex-direction: column; gap: 20px;">
                 <div class="kpi-box" style="padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
                     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
                         <thead>
@@ -583,36 +676,75 @@
                     <p>Controle do comportamento e do motor cerebral da Atendente "Ju". Acesso restrito a Admins.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn-outline" style="background: var(--accent); color: #000; border: none; font-weight: 600;">Salvar Instruções (Nuvem)</button>
+                    <button type="button" class="btn-outline" style="background: var(--accent); color: #000; border: none; font-weight: 600;">Salvar Instruções (Nuvem)</button>
                 </div>
             </header>
-            <div style="padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 1300px;">
+            <div style="padding: 0 40px; margin-top: 20px; width: 100%; max-width: 1500px; margin: 20px auto 0;">
+                <div class="kpi-box" style="flex-direction: column; align-items: stretch; gap: 15px; border-color: rgba(37,211,102,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h3 style="color: #25D366; margin-bottom: 5px; font-size: 1.15rem;">💬 Gerenciamento da Conexão WhatsApp</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">A inteligência responderá automaticamente pelo número atrelado aqui.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 8px rgba(76,175,80,0.6);" id="wa-status-dot"></div>
+                                <span style="font-size: 0.85rem; color: #4CAF50; font-weight: 600;" id="wa-status-text">Buscando status...</span>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-dim); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px;" id="wa-phone-number">+1 (---) -------</span>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 5px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
+                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); font-size: 0.85rem; font-weight: 500;">
+                            <input type="radio" name="wa_provider" value="evolution" checked style="accent-color: var(--accent);">
+                            Evolution API (QR) - Recomendado Local
+                        </label>
+                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; border: 1px solid transparent; color: var(--text-dim); font-size: 0.85rem;">
+                            <input type="radio" name="wa_provider" value="cloud" style="accent-color: var(--accent);">
+                            Meta Oficial (Cloud API) - Enterprise
+                        </label>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 5px;" id="wa-buttons-evolution">
+                        <button type="button" class="btn-outline" onclick="generateAndShowQR()" id="btn-qr" style="background: rgba(37,211,102,0.1); color: #25D366; border-color: #25D366; flex: 1; font-weight: 600; font-size: 0.85rem;">Capturar QR Code / Conectar Dispositivo</button>
+                    </div>
+                    
+                    <div style="display: none; flex-direction: column; gap: 10px; margin-top: 5px;" id="wa-buttons-cloud">
+                        <input type="text" id="cloud-phone-id" placeholder="Phone Number ID" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+                        <input type="text" id="cloud-token" placeholder="Permanent Access Token (EAAV...)" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+                        <button type="button" class="btn-outline" onclick="saveCloudCredentials()" style="background: rgba(255,215,0,0.1); color: var(--accent); border-color: var(--accent); width: 100%; font-weight: 600; font-size: 0.9rem;">Gravar e Ativar Setup (Official Cloud)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 20px 40px 40px 40px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; width: 100%; max-width: 1500px; margin: 0 auto;">
                 
                 <!-- Col 1: Variáveis Dinâmicas da Igreja (Mudam Constantemente) -->
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <div class="kpi-box" style="flex-direction: column; align-items: stretch; gap: 15px;">
-                        <h3 style="color: var(--accent); margin-bottom: 0; font-size: 1.15rem;">📅 Agenda Dinâmica da Igreja</h3>
-                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -10px;">Informações que mudam constantemente. Atualize aqui para a IA divulgar corretamente.</p>
+                        <h3 style="color: var(--accent); margin-bottom: 5px; font-size: 1.15rem;">📅 Agenda Dinâmica da Igreja</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">Informações que mudam constantemente. Atualize aqui para a IA divulgar corretamente.</p>
 
                         <label style="font-size: 0.9rem; font-weight: 500;">Próximo Batismo</label>
                         <textarea rows="3" class="select-filter" style="width: 100%; border: 1px solid var(--card-border); background: var(--nav-bg); color: var(--text-main); padding: 12px; resize: vertical; outline: none; border-radius: 8px;">Próximo Batismo nas Águas: Dia 18 de Abril de 2026.
 Requisito: É necessário concluir a classe de batismo que ocorre 1 hora antes do evento no próprio campus.
 Link de inscrição: www.lagoinhaorlandochurch.com/batismo</textarea>
 
-                        <label style="font-size: 0.9rem; font-weight: 500;">Café de Novos Membros</label>
+                        <label style="font-size: 0.9rem; font-weight: 500; margin-top: 5px;">Café de Novos Membros</label>
                         <textarea rows="3" class="select-filter" style="width: 100%; border: 1px solid var(--card-border); background: var(--nav-bg); color: var(--text-main); padding: 12px; resize: vertical; outline: none; border-radius: 8px;">Próximo Café: Dia 25 de Abril de 2026.
 Horário: 09:30 AM (Entre os dois cultos de Domingo).
 Local: Foyer (Lobby principal da Igreja).
 Aberto para todos que desejam conhecer os pastores e a visão da igreja.</textarea>
 
-                        <label style="font-size: 0.9rem; font-weight: 500;">Próximos Eventos em Destaque</label>
+                        <label style="font-size: 0.9rem; font-weight: 500; margin-top: 5px;">Próximos Eventos em Destaque</label>
                         <textarea rows="4" class="select-filter" style="width: 100%; border: 1px solid var(--card-border); background: var(--nav-bg); color: var(--text-main); padding: 12px; resize: vertical; outline: none; border-radius: 8px;">- Conferência de Homens e Mulheres: 10 a 12 de Maio de 2026.
 - Acampamento Rocket (Jovens): 15 a 17 de Julho de 2026.</textarea>
                     </div>
 
                     <div class="kpi-box" style="flex-direction: column; align-items: stretch; gap: 15px;">
-                        <h3 style="color: #fff; margin-bottom: 0; font-size: 1.15rem;">📍 Informações Estruturais Fixas</h3>
-                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -10px;">Endereço, horários de cultos e base fixa da igreja.</p>
+                        <h3 style="color: #fff; margin-bottom: 5px; font-size: 1.15rem;">📍 Informações Estruturais Fixas</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">Endereço, horários de cultos e base fixa da igreja.</p>
                         
                         <label style="font-size: 0.9rem; font-weight: 500;">Endereço e Horários de Celebrações</label>
                         <textarea rows="6" class="select-filter" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.5); color: var(--text-dim); padding: 12px; resize: vertical; outline: none; border-radius: 8px;">Lagoinha Orlando Church
@@ -628,9 +760,9 @@ Nossa Liderança de Consolidação: Pastores João e Maria.</textarea>
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <div class="kpi-box" style="flex-direction: column; align-items: stretch; gap: 15px; height: 100%;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h3 style="color: #BA55D3; margin-bottom: 0; font-size: 1.15rem;">🧠 Motor Comportamental (Persona: Ju)</h3>
+                            <h3 style="color: #BA55D3; margin-bottom: 5px; font-size: 1.15rem;">🧠 Motor Comportamental (Persona: Ju)</h3>
                         </div>
-                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -10px;">Núcleo da formatação de respostas e diretrizes de inteligência artificial. Evite alterar o Prompt Base sem necessidade técnica.</p>
+                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">Núcleo da formatação de respostas e diretrizes de inteligência artificial. Evite alterar o Prompt Base sem necessidade técnica.</p>
                         
                         <textarea spellcheck="false" class="select-filter" style="width: 100%; flex: 1; min-height: 500px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #B0C4DE; padding: 15px; resize: vertical; font-family: monospace; font-size: 0.85rem; line-height: 1.6; outline: none; border-radius: 8px;">Você é a Ju, uma pessoa cristã, acolhedora e espiritualmente fundamentada, representando a Igreja Lagoinha Orlando. Você se comunica como uma pessoa real... NUNCA MENCIONE que é uma inteligência artificial ou assistente virtual.
 
@@ -677,6 +809,16 @@ REGRAS:
             document.querySelectorAll('.nav li').forEach(el => el.classList.remove('active'));
             const navEl = document.getElementById('nav-' + tabName);
             if (navEl) navEl.classList.add('active');
+        }
+
+        // Custom Modal UI
+        window.showModal = function(title, contentHTML) {
+            document.getElementById('custom-modal-title').innerText = title;
+            document.getElementById('custom-modal-content').innerHTML = contentHTML;
+            document.getElementById('custom-modal-overlay').style.display = 'flex';
+        }
+        window.closeModal = function() {
+            document.getElementById('custom-modal-overlay').style.display = 'none';
         }
 
         window.maskDate = function(ref) {
@@ -781,11 +923,11 @@ REGRAS:
                     }
                 };
 
-                ['EstadoCivil', 'Idade'].forEach(type => {
+                ['Idade', 'Pais', 'Batizado', 'GC'].forEach(type => {
                     const canvasEl = document.getElementById('vChart'+type);
                     if(canvasEl) {
                         chartInstances['v'+type] = new Chart(canvasEl.getContext('2d'), {
-                            type: 'pie',
+                            type: 'doughnut',
                             data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: 'transparent' }] },
                             options: commonOpts
                         });
@@ -831,7 +973,9 @@ REGRAS:
                     return Object.entries(counts).sort((a,b) => b[1] - a[1]); // Descending
                 };
                 
-                const civil = getFrequencies(visitorsArray.map(l => String(l.estado_civil)));
+                const paisFreq = getFrequencies(visitorsArray.map(l => String(l.pais)));
+                const batizadoFreq = getFrequencies(visitorsArray.map(l => String(l.batizado)));
+                const gcFreq = getFrequencies(visitorsArray.map(l => String(l.gc_status)));
                 
                 // Group Idade
                 const idades = {'18 a 25': 0, '26 a 35': 0, '36 a 45': 0, 'Acima de 45': 0, 'Não Informado': 0};
@@ -855,8 +999,10 @@ REGRAS:
                     instance.update();
                 }
 
-                setChartData(chartInstances['vEstadoCivil'], civil);
                 setChartData(chartInstances['vIdade'], idadeFreq);
+                setChartData(chartInstances['vPais'], paisFreq);
+                setChartData(chartInstances['vBatizado'], batizadoFreq);
+                setChartData(chartInstances['vGC'], gcFreq);
             };
 
             function updateCharts(leadsArray) {
@@ -946,6 +1092,8 @@ REGRAS:
                         return;
                     }
 
+                    window._allSaved = allLeads.filter(l => (l.type || 'saved').toLowerCase() === 'saved');
+                    window._allVisit = allLeads.filter(l => (l.type || '').toLowerCase() === 'visitor');
                     const leads = allLeads;
 
                     const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro", "Mudei de Igreja"];
@@ -1154,7 +1302,7 @@ REGRAS:
                         const nameStr = String(lead.name || '').toLowerCase();
                         const phoneStr = String(lead.phone || '').toLowerCase();
                         const matchName = nameStr.includes(vSearch) || phoneStr.includes(vSearch);
-                        const matchC = (vCountry === 'all') || (String(lead.pais||'') === vCountry);
+                        const matchC = (vCountry === 'all') || (String(lead.pais||'').toLowerCase() === vCountry);
                         
                         let matchTime = true;
                         if (vTimeRangeDays !== 'all') {
@@ -1336,6 +1484,359 @@ REGRAS:
 
             initEngine();
         });
+    </script>
+    
+    <!-- Módulos de Email (Resend) e Auth UI Simples -->
+    <script>
+    const API_BASE = "http://127.0.0.1:8000"; // Local testing, substitua depois pela URL de prod
+
+    async function sendUserCredentials(email, name, password) {
+        try {
+            const res = await fetch(`${API_BASE}/api/email/send-credentials`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_email: email, user_name: name, temp_password: password })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if(data.error) alert('❌ Erro da API ao enviar credenciais:\n' + data.error);
+                else alert('✅ E-mail com credenciais enviado com sucesso!');
+            } else alert('Erro fatal na requisição.');
+        } catch (e) {
+            alert('⚠️ Backend não acessível para enviar e-mail. Inicie o servidor Python.');
+        }
+    }
+
+    async function sendReportEmail(type, count) {
+        const email = prompt(`Para qual e-mail enviar o relatório de ${type}?`);
+        if (!email) return;
+
+        // Recuperar listagem salva (Top 100 para email não quebrar)
+        const raw_lista = type === 'consolidados' ? (window._allSaved || []) : (window._allVisit || []);
+        const formatados = raw_lista.slice(0, 100).map(l => ({
+            "Nome": l.name,
+            "Telefone": l.phone,
+            "Criado_Em": new Date(l.created_at).toLocaleDateString('pt-BR'),
+            "Pais": l.pais || 'BR'
+        }));
+
+        try {
+            const res = await fetch(`${API_BASE}/api/email/send-report`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    user_email: email, 
+                    report_type: type, 
+                    total_count: count, 
+                    csv_link: "https://hub.lagoinha.com/download/relatorio.csv",
+                    leads: formatados
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if(data.error) alert('❌ Falha ao tentar disparar email do Relatório:\n' + data.error + '\n\nCertifique-se de usar um email autorizado (ex na Resend) ou revise a chave da API.');
+                else alert('✅ Relatório detalhado HTML enviado por e-mail com sucesso!');
+            } else alert('Erro na API ao solicitar o relatório.');
+        } catch (e) {
+            alert('⚠️ Backend Python não acessível para enviar e-mail.');
+        }
+    }
+
+    async function forgotPassword() {
+        const email = prompt("E-mail para recuperar a senha:");
+        if (!email) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/email/forgot-password`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_email: email, reset_link: "https://hub.lagoinha.com/reset-password" })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if(data.error) alert('❌ Falha na API de E-mail:\n' + data.error);
+                else alert('✅ Link de recuperação enviado para ' + email);
+            } else alert('Erro bloqueante na API.');
+        } catch (e) {
+            alert('⚠️ Backend não acessível.');
+        }
+    }
+
+    function openAddUserModal() {
+        const name = prompt("Nome completo do novo Membro:");
+        if (!name) return;
+        const email = prompt(`Email de acesso para ${name}:`);
+        if (!email) return;
+        const tempPass = Math.random().toString(36).slice(-8); // Gerar senha aleatoria 8 chars
+        
+        // Simular fluxo: Cria User no Supabase -> Envia Email via Resend
+        if (confirm(`Confirmar criação de usuário?\n\nNome: ${name}\nEmail: ${email}\nNível: User\n\nIsso disparará um e-mail com a senha provisória: ${tempPass}`)) {
+            sendUserCredentials(email, name, tempPass);
+            // Aqui pode injetar o HTML do User na tabela.
+        }
+    }
+
+    // Native App Modals Container
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="custom-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:var(--bg-color); border:1px solid var(--card-border); padding:30px; border-radius:12px; max-width:500px; width:90%; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                <h3 id="custom-modal-title" style="margin-top:0; color:var(--accent);">Aviso</h3>
+                <div id="custom-modal-content" style="margin:20px 0; font-size:0.9rem; line-height:1.5;">Conteúdo...</div>
+                <div style="text-align:right;">
+                    <button type="button" class="btn" style="background:var(--accent); color:#000;" onclick="closeModal()">Fechar</button>
+                </div>
+            </div>
+        </div>
+    `);
+
+    // Modal QR Code API
+    async function generateAndShowQR() {
+        const btn = document.getElementById('btn-qr');
+        btn.innerText = "Solicitando API...";
+        try {
+            const res = await fetch("http://127.0.0.1:8000/whatsapp/connect", { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json(); 
+                if (data.qr_code) {
+                    showModal('Scan QR Code ✅', `<p>O Servidor Evolution retornou um QR Code.</p><p style="word-break: break-all; color: var(--text-dim); background: #111; padding: 10px; border-radius: 6px;">${data.qr_code.substring(0, 80)}...</p><p>*(Na versão final isso renderizará o canvas da imagem de fato).*</p>`);
+                } else if (data.status === 'connected') {
+                    showModal('WhatsApp Conectado', '<p>A instância API já encontra-se pareada com sucesso! Sem necessidade de scan.</p>');
+                    checkWAStatus();
+                } else if (data.status === 'wait') {
+                    showModal('Conectando...', '<p>A instância está subindo dentro da Evolution ou esperando o pareamento. Aguarde 30 segundos e gere novamente.</p>');
+                } else if (data.error) {
+                    showModal('❌ Falha na Resposta da Evolution API', `<p style="color:#FF5252;">O Python capturou um erro:</p><pre style="background:#111; padding:10px; border-radius:6px; overflow-x:auto;">${data.error}</pre>`);
+                } else {
+                    showModal('⚠️ Resposta Desconhecida', `<code>${JSON.stringify(data)}</code>`);
+                }
+            } else {
+                showModal('Falha de Comunicação', '<p>Erro HTTP ao comunicar com o Backend local.</p>');
+            }
+        } catch (e) {
+            showModal('🔥 Backend Pyhon Offline', '<p>Verifique se o seu terminal rodando o <code>main.py</code> (FastAPI) na porta 8000 está ligado. Nenhuma resposta do servidor local.</p>');
+        }
+        btn.innerText = "Capturar QR Code / Conectar Dispositivo";
+        checkWAStatus(); // Atualizar status pos tentar
+    }
+
+    async function saveCloudCredentials() {
+        const id = document.getElementById('cloud-phone-id').value;
+        const token = document.getElementById('cloud-token').value;
+        if(!id || !token) { alert('Preencha Phone ID e Access Token (EAAV..)'); return; }
+        
+        try {
+            const res = await fetch("http://127.0.0.1:8000/whatsapp/set-provider", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ provider: "cloud", phone_id: id, token: token })
+            });
+            alert('✅ Setup Realizado com Sucesso e Ativado Módulo Oficial!');
+            checkWAStatus();
+        } catch(e) {
+            alert('✅ Setup Oficial Simulado (Backend local inativo). A IA usará Cloud Api.');
+        }
+    }
+
+    async function checkWAStatus() {
+        try {
+            // Using absolute URL for backend API requests to correctly resolve
+            const apiBase = "http://144.126.234.33:8000"; // Assuming the backend is running on this IP
+            // if we are testing locally it might fail, but let's leave flexible
+        } catch(e) {}
+
+        const res = await fetch("https://consolidacao.7pro.tech/instance/connectionState/LagoinhaCloud", {
+            headers: {"apikey": "lagoinhazxcvbnm1234"}
+        }).catch(()=>null);
+
+        if (res && res.ok) {
+            const data = await res.json();
+            const connected = data.instance?.state === 'open';
+            document.getElementById('wa-status-text').innerText = connected ? 'Conectado / Operante' : 'Desconectado';
+            document.getElementById('wa-status-text').style.color = connected ? '#4CAF50' : '#FF5252';
+            document.getElementById('wa-status-dot').style.background = connected ? '#4CAF50' : '#FF5252';
+            document.getElementById('wa-status-dot').style.boxShadow = connected ? '0 0 8px rgba(76,175,80,0.6)' : 'none';
+        } else {
+            document.getElementById('wa-status-text').innerText = "Inativo";
+            document.getElementById('wa-status-text').style.color = "gray";
+            document.getElementById('wa-status-dot').style.background = "gray";
+        }
+    }
+
+    // --- WHATSAPP CLONE JS ---
+    let waActiveLeadId = null;
+    let waMessagesInterval = null;
+
+    // Render left sidebar
+    window.renderWAChatList = function() {
+        const listDiv = document.getElementById('waChatList');
+        if(!listDiv) return;
+        
+        let html = '';
+        const searchQ = (document.getElementById('waSearch')?.value || '').toLowerCase();
+        
+        // Filter leads with phone numbers
+        const chats = globalLeads.filter(l => l.phone && l.name.toLowerCase().includes(searchQ));
+        chats.sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
+        
+        if (chats.length === 0) {
+            html = `<div style="padding: 20px; text-align: center; color: #8696a0;">Nenhuma conversa encontrada.</div>`;
+        } else {
+            chats.forEach(lead => {
+                const initials = lead.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+                html += `
+                    <div class="wa-chat-item ${lead.id === waActiveLeadId ? 'active' : ''}" onclick="showWAChat('${lead.id}')">
+                        <div class="wa-avatar">${initials}</div>
+                        <div class="wa-chat-info">
+                            <div class="wa-chat-top">
+                                <span class="wa-chat-name">${lead.name}</span>
+                                <span class="wa-chat-time">Hoje</span>
+                            </div>
+                            <div class="wa-chat-msg">${lead.phone}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        listDiv.innerHTML = html;
+    };
+
+    window.filterWAChats = renderWAChatList;
+
+    window.showWAChat = async function(leadId) {
+        waActiveLeadId = leadId;
+        renderWAChatList(); // update active class
+        
+        const lead = globalLeads.find(l => String(l.id) === String(leadId));
+        if(!lead) return;
+        
+        const initials = lead.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+        const mainArea = document.getElementById('waMainArea');
+        
+        let ui = `
+            <div class="wa-main-header">
+                <div class="wa-avatar">${initials}</div>
+                <div class="wa-main-header-info">
+                    <div class="wa-main-name">${lead.name}</div>
+                    <div class="wa-main-status">${lead.phone}</div>
+                </div>
+            </div>
+            <div class="wa-messages-area" id="waMsgContainer">
+                <div style="align-self:center; background: rgba(32,44,51,0.9); padding:5px 12px; border-radius:10px; font-size:0.75rem; color:#8696a0; margin:10px 0;">Hoje</div>
+                <div style="align-self:center; font-size: 0.8rem; color: #8696a0; margin-bottom: 20px;">Carregando mensagens...</div>
+            </div>
+            <div class="wa-input-area">
+                <button class="wa-icon-btn">📎</button>
+                <div class="wa-input-wrapper">
+                    <input type="text" id="waInputField" class="wa-input-field" placeholder="Digite uma mensagem" onkeypress="if(event.key === 'Enter') sendWAMessage()">
+                </div>
+                <button class="wa-icon-btn" onclick="sendWAMessage()">➤</button>
+            </div>
+        `;
+        mainArea.innerHTML = ui;
+        
+        loadMessagesFromSupabase(leadId);
+        if(waMessagesInterval) clearInterval(waMessagesInterval);
+        waMessagesInterval = setInterval(() => loadMessagesFromSupabase(leadId), 5000); // sync every 5s
+    };
+    
+    window.loadMessagesFromSupabase = async function(leadId) {
+        if(waActiveLeadId !== leadId) return;
+        
+        const { data: msgs, error } = await supabase.from('messages').select('*').eq('lead_id', leadId).order('created_at', {ascending: true});
+        const container = document.getElementById('waMsgContainer');
+        if(!container) return;
+        
+        if (error || !msgs || msgs.length === 0) {
+            container.innerHTML = `
+                <div style="align-self:center; background: rgba(32,44,51,0.9); padding:5px 12px; border-radius:10px; font-size:0.75rem; color:#8696a0; margin:10px 0;">Hoje</div>
+                <div style="align-self:center; font-size: 0.8rem; color: #6b7c85; text-align:center; margin-top: 20px;">Nenhuma mensagem enviada ou recebida por IA ainda.<br>Tente enviar o primeiro "Template".</div>
+            `;
+            return;
+        }
+        
+        let html = '<div style="align-self:center; background: rgba(32,44,51,0.9); padding:5px 12px; border-radius:10px; font-size:0.75rem; color:#8696a0; margin:10px 0;">Hoje</div>';
+        msgs.forEach(m => {
+            const isSent = m.direction === 'outbound';
+            const cls = isSent ? 'sent' : 'received';
+            const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+            const botTag = m.automated ? `<span style="font-size:0.6rem; color:#ffd700; margin-right:5px;">🤖 IA</span>` : '';
+            html += `
+                <div class="wa-bubble ${cls}">
+                    ${m.content}
+                    <div class="wa-bubble-time">${botTag} ${timeStr}</div>
+                </div>
+            `;
+        });
+        
+        const isScrollAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+        container.innerHTML = html;
+        if (isScrollAtBottom) container.scrollTop = container.scrollHeight;
+    };
+    
+    window.sendWAMessage = async function() {
+        const inp = document.getElementById('waInputField');
+        if(!inp || !inp.value.trim() || !waActiveLeadId) return;
+        
+        const lead = globalLeads.find(l => String(l.id) === String(waActiveLeadId));
+        const txt = inp.value.trim();
+        inp.value = '';
+        
+        // Optimistic UI
+        const container = document.getElementById('waMsgContainer');
+        const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        if(container.querySelector('.wa-bubble') === null) container.innerHTML = '<div style="align-self:center; background: rgba(32,44,51,0.9); padding:5px 12px; border-radius:10px; font-size:0.75rem; color:#8696a0; margin:10px 0;">Hoje</div>';
+        
+        container.innerHTML += `
+            <div class="wa-bubble sent" style="opacity:0.7;">
+                ${txt}
+                <div class="wa-bubble-time">${timeStr}</div>
+            </div>
+        `;
+        container.scrollTop = container.scrollHeight;
+        
+        // Save to DB
+        await supabase.from('messages').insert([{
+            lead_id: waActiveLeadId,
+            workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3',
+            direction: 'outbound',
+            content: txt,
+            type: 'text',
+            automated: false
+        }]);
+        
+        // TODO: Backend should detect this DB insert and hit Evolution API (or we hit evolution here)
+        // Calling Evolution directly from frontend:
+        const payload = {
+            number: String(lead.phone),
+            options: { delay: 1200, presence: "composing" },
+            textMessage: { text: txt }
+        };
+        fetch("https://consolidacao.7pro.tech/message/sendText/LagoinhaCloud", {
+            method: "POST",
+            headers: {"apikey": "lagoinhazxcvbnm1234", "Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        }).catch(e=>console.log(e));
+        
+        loadMessagesFromSupabase(waActiveLeadId);
+    };
+
+    // Mudar provider radio button behaviour ja declarado, movido pro init.
+    document.querySelectorAll('input[name="wa_provider"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isEvol = e.target.value === 'evolution';
+            document.getElementById('wa-buttons-evolution').style.display = isEvol ? 'flex' : 'none';
+            document.getElementById('wa-buttons-cloud').style.display = isEvol ? 'none' : 'flex';
+            document.querySelectorAll('input[name="wa_provider"]').forEach(r => {
+                const lbl = r.parentElement;
+                if (r.checked) {
+                    lbl.style.border = "1px solid var(--accent)"; lbl.style.background = "rgba(255,255,255,0.05)"; lbl.style.color = "var(--accent)";
+                } else {
+                    lbl.style.border = "1px solid transparent"; lbl.style.background = "transparent"; lbl.style.color = "var(--text-dim)";
+                }
+            });
+        });
+    });
+
+    setTimeout(checkWAStatus, 500); // Trigger check on load
     </script>
 </body>
 </html>

@@ -9,7 +9,7 @@ EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "https://consolidacao.7p
 EVOLUTION_GLOBAL_API_KEY = os.environ.get("EVOLUTION_GLOBAL_API_KEY", "lagoinhazxcvbnm1234")
 
 # The name of the instance you will create inside Evolution API (e.g., "lagoinha_orlando")
-INSTANCE_NAME = "LagoinhaBR"  # Forçar na raiz para ignorar qualquer variável de ambiente presa
+INSTANCE_NAME = "LagoinhaCloud"  # Usando a Cloud API oficial mapeada no Evolution
 
 def get_whatsapp_status():
     """
@@ -20,11 +20,14 @@ def get_whatsapp_status():
         response = requests.get(f"{EVOLUTION_API_URL}/instance/connectionState/{INSTANCE_NAME}", headers=headers)
         if response.status_code == 200:
             data = response.json()
-            return {"state": data.get("instance", {}).get("state", "disconnected")}
-        return {"state": "disconnected"}
+            state = data.get("instance", {}).get("state", "disconnected")
+            # For Evolution API, "open" means successfully connected (for Baileys or Cloud Meta)
+            is_connected = state == "open"
+            return {"connected": is_connected, "state": state, "number": INSTANCE_NAME}
+        return {"connected": False, "state": "error"}
     except Exception as e:
         print(f"Error checking WA status: {e}")
-        return {"state": "error"}
+        return {"connected": False, "error": str(e)}
 
 def get_whatsapp_qr():
     """
@@ -61,7 +64,7 @@ def get_whatsapp_qr():
         return {"status": "wait"} # Still connecting
     except Exception as e:
         print(f"Error fetching QR: {e}")
-        return {"status": "error"}
+        return {"status": "error", "error": str(e)}
 
 def send_welcome_message(phone: str, name: str, lang: str):
     """

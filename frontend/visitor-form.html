@@ -654,8 +654,11 @@
                 // Format Full Address string
                 const addressStr = `${document.getElementById('address').value}, ${document.getElementById('apt').value || ''} - ${document.getElementById('city').value}, ${finalState} - ${country} (${document.getElementById('zip').value})`;
 
+                const batizadoVal = document.querySelector('input[name="baptized"]:checked');
+                const gcVal = document.querySelector('input[name="gc"]:checked');
+
                 const leadData = {
-                    workspace_id: '00000000-0000-0000-0000-000000000000',
+                    workspace_id: '9c4e23cf-26e3-4632-addb-f28325aedac3',
                     name: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
                     phone: fullPhoneStr,
                     email: document.getElementById('email').value,
@@ -663,6 +666,8 @@
                     idade: document.getElementById('age').value,
                     estado_civil: document.getElementById('maritalStatus').value,
                     sexo: document.getElementById('gender').value,
+                    batizado: batizadoVal ? batizadoVal.value : 'Não Informado',
+                    gc_status: gcVal ? gcVal.value : 'Não Informado',
                     preferred_language: lang,
                     type: "visitor",
                     tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
@@ -671,6 +676,7 @@
                 const { data, error } = await supabase.from('leads').insert([leadData]).select();
                 if (error) throw error;
                 
+                window.scrollTo({ top: 0, behavior: "smooth" });
                 document.getElementById('successScreen').classList.add('active');
                 let count = 3;
                 const interval = setInterval(() => {
