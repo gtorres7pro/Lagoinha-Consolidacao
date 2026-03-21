@@ -175,8 +175,81 @@
         .wa-empty-state h1 { color: #e9edef; font-weight: 300; font-size: 2rem; margin-top: 30px;}
         .wa-empty-state p { color: #8696a0; font-size: 0.9rem; margin-top: 15px; text-align: center; max-width: 400px;}
         
+        /* ========= BULK SELECT ========= */
+        .bulk-select-checkbox {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.5);
+            cursor: pointer;
+            appearance: none;
+            transition: all 0.2s;
+            z-index: 5;
+            display: none; /* shown in bulk mode */
+        }
+        .bulk-select-checkbox:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .bulk-select-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000;
+            font-weight: 900;
+            font-size: 12px;
+        }
+        .bulk-mode .person-card {
+            position: relative;
+        }
+        .bulk-mode .bulk-select-checkbox {
+            display: block;
+        }
+        .bulk-mode .person-card.bulk-selected {
+            border-color: var(--accent) !important;
+            background: rgba(255,215,0,0.06) !important;
+        }
+        #bulk-action-bar {
+            display: none;
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20,20,20,0.97);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,215,0,0.3);
+            padding: 14px 30px;
+            z-index: 100;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        #bulk-action-bar.active { display: flex; }
+        #bulk-action-bar .bulk-count {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .bulk-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .bulk-btn:hover { transform: translateY(-1px); }
+
         @media (max-width: 768px) {
             body { flex-direction: column; background: var(--bg-color); }
+
             .sidebar { 
                 width: 100%; 
                 height: auto; 
@@ -233,6 +306,46 @@
             .search-bar { min-width: 100%; }
             .filters-group { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
             .select-filter { flex: 1; min-width: 120px; }
+
+            /* Grid cards — single column on mobile */
+            .grid-container {
+                grid-template-columns: 1fr !important;
+                padding: 15px !important;
+            }
+            .person-card {
+                padding: 15px !important;
+            }
+            .card-header h3 { font-size: 1rem !important; }
+            .tags-area { flex-wrap: wrap; gap: 5px; }
+            .tag { font-size: 0.7rem !important; padding: 3px 7px !important; }
+            .tasks-list .task-item { padding: 7px 0 !important; }
+
+            /* WA Chat on mobile: stack vertically, hide sidebar by default */
+            #view-ia .wa-container {
+                flex-direction: column !important;
+            }
+            .wa-sidebar {
+                width: 100% !important;
+                max-height: 220px;
+                border-right: none !important;
+                border-bottom: 1px solid #202c33;
+            }
+            .wa-chat-panel {
+                min-width: 0 !important;
+                flex: 1;
+            }
+
+            /* Bulk action bar takes full width on mobile */
+            #bulk-action-bar {
+                flex-direction: column !important;
+                gap: 8px !important;
+                padding: 12px 15px !important;
+            }
+            #bulk-action-bar .bulk-actions-btns {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
 
             /* Table overflow on mobile */
             div#view-users table { display: block; overflow-x: auto; white-space: nowrap; }
@@ -437,12 +550,28 @@
                 </select>
                 
                 <button class="btn btn-outline" style="border-width: 0; color:var(--text-dim); text-decoration:underline; font-size:0.8rem; padding: 0;" onclick="clearFilters()">Limpar Filtros</button>
+                <button id="bulk-toggle-btn" class="btn btn-outline" style="font-size:0.8rem; padding: 6px 14px; margin-left:auto;" onclick="toggleBulkMode()">☑️ Selecionar</button>
             </div>
 
             <!-- Dynamic Grid -->
             <div class="grid-container" id="leads-container">
                 <div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;">
                     <p>Buscando os corações alcançados...</p>
+                </div>
+            </div>
+
+            <!-- Bulk Action Bar -->
+            <div id="bulk-action-bar">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                    <span class="bulk-count" id="bulk-count-label">0 selecionados</span>
+                    <button class="btn-outline" style="padding:5px 12px;font-size:0.8rem;color:var(--text-dim);" onclick="bulkSelectAll()">Sel. Todos</button>
+                    <button class="btn-outline" style="padding:5px 12px;font-size:0.8rem;color:var(--text-dim);" onclick="bulkDeselectAll()">Limpar</button>
+                </div>
+                <div class="bulk-actions-btns">
+                    <button class="bulk-btn" style="background:rgba(76,175,80,0.1);border-color:rgba(76,175,80,0.5);color:#4CAF50;" onclick="bulkMarkAllTasks()">✅ Marcar Tarefas Completas</button>
+                    <button class="bulk-btn" style="background:rgba(100,149,237,0.1);border-color:rgba(100,149,237,0.5);color:#6495ED;" onclick="bulkMarkBatismo()">✝️ Marcar p/ Batismo</button>
+                    <button class="bulk-btn" style="background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.5);color:#FF6B6B;" onclick="bulkDelete()">🗑️ Excluir Selecionados</button>
+                    <button class="bulk-btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.2);color:#ccc;" onclick="exitBulkMode()">✕ Cancelar</button>
                 </div>
             </div>
         </div>
@@ -1650,6 +1779,7 @@ REGRAS:
                     `;
 
                     card.innerHTML = `
+                        <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
                         <div class="card-header">
                             <div class="person-info">
                                 <h3>${lead.name || 'Sem Nome'}</h3>
@@ -1687,7 +1817,119 @@ REGRAS:
 
             initEngine();
         });
+
+        // ===================================================================
+        // PHASE 4 — BULK ACTIONS
+        // ===================================================================
+        let _bulkMode = false;
+        let _bulkSelected = new Set(); // set of lead IDs
+
+        window.toggleBulkMode = function() {
+            _bulkMode = !_bulkMode;
+            const btn = document.getElementById('bulk-toggle-btn');
+            const bar = document.getElementById('bulk-action-bar');
+            const containers = [
+                document.getElementById('leads-container'),
+                document.getElementById('visitors-container')
+            ];
+            containers.forEach(c => { if(c) c.classList.toggle('bulk-mode', _bulkMode); });
+            if (_bulkMode) {
+                _bulkSelected.clear();
+                btn.textContent = '✕ Cancelar Seleção';
+                btn.style.borderColor = 'rgba(255,107,107,0.5)';
+                btn.style.color = '#FF6B6B';
+                bar.classList.add('active');
+                updateBulkBar();
+            } else {
+                exitBulkMode();
+            }
+        };
+
+        window.exitBulkMode = function() {
+            _bulkMode = false;
+            _bulkSelected.clear();
+            const btn = document.getElementById('bulk-toggle-btn');
+            if (btn) { btn.textContent = '☑️ Selecionar'; btn.style.borderColor = ''; btn.style.color = ''; }
+            const bar = document.getElementById('bulk-action-bar');
+            if (bar) bar.classList.remove('active');
+            document.querySelectorAll('.bulk-select-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.person-card').forEach(c => c.classList.remove('bulk-selected'));
+        };
+
+        window.onBulkCardSelect = function(checkbox, leadId) {
+            const card = checkbox.closest('.person-card');
+            if (checkbox.checked) {
+                _bulkSelected.add(leadId);
+                card?.classList.add('bulk-selected');
+            } else {
+                _bulkSelected.delete(leadId);
+                card?.classList.remove('bulk-selected');
+            }
+            updateBulkBar();
+        };
+
+        function updateBulkBar() {
+            const label = document.getElementById('bulk-count-label');
+            if (label) label.textContent = `${_bulkSelected.size} selecionado${_bulkSelected.size !== 1 ? 's' : ''}`;
+        }
+
+        window.bulkSelectAll = function() {
+            document.querySelectorAll('.bulk-select-checkbox').forEach(cb => {
+                cb.checked = true;
+                const leadId = cb.getAttribute('onchange').match(/'([^']+)'/)?.[1];
+                if (leadId) { _bulkSelected.add(leadId); cb.closest('.person-card')?.classList.add('bulk-selected'); }
+            });
+            updateBulkBar();
+        };
+
+        window.bulkDeselectAll = function() {
+            _bulkSelected.clear();
+            document.querySelectorAll('.bulk-select-checkbox').forEach(cb => { cb.checked = false; cb.closest('.person-card')?.classList.remove('bulk-selected'); });
+            updateBulkBar();
+        };
+
+        window.bulkMarkAllTasks = async function() {
+            if (_bulkSelected.size === 0) return alert('Selecione ao menos um card.');
+            if (!confirm(`Marcar todas as tarefas como completas para ${_bulkSelected.size} pessoa(s)?`)) return;
+            const ids = [..._bulkSelected];
+            const taskUpdate = { task_gc: true, task_followup: true, task_start: true, task_batismo: true, task_cafe: true };
+            try {
+                const { error } = await window.supabaseClient.from('leads').update(taskUpdate).in('id', ids);
+                if (error) throw error;
+                alert(`✅ Tarefas marcadas como completas para ${ids.length} pessoa(s)!`);
+                exitBulkMode();
+                if (window.fetchLiveLeads) fetchLiveLeads();
+            } catch(e) { alert('Erro: ' + e.message); }
+        };
+
+        window.bulkMarkBatismo = async function() {
+            if (_bulkSelected.size === 0) return alert('Selecione ao menos um card.');
+            if (!confirm(`Marcar Convite de Batismo para ${_bulkSelected.size} pessoa(s)?`)) return;
+            const ids = [..._bulkSelected];
+            try {
+                const { error } = await window.supabaseClient.from('leads').update({ task_batismo: true }).in('id', ids);
+                if (error) throw error;
+                alert(`✝️ Batismo marcado para ${ids.length} pessoa(s)!`);
+                exitBulkMode();
+                if (window.fetchLiveLeads) fetchLiveLeads();
+            } catch(e) { alert('Erro: ' + e.message); }
+        };
+
+        window.bulkDelete = async function() {
+            if (_bulkSelected.size === 0) return alert('Selecione ao menos um card.');
+            if (!confirm(`⚠️ ATENÇÃO: Excluir permanentemente ${_bulkSelected.size} pessoa(s) do banco de dados? Esta ação não pode ser desfeita.`)) return;
+            const ids = [..._bulkSelected];
+            try {
+                const { error } = await window.supabaseClient.from('leads').delete().in('id', ids);
+                if (error) throw error;
+                alert(`🗑️ ${ids.length} pessoa(s) excluída(s) com sucesso.`);
+                exitBulkMode();
+                if (window.fetchLiveLeads) fetchLiveLeads();
+            } catch(e) { alert('Erro: ' + e.message); }
+        };
+
     </script>
+
     
     <!-- Módulos de Email (Resend) e Auth UI Simples -->
     <script>
