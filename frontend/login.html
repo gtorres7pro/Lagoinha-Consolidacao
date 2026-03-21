@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Lagoinha Consolidação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #FFD700;
+            --bg: #0a0a0a;
+            --card: #141414;
+            --border: rgba(255,255,255,0.08);
+            --text-dim: #666;
+            --font: 'Outfit', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
+        body {
+            background: var(--bg);
+            color: #fff;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-wrap {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .logo { font-size: 2.8rem; line-height: 1; }
+        .headline { text-align: center; }
+        .headline h1 { font-size: 2rem; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+        .headline p { color: var(--text-dim); font-size: 0.85rem; margin-top: 6px; font-weight: 400; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+        .field input {
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: var(--font);
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+        .field input:focus { border-color: rgba(255,215,0,0.5); }
+        .field .pw-wrap { position: relative; }
+        .field .pw-wrap input { padding-right: 44px; }
+        .field .pw-toggle {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.1rem; padding: 4px;
+        }
+
+        .btn-cta {
+            width: 100%;
+            padding: 13px;
+            background: var(--accent);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font);
+            transition: background 0.2s, transform 0.1s;
+            letter-spacing: 0.3px;
+        }
+        .btn-cta:hover { background: #e6c200; }
+        .btn-cta:active { transform: scale(0.98); }
+        .btn-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .forgot-link {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 4px;
+            background: none;
+            border: none;
+            font-family: var(--font);
+        }
+        .forgot-link:hover { color: #aaa; }
+
+        .error-msg {
+            background: rgba(255,80,80,0.1);
+            border: 1px solid rgba(255,80,80,0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            color: #ff7070;
+            display: none;
+        }
+        .error-msg.show { display: block; }
+
+        .footer-note { font-size: 0.73rem; color: var(--text-dim); text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="logo">✦</div>
+
+        <div class="headline">
+            <h1>Bem-vindo<br>de volta</h1>
+            <p>Plataforma de Consolidação</p>
+        </div>
+
+        <div class="card">
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="seu@email.com" autocomplete="email" autofocus>
+            </div>
+            <div class="field">
+                <label>Senha</label>
+                <div class="pw-wrap">
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+                    <button class="pw-toggle" type="button" onclick="togglePw()" id="pw-toggle-btn">👁</button>
+                </div>
+            </div>
+
+            <div class="error-msg" id="error-msg"></div>
+
+            <button class="btn-cta" id="login-btn" onclick="doLogin()">Entrar</button>
+            <button class="forgot-link" onclick="window.location.href='/forgot-password.html'">Esqueci minha senha</button>
+        </div>
+
+        <p class="footer-note">Acesso restrito à equipe pastoral</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://ttkvpohaxriisulwirqk.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0a3Zwb2hheHJpaXN1bHdpcnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMjA0NTUsImV4cCI6MjA1Nzc5NjQ1NX0.1f0KKtPbFBhLMvCm5LMjW5RVEEB8nt0mHh7hFkCdZuM';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // If already logged in, redirect to dashboard
+        sb.auth.getSession().then(({ data }) => {
+            if (data.session) window.location.href = '/dashboard.html';
+        });
+
+        function togglePw() {
+            const inp = document.getElementById('password');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+        }
+
+        async function doLogin() {
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value;
+            const btn = document.getElementById('login-btn');
+            const errBox = document.getElementById('error-msg');
+
+            if (!email || !pass) {
+                showError('Por favor preencha email e senha.');
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Entrando...';
+            errBox.classList.remove('show');
+
+            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+            if (error) {
+                showError(error.message === 'Invalid login credentials'
+                    ? '❌ Email ou senha incorretos.'
+                    : '❌ ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Entrar';
+            } else {
+                window.location.href = '/dashboard.html';
+            }
+        }
+
+        function showError(msg) {
+            const e = document.getElementById('error-msg');
+            e.textContent = msg;
+            e.classList.add('show');
+        }
+
+        // Allow Enter key to submit
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+    </script>
+</body>
+</html>
