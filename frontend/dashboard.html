@@ -1779,6 +1779,12 @@ REGRAS:
             automated: false
         }]);
         
+        // 🔒 Human Lock: Pause Ju AI for 30 minutes after human message
+        const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        await window.supabaseClient.from('leads')
+            .update({ llm_lock_until: lockUntil })
+            .eq('id', waActiveLeadId);
+        
         // Calling Python Backend to dispatch to Meta Cloud API
         fetch(`${API_BASE}/whatsapp/send`, {
             method: "POST",
