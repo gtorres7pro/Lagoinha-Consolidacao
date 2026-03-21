@@ -242,6 +242,18 @@
             .view-section .search-box { min-width: 100%; }
         }
     </style>
+    <!-- Meta Facebook SDK for Embedded Signup -->
+    <script>
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: '934037612918640',
+                cookie: true,
+                xfbml: true,
+                version: 'v22.0'
+            });
+        };
+    </script>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 </head>
 <body>
 
@@ -688,21 +700,53 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;" id="wa-buttons-cloud">
-                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">Phone Number ID (ID do Número de Telefone)</label>
-                        <input type="text" id="cloud-phone-id" placeholder="Ex: 733552723172704" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-                        
-                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">WhatsApp Business Account ID (ID da Conta do WhatsApp Business)</label>
-                        <input type="text" id="cloud-business-id" placeholder="Ex: 1039485... (Requerido para Meta)" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-
-                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">Permanent Access Token (Token de Acesso - EAAV...)</label>
-                        <input type="text" id="cloud-token" placeholder="EAAN3YuNZAZA8..." style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-                        
-                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">App Secret (Chave Secreta do Aplicativo Meta)</label>
-                        <input type="password" id="cloud-app-secret" placeholder="Requerido para Verificar Assinaturas do Webhook" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-
-                        <button type="button" class="btn-outline" onclick="saveCloudCredentials()" style="background: rgba(37,211,102,0.1); color: #25D366; border-color: #25D366; width: 100%; font-weight: 600; font-size: 0.9rem; margin-top: 10px;">Salvar Credenciais Nativas</button>
+                    <!-- EMBEDDED SIGNUP: Connected Status Card -->
+                    <div id="wa-connected-card" style="display:none; background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.4); border-radius: 12px; padding: 20px; margin-top:5px;">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                            <div style="width:12px;height:12px;border-radius:50%;background:#25D366;box-shadow:0 0 10px rgba(37,211,102,0.6);"></div>
+                            <span style="color:#25D366;font-weight:700;font-size:1rem;">WhatsApp Conectado</span>
+                        </div>
+                        <div id="wa-connected-details" style="color:var(--text-dim);font-size:0.85rem;line-height:1.8;"></div>
+                        <button onclick="disconnectWhatsApp()" style="margin-top:15px;background:rgba(255,59,48,0.1);color:#ff3b30;border:1px solid rgba(255,59,48,0.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;">🔌 Desconectar</button>
                     </div>
+
+                    <!-- EMBEDDED SIGNUP: Connect Button -->
+                    <div id="wa-connect-section" style="margin-top:10px;">
+                        <button onclick="launchWhatsAppSignup()" id="wa-signup-btn" style="
+                            width: 100%; padding: 16px; border-radius: 12px;
+                            background: linear-gradient(135deg, #1877F2, #0a5ec7);
+                            color: white; border: none; cursor: pointer;
+                            font-size: 1rem; font-weight: 700; letter-spacing: 0.3px;
+                            display: flex; align-items: center; justify-content: center; gap: 12px;
+                            transition: all 0.2s; box-shadow: 0 4px 20px rgba(24,119,242,0.3);
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                            Conectar WhatsApp Business
+                        </button>
+                        <p style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-top:8px;">Clique para autorizar o acesso via Facebook. Seguro e sem compartilhar senhas.</p>
+                    </div>
+
+                    <!-- STATUS MESSAGE -->
+                    <div id="wa-signup-status" style="display:none;margin-top:12px;padding:12px;border-radius:8px;font-size:0.85rem;text-align:center;"></div>
+
+                    <!-- ACCOUNT PICKER (shown when multiple numbers found) -->
+                    <div id="wa-account-picker" style="display:none;margin-top:15px;"></div>
+
+                    <!-- ADVANCED: Manual Credentials (collapsible) -->
+                    <details style="margin-top:20px;">
+                        <summary style="cursor:pointer;font-size:0.8rem;color:var(--text-dim);user-select:none;">⚙️ Configuração Manual (Avançado)</summary>
+                        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;" id="wa-buttons-cloud">
+                            <label style="font-size:0.8rem;color:var(--text-dim);margin-bottom:-5px;">Phone Number ID</label>
+                            <input type="text" id="cloud-phone-id" placeholder="Ex: 722270310975891" style="width:100%;border:1px solid var(--card-border);background:rgba(0,0,0,0.3);color:#fff;padding:10px;border-radius:6px;font-size:0.82rem;outline:none;">
+                            <label style="font-size:0.8rem;color:var(--text-dim);margin-bottom:-5px;">WhatsApp Business Account ID</label>
+                            <input type="text" id="cloud-business-id" placeholder="Ex: 517931274727525" style="width:100%;border:1px solid var(--card-border);background:rgba(0,0,0,0.3);color:#fff;padding:10px;border-radius:6px;font-size:0.82rem;outline:none;">
+                            <label style="font-size:0.8rem;color:var(--text-dim);margin-bottom:-5px;">Access Token (EAAN...)</label>
+                            <input type="text" id="cloud-token" placeholder="EAAN3YuNZAZA8..." style="width:100%;border:1px solid var(--card-border);background:rgba(0,0,0,0.3);color:#fff;padding:10px;border-radius:6px;font-size:0.82rem;outline:none;">
+                            <label style="font-size:0.8rem;color:var(--text-dim);margin-bottom:-5px;">App Secret</label>
+                            <input type="password" id="cloud-app-secret" placeholder="Chave secreta do App Meta" style="width:100%;border:1px solid var(--card-border);background:rgba(0,0,0,0.3);color:#fff;padding:10px;border-radius:6px;font-size:0.82rem;outline:none;">
+                            <button type="button" onclick="saveCloudCredentials()" style="background:rgba(37,211,102,0.1);color:#25D366;border:1px solid #25D366;padding:10px;border-radius:8px;cursor:pointer;font-weight:600;margin-top:5px;">Salvar Credenciais Manualmente</button>
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -1584,6 +1628,170 @@ REGRAS:
 
     // Modal QR Code API removido.
     
+    // ====================================================================
+    // WHATSAPP EMBEDDED SIGNUP — Full OAuth Flow
+    // ====================================================================
+
+    async function launchWhatsAppSignup() {
+        const btn = document.getElementById('wa-signup-btn');
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Conectando...';
+        setWASignupStatus('info', 'Abrindo janela de autorização do Facebook...');
+
+        if (typeof FB === 'undefined') {
+            setWASignupStatus('error', '❌ SDK do Facebook não carregou. Recarregue a página.');
+            btn.disabled = false;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Conectar WhatsApp Business';
+            return;
+        }
+
+        FB.login(function(response) {
+            btn.disabled = false;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg> Conectar WhatsApp Business';
+
+            if (response.status === 'connected') {
+                const shortToken = response.authResponse.accessToken;
+                setWASignupStatus('info', '✅ Autorizado! Buscando suas contas WhatsApp Business...');
+                fetchAndSaveWAAccounts(shortToken);
+            } else if (response.status === 'not_authorized') {
+                setWASignupStatus('error', '⚠️ Você cancelou a autorização. Tente novamente.');
+            } else {
+                setWASignupStatus('error', '❌ Erro: Não foi possível conectar ao Facebook.');
+            }
+        }, {
+            scope: 'whatsapp_business_management,whatsapp_business_messaging',
+            return_scopes: true
+        });
+    }
+
+    async function fetchAndSaveWAAccounts(shortToken) {
+        setWASignupStatus('info', '🔍 Buscando contas WhatsApp Business...');
+        try {
+            // 1. Exchange for long-lived token
+            const exchangeRes = await fetch(`${API_BASE}/whatsapp/auth/exchange`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ short_lived_token: shortToken })
+            });
+            const exchangeData = await exchangeRes.json();
+            const longToken = exchangeData.long_lived_token || shortToken; // fallback to short if exchange fails
+
+            // 2. Fetch WABA accounts
+            const accountsRes = await fetch(`${API_BASE}/whatsapp/auth/fetch-accounts`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ short_lived_token: longToken })
+            });
+            const accountsData = await accountsRes.json();
+
+            if (accountsData.error) {
+                setWASignupStatus('error', `❌ Erro: ${accountsData.error}`);
+                return;
+            }
+
+            const accounts = accountsData.accounts || [];
+            if (accounts.length === 0) {
+                setWASignupStatus('error', '⚠️ Nenhuma conta WhatsApp Business encontrada neste Facebook.');
+                return;
+            }
+
+            if (accounts.length === 1) {
+                // Auto-save single account
+                await saveSelectedWAAccount(accounts[0], longToken);
+            } else {
+                // Show picker for multiple accounts
+                showWAAccountPicker(accounts, longToken);
+            }
+        } catch(e) {
+            setWASignupStatus('error', `❌ Erro de conexão: ${e.message}`);
+        }
+    }
+
+    function showWAAccountPicker(accounts, token) {
+        setWASignupStatus('info', `Encontramos ${accounts.length} números. Escolha qual conectar:`);
+        const picker = document.getElementById('wa-account-picker');
+        picker.style.display = 'block';
+        picker.innerHTML = accounts.map((a, i) => `
+            <div onclick="saveSelectedWAAccount(${JSON.stringify(a).replace(/"/g,'&quot;')}, '${token}')" style="
+                padding:14px; border-radius:10px; border:1px solid var(--card-border);
+                margin-bottom:8px; cursor:pointer; transition:all 0.2s;
+                background:rgba(255,255,255,0.04);
+            " onmouseover="this.style.background='rgba(37,211,102,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                <div style="font-weight:600;color:#fff;">📱 ${a.phone_display}</div>
+                <div style="font-size:0.78rem;color:var(--text-dim);">WABA: ${a.waba_name} · ${a.phone_id}</div>
+            </div>
+        `).join('');
+    }
+
+    async function saveSelectedWAAccount(account, token) {
+        setWASignupStatus('info', `💾 Salvando ${account.phone_display}...`);
+        document.getElementById('wa-account-picker').style.display = 'none';
+        try {
+            const saveRes = await fetch(`${API_BASE}/whatsapp/auth/save`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    workspace_id: '9c4e23cf-26e3-4632-addb-f28325aedac3',
+                    phone_id: account.phone_id,
+                    waba_id: account.waba_id,
+                    access_token: token,
+                    phone_display: account.phone_display
+                })
+            });
+            const saveData = await saveRes.json();
+            if (saveData.status === 'saved') {
+                setWASignupStatus('success', `🎉 Conectado com sucesso!`);
+                showWAConnectedCard(account);
+            } else {
+                setWASignupStatus('error', `❌ Erro ao salvar: ${saveData.error}`);
+            }
+        } catch(e) {
+            setWASignupStatus('error', `❌ Erro: ${e.message}`);
+        }
+    }
+
+    function showWAConnectedCard(account) {
+        document.getElementById('wa-connect-section').style.display = 'none';
+        const card = document.getElementById('wa-connected-card');
+        card.style.display = 'block';
+        document.getElementById('wa-connected-details').innerHTML = `
+            <div>📱 <strong>${account.phone_display || account.phone_id}</strong></div>
+            <div>🏢 ${account.waba_name || 'WhatsApp Business Account'} (${account.waba_id})</div>
+            <div>🔑 Phone ID: ${account.phone_id}</div>
+            <div style="margin-top:6px;color:#25D366;">✅ Ju irá responder automaticamente por este número</div>
+        `;
+        document.getElementById('wa-status-text').innerText = `Conectado — ${account.phone_display}`;
+        document.getElementById('wa-status-text').style.color = '#25D366';
+        document.getElementById('wa-status-dot').style.background = '#25D366';
+        document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(37,211,102,0.6)';
+        window.hasWhatsappConfig = true;
+    }
+
+    function disconnectWhatsApp() {
+        if (!confirm('Desconectar o WhatsApp? A Ju vai parar de responder.')) return;
+        window.supabaseClient.from('workspaces').update({ credentials: {} }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').then(() => {
+            document.getElementById('wa-connected-card').style.display = 'none';
+            document.getElementById('wa-connect-section').style.display = 'block';
+            setWASignupStatus('info', '🔌 Desconectado. Clique em Conectar para reconectar.');
+            window.hasWhatsappConfig = false;
+        });
+    }
+
+    function setWASignupStatus(type, msg) {
+        const el = document.getElementById('wa-signup-status');
+        el.style.display = 'block';
+        const colors = { info: 'rgba(255,215,0,0.15)', success: 'rgba(37,211,102,0.15)', error: 'rgba(255,59,48,0.15)' };
+        const textColors = { info: '#ffd700', success: '#25D366', error: '#ff6b6b' };
+        el.style.background = colors[type] || colors.info;
+        el.style.color = textColors[type] || textColors.info;
+        el.style.border = `1px solid ${textColors[type] || textColors.info}40`;
+        el.innerText = msg;
+    }
+
+    // ====================================================================
+    // LEGACY: Manual save (still used in Advanced collapsible)
+    // ====================================================================
+
     async function saveCloudCredentials() {
         const id = document.getElementById('cloud-phone-id').value;
         const token = document.getElementById('cloud-token').value;
@@ -1591,41 +1799,52 @@ REGRAS:
         const secret = document.getElementById('cloud-app-secret').value;
         
         if(!id || !token) { 
-            alert('Preencha Phone ID e Access Token (EAAV..)'); 
+            alert('Preencha Phone ID e Access Token'); 
             return; 
         }
         
         try {
             const { error } = await window.supabaseClient.from('workspaces').update({
                 credentials: {whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
-            }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3'); // workspace ID atrelado
+            }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3');
             
             if (error) throw error;
-            alert('✅ Credenciais Nativas Salvas com Sucesso no Bancos de Dados!');
+            alert('✅ Credenciais Salvas!');
             checkWAStatus();
         } catch(e) {
-            alert('❌ Erro ao salvar credenciais: ' + e.message);
+            alert('❌ Erro: ' + e.message);
         }
     }
 
     async function checkWAStatus() {
-        // Agora consultamos direto da tabela do Supabase para conferir se há Token
-        if (!window.supabaseClient) return; // Prevent premature calls
+        if (!window.supabaseClient) return;
         window.hasWhatsappConfig = false;
         
         const { data, error } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').single();
         if (data && data.credentials && data.credentials.whatsapp_token) {
             window.hasWhatsappConfig = true;
-            document.getElementById('wa-status-text').innerText = 'Ativado (Cloud API)';
-            document.getElementById('wa-status-text').style.color = '#4CAF50';
-            document.getElementById('wa-status-dot').style.background = '#4CAF50';
-            document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(76,175,80,0.6)';
-            
-            // Set input values to what is saved
-            if(document.getElementById('cloud-phone-id') && !document.getElementById('cloud-phone-id').value) {
+            const phoneDisplay = data.credentials.phone_display || data.credentials.phone_id || 'Número conectado';
+            document.getElementById('wa-status-text').innerText = `Conectado — ${phoneDisplay}`;
+            document.getElementById('wa-status-text').style.color = '#25D366';
+            document.getElementById('wa-status-dot').style.background = '#25D366';
+            document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(37,211,102,0.6)';
+
+            // Show the connected card if on settings page
+            const connCard = document.getElementById('wa-connected-card');
+            const connectSection = document.getElementById('wa-connect-section');
+            if (connCard && connectSection) {
+                showWAConnectedCard({
+                    phone_display: data.credentials.phone_display || data.credentials.phone_id,
+                    phone_id: data.credentials.phone_id,
+                    waba_id: data.credentials.waba_id || data.credentials.business_id || '',
+                    waba_name: 'Lagoinha Orlando'
+                });
+            }
+            // Pre-fill manual fields too
+            if(document.getElementById('cloud-phone-id')) {
                 document.getElementById('cloud-phone-id').value = data.credentials.phone_id || '';
                 document.getElementById('cloud-token').value = data.credentials.whatsapp_token || '';
-                document.getElementById('cloud-business-id').value = data.credentials.business_id || '';
+                document.getElementById('cloud-business-id').value = data.credentials.business_id || data.credentials.waba_id || '';
                 document.getElementById('cloud-app-secret').value = data.credentials.app_secret || '';
             }
         } else {

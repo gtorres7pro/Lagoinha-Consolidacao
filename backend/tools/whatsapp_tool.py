@@ -6,9 +6,9 @@ load_dotenv()
 
 def send_whatsapp_message(phone_id: str, access_token: str, to: str, message: str) -> dict:
     """
-    Sends a text message using the Official Meta WhatsApp Cloud API.
+    Sends a text message using the Official Meta WhatsApp Cloud API v22.0.
     """
-    url = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
+    url = f"https://graph.facebook.com/v22.0/{phone_id}/messages"
     
     headers = {
         "Authorization": f"Bearer {access_token}",

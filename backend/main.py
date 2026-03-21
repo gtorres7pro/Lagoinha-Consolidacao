@@ -1,4 +1,5 @@
 import os
+import requests as http_requests
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -258,6 +259,120 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
     if "error" in result:
         return {"status": "failed", "details": result}
     return {"status": "success", "meta_response": result}
+
+
+# --- WHATSAPP EMBEDDED SIGNUP (META OAUTH) ---
+
+META_APP_ID = os.environ.get("META_APP_ID", "934037612918640")
+META_APP_SECRET = os.environ.get("META_APP_SECRET", "")
+
+class WAShortTokenPayload(BaseModel):
+    short_lived_token: str
+
+class WAAuthSavePayload(BaseModel):
+    workspace_id: str
+    phone_id: str
+    waba_id: str
+    access_token: str
+    phone_display: str
+
+@app.post("/whatsapp/auth/exchange")
+def exchange_wa_token(data: WAShortTokenPayload):
+    """
+    Exchange a short-lived Facebook user token for a long-lived one (~60 days).
+    Requires META_APP_SECRET environment variable.
+    """
+    if not META_APP_SECRET:
+        return {"error": "META_APP_SECRET not configured on server. Set it in Coolify environment variables."}
+    
+    res = http_requests.get(
+        "https://graph.facebook.com/v22.0/oauth/access_token",
+        params={
+            "grant_type": "fb_exchange_token",
+            "client_id": META_APP_ID,
+            "client_secret": META_APP_SECRET,
+            "fb_exchange_token": data.short_lived_token
+        }
+    )
+    result = res.json()
+    if "access_token" in result:
+        return {"long_lived_token": result["access_token"], "expires_in": result.get("expires_in")}
+    print(f"Token exchange error: {result}")
+    return {"error": result.get("error", {}).get("message", "Token exchange failed")}
+
+@app.post("/whatsapp/auth/fetch-accounts")
+def fetch_wa_accounts(data: WAShortTokenPayload):
+    """
+    Fetch all WhatsApp Business Accounts + phone numbers for a given user token.
+    Used after Embedded Signup to let the user pick their WABA.
+    """
+    token = data.short_lived_token
+    accounts = []
+    
+    try:
+        # 1. Get user's Business portfolio
+        biz_res = http_requests.get(
+            "https://graph.facebook.com/v22.0/me/businesses",
+            params={"access_token": token, "fields": "id,name"}
+        )
+        businesses = biz_res.json().get("data", [])
+        
+        for biz in businesses:
+            # 2. Get WABAs for each business
+            waba_res = http_requests.get(
+                f"https://graph.facebook.com/v22.0/{biz['id']}/whatsapp_business_accounts",
+                params={"access_token": token, "fields": "id,name"}
+            )
+            wabas = waba_res.json().get("data", [])
+            
+            for waba in wabas:
+                # 3. Get phone numbers for each WABA
+                phones_res = http_requests.get(
+                    f"https://graph.facebook.com/v22.0/{waba['id']}/phone_numbers",
+                    params={"access_token": token, "fields": "id,display_phone_number,verified_name,quality_rating"}
+                )
+                phones = phones_res.json().get("data", [])
+                
+                for phone in phones:
+                    accounts.append({
+                        "waba_id": waba["id"],
+                        "waba_name": waba.get("name", ""),
+                        "phone_id": phone["id"],
+                        "phone_display": phone.get("display_phone_number", ""),
+                        "verified_name": phone.get("verified_name", ""),
+                        "quality": phone.get("quality_rating", "UNKNOWN")
+                    })
+        
+        if not accounts:
+            return {"accounts": [], "warning": "No WhatsApp Business accounts found for this Facebook user."}
+        
+        return {"accounts": accounts}
+    except Exception as e:
+        print(f"Fetch accounts error: {e}")
+        return {"error": str(e)}
+
+@app.post("/whatsapp/auth/save")
+def save_wa_credentials(data: WAAuthSavePayload):
+    """
+    Save fetched WhatsApp credentials to Supabase for a given workspace.
+    Called after the user selects their phone number from the Embedded Signup flow.
+    """
+    from tools.db_tool import supabase
+    
+    res = supabase.table("workspaces").update({
+        "credentials": {
+            "phone_id": data.phone_id,
+            "waba_id": data.waba_id,
+            "whatsapp_token": data.access_token,
+            "phone_display": data.phone_display
+        }
+    }).eq("id", data.workspace_id).execute()
+    
+    if res.data:
+        print(f"✅ WhatsApp credentials saved for workspace {data.workspace_id}: {data.phone_display}")
+        return {"status": "saved", "phone_display": data.phone_display}
+    return {"error": "Failed to save credentials to database"}
+
 
 # --- EMAIL ENDPOINTS (RESEND) ---
 from tools.email_tool import send_credentials_email, send_reset_password_email, send_report_email
