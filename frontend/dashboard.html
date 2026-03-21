@@ -853,9 +853,12 @@ REGRAS:
             const supabase = window.supabaseClient;
 
             const leadsContainer = document.getElementById('leads-container');
-            let globalLeads = [];
-            let globalConsolidados = [];
-            let globalVisitors = [];
+            window.globalLeads = [];
+            window.globalConsolidados = [];
+            window.globalVisitors = [];
+            let globalLeads = window.globalLeads; // local alias
+            let globalConsolidados = window.globalConsolidados;
+            let globalVisitors = window.globalVisitors;
             let chartInstances = {};
 
             function reportError(msg) {
@@ -1102,7 +1105,7 @@ REGRAS:
                     let setCultos = new Set();
                     let setPaises = new Set();
 
-                    globalLeads = leads.map(lead => {
+                    globalLeads = window.globalLeads = leads.map(lead => {
                         if (!lead.decisao) lead.decisao = "Não Informado";
                         if (!lead.culto) lead.culto = "Não Informado";
                         if (!lead.pais) lead.pais = "Não Informado";
@@ -1151,8 +1154,8 @@ REGRAS:
                         return lead;
                     });
                     
-                    globalConsolidados = globalLeads.filter(l => l.type !== 'visitor');
-                    globalVisitors = globalLeads.filter(l => l.type === 'visitor');
+                    globalConsolidados = window.globalConsolidados = globalLeads.filter(l => l.type !== 'visitor');
+                    globalVisitors = window.globalVisitors = globalLeads.filter(l => l.type === 'visitor');
 
                     populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
                     populateSelect('filterCulto', setCultos, 'Qualquer Culto');
@@ -1162,6 +1165,8 @@ REGRAS:
                         initCharts();
                     }
                     if(window.applyFilters) applyFilters();
+                    // Refresh the WA chat sidebar now that leads are loaded
+                    if(window.renderWAChatList) renderWAChatList();
 
                 } catch (err) {
                     reportError("Erro JavaScript em fetchLiveLeads: " + err.message);
