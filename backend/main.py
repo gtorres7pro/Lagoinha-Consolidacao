@@ -123,22 +123,27 @@ def handle_meta_message_logic(msg_obj: dict, contact_name: str):
         text_content = f"[{msg_type} Recebido]"
 
     print(f"📥 Meta Message from {phone} ({contact_name}): {text_content}")
+
+    # Normalize phone: strip + and non-digits, search by last 10 digits to handle country code variants
+    phone_digits = ''.join(filter(str.isdigit, phone))
+    search_phone = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
     
-    search_phone = phone[-8:] if len(phone) >= 8 else phone
-    res = supabase.table("leads").select("*").ilike("phone", f"%{search_phone}%").execute()
+    res = supabase.table("leads").select("*").ilike("phone", f"%{search_phone}%").order("last_interaction", desc=True).execute()
     
     lead_id = None
-    workspace_id = "9c4e23cf-26e3-4632-addb-f28325aedac3" # Default workspace
+    workspace_id = "9c4e23cf-26e3-4632-addb-f28325aedac3"  # Default workspace
     
     if res.data and len(res.data) > 0:
+        # Use the most recently interacted lead (avoids duplicates from old test entries)
         lead_id = res.data[0]["id"]
         workspace_id = res.data[0].get("workspace_id", workspace_id)
         supabase.table("leads").update({"last_interaction": datetime.now().isoformat()}).eq("id", lead_id).execute()
     else:
+        # Create new lead with normalized phone (no + prefix)
         new_lead = supabase.table("leads").insert({
             "workspace_id": workspace_id,
             "name": contact_name,
-            "phone": phone,
+            "phone": phone_digits,  # Normalized: digits only
             "type": "visitor",
             "last_interaction": datetime.now().isoformat()
         }).execute()

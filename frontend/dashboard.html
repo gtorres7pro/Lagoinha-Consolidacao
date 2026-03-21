@@ -1722,11 +1722,43 @@ REGRAS:
     window.loadMessagesFromSupabase = async function(leadId) {
         if(waActiveLeadId !== leadId) return;
         
-        const { data: msgs, error } = await supabase.from('messages').select('*').eq('lead_id', leadId).order('created_at', {ascending: true});
         const container = document.getElementById('waMsgContainer');
         if(!container) return;
+
+        // Find the lead to get its phone number
+        const activeLead = window.globalLeads ? window.globalLeads.find(l => String(l.id) === String(leadId)) : null;
         
-        if (error || !msgs || msgs.length === 0) {
+        let msgs = [];
+        let fetchError = null;
+
+        if (activeLead && activeLead.phone) {
+            // Normalize phone: get last 10 digits for matching
+            const phoneDigits = String(activeLead.phone).replace(/\D/g, '');
+            const searchPhone = phoneDigits.slice(-10);
+            
+            // Step 1: Find ALL lead IDs with this phone number (handles + prefix mismatch)
+            const { data: relatedLeads } = await window.supabaseClient
+                .from('leads').select('id').ilike('phone', `%${searchPhone}%`);
+            
+            if (relatedLeads && relatedLeads.length > 0) {
+                const leadIds = relatedLeads.map(l => l.id);
+                // Step 2: Fetch messages for all those lead IDs
+                const { data, error } = await window.supabaseClient
+                    .from('messages').select('*')
+                    .in('lead_id', leadIds)
+                    .order('created_at', {ascending: true});
+                msgs = data || [];
+                fetchError = error;
+            }
+        } else {
+            // Fallback: direct lead_id lookup
+            const { data, error } = await window.supabaseClient
+                .from('messages').select('*').eq('lead_id', leadId).order('created_at', {ascending: true});
+            msgs = data || [];
+            fetchError = error;
+        }
+        
+        if (fetchError || msgs.length === 0) {
             container.innerHTML = `
                 <div style="align-self:center; background: rgba(32,44,51,0.9); padding:5px 12px; border-radius:10px; font-size:0.75rem; color:#8696a0; margin:10px 0;">Hoje</div>
                 <div style="align-self:center; font-size: 0.8rem; color: #6b7c85; text-align:center; margin-top: 20px;">Nenhuma mensagem enviada ou recebida por IA ainda.<br>Tente enviar o primeiro "Template".</div>
