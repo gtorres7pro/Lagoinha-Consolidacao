@@ -9,8 +9,8 @@ load_dotenv()
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_KEY)
 
-# Use the fast, cost-effective Gemini 2.0 Flash model
-model = genai.GenerativeModel('gemini-2.0-flash')
+# gemini-2.5-flash: confirmed working with billing enabled
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 def generate_response(lead_id: str, lead_name: str, workspace_id: str, incoming_message: str):
     """
