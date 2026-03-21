@@ -157,6 +157,61 @@ def handle_meta_message_logic(msg_obj: dict, contact_name: str):
         }).execute()
         print(f"✅ Meta Message logically saved to DB for lead {lead_id}!")
 
+        # --- JU AI AUTO-REPLY ---
+        # Only reply to text messages and only if the AI lock is not active
+        if msg_type == "text" and text_content:
+            lead_row = supabase.table("leads").select("llm_lock_until, name").eq("id", lead_id).single().execute()
+            lead_data = lead_row.data or {}
+            
+            lock_until = lead_data.get("llm_lock_until")
+            is_locked = False
+            if lock_until:
+                try:
+                    from datetime import timezone
+                    lock_dt = datetime.fromisoformat(lock_until.replace("Z", "+00:00"))
+                    is_locked = datetime.now(timezone.utc) < lock_dt
+                except Exception:
+                    pass
+
+            if not is_locked:
+                try:
+                    ai_reply = generate_response(
+                        lead_id=lead_id,
+                        lead_name=lead_data.get("name", contact_name),
+                        workspace_id=workspace_id,
+                        incoming_message=text_content
+                    )
+                    
+                    if ai_reply:
+                        # Support multi-part replies split by ||
+                        parts = [p.strip() for p in ai_reply.split("||") if p.strip()]
+                        
+                        # Fetch credentials for this workspace
+                        ws = supabase.table("workspaces").select("credentials").eq("id", workspace_id).single().execute()
+                        creds = ws.data.get("credentials", {}) if ws.data else {}
+                        access_token = creds.get("whatsapp_token")
+                        phone_id = creds.get("phone_id")
+                        
+                        if access_token and phone_id:
+                            from tools.whatsapp_tool import send_whatsapp_message
+                            for part in parts:
+                                send_whatsapp_message(phone_id, access_token, phone, part)
+                                supabase.table("messages").insert({
+                                    "lead_id": lead_id,
+                                    "workspace_id": workspace_id,
+                                    "direction": "outbound",
+                                    "content": part,
+                                    "type": "text",
+                                    "automated": True
+                                }).execute()
+                            print(f"🤖 Ju replied to {phone} with {len(parts)} message(s).")
+                        else:
+                            print("⚠️ Ju AI: No WhatsApp credentials configured for this workspace.")
+                except Exception as e:
+                    print(f"❌ Ju AI Error: {e}")
+            else:
+                print(f"🔒 AI locked until {lock_until} — skipping Ju reply.")
+
 
 # --- WHATSAPP INTERNAL PROXY EXTENSION ---
 
