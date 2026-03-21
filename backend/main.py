@@ -65,8 +65,9 @@ def verify_meta_webhook(request: Request):
 
     # The token must exactly match what you paste in the Meta Developer Portal
     if mode == "subscribe" and verify_token == "lagoinhazxcvbnm1234":
+        from fastapi.responses import PlainTextResponse
         print("✅ Meta Webhook Verified Successfully!")
-        return int(challenge)
+        return PlainTextResponse(str(challenge))
     return {"status": "error", "message": "Invalid verification token"}
 
 
