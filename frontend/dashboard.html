@@ -97,6 +97,60 @@
             cursor: pointer;
         }
         .user-label { font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ===== WORKSPACE SWITCHER ===== */
+        .ws-switcher {
+            width: 100%;
+            padding: 8px;
+            position: relative;
+        }
+        .ws-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(255,215,0,0.2);
+            border-radius: var(--radius-sm);
+            padding: 8px 4px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .ws-pill:hover { background: rgba(255,215,0,0.2); }
+        .ws-pill-icon { font-size: 1rem; }
+        .ws-pill-name { font-size: 0.52rem; font-weight: 600; color: var(--accent); text-align: center; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 56px; }
+        .ws-pill-arrow { font-size: 0.5rem; color: rgba(255,215,0,0.6); }
+        .ws-dropdown {
+            position: absolute;
+            left: calc(100% + 6px);
+            bottom: 0;
+            background: #1a1a1a;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            width: 200px;
+            z-index: 500;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            display: none;
+        }
+        .ws-dropdown.open { display: block; }
+        .ws-dropdown-header { padding: 10px 14px; font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--card-border); }
+        .ws-option {
+            padding: 11px 14px;
+            cursor: pointer;
+            transition: 0.15s;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .ws-option:hover { background: rgba(255,255,255,0.05); }
+        .ws-option.active { background: var(--accent-dim); }
+        .ws-option-name { font-size: 0.85rem; font-weight: 500; color: #fff; }
+        .ws-option-badge { font-size: 0.62rem; color: var(--text-dim); margin-top: 1px; }
+        .ws-option-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+        .ws-option.active .ws-option-dot { background: var(--accent); }
         
         /* ===== MAIN AREA ===== */
         .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
@@ -449,6 +503,20 @@
                 <span class="nav-icon">🗓</span>Batismo
             </li>
         </ul>
+
+        <!-- Workspace Switcher -->
+        <div class="ws-switcher" id="ws-switcher">
+            <div class="ws-pill" onclick="toggleWsDropdown()" title="Trocar workspace">
+                <span class="ws-pill-icon">🏛</span>
+                <span class="ws-pill-name" id="ws-pill-name">—</span>
+                <span class="ws-pill-arrow">▲</span>
+            </div>
+            <div class="ws-dropdown" id="ws-dropdown">
+                <div class="ws-dropdown-header">Workspaces</div>
+                <div id="ws-list"><!-- populated by JS --></div>
+            </div>
+        </div>
+
         <div class="user">
             <div class="user-avatar" id="user-avatar-initials" title="Sair" onclick="handleLogout()" style="cursor:pointer;">G</div>
             <span class="user-label" id="user-role-label">Admin</span>
@@ -1070,6 +1138,147 @@ REGRAS:
             const el = document.getElementById('bnav-' + tab);
             if (el) el.classList.add('active');
         };
+
+        // ===== WORKSPACE SWITCHER ENGINE =====
+        window.currentWorkspaceId = null;
+        let _allWorkspaces = [];
+
+        // Load all accessible workspaces for this user
+        window.loadWorkspaces = async function() {
+            try {
+                const sb = window.supabaseClient;
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) return;
+
+                const userId = session.user.id;
+                const userEmail = session.user.email;
+                const role = session.user.user_metadata?.role || 'user';
+
+                let workspaces = [];
+
+                if (role === 'master_admin') {
+                    // Master admin can see ALL workspaces
+                    const { data } = await sb.from('workspaces').select('id, name, status').order('name');
+                    workspaces = data || [];
+                } else {
+                    // Regular user: only their own workspace
+                    const { data: userRow } = await sb.from('users').select('workspace_id').eq('id', userId).single();
+                    if (userRow?.workspace_id) {
+                        const { data } = await sb.from('workspaces').select('id, name, status').eq('id', userRow.workspace_id);
+                        workspaces = data || [];
+                    }
+                }
+
+                _allWorkspaces = workspaces;
+
+                // Set initial workspace (persisted in sessionStorage or first available)
+                const stored = sessionStorage.getItem('ws_id');
+                const match = workspaces.find(w => w.id === stored);
+                const initial = match || workspaces[0];
+
+                if (initial) {
+                    window.currentWorkspaceId = initial.id;
+                    sessionStorage.setItem('ws_id', initial.id);
+                    document.getElementById('ws-pill-name').textContent = initial.name;
+                } else {
+                    document.getElementById('ws-pill-name').textContent = 'N/D';
+                }
+
+                renderWsDropdown();
+            } catch (e) {
+                console.warn('loadWorkspaces error:', e);
+            }
+        };
+
+        function renderWsDropdown() {
+            const list = document.getElementById('ws-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (_allWorkspaces.length === 0) {
+                list.innerHTML = '<div style="padding:12px 14px;color:#555;font-size:0.8rem;">Nenhum workspace</div>';
+                return;
+            }
+            _allWorkspaces.forEach(ws => {
+                const isActive = ws.id === window.currentWorkspaceId;
+                const div = document.createElement('div');
+                div.className = 'ws-option' + (isActive ? ' active' : '');
+                div.innerHTML = `
+                    <div class="ws-option-dot"></div>
+                    <div>
+                        <div class="ws-option-name">${ws.name}</div>
+                        <div class="ws-option-badge">${ws.status || 'active'}</div>
+                    </div>`;
+                div.onclick = () => switchWorkspace(ws);
+                list.appendChild(div);
+            });
+        }
+
+        window.toggleWsDropdown = function() {
+            const dd = document.getElementById('ws-dropdown');
+            if (dd) dd.classList.toggle('open');
+        };
+
+        window.switchWorkspace = function(ws) {
+            window.currentWorkspaceId = ws.id;
+            sessionStorage.setItem('ws_id', ws.id);
+            document.getElementById('ws-pill-name').textContent = ws.name;
+            // Close dropdown
+            const dd = document.getElementById('ws-dropdown');
+            if (dd) dd.classList.remove('open');
+            // Re-render dropdown to update active state
+            renderWsDropdown();
+            // Show quick toast
+            showToast('🏛 ' + ws.name, 2000);
+            // Re-fetch all data under new workspace
+            if (typeof initEngine === 'function') initEngine();
+        };
+
+        // Close workspace dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const switcher = document.getElementById('ws-switcher');
+            if (switcher && !switcher.contains(e.target)) {
+                const dd = document.getElementById('ws-dropdown');
+                if (dd) dd.classList.remove('open');
+            }
+        });
+
+        // Simple toast helper
+        window.showToast = function(msg, duration = 2500) {
+            let toast = document.getElementById('_toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = '_toast';
+                Object.assign(toast.style, {
+                    position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%) translateY(20px)',
+                    background:'#1c1c1c', border:'1px solid rgba(255,215,0,0.3)', color:'#fff',
+                    padding:'10px 20px', borderRadius:'50px', fontSize:'0.85rem', fontWeight:'500',
+                    zIndex:'9999', opacity:'0', transition:'opacity 0.25s, transform 0.25s',
+                    whiteSpace:'nowrap', boxShadow:'0 4px 20px rgba(0,0,0,0.5)'
+                });
+                document.body.appendChild(toast);
+            }
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(20px)';
+            }, duration);
+        };
+
+        // Call loadWorkspaces after auth guard resolves
+        document.addEventListener('DOMContentLoaded', () => {
+            // small delay to ensure supabaseClient is ready
+            setTimeout(() => {
+                if (window.supabaseClient) loadWorkspaces();
+                else {
+                    const iv = setInterval(() => {
+                        if (window.supabaseClient) { clearInterval(iv); loadWorkspaces(); }
+                    }, 200);
+                }
+            }, 300);
+        });
 
         window.copyLink = function(url) {
             navigator.clipboard.writeText(url).then(() => {
