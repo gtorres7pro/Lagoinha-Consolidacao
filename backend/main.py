@@ -53,78 +53,76 @@ async def process_new_lead(lead: LeadInput, background_tasks: BackgroundTasks):
     
     return {"status": "processing", "lead_id": lead.phone}
 
-
-@app.post("/webhook/evolution")
-async def process_whatsapp_message(request: Request, background_tasks: BackgroundTasks):
+@app.get("/webhook/meta")
+def verify_meta_webhook(request: Request):
     """
-    This webhook catches incoming WhatsApp messages from Evolution API.
+    Meta Developer Portal Webhook Verification Endpoint.
+    When you configure the webhook in the Meta App, it sends a GET request here 
+    with a hub.challenge and hub.verify_token.
+    """
+    mode = request.query_params.get("hub.mode")
+    verify_token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    # The token must exactly match what you paste in the Meta Developer Portal
+    if mode == "subscribe" and verify_token == "lagoinhazxcvbnm1234":
+        print("✅ Meta Webhook Verified Successfully!")
+        return int(challenge)
+    return {"status": "error", "message": "Invalid verification token"}
+
+
+@app.post("/webhook/meta")
+async def process_meta_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    Catches incoming real-time WhatsApp messages sent directly from Meta Servers.
     """
     try:
         payload = await request.json()
     except Exception:
-        return {"status": "error", "message": "Invalid JSON"}
+        return {"status": "error"}
         
-    print(f"💬 Incoming Webhook Payload Event: {payload.get('event')}")
+    # Check if this is a WhatsApp Business Account webhook
+    if payload.get("object") == "whatsapp_business_account":
+        for entry in payload.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                
+                # We only care about user messages, not status updates for now
+                if "messages" in value:
+                    for msg in value["messages"]:
+                        # Extract sender contact name if available
+                        contacts = value.get("contacts", [])
+                        contact_name = contacts[0].get("profile", {}).get("name", "Desconhecido") if contacts else "Desconhecido"
+                        
+                        background_tasks.add_task(handle_meta_message_logic, msg, contact_name)
     
-    # Check if it is a message upsert event
-    event = payload.get("event", "")
-    if event != "messages.upsert":
-        return {"status": "ignored", "reason": "Not a messages.upsert event"}
+    # Meta requires a 200 OK instantly, otherwise it retries.
+    return {"status": "success"}
 
-    data = payload.get("data", {})
-    
-    # Evolution API payload structure varies
-    if "message" in data and isinstance(data["message"], dict):
-        msg_data = data["message"]
-    else:
-        msg_data = data
-        
-    key = msg_data.get("key", {})
-    from_me = key.get("fromMe", False)
-    
-    # Ignore messages sent by ourselves
-    if from_me:
-        return {"status": "ignored", "reason": "Outgoing message"}
-        
-    remote_jid = key.get("remoteJid", "")
-    if not remote_jid or "@g.us" in remote_jid:
-        return {"status": "ignored", "reason": "Group message or missing JID"}
-        
-    # Extract phone number
-    phone = remote_jid.split("@")[0]
-    
-    # Extract message content
-    content_obj = msg_data.get("message", {})
-    
-    text_content = ""
-    msg_type = "text"
-    
-    if "conversation" in content_obj:
-        text_content = content_obj["conversation"]
-    elif "extendedTextMessage" in content_obj:
-        text_content = content_obj["extendedTextMessage"].get("text", "")
-    elif "imageMessage" in content_obj:
-        msg_type = "image"
-        text_content = "[Imagem Recebida] " + content_obj["imageMessage"].get("caption", "")
-    elif "audioMessage" in content_obj:
-        msg_type = "audio"
-        text_content = "[Áudio Recebido]"
-    elif "documentMessage" in content_obj:
-        msg_type = "document"
-        text_content = "[Documento Recebido]"
-    elif "videoMessage" in content_obj:
-        msg_type = "video"
-        text_content = "[Vídeo Recebido]"
-    else:
-        msg_type = "other"
-        
-    if not text_content and msg_type == "text":
-        return {"status": "ignored", "reason": "Empty text"}
-        
-    print(f"📥 Message from {phone}: {text_content} (Type: {msg_type})")
-    
-    # Now, save to Supabase!
+
+def handle_meta_message_logic(msg_obj: dict, contact_name: str):
     from tools.db_tool import supabase
+    from datetime import datetime
+
+    phone = msg_obj.get("from", "")
+    msg_type = msg_obj.get("type", "unknown")
+    text_content = ""
+    
+    if msg_type == "text":
+        text_content = msg_obj.get("text", {}).get("body", "")
+    elif msg_type == "image":
+        # Meta sends a media ID, downloading it requires another Graph API call
+        text_content = "[Imagem Recebida]" 
+    elif msg_type == "audio":
+        text_content = "[Áudio Recebido]"
+    elif msg_type == "video":
+        text_content = "[Vídeo Recebido]"
+    elif msg_type == "document":
+        text_content = "[Documento Recebido]"
+    else:
+        text_content = f"[{msg_type} Recebido]"
+
+    print(f"📥 Meta Message from {phone} ({contact_name}): {text_content}")
     
     search_phone = phone[-8:] if len(phone) >= 8 else phone
     res = supabase.table("leads").select("*").ilike("phone", f"%{search_phone}%").execute()
@@ -135,16 +133,14 @@ async def process_whatsapp_message(request: Request, background_tasks: Backgroun
     if res.data and len(res.data) > 0:
         lead_id = res.data[0]["id"]
         workspace_id = res.data[0].get("workspace_id", workspace_id)
-        from datetime import datetime
         supabase.table("leads").update({"last_interaction": datetime.now().isoformat()}).eq("id", lead_id).execute()
     else:
-        push_name = msg_data.get("pushName") or "Desconhecido"
-        print(f"⚠️ Lead {phone} not found. Creating a new visitor lead as '{push_name}'.")
         new_lead = supabase.table("leads").insert({
             "workspace_id": workspace_id,
-            "name": push_name,
+            "name": contact_name,
             "phone": phone,
-            "type": "visitor"
+            "type": "visitor",
+            "last_interaction": datetime.now().isoformat()
         }).execute()
         
         if new_lead.data:
@@ -156,13 +152,42 @@ async def process_whatsapp_message(request: Request, background_tasks: Backgroun
             "workspace_id": workspace_id,
             "direction": "inbound",
             "content": text_content,
-            "type": msg_type,
+            "type": msg_type if msg_type in ['text', 'image', 'audio', 'video', 'document'] else 'text',
             "automated": False
         }).execute()
-        print(f"✅ Message saved to DB for lead {lead_id}!")
+        print(f"✅ Meta Message logically saved to DB for lead {lead_id}!")
 
-    return {"status": "success"}
 
+# --- WHATSAPP INTERNAL PROXY EXTENSION ---
+
+class SendWAMessagePayload(BaseModel):
+    phone: str
+    text: str
+    workspace_id: str
+
+@app.post("/whatsapp/send")
+def process_send_whatsapp_message(data: SendWAMessagePayload):
+    from tools.db_tool import supabase
+    from tools.whatsapp_tool import send_whatsapp_message
+    
+    # 1. Fetch credentials from DB dynamically
+    res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
+    if not res.data or not res.data[0].get("credentials"):
+        return {"error": "Credenciais Meta não encontradas no Workspace"}
+        
+    credentials = res.data[0]["credentials"]
+    access_token = credentials.get("whatsapp_token")
+    phone_id = credentials.get("phone_id")
+    
+    if not access_token or not phone_id:
+        return {"error": "Sem Acesso (Falta Token ou Phone ID)"}
+        
+    # 2. Fire to Meta Directly
+    result = send_whatsapp_message(phone_id, access_token, data.phone, data.text)
+    
+    if "error" in result:
+        return {"status": "failed", "details": result}
+    return {"status": "success", "meta_response": result}
 
 # --- WHATSAPP CONNECTION ENDPOINTS ---
 

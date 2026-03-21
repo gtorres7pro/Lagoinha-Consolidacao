@@ -683,37 +683,25 @@
                 <div class="kpi-box" style="flex-direction: column; align-items: stretch; gap: 15px; border-color: rgba(37,211,102,0.3);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <h3 style="color: #25D366; margin-bottom: 5px; font-size: 1.15rem;">💬 Gerenciamento da Conexão WhatsApp</h3>
-                            <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">A inteligência responderá automaticamente pelo número atrelado aqui.</p>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <div style="width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 8px rgba(76,175,80,0.6);" id="wa-status-dot"></div>
-                                <span style="font-size: 0.85rem; color: #4CAF50; font-weight: 600;" id="wa-status-text">Buscando status...</span>
-                            </div>
-                            <span style="font-size: 0.75rem; color: var(--text-dim); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px;" id="wa-phone-number">+1 (---) -------</span>
+                            <h3 style="color: #25D366; margin-bottom: 5px; font-size: 1.15rem;">💬 Gerenciamento da Conexão WhatsApp (Oficial Meta)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">A inteligência responderá automaticamente pelo número atrelado na Meta Cloud API.</p>
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 10px; margin-top: 5px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px;">
-                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); font-size: 0.85rem; font-weight: 500;">
-                            <input type="radio" name="wa_provider" value="evolution" checked style="accent-color: var(--accent);">
-                            Evolution API (QR) - Recomendado Local
-                        </label>
-                        <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 6px; border: 1px solid transparent; color: var(--text-dim); font-size: 0.85rem;">
-                            <input type="radio" name="wa_provider" value="cloud" style="accent-color: var(--accent);">
-                            Meta Oficial (Cloud API) - Enterprise
-                        </label>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; margin-top: 5px;" id="wa-buttons-evolution">
-                        <button type="button" class="btn-outline" onclick="generateAndShowQR()" id="btn-qr" style="background: rgba(37,211,102,0.1); color: #25D366; border-color: #25D366; flex: 1; font-weight: 600; font-size: 0.85rem;">Capturar QR Code / Conectar Dispositivo</button>
-                    </div>
-                    
-                    <div style="display: none; flex-direction: column; gap: 10px; margin-top: 5px;" id="wa-buttons-cloud">
-                        <input type="text" id="cloud-phone-id" placeholder="Phone Number ID" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-                        <input type="text" id="cloud-token" placeholder="Permanent Access Token (EAAV...)" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
-                        <button type="button" class="btn-outline" onclick="saveCloudCredentials()" style="background: rgba(255,215,0,0.1); color: var(--accent); border-color: var(--accent); width: 100%; font-weight: 600; font-size: 0.9rem;">Gravar e Ativar Setup (Official Cloud)</button>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;" id="wa-buttons-cloud">
+                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">Phone Number ID (ID do Número de Telefone)</label>
+                        <input type="text" id="cloud-phone-id" placeholder="Ex: 733552723172704" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+                        
+                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">WhatsApp Business Account ID (ID da Conta do WhatsApp Business)</label>
+                        <input type="text" id="cloud-business-id" placeholder="Ex: 1039485... (Requerido para Meta)" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+
+                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">Permanent Access Token (Token de Acesso - EAAV...)</label>
+                        <input type="text" id="cloud-token" placeholder="EAAN3YuNZAZA8..." style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+                        
+                        <label style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: -5px;">App Secret (Chave Secreta do Aplicativo Meta)</label>
+                        <input type="password" id="cloud-app-secret" placeholder="Requerido para Verificar Assinaturas do Webhook" style="width: 100%; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; padding: 12px; outline: none; border-radius: 6px; font-size: 0.85rem;">
+
+                        <button type="button" class="btn-outline" onclick="saveCloudCredentials()" style="background: rgba(37,211,102,0.1); color: #25D366; border-color: #25D366; width: 100%; font-weight: 600; font-size: 0.9rem; margin-top: 10px;">Salvar Credenciais Nativas</button>
                     </div>
                 </div>
             </div>
@@ -1588,74 +1576,50 @@ REGRAS:
         </div>
     `);
 
-    // Modal QR Code API
-    async function generateAndShowQR() {
-        const btn = document.getElementById('btn-qr');
-        btn.innerText = "Solicitando API...";
-        try {
-            const res = await fetch("http://127.0.0.1:8000/whatsapp/connect", { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json(); 
-                if (data.qr_code) {
-                    showModal('Scan QR Code ✅', `<p>O Servidor Evolution retornou um QR Code.</p><p style="word-break: break-all; color: var(--text-dim); background: #111; padding: 10px; border-radius: 6px;">${data.qr_code.substring(0, 80)}...</p><p>*(Na versão final isso renderizará o canvas da imagem de fato).*</p>`);
-                } else if (data.status === 'connected') {
-                    showModal('WhatsApp Conectado', '<p>A instância API já encontra-se pareada com sucesso! Sem necessidade de scan.</p>');
-                    checkWAStatus();
-                } else if (data.status === 'wait') {
-                    showModal('Conectando...', '<p>A instância está subindo dentro da Evolution ou esperando o pareamento. Aguarde 30 segundos e gere novamente.</p>');
-                } else if (data.error) {
-                    showModal('❌ Falha na Resposta da Evolution API', `<p style="color:#FF5252;">O Python capturou um erro:</p><pre style="background:#111; padding:10px; border-radius:6px; overflow-x:auto;">${data.error}</pre>`);
-                } else {
-                    showModal('⚠️ Resposta Desconhecida', `<code>${JSON.stringify(data)}</code>`);
-                }
-            } else {
-                showModal('Falha de Comunicação', '<p>Erro HTTP ao comunicar com o Backend local.</p>');
-            }
-        } catch (e) {
-            showModal('🔥 Backend Pyhon Offline', '<p>Verifique se o seu terminal rodando o <code>main.py</code> (FastAPI) na porta 8000 está ligado. Nenhuma resposta do servidor local.</p>');
-        }
-        btn.innerText = "Capturar QR Code / Conectar Dispositivo";
-        checkWAStatus(); // Atualizar status pos tentar
-    }
-
+    // Modal QR Code API removido.
+    
     async function saveCloudCredentials() {
         const id = document.getElementById('cloud-phone-id').value;
         const token = document.getElementById('cloud-token').value;
-        if(!id || !token) { alert('Preencha Phone ID e Access Token (EAAV..)'); return; }
+        const b_id = document.getElementById('cloud-business-id').value;
+        const secret = document.getElementById('cloud-app-secret').value;
+        
+        if(!id || !token) { 
+            alert('Preencha Phone ID e Access Token (EAAV..)'); 
+            return; 
+        }
         
         try {
-            const res = await fetch("http://127.0.0.1:8000/whatsapp/set-provider", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ provider: "cloud", phone_id: id, token: token })
-            });
-            alert('✅ Setup Realizado com Sucesso e Ativado Módulo Oficial!');
+            const { error } = await supabase.from('workspaces').update({
+                credentials: {whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
+            }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3'); // workspace ID atrelado
+            
+            if (error) throw error;
+            alert('✅ Credenciais Nativas Salvas com Sucesso no Bancos de Dados!');
             checkWAStatus();
         } catch(e) {
-            alert('✅ Setup Oficial Simulado (Backend local inativo). A IA usará Cloud Api.');
+            alert('❌ Erro ao salvar credenciais: ' + e.message);
         }
     }
 
     async function checkWAStatus() {
-        try {
-            // Using absolute URL for backend API requests to correctly resolve
-            const apiBase = "http://144.126.234.33:8000"; // Assuming the backend is running on this IP
-            // if we are testing locally it might fail, but let's leave flexible
-        } catch(e) {}
-
-        const res = await fetch("https://consolidacao.7pro.tech/instance/connectionState/LagoinhaCloud", {
-            headers: {"apikey": "lagoinhazxcvbnm1234"}
-        }).catch(()=>null);
-
-        if (res && res.ok) {
-            const data = await res.json();
-            const connected = data.instance?.state === 'open';
-            document.getElementById('wa-status-text').innerText = connected ? 'Conectado / Operante' : 'Desconectado';
-            document.getElementById('wa-status-text').style.color = connected ? '#4CAF50' : '#FF5252';
-            document.getElementById('wa-status-dot').style.background = connected ? '#4CAF50' : '#FF5252';
-            document.getElementById('wa-status-dot').style.boxShadow = connected ? '0 0 8px rgba(76,175,80,0.6)' : 'none';
+        // Agora consultamos direto da tabela do Supabase para conferir se há Token
+        const { data, error } = await supabase.from('workspaces').select('credentials').eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').single();
+        if (data && data.credentials && data.credentials.whatsapp_token) {
+            document.getElementById('wa-status-text').innerText = 'Ativado (Cloud API)';
+            document.getElementById('wa-status-text').style.color = '#4CAF50';
+            document.getElementById('wa-status-dot').style.background = '#4CAF50';
+            document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(76,175,80,0.6)';
+            
+            // Set input values to what is saved
+            if(document.getElementById('cloud-phone-id') && !document.getElementById('cloud-phone-id').value) {
+                document.getElementById('cloud-phone-id').value = data.credentials.phone_id || '';
+                document.getElementById('cloud-token').value = data.credentials.whatsapp_token || '';
+                document.getElementById('cloud-business-id').value = data.credentials.business_id || '';
+                document.getElementById('cloud-app-secret').value = data.credentials.app_secret || '';
+            }
         } else {
-            document.getElementById('wa-status-text').innerText = "Inativo";
+            document.getElementById('wa-status-text').innerText = "Inativo / Faltam Dados";
             document.getElementById('wa-status-text').style.color = "gray";
             document.getElementById('wa-status-dot').style.background = "gray";
         }
@@ -1803,17 +1767,15 @@ REGRAS:
             automated: false
         }]);
         
-        // TODO: Backend should detect this DB insert and hit Evolution API (or we hit evolution here)
-        // Calling Evolution directly from frontend:
-        const payload = {
-            number: String(lead.phone),
-            options: { delay: 1200, presence: "composing" },
-            textMessage: { text: txt }
-        };
-        fetch("https://consolidacao.7pro.tech/message/sendText/LagoinhaCloud", {
+        // Calling Python Backend to dispatch to Meta Cloud API
+        fetch("http://144.126.234.33:8000/whatsapp/send", {
             method: "POST",
-            headers: {"apikey": "lagoinhazxcvbnm1234", "Content-Type": "application/json"},
-            body: JSON.stringify(payload)
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                phone: String(lead.phone),
+                text: txt,
+                workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3'
+            })
         }).catch(e=>console.log(e));
         
         loadMessagesFromSupabase(waActiveLeadId);
