@@ -1112,7 +1112,7 @@ REGRAS:
             }
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (!session) {
-                window.location.href = '/login.html';
+                window.location.href = 'login.html';
                 return;
             }
             // Populate user info in sidebar
@@ -1129,7 +1129,7 @@ REGRAS:
         window.handleLogout = async function() {
             if (!confirm('Deseja sair da sua conta?')) return;
             await window.supabaseClient.auth.signOut();
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         };
 
         // ===== BOTTOM NAV SYNC =====

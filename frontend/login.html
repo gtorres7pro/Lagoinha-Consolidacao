@@ -143,7 +143,7 @@
             <div class="error-msg" id="error-msg"></div>
 
             <button class="btn-cta" id="login-btn" onclick="doLogin()">Entrar</button>
-            <button class="forgot-link" onclick="window.location.href='/forgot-password.html'">Esqueci minha senha</button>
+            <button class="forgot-link" onclick="window.location.href='forgot-password.html'">Esqueci minha senha</button>
         </div>
 
         <p class="footer-note">Acesso restrito à equipe pastoral</p>
@@ -157,7 +157,7 @@
 
         // If already logged in, redirect to dashboard
         sb.auth.getSession().then(({ data }) => {
-            if (data.session) window.location.href = '/dashboard.html';
+            if (data.session)                 window.location.href = 'dashboard.html';
         });
 
         function togglePw() {
@@ -187,7 +187,7 @@
                 btn.disabled = false;
                 btn.textContent = 'Entrar';
             } else {
-                window.location.href = '/dashboard.html';
+                                window.location.href = 'dashboard.html';
             }
         }
 
