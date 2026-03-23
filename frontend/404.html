@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página não encontrada — Lagoinha HUB</title>
+    <link rel="stylesheet" href="/hub.css">
+    <style>
+        body {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100dvh; padding: 24px; text-align: center;
+        }
+        .container {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center; gap: 24px;
+            max-width: 480px;
+            animation: fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        /* Animated 404 number */
+        .error-number {
+            font-size: clamp(6rem, 20vw, 9rem);
+            font-weight: 900;
+            letter-spacing: -0.06em;
+            line-height: 1;
+            background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 40%, rgba(251,191,36,0.3) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulseGlow 3s ease-in-out infinite;
+            user-select: none;
+        }
+        .error-title {
+            font-size: 1.4rem; font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+        .error-desc {
+            color: var(--text-muted); font-size: 0.875rem; line-height: 1.6;
+            max-width: 360px;
+        }
+
+        /* Decorative lines */
+        .deco-line {
+            width: 1px; height: 48px;
+            background: linear-gradient(to bottom, transparent, rgba(251,191,36,0.4), transparent);
+        }
+
+        .btn-home {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 13px 28px;
+            background: var(--accent); color: #000;
+            font-family: var(--font); font-size: 0.88rem; font-weight: 800;
+            border: none; border-radius: 12px; cursor: pointer;
+            position: relative; overflow: hidden;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            letter-spacing: 0.02em;
+        }
+        .btn-home::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+            background-size: 200% 100%; background-position: 200% center;
+            transition: background-position 0.5s;
+        }
+        .btn-home:hover::after { background-position: -200% center; }
+        .btn-home:hover { background: #F59E0B; box-shadow: 0 4px 24px rgba(251,191,36,0.3); transform: translateY(-2px); }
+        .btn-home:active { transform: scale(0.98); }
+        .btn-home svg { width: 16px; height: 16px; transition: transform 0.2s; }
+        .btn-home:hover svg { transform: translateX(3px); }
+    </style>
+</head>
+<body>
+    <div class="hub-glow"></div>
+
+    <div class="container">
+        <div class="error-number">404</div>
+        <div class="deco-line"></div>
+
+        <div>
+            <h1 class="error-title">Página não encontrada</h1>
+            <p class="error-desc">A rota que você tentou acessar não existe ou foi movida. Verifique o endereço ou retorne ao início.</p>
+        </div>
+
+        <button class="btn-home" onclick="goHome()">
+            Ir para o início
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        function goHome() {
+            const slug = window.location.pathname.split('/').filter(Boolean)[0] || 'orlando';
+            window.location.href = '/' + slug + '/dashboard.html';
+        }
+    </script>
+</body>
+</html>
