@@ -4,99 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/hub.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #0a0a0a;
-            --bg-card: #141414;
-            --bg-card-hover: #1c1c1c;
-            --accent: #FFD700;
-            --accent-dim: rgba(255, 215, 0, 0.12);
-            --card-border: rgba(255, 255, 255, 0.07);
+            --bg-card: #0f0f0f;
+            --bg-card-hover: #141414;
+            --accent: #FBBF24;
+            --accent-dim: rgba(251, 191, 36, 0.08);
+            --card-border: rgba(39, 39, 42, 0.8);
             --text-main: #FFFFFF;
-            --text-dim: #666;
-            --text-mid: #999;
-            --radius: 14px;
-            --radius-sm: 8px;
-            --sidebar-w: 72px;
-            --font: 'Outfit', sans-serif;
+            --text-dim: #71717A;
+            --text-mid: #A1A1AA;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --sidebar-w: 272px;
+            --font: 'Inter', -apple-system, sans-serif;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
         
         /* ===== SIDEBAR ===== */
+        /* ===== SIDEBAR ===== */
         .sidebar {
             width: var(--sidebar-w);
-            padding: 20px 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
             border-right: 1px solid var(--card-border);
-            background: #0d0d0d;
+            background: #050505;
             z-index: 10;
             flex-shrink: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         .brand {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--accent);
-            margin-bottom: 32px;
-            padding: 0 16px;
-            text-align: center;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--card-border);
         }
-        .brand .sub-brand { display: none; }
+        .brand-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; font-weight: 900; color: #000;
+            flex-shrink: 0;
+        }
+        .brand-text {
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+        .brand .sub-brand {
+            display: block;
+            font-size: 0.62rem;
+            color: var(--text-dim);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
         
-        .nav { list-style: none; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; width: 100%; padding: 0 8px; }
+        .nav { list-style: none; display: flex; flex-direction: column; gap: 2px; flex-grow: 1; width: 100%; padding: 12px; }
         .nav li {
-            padding: 10px 0;
-            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+            border-radius: 10px;
             cursor: pointer;
             color: var(--text-dim);
-            transition: 0.25s;
+            transition: 0.2s;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            gap: 4px;
-            font-size: 0.6rem;
+            gap: 10px;
+            font-size: 0.875rem;
             font-weight: 500;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            border-left: 2px solid transparent;
             position: relative;
         }
-        .nav li .nav-icon { font-size: 1.25rem; line-height: 1; }
-        .nav li:hover { background: rgba(255,255,255,0.04); color: var(--text-mid); }
-        .nav li.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); font-weight: 600; }
-        .nav li.disabled { opacity: 0.22; cursor: not-allowed; }
+        .nav li .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+        .nav li .nav-label { flex: 1; }
+        .nav li:hover { background: rgba(255,255,255,0.04); color: #ffffff; }
+        .nav li.active { color: var(--accent); background: rgba(251,191,36,0.08); font-weight: 600; }
+        .nav li.disabled { opacity: 0.25; cursor: not-allowed; }
         .nav li.disabled:hover { background: transparent; color: var(--text-dim); }
+
+        .nav-section-label {
+            font-size: 0.62rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 12px 12px 4px;
+            opacity: 0.6;
+        }
 
         .user {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 6px;
-            margin-top: auto;
-            padding: 16px 0 4px 0;
+            gap: 10px;
+            padding: 14px 16px;
             border-top: 1px solid var(--card-border);
-            width: 100%;
         }
         .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 34px; height: 34px;
             border-radius: 50%;
             background: var(--accent);
             color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.85rem;
+            flex-shrink: 0;
         }
-        .user-label { font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 0.82rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-label { font-size: 0.68rem; color: var(--text-dim); }
 
         /* ===== WORKSPACE SWITCHER ===== */
         .ws-switcher {
@@ -476,31 +501,46 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <div class="brand">✦</div>
+        <div class="brand">
+            <div class="brand-icon">✦</div>
+            <div class="brand-text">
+                Lagoinha HUB
+                <div class="sub-brand" id="sidebar-workspace-name">Workspace</div>
+            </div>
+        </div>
         <ul class="nav">
             <li id="nav-home" class="active" onclick="switchTab('home')">
-                <span class="nav-icon">🏠</span>Início
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Início</span>
             </li>
             <li id="nav-dashboard" onclick="switchTab('dashboard')">
-                <span class="nav-icon">👥</span>Salvo
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Consolidados</span>
             </li>
             <li id="nav-visitors" onclick="switchTab('visitors')">
-                <span class="nav-icon">🙋</span>Visitas
+                <span class="nav-icon">🙋</span>
+                <span class="nav-label">Visitantes</span>
             </li>
             <li id="nav-messages" onclick="switchTab('messages')">
-                <span class="nav-icon">💬</span>IA Chat
+                <span class="nav-icon">💬</span>
+                <span class="nav-label">IA Chat</span>
             </li>
             <li id="nav-users" onclick="switchTab('users')">
-                <span class="nav-icon">👤</span>Equipe
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Equipe</span>
             </li>
             <li id="nav-logs" onclick="switchTab('logs')">
-                <span class="nav-icon">📋</span>Logs
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Logs</span>
             </li>
             <li id="nav-settings" onclick="switchTab('settings')">
-                <span class="nav-icon">⚙️</span>Config
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Configurações</span>
             </li>
             <li class="disabled" title="Em breve">
-                <span class="nav-icon">🗓</span>Batismo
+                <span class="nav-icon">🔒</span>
+                <span class="nav-label">Batismo</span>
+                <span style="font-size:0.7rem; margin-left:auto; opacity:0.5;">em breve</span>
             </li>
         </ul>
 
@@ -519,7 +559,10 @@
 
         <div class="user">
             <div class="user-avatar" id="user-avatar-initials" title="Sair" onclick="handleLogout()" style="cursor:pointer;">G</div>
-            <span class="user-label" id="user-role-label">Admin</span>
+            <div class="user-info">
+                <div class="user-name" id="user-display-name">Usuário</div>
+                <div class="user-label" id="user-role-label">Admin</div>
+            </div>
         </div>
     </aside>
 
@@ -534,33 +577,33 @@
                     <p>Atalhos rápidos para os funis de entrada da igreja.</p>
                 </div>
             </header>
-            <div style="padding: 40px; display: flex; flex-direction: column; gap: 20px; max-width: 900px;">
-                <div class="kpi-box" style="flex-direction: column; align-items: flex-start; gap: 15px; background: rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.2);">
-                    <h2 style="font-size: 1.4rem; color: var(--accent);">👋 Bem-vindo ao HUB, Hub Consolidação!</h2>
-                    <p style="color: var(--text-dim); line-height: 1.6; font-size: 0.95rem;">
-                        Escolha um dos atalhos abaixo para preencher dados públicos ou navegue pelo menu <strong>Consolidados</strong> na barra à esquerda para visualizar e interagir com as métricas recebidas ao vivo.
+            <div style="padding: 32px; display: flex; flex-direction: column; gap: 20px; max-width: 860px;">
+                <div class="kpi-box" style="flex-direction: column; align-items: flex-start; gap: 12px; background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.2);">
+                    <h2 style="font-size: 1.35rem; color: var(--accent); font-weight: 800;">👋 Bem-vindo ao HUB!</h2>
+                    <p style="color: var(--text-dim); line-height: 1.65; font-size: 0.925rem;">
+                        Escolha um dos atalhos abaixo para preencher dados públicos ou navegue pelo menu <strong style="color:#fff;">Consolidados</strong> na barra à esquerda para visualizar as métricas ao vivo.
                     </p>
                 </div>
 
-                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 25px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">📝 Formulário In-Service (Consolidação)</h3>
-                        <p style="color: var(--text-dim); font-size: 0.85rem;">Preenchido pela equipe com a pessoa que tomou uma decisão imediata após o apelo no altar.</p>
+                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 24px; flex-wrap: wrap; gap: 16px;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700;">📝 Formulário de Consolidação</h3>
+                        <p style="color: var(--text-dim); font-size: 0.83rem;">Preenchido pela equipe com a pessoa que tomou uma decisão após o apelo no altar.</p>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-                        <button class="btn-outline" onclick="copyLink(window.location.origin + '/frontend/consolida-form.html')">Copiar Link</button>
-                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 600;" onclick="window.open('./consolida-form.html', '_blank')">Acessar Formulário &rarr;</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-outline" onclick="copyFormLink('consolida-form.html')">📋 Copiar Link</button>
+                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('consolida-form.html')">Acessar →</button>
                     </div>
                 </div>
 
-                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 25px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">👋 Registro de Visitantes (Welcome)</h3>
-                        <p style="color: var(--text-dim); font-size: 0.85rem;">Mapeamento das primeiras visitas recepcionadas pelo time do Welcome no lobby.</p>
+                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 24px; flex-wrap: wrap; gap: 16px;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700;">👋 Registro de Visitantes</h3>
+                        <p style="color: var(--text-dim); font-size: 0.83rem;">Mapeamento das primeiras visitas recepcionadas pelo time do Welcome no lobby.</p>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
-                        <button class="btn-outline" onclick="copyLink(window.location.origin + '/frontend/visitor-form.html')">Copiar Link</button>
-                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 600;" onclick="window.open('./visitor-form.html', '_blank')">Acessar Formulário &rarr;</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-outline" onclick="copyFormLink('visitor-form.html')">📋 Copiar Link</button>
+                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('visitor-form.html')">Acessar →</button>
                     </div>
                 </div>
             </div>
@@ -2909,6 +2952,33 @@ REGRAS:
 
     // Start Realtime after Supabase is ready (slight delay to ensure init)  
     setTimeout(initRealtimeSubscription, 1000);
+
+    // ─── SLUG-AWARE FORM HELPERS ─────────────────────────────────────────────
+    const _pathParts = window.location.pathname.split('/').filter(Boolean);
+    const _slug = _pathParts[0] || 'orlando';
+
+    function copyFormLink(page) {
+        const url = window.location.origin + '/' + _slug + '/' + page;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copiado: ' + url);
+        });
+    }
+
+    function openForm(page) {
+        const url = '/' + _slug + '/' + page;
+        window.open(url, '_blank');
+    }
+
+    // Populate sidebar workspace name
+    (async () => {
+        if (!window.supabaseClient) return;
+        const el = document.getElementById('sidebar-workspace-name');
+        if (!el) return;
+        const { data } = await window.supabaseClient
+            .from('workspaces').select('name').eq('slug', _slug).single();
+        if (data?.name) el.textContent = data.name;
+    })();
+
     </script>
 </body>
 </html>
