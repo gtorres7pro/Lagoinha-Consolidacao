@@ -2,9 +2,18 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=login.html">
-    <title>Lagoinha Consolidação</title>
-    <script>window.location.href = 'login.html';</script>
+    <title>Lagoinha HUB</title>
+    <script>
+        // Slug-aware redirect — preserves workspace context
+        // e.g. hub.7pro.tech/orlando → /orlando/login.html
+        // e.g. hub.7pro.tech → /orlando/login.html (default)
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        const slug = parts[0] || 'orlando';
+        // If already on a sub-page (e.g. /orlando/login.html), don't redirect
+        if (parts.length <= 1) {
+            window.location.replace('/' + slug + '/login.html');
+        }
+    </script>
 </head>
 <body></body>
 </html>

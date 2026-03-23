@@ -143,7 +143,7 @@
             <div class="error-msg" id="error-msg"></div>
 
             <button class="btn-cta" id="login-btn" onclick="doLogin()">Entrar</button>
-            <button class="forgot-link" onclick="window.location.href='forgot-password.html'">Esqueci minha senha</button>
+            <button class="forgot-link" onclick="window.location.href='/' + _slug + '/forgot-password.html'">Esqueci minha senha</button>
         </div>
 
         <p class="footer-note">Acesso restrito à equipe pastoral</p>
@@ -155,9 +155,13 @@
         const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        // If already logged in, redirect to dashboard
+        // Extract workspace slug from URL: hub.7pro.tech/{slug}/login.html
+        const _parts = window.location.pathname.split('/').filter(Boolean);
+        const _slug = _parts[0] || 'orlando';
+
+        // If already logged in, redirect to /{slug}/dashboard.html
         sb.auth.getSession().then(({ data }) => {
-            if (data.session)                 window.location.href = 'dashboard.html';
+            if (data.session) window.location.replace('/' + _slug + '/dashboard.html');
         });
 
         function togglePw() {
@@ -187,7 +191,7 @@
                 btn.disabled = false;
                 btn.textContent = 'Entrar';
             } else {
-                                window.location.href = 'dashboard.html';
+                window.location.replace('/' + _slug + '/dashboard.html');
             }
         }
 
