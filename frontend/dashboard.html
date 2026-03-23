@@ -665,12 +665,21 @@
             <div class="ws-pill" onclick="toggleWsDropdown()" title="Trocar workspace">
                 <span class="ws-pill-icon">🏛</span>
                 <span class="ws-pill-name" id="ws-pill-name">—</span>
+                <span id="ws-plan-badge" class="ws-plan-badge ws-plan-free" style="display:none;"></span>
                 <span class="ws-pill-arrow">▲</span>
             </div>
             <div class="ws-dropdown" id="ws-dropdown">
                 <div class="ws-dropdown-header">Workspaces</div>
                 <div id="ws-list"><!-- populated by JS --></div>
             </div>
+        </div>
+
+        <!-- Ver Planos button -->
+        <div style="padding:10px 14px 4px;">
+            <button onclick="showUpgradeModal()" class="hub-btn-plans" id="btn-ver-planos" title="Ver e comparar planos">
+                <svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Ver Planos
+            </button>
         </div>
 
         <div class="user">
@@ -1268,9 +1277,31 @@ REGRAS:
             </div>
         </div>
 
+        <!-- ─── Settings: Plano Atual ──────────────────────────────────── -->
+        <div id="settings-plan-section" style="padding:0 40px 40px; max-width:1500px; margin:0 auto;">
+            <div style="border-top:1px solid var(--border); padding-top:28px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Plano Atual</h3>
+                        <p style="font-size:.82rem; color:var(--text-dim); margin:0;">Módulos disponíveis para este workspace.</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span id="settings-plan-badge" class="ws-plan-badge" style="font-size:.85rem; padding:5px 16px;">—</span>
+                        <button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px; font-size:.8rem;">⚡ Fazer Upgrade</button>
+                    </div>
+                </div>
+                <div id="settings-modules-grid" style="display:flex; flex-wrap:wrap; gap:10px;">
+                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
+                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
+                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- ════════════════════════════════════════════════════════
              View: Regional
         ═══════════════════════════════════════════════════════════ -->
+
         <div id="view-regional" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
@@ -1574,6 +1605,9 @@ REGRAS:
             window.currentWorkspaceId = ws.id;
             sessionStorage.setItem('ws_id', ws.id);
             document.getElementById('ws-pill-name').textContent = ws.name;
+            // Apply plan gating (Fase F)
+            if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
+
             // Close dropdown
             const dd = document.getElementById('ws-dropdown');
             if (dd) dd.classList.remove('open');
@@ -1862,7 +1896,152 @@ REGRAS:
 
 
         // ═══════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
+        //  FASE F — PLANOS E MONETIZAÇÃO
+        // ═══════════════════════════════════════════════════════════
+
+        const PLAN_CONFIG = {
+            free:    { label:'Free',    modules:['consolidation','visitors'], color:'rgba(255,255,255,.1)', text:'#aaa' },
+            basic:   { label:'Basic',   modules:['consolidation','visitors','start','aniversariantes'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
+            medium:  { label:'Medium',  modules:['consolidation','visitors','start','aniversariantes','crie'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            premium: { label:'Premium', modules:['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+        };
+
+        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios'];
+
+        // Map: module slug → { nav id, view id }
+        const PLAN_NAV_MAP = {
+            consolidation:   { nav:'nav-dashboard',  view:'view-dashboard'  },
+            visitors:        { nav:'nav-visitors',   view:'view-visitors'   },
+            ia_whatsapp:     { nav:'nav-messages',   view:'view-messages'   },
+        };
+
+        // ─── APPLY PLAN GATING ────────────────────────────────────────────
+        window.applyPlanGating = function(plan, wsModules) {
+            const cfg = PLAN_CONFIG[plan] || PLAN_CONFIG.free;
+            const allowed = wsModules && wsModules.length ? wsModules : cfg.modules;
+
+            // Update workspace pill plan badge
+            const badge = document.getElementById('ws-plan-badge');
+            if (badge) {
+                badge.textContent = cfg.label.toUpperCase();
+                badge.className = `ws-plan-badge ws-plan-${plan}`;
+                badge.style.display = 'inline-flex';
+            }
+
+            // Apply nav locking
+            Object.entries(PLAN_NAV_MAP).forEach(([slug, {nav, view}]) => {
+                const navEl = document.getElementById(nav);
+                if (!navEl) return;
+                const isAllowed = allowed.includes(slug);
+                if (isAllowed) {
+                    navEl.removeAttribute('data-locked');
+                    navEl.style.opacity = '';
+                    navEl.style.cursor  = '';
+                    navEl.title = '';
+                    // Remove any lock icon
+                    const icon = navEl.querySelector('.plan-lock-icon');
+                    if (icon) icon.remove();
+                } else {
+                    navEl.setAttribute('data-locked', '1');
+                    navEl.style.opacity = '0.4';
+                    navEl.style.cursor  = 'not-allowed';
+                    navEl.title = `Disponível a partir do plano ${slug==='ia_whatsapp'?'Premium':'Basic'}. Clique em "Ver Planos".`;
+                    // Add lock icon if not there
+                    if (!navEl.querySelector('.plan-lock-icon')) {
+                        const lock = document.createElement('span');
+                        lock.className = 'plan-lock-icon';
+                        lock.innerHTML = `<svg viewBox="0 0 24 24" width="10" height="10" style="stroke:currentColor;fill:none;stroke-width:2;margin-left:auto;opacity:.6;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+                        navEl.appendChild(lock);
+                    }
+                    // Override click to show upgrade modal instead
+                    navEl.onclick = (e) => { e.stopPropagation(); showUpgradeModal(); };
+                }
+            });
+
+            // Inject upgrade banners into locked views
+            Object.entries(PLAN_NAV_MAP).forEach(([slug, {nav, view}]) => {
+                const viewEl = document.getElementById(view);
+                if (!viewEl) return;
+                const isAllowed = allowed.includes(slug);
+                const existingBanner = viewEl.querySelector('.plan-upgrade-banner');
+                if (!isAllowed && !existingBanner) {
+                    const banner = document.createElement('div');
+                    banner.className = 'plan-upgrade-banner';
+                    banner.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                            <svg viewBox="0 0 24 24" width="28" height="28" style="stroke:var(--accent);fill:none;stroke-width:1.5;flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <div>
+                                <div style="font-weight:700; font-size:.95rem;">Módulo não disponível no seu plano</div>
+                                <div style="font-size:.8rem; color:var(--text-dim); margin-top:2px;">Faça upgrade para acessar este módulo e muito mais.</div>
+                            </div>
+                            <button onclick="showUpgradeModal()" class="hub-btn-primary" style="margin-left:auto; padding:8px 18px; font-size:.8rem;">⚡ Ver Planos</button>
+                        </div>`;
+                    viewEl.insertBefore(banner, viewEl.firstChild);
+                } else if (isAllowed && existingBanner) {
+                    existingBanner.remove();
+                }
+            });
+
+            // Refresh settings plan section
+            window.loadSettingsPlanSection && window.loadSettingsPlanSection(plan, allowed);
+        };
+
+        // ─── LOAD SETTINGS PLAN SECTION ──────────────────────────────────
+        window.loadSettingsPlanSection = function(plan, wsModules) {
+            const badge = document.getElementById('settings-plan-badge');
+            if (badge) {
+                const cfg = PLAN_CONFIG[plan] || PLAN_CONFIG.free;
+                badge.textContent = cfg.label.toUpperCase();
+                badge.className = `ws-plan-badge ws-plan-${plan}`;
+            }
+            const grid = document.getElementById('settings-modules-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            ALL_MODULES_LIST.forEach(slug => {
+                const label = (typeof MODULE_LABELS !== 'undefined' && MODULE_LABELS[slug]) || slug;
+                const included = wsModules.includes(slug);
+                const chip = document.createElement('div');
+                chip.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:10px;font-size:.8rem;font-weight:600;border:1px solid ${included?'rgba(255,215,0,.25)':'rgba(255,255,255,.06)'};background:${included?'rgba(255,215,0,.08)':'rgba(255,255,255,.02)'};color:${included?'var(--accent)':'#666'};`;
+                chip.innerHTML = `<span>${included?'✓':'🔒'}</span> ${label}`;
+                grid.appendChild(chip);
+            });
+        };
+
+        // ─── UPGRADE MODAL ────────────────────────────────────────────────
+        window.showUpgradeModal = function() {
+            const o = document.getElementById('upgrade-modal-overlay');
+            if (o) { o.style.display='flex'; }
+        };
+        window.closeUpgradeModal = function() {
+            const o = document.getElementById('upgrade-modal-overlay');
+            if (o) { o.style.display='none'; }
+        };
+        // Close on overlay click
+        document.getElementById('upgrade-modal-overlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeUpgradeModal();
+        });
+
+        // ─── WIRE applyPlanGating into loadWorkspaces flow ───────────────
+        // (called from loadWorkspaces when workspace is resolved)
+        // We patch renderWsDropdown to also apply gating when workspace switches
+        (function(){
+            const _origSwitchWs = window.switchWorkspace;
+            if (_origSwitchWs) {
+                window.switchWorkspace = async function(wsId) {
+                    await _origSwitchWs(wsId);
+                    // After switch, reload workspace modules + plan
+                    if (window.supabaseClient && wsId) {
+                        const {data:ws} = await window.supabaseClient.from('workspaces')
+                            .select('plan,modules').eq('id',wsId).single();
+                        if (ws) window.applyPlanGating(ws.plan||'free', ws.modules||[]);
+                    }
+                };
+            }
+        })();
+
         //  FASE E — TEAM MANAGEMENT
+
         // ═══════════════════════════════════════════════════════════
 
         const MODULE_LABELS = {
@@ -3897,5 +4076,102 @@ REGRAS:
     <script src="/hub.js"></script>
     <!-- QR Code generator -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="if(document.readyState!=='loading') generateQRCodes();"></script>
+        <!-- ─────────────────────────────────────────────────────────────
+             UPGRADE MODAL — Plan comparison (Fase F)
+        ────────────────────────────────────────────────────────────── -->
+        <div id="upgrade-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(12px); z-index:9200; align-items:flex-start; justify-content:center; padding:30px 16px; overflow-y:auto;">
+            <div style="width:100%; max-width:900px; animation: fadeInUp .35s ease;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                    <div>
+                        <h2 style="font-size:1.4rem; font-weight:800; margin:0;"> Escolha o Plano Ideal</h2>
+                        <p style="color:var(--text-dim); font-size:.85rem; margin:4px 0 0;">Escale sua equipe de acordo com o crescimento da igreja.</p>
+                    </div>
+                    <button onclick="closeUpgradeModal()" style="background:rgba(255,255,255,.07); border:none; color:#fff; width:36px; height:36px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">×</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+
+                    <!-- FREE -->
+                    <div class="hub-plan-card hub-plan-card-free">
+                        <div class="hub-plan-card-header">
+                            <span class="hub-plan-tier">FREE</span>
+                            <div class="hub-plan-price">Gratuíto</div>
+                        </div>
+                        <ul class="hub-plan-features">
+                            <li class="included">Consolidação</li>
+                            <li class="included">Visitantes</li>
+                            <li class="locked">IA WhatsApp</li>
+                            <li class="locked">START</li>
+                            <li class="locked">Aniversariantes</li>
+                            <li class="locked">CRIE</li>
+                            <li class="locked">Financeiro</li>
+                            <li class="locked">Voluntários</li>
+                        </ul>
+                        <button class="hub-plan-cta hub-plan-cta-outline" onclick="closeUpgradeModal()">Plano Atual</button>
+                    </div>
+
+                    <!-- BASIC -->
+                    <div class="hub-plan-card hub-plan-card-basic">
+                        <div class="hub-plan-card-header">
+                            <span class="hub-plan-tier">BASIC</span>
+                            <div class="hub-plan-price">R$ 97<span style="font-size:.75rem;">/mês</span></div>
+                        </div>
+                        <ul class="hub-plan-features">
+                            <li class="included">Consolidação</li>
+                            <li class="included">Visitantes</li>
+                            <li class="included">START</li>
+                            <li class="included">Aniversariantes</li>
+                            <li class="locked">IA WhatsApp</li>
+                            <li class="locked">CRIE</li>
+                            <li class="locked">Financeiro</li>
+                            <li class="locked">Voluntários</li>
+                        </ul>
+                        <a href="https://wa.me/14078165596?text=Quero%20o%20plano%20Basic" target="_blank" class="hub-plan-cta hub-plan-cta-outline">Falar com Suporte</a>
+                    </div>
+
+                    <!-- MEDIUM -->
+                    <div class="hub-plan-card hub-plan-card-medium">
+                        <div class="hub-plan-card-header">
+                            <span class="hub-plan-tier">MEDIUM</span>
+                            <div class="hub-plan-price">R$ 197<span style="font-size:.75rem;">/mês</span></div>
+                        </div>
+                        <ul class="hub-plan-features">
+                            <li class="included">Consolidação</li>
+                            <li class="included">Visitantes</li>
+                            <li class="included">START</li>
+                            <li class="included">Aniversariantes</li>
+                            <li class="included">CRIE</li>
+                            <li class="locked">IA WhatsApp</li>
+                            <li class="locked">Financeiro</li>
+                            <li class="locked">Voluntários</li>
+                        </ul>
+                        <a href="https://wa.me/14078165596?text=Quero%20o%20plano%20Medium" target="_blank" class="hub-plan-cta hub-plan-cta-outline">Falar com Suporte</a>
+                    </div>
+
+                    <!-- PREMIUM -->
+                    <div class="hub-plan-card hub-plan-card-premium">
+                        <div class="hub-plan-card-badge">Mais Popular</div>
+                        <div class="hub-plan-card-header">
+                            <span class="hub-plan-tier">PREMIUM</span>
+                            <div class="hub-plan-price">R$ 397<span style="font-size:.75rem;">/mês</span></div>
+                        </div>
+                        <ul class="hub-plan-features">
+                            <li class="included">Consolidação</li>
+                            <li class="included">Visitantes</li>
+                            <li class="included">IA WhatsApp</li>
+                            <li class="included">START</li>
+                            <li class="included">Aniversariantes</li>
+                            <li class="included">CRIE</li>
+                            <li class="included">Financeiro</li>
+                            <li class="included">Voluntários</li>
+                        </ul>
+                        <a href="https://wa.me/14078165596?text=Quero%20o%20plano%20Premium" target="_blank" class="hub-plan-cta hub-plan-cta-premium">Falar com Suporte</a>
+                    </div>
+
+                </div>
+                <p style="text-align:center; color:var(--text-dim); font-size:.75rem; margin-top:20px;">Preços em BRL. Parcelamento e planos anuais disponíveis. Fale conosco para personalizar.</p>
+            </div>
+        </div>
+
 </body>
 </html>
