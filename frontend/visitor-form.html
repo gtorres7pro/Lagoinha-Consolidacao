@@ -406,6 +406,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+    <script src="hub-router.js"></script>
     
     <script>
         // -- Advanced Realtime Translations --
@@ -641,6 +642,10 @@
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI'
                 );
 
+                // Resolve workspace_id from URL slug (hub.7pro.tech/[slug]/form-visitantes)
+                const workspaceId = await window.HubRouter.getWorkspaceId();
+                if (!workspaceId) throw new Error('Workspace não encontrado. Verifique o link do formulário.');
+
                 // Fetch the full international phone number mapped by the plugin
                 const fullPhoneStr = window.phoneInput.getNumber(); 
 
@@ -658,7 +663,7 @@
                 const gcVal = document.querySelector('input[name="gc"]:checked');
 
                 const leadData = {
-                    workspace_id: '9c4e23cf-26e3-4632-addb-f28325aedac3',
+                    workspace_id: workspaceId, // Dynamically resolved from URL slug
                     name: `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`,
                     phone: fullPhoneStr,
                     email: document.getElementById('email').value,
