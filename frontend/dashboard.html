@@ -1026,109 +1026,95 @@
             </div>
         </div>
 
-        <!-- View: Users -->
+        <!-- View: Users — dynamic team management -->
         <div id="view-users" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Membros da Equipe e Níveis de Acesso</h1>
-                    <p>Controle de permissões para consolidação, visitantes, e ajustes locais.</p>
+                    <h1>Membros da Equipe</h1>
+                    <p>Gerencie permissões, módulos e acesso por membro.</p>
                 </div>
                 <div class="actions">
-                    <button type="button" class="btn" style="background: var(--accent); color: #000;" onclick="openAddUserModal()">+ Adicionar Membro</button>
+                    <button type="button" class="hub-btn-primary" onclick="openAddUserModal()" style="padding:9px 20px;">+ Convidar Membro</button>
                 </div>
             </header>
-            <div style="padding: 40px; display: flex; flex-direction: column; gap: 20px;">
-                <div class="kpi-box" style="padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+
+            <!-- Team table -->
+            <div style="padding: 20px 40px; display:flex; flex-direction:column; gap:18px;">
+
+                <!-- Roles legend strip -->
+                <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:.78rem;">
+                    <span style="background:rgba(255,215,0,.12); color:var(--accent); padding:3px 10px; border-radius:6px; font-weight:600;">Master Admin</span>
+                    <span style="background:rgba(100,180,255,.12); color:#64b4ff; padding:3px 10px; border-radius:6px; font-weight:600;">Admin da Igreja</span>
+                    <span style="background:rgba(100,220,150,.12); color:#64dc96; padding:3px 10px; border-radius:6px; font-weight:600;">Líder de Ministério</span>
+                    <span style="background:rgba(255,255,255,.07); color:#aaa; padding:3px 10px; border-radius:6px; font-weight:600;">Voluntário</span>
+                </div>
+
+                <!-- Dynamic team table -->
+                <div class="kpi-box" style="padding:0; overflow:hidden; border:1px solid rgba(255,255,255,.06);">
+                    <table id="team-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:.88rem;">
                         <thead>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: var(--bg-color);">
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">NOME</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">STATUS</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">NÍVEL (ROLE)</th>
-                                <th style="padding: 15px; font-weight: 600; color: var(--text-dim);">AÇÕES</th>
+                            <tr style="background:var(--bg-color); border-bottom:1px solid rgba(255,255,255,.05);">
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Membro</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Papel</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Módulos</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Status</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: var(--accent); color: #000; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">GT</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">gtorreshbl@gmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Gabriel Torres</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Master Admin</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #2E8B57; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">JV</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">juveloso@lagoinhaorlando.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Juliana Veloso</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Admin</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #4682B4; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">CR</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">criszinharodrigues@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Cris Rodrigues</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Líder</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #DA70D6; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">RB</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">rafasbarbosa@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Rafael Barbosa</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Ativo</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Líder</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
-                                    <div style="background: #808080; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">👤</div>
-                                    <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">exemplo_voluntario@team.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Perfil Base (Voluntário)</div>
-                                    </div>
-                                </td>
-                                <td style="padding: 15px;"><span style="color: #FFB347; border: 1px solid rgba(255,179,71,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Draft</span></td>
-                                <td style="padding: 15px;"><span style="border: 1px solid var(--text-dim); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;">Voluntário</span></td>
-                                <td style="padding: 15px;"><button class="btn btn-outline" style="padding: 5px 10px; border-radius: 6px;">⚙️</button></td>
-                            </tr>
+                        <tbody id="team-tbody">
+                            <!-- Skeleton rows while loading -->
+                            <tr><td colspan="5" style="padding:0;">
+                                <div class="hub-skeleton" style="height:56px; border-radius:0; margin:1px 0;"></div>
+                                <div class="hub-skeleton" style="height:56px; border-radius:0; margin:1px 0;"></div>
+                                <div class="hub-skeleton" style="height:56px; border-radius:0; margin:1px 0;"></div>
+                            </td></tr>
                         </tbody>
                     </table>
                 </div>
-                
-                <div style="font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;">
-                    📋 <strong>Visão de Níveis de Acesso:</strong> <br><br>
-                    <b style="color: var(--text-main);">Master Admin:</b> Acesso total ao sistema (incluindo exclusão de logs e config global da Igreja).<br>
-                    <b style="color: var(--text-main);">Admin:</b> Acesso a quase tudo, exceto edição estrutural da IA e manipulação de Master Admins.<br>
-                    <b style="color: var(--text-main);">Líder:</b> Visualização de relatórios, acompanhamento de métricas, cards e conversas geradas da IA.<br>
-                    <b style="color: var(--text-main);">Voluntário:</b> Acesso focado somente em tarefas operacionais e forms, sem histórico de IA oculto ou configs.
-                </div>
+            </div>
 
-                <!-- Live team list from Supabase -->
-                <div id="team-list-container" style="margin-top:20px;">
-                    <div style="color:var(--text-dim);text-align:center;padding:20px;">⏳ Carregando equipe...</div>
+            <!-- ── Invite Member Modal ────────────────────────────────── -->
+            <div id="invite-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); z-index:9100; align-items:center; justify-content:center;">
+                <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:22px; padding:34px; width:100%; max-width:500px; box-shadow:0 24px 80px rgba(0,0,0,.5);">
+                    <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Convidar Novo Membro</h2>
+                    <p style="font-size:.82rem; color:var(--text-dim); margin-bottom:24px;">Um e-mail de acesso será enviado automaticamente.</p>
+
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div>
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Nome completo</label>
+                            <input id="invite-name" type="text" class="hub-input" placeholder="Ex: Juliana Veloso">
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">E-mail</label>
+                            <input id="invite-email" type="email" class="hub-input" placeholder="pastor@lagoinha.com">
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Papel na equipe</label>
+                            <select id="invite-role" class="hub-input">
+                                <option value="user">Voluntário</option>
+                                <option value="church_admin">Líder de Ministério</option>
+                                <option value="church_admin">Admin da Igreja</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:10px;">Módulos com acesso</label>
+                            <div id="invite-modules-grid" style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <!-- populated by openAddUserModal() -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; margin-top:28px;">
+                        <button onclick="inviteTeamMember()" class="hub-btn-primary" style="flex:1;">Enviar Convite</button>
+                        <button onclick="closeInviteModal()" class="btn-outline" style="flex:1; border-radius:10px; padding:10px 20px;">Cancelar</button>
+                    </div>
                 </div>
             </div>
         </div>
 
+
         <!-- View: Logs -->
+
         <div id="view-logs" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
@@ -1875,7 +1861,190 @@ REGRAS:
 
 
 
+        // ═══════════════════════════════════════════════════════════
+        //  FASE E — TEAM MANAGEMENT
+        // ═══════════════════════════════════════════════════════════
+
+        const MODULE_LABELS = {
+            consolidation:'Consolidação', visitors:'Visitantes',
+            ia_whatsapp:'IA WhatsApp', financeiro:'Financeiro',
+            start:'START', aniversariantes:'Aniversariantes',
+            crie:'CRIE', voluntarios:'Voluntários',
+        };
+        const ROLE_LABELS = {
+            master_admin:{ label:'Master Admin', color:'rgba(255,215,0,.14)', text:'var(--accent)' },
+            church_admin:{ label:'Admin da Igreja', color:'rgba(100,180,255,.14)', text:'#64b4ff' },
+            user:        { label:'Lider / Voluntário', color:'rgba(100,220,150,.14)', text:'#64dc96' },
+        };
+        function hubAvatarColor(str) {
+            const p=['#e6a817','#2d9cdb','#27ae60','#9b59b6','#e74c3c','#e67e22','#16a085','#8e44ad'];
+            let s=0; for(let i=0;i<str.length;i++) s+=str.charCodeAt(i);
+            return p[s%p.length];
+        }
+        function hubInitials(name,email) {
+            if(name&&name.trim()){const p=name.trim().split(' ').filter(Boolean);return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase();}
+            return (email||'?')[0].toUpperCase();
+        }
+
+        // ─── LOAD TEAM LIST ───────────────────────────────────────────────
+        window.loadTeamList = async function() {
+            if(!window.supabaseClient||!window.currentWorkspaceId) return;
+            const tbody = document.getElementById('team-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = `<tr><td colspan="5" style="padding:0;">
+                <div class="hub-skeleton" style="height:56px;border-radius:0;margin:1px 0;"></div>
+                <div class="hub-skeleton" style="height:56px;border-radius:0;margin:1px 0;"></div>
+                <div class="hub-skeleton" style="height:56px;border-radius:0;margin:1px 0;"></div>
+            </td></tr>`;
+            const sb = window.supabaseClient;
+            const { data: members } = await sb.from('users')
+                .select('id,name,email,role,status,level')
+                .eq('workspace_id', window.currentWorkspaceId)
+                .order('name');
+            const moduleMap = {};
+            if(members?.length) {
+                await Promise.all(members.map(async m => {
+                    const {data:ma} = await sb.from('module_access')
+                        .select('module_slug').eq('user_id',m.id).eq('workspace_id',window.currentWorkspaceId);
+                    moduleMap[m.id] = (ma||[]).map(r=>r.module_slug);
+                }));
+            }
+            if(!members||members.length===0){
+                tbody.innerHTML=`<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--text-dim);">Nenhum membro ainda. Convide sua equipe!</td></tr>`;
+                return;
+            }
+            tbody.innerHTML='';
+            members.forEach(m=>{
+                const role=ROLE_LABELS[m.role]||ROLE_LABELS.user;
+                const active=m.status==='ativo'||m.status==='active';
+                const modules=moduleMap[m.id]||[];
+                const color=hubAvatarColor(m.id);
+                const initials=hubInitials(m.name,m.email);
+                const modBadges=modules.length
+                    ?modules.map(slug=>`<span class="hub-module-badge">${MODULE_LABELS[slug]||slug}</span>`).join('')
+                    :`<span style="color:var(--text-dim);font-size:.78rem;">Acesso geral</span>`;
+                const tr=document.createElement('tr');
+                tr.style.cssText='border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s;';
+                tr.onmouseenter=()=>tr.style.background='rgba(255,255,255,.025)';
+                tr.onmouseleave=()=>tr.style.background='';
+                tr.innerHTML=`
+                    <td style="padding:14px 18px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="background:${color};color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;flex-shrink:0;">${initials}</div>
+                            <div>
+                                <div style="font-weight:600;font-size:.9rem;">${m.name||'—'}</div>
+                                <div style="color:var(--text-dim);font-size:.78rem;">${m.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding:14px 18px;">
+                        <span style="background:${role.color};color:${role.text};padding:3px 10px;border-radius:6px;font-size:.75rem;font-weight:600;">${role.label}</span>
+                    </td>
+                    <td style="padding:14px 18px;max-width:240px;">
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;">${modBadges}</div>
+                    </td>
+                    <td style="padding:14px 18px;">
+                        <span class="hub-status-dot ${active?'active':'inactive'}" style="display:inline-block;margin-right:5px;"></span>
+                        <span style="font-size:.82rem;color:${active?'#25D366':'#888'};">${active?'Ativo':'Inativo'}</span>
+                    </td>
+                    <td style="padding:14px 18px;">
+                        <button onclick="toggleUserStatus('${m.id}','${m.status}')"
+                            style="background:${active?'rgba(231,76,60,.12)':'rgba(37,211,102,.1)'};color:${active?'#e74c3c':'#25D366'};border:1px solid ${active?'rgba(231,76,60,.3)':'rgba(37,211,102,.3)'};border-radius:8px;padding:5px 12px;font-size:.75rem;cursor:pointer;font-weight:600;white-space:nowrap;">
+                            ${active?'Desativar':'Reativar'}
+                        </button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        };
+
+        // ─── OPEN ADD USER MODAL ──────────────────────────────────────────
+        window.openAddUserModal = async function() {
+            const overlay = document.getElementById('invite-modal-overlay');
+            if(!overlay) return;
+            const grid = document.getElementById('invite-modules-grid');
+            grid.innerHTML='';
+            let wsModules=Object.keys(MODULE_LABELS);
+            if(window.currentWorkspaceId&&window.supabaseClient){
+                const {data:ws}=await window.supabaseClient.from('workspaces').select('modules').eq('id',window.currentWorkspaceId).single();
+                if(ws?.modules?.length) wsModules=ws.modules;
+            }
+            wsModules.forEach(slug=>{
+                const label=MODULE_LABELS[slug]||slug;
+                const chip=document.createElement('label');
+                chip.className='hub-module-chip selected';
+                chip.innerHTML=`<input type="checkbox" value="${slug}" style="display:none;" checked> ${label}`;
+                chip.onclick=()=>chip.classList.toggle('selected');
+                grid.appendChild(chip);
+            });
+            overlay.style.display='flex';
+        };
+
+        // ─── CLOSE INVITE MODAL ───────────────────────────────────────────
+        window.closeInviteModal = function() {
+            const o=document.getElementById('invite-modal-overlay');
+            if(o) o.style.display='none';
+            ['invite-name','invite-email'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+        };
+
+        // ─── INVITE TEAM MEMBER ───────────────────────────────────────────
+        window.inviteTeamMember = async function() {
+            if(!window.supabaseClient||!window.currentWorkspaceId) return;
+            const name  = document.getElementById('invite-name').value.trim();
+            const email = document.getElementById('invite-email').value.trim();
+            const role  = document.getElementById('invite-role').value;
+            if(!name||!email){ hubToast('Nome e e-mail são obrigatórios.','warn'); return; }
+            const chips = document.querySelectorAll('#invite-modules-grid .hub-module-chip.selected input');
+            const modules = Array.from(chips).map(cb=>cb.value);
+            const sb=window.supabaseClient;
+            const {data:newUser,error:uErr}=await sb.from('users').insert({
+                email,name,role,
+                workspace_id:window.currentWorkspaceId,
+                level:'workspace',status:'ativo'
+            }).select('id').single();
+            if(uErr){ hubToast('Erro: '+uErr.message,'error'); return; }
+            if(modules.length&&newUser?.id){
+                await sb.from('module_access').insert(
+                    modules.map(slug=>({user_id:newUser.id,workspace_id:window.currentWorkspaceId,module_slug:slug}))
+                );
+            }
+            hubToast(`Convite enviado para ${email}!`,'success');
+            closeInviteModal();
+            window.loadTeamList();
+        };
+
+        // ─── TOGGLE USER STATUS ───────────────────────────────────────────
+        window.toggleUserStatus = async function(userId, currentStatus) {
+            if(!window.supabaseClient) return;
+            const isActive=currentStatus==='ativo'||currentStatus==='active';
+            if(!confirm(`${isActive?'Desativar':'Reativar'} este membro?`)) return;
+            const {error}=await window.supabaseClient.from('users').update({status:isActive?'inativo':'ativo'}).eq('id',userId);
+            if(error){ hubToast('Erro: '+error.message,'error'); return; }
+            hubToast(isActive?'Membro desativado.':'Membro reativado!','success');
+            window.loadTeamList();
+        };
+
+        // ─── APPLY MODULES NAV ────────────────────────────────────────────
+        window.applyModulesNav = function(modules) {
+            if(!modules||!Array.isArray(modules)||modules.length===0) return;
+            const navMap={visitors:'nav-visitors',consolidation:'nav-dashboard'};
+            Object.entries(navMap).forEach(([slug,navId])=>{
+                const el=document.getElementById(navId); if(!el) return;
+                if(!modules.includes(slug)){el.style.opacity='0.4';el.style.pointerEvents='none';el.title='Módulo não disponível';}
+                else{el.style.opacity='';el.style.pointerEvents='';el.title='';}
+            });
+        };
+
+        // ─── PATCH switchTab to load users ─────────────────────────────
+        (function(){
+            const _orig=window.switchTab;
+            window.switchTab=function(tabName){
+                _orig(tabName);
+                if(tabName==='users'&&window.loadTeamList) window.loadTeamList();
+            };
+        })();
+
         // Custom Modal UI
+
         window.showModal = function(title, contentHTML) {
             document.getElementById('custom-modal-title').innerText = title;
             document.getElementById('custom-modal-content').innerHTML = contentHTML;
