@@ -637,6 +637,19 @@
                 </span>
                 <span class="nav-label">Configurações</span>
             </li>
+            <!-- Regional/Global nav — shown by JS based on user.level -->
+            <li id="nav-regional" onclick="switchTab('regional')" style="display:none;">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                </span>
+                <span class="nav-label">Regional</span>
+            </li>
+            <li id="nav-global" onclick="switchTab('global')" style="display:none;">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                </span>
+                <span class="nav-label">Global</span>
+            </li>
             <li class="disabled" title="Em breve">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -645,6 +658,7 @@
                 <span style="font-size:0.65rem; margin-left:auto; opacity:0.4; font-weight:500;">breve</span>
             </li>
         </ul>
+
 
         <!-- Workspace Switcher -->
         <div class="ws-switcher" id="ws-switcher">
@@ -1268,7 +1282,123 @@ REGRAS:
             </div>
         </div>
 
+        <!-- ════════════════════════════════════════════════════════
+             View: Regional
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-regional" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1 id="regional-title">Painel Regional</h1>
+                    <p id="regional-subtitle">KPIs e igrejas da sua regional</p>
+                </div>
+            </header>
+
+            <!-- Regional KPIs -->
+            <div style="padding: 20px 40px 0; display:flex; gap:16px; flex-wrap:wrap;">
+                <div class="kpi-box hub-kpi-regional" style="min-width:160px;">
+                    <div class="kpi-label">Igrejas Ativas</div>
+                    <div class="kpi-value" id="rkpi-churches">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-regional" style="min-width:160px;">
+                    <div class="kpi-label">Consolidados</div>
+                    <div class="kpi-value" id="rkpi-saved">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-regional" style="min-width:160px;">
+                    <div class="kpi-label">Visitantes</div>
+                    <div class="kpi-value" id="rkpi-visitors">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-regional" style="min-width:160px;">
+                    <div class="kpi-label">Msgs IA Enviadas</div>
+                    <div class="kpi-value" id="rkpi-messages">—</div>
+                </div>
+            </div>
+
+            <!-- Workspace cards -->
+            <div style="padding: 24px 40px;">
+                <h2 style="font-size:1rem; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:16px;">Igrejas da Regional</h2>
+                <div id="regional-churches-grid" class="hub-hierarchy-grid">
+                    <!-- populated by loadRegionalView() -->
+                    <div class="hub-skeleton" style="height:130px; border-radius:16px;"></div>
+                    <div class="hub-skeleton" style="height:130px; border-radius:16px;"></div>
+                    <div class="hub-skeleton" style="height:130px; border-radius:16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+             View: Global
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-global" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1 id="global-title">Painel Global</h1>
+                    <p>Visão consolidada de todas as regionais e igrejas</p>
+                </div>
+                <div class="actions">
+                    <button class="btn-outline" onclick="showAddCityModal()" style="font-size:0.85rem; padding:8px 18px;">
+                        + Ativar Cidade
+                    </button>
+                </div>
+            </header>
+
+            <!-- Global KPIs -->
+            <div style="padding: 20px 40px 0; display:flex; gap:16px; flex-wrap:wrap;">
+                <div class="kpi-box hub-kpi-global" style="min-width:160px;">
+                    <div class="kpi-label">Regionais</div>
+                    <div class="kpi-value" id="gkpi-regionals">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-global" style="min-width:160px;">
+                    <div class="kpi-label">Igrejas Ativas</div>
+                    <div class="kpi-value" id="gkpi-churches">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-global" style="min-width:160px;">
+                    <div class="kpi-label">Total Leads</div>
+                    <div class="kpi-value" id="gkpi-leads">—</div>
+                </div>
+                <div class="kpi-box hub-kpi-global" style="min-width:160px;">
+                    <div class="kpi-label">Planos Ativos</div>
+                    <div class="kpi-value" id="gkpi-plans">—</div>
+                </div>
+            </div>
+
+            <!-- Regionals accordion -->
+            <div style="padding: 24px 40px;" id="global-regionals-container">
+                <div class="hub-skeleton" style="height:180px; border-radius:16px; margin-bottom:16px;"></div>
+                <div class="hub-skeleton" style="height:180px; border-radius:16px;"></div>
+            </div>
+
+            <!-- Add City Modal -->
+            <div id="add-city-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); z-index:9000; align-items:center; justify-content:center;">
+                <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:32px; width:100%; max-width:460px;">
+                    <h2 style="font-size:1.1rem; margin-bottom:20px;">Ativar Nova Cidade</h2>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="field-wrap">
+                            <label style="font-size:.8rem; color:var(--text-dim); display:block; margin-bottom:4px;">Nome da Cidade</label>
+                            <input id="new-city-name" type="text" class="hub-input" placeholder="ex: São Paulo">
+                        </div>
+                        <div class="field-wrap">
+                            <label style="font-size:.8rem; color:var(--text-dim); display:block; margin-bottom:4px;">País</label>
+                            <input id="new-city-country" type="text" class="hub-input" placeholder="ex: Brazil">
+                        </div>
+                        <div class="field-wrap">
+                            <label style="font-size:.8rem; color:var(--text-dim); display:block; margin-bottom:4px;">Regional</label>
+                            <select id="new-city-regional" class="hub-input"></select>
+                        </div>
+                        <div class="field-wrap">
+                            <label style="font-size:.8rem; color:var(--text-dim); display:block; margin-bottom:4px;">Email do Pastor (opcional — envia convite)</label>
+                            <input id="new-city-email" type="email" class="hub-input" placeholder="pastor@igreja.com">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px; margin-top:24px;">
+                        <button onclick="createCity()" class="hub-btn-primary" style="flex:1;">Criar Cidade</button>
+                        <button onclick="document.getElementById('add-city-modal-overlay').style.display='none';" class="btn-outline" style="flex:1;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
+
 
     <!-- Lead Drawer Overlay + Panel -->
     <div class="hub-drawer-overlay" id="lead-drawer-overlay" onclick="closeLeadDrawer()"></div>
@@ -1393,14 +1523,17 @@ REGRAS:
                     // Master admin can see ALL workspaces
                     const { data } = await sb.from('workspaces').select('id, name, status').order('name');
                     workspaces = data || [];
+                    if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
-                    const { data: userRow } = await sb.from('users').select('workspace_id').eq('id', userId).single();
+                    const { data: userRow } = await sb.from('users').select('workspace_id, level, regional_id, global_id').eq('id', userId).single();
                     if (userRow?.workspace_id) {
                         const { data } = await sb.from('workspaces').select('id, name, status').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
+                    if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
                 }
+
 
                 _allWorkspaces = workspaces;
 
@@ -1542,7 +1675,204 @@ REGRAS:
             if (tabName === 'logs' && window.loadAuditLogs) window.loadAuditLogs();
             if (tabName === 'team' && window.loadTeamList) window.loadTeamList();
             if (tabName === 'home' && typeof generateQRCodes === 'function') setTimeout(generateQRCodes, 50);
+            if (tabName === 'regional' && window.loadRegionalView) window.loadRegionalView();
+            if (tabName === 'global'   && window.loadGlobalView)   window.loadGlobalView();
         }
+
+        // ─── Sidebar visibility based on user level ──────────────────────
+        window.applyHierarchyNav = function(level) {
+            const levels = { workspace: 0, regional: 1, global: 2, master: 3 };
+            const rank = levels[level] || 0;
+            if (rank >= 1) document.getElementById('nav-regional').style.display = '';
+            if (rank >= 2) document.getElementById('nav-global').style.display = '';
+        };
+
+        // ─── REGIONAL VIEW ───────────────────────────────────────────────
+        window.loadRegionalView = async function() {
+            if (!window.supabaseClient) return;
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+            if (!user) return;
+
+            const { data: profile } = await window.supabaseClient
+                .from('users').select('regional_id, level').eq('id', user.id).single();
+            if (!profile?.regional_id) return;
+
+            const { data: regional } = await window.supabaseClient
+                .from('regionals').select('name').eq('id', profile.regional_id).single();
+            if (regional) {
+                document.getElementById('regional-title').textContent = regional.name + ' — Regional';
+            }
+
+            const { data: workspaces } = await window.supabaseClient
+                .from('workspaces')
+                .select('id, name, slug, country, status, plan, modules')
+                .eq('regional_id', profile.regional_id);
+
+            if (!workspaces) return;
+            const activeWs = workspaces.filter(w => w.status === 'active');
+
+            // KPIs
+            document.getElementById('rkpi-churches').textContent = activeWs.length;
+
+            // Aggregate leads + messages (parallel)
+            const counts = await Promise.all(activeWs.map(async w => {
+                const [{ count: saved }, { count: visitors }, { count: msgs }] = await Promise.all([
+                    window.supabaseClient.from('leads').select('id', {count:'exact',head:true}).eq('workspace_id', w.id).neq('type','visitor'),
+                    window.supabaseClient.from('leads').select('id', {count:'exact',head:true}).eq('workspace_id', w.id).eq('type','visitor'),
+                    window.supabaseClient.from('messages').select('id', {count:'exact',head:true}).eq('workspace_id', w.id).eq('automated', true)
+                ]);
+                return { id: w.id, saved: saved||0, visitors: visitors||0, msgs: msgs||0 };
+            }));
+
+            const totSaved = counts.reduce((a,c)=>a+c.saved, 0);
+            const totVis   = counts.reduce((a,c)=>a+c.visitors, 0);
+            const totMsgs  = counts.reduce((a,c)=>a+c.msgs, 0);
+            if (typeof hubCountUp === 'function') {
+                hubCountUp(document.getElementById('rkpi-saved'), totSaved);
+                hubCountUp(document.getElementById('rkpi-visitors'), totVis);
+                hubCountUp(document.getElementById('rkpi-messages'), totMsgs);
+            } else {
+                document.getElementById('rkpi-saved').textContent = totSaved;
+                document.getElementById('rkpi-visitors').textContent = totVis;
+                document.getElementById('rkpi-messages').textContent = totMsgs;
+            }
+
+            // Render church cards
+            const grid = document.getElementById('regional-churches-grid');
+            grid.innerHTML = '';
+            workspaces.forEach(w => {
+                const cnt = counts.find(c => c.id === w.id) || { saved:0, visitors:0 };
+                const card = document.createElement('div');
+                card.className = 'hub-hierarchy-card';
+                card.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:1rem;">
+                            <span class="hub-status-dot ${w.status || 'draft'}"></span>
+                            ${w.name}
+                        </div>
+                        <span class="hub-plan-badge ${w.plan || 'free'}">${w.plan || 'free'}</span>
+                    </div>
+                    <div style="font-size:.8rem; color:var(--text-dim); margin-bottom:14px;">🌍 ${w.country || '—'}</div>
+                    <div style="display:flex; gap:14px; font-size:.85rem;">
+                        <span>👥 <b>${cnt.saved}</b> Consol.</span>
+                        <span>🧑 <b>${cnt.visitors}</b> Visit.</span>
+                    </div>
+                    <button onclick="switchWorkspace('${w.id}')" style="margin-top:14px; width:100%; background:rgba(255,215,0,.1); border:1px solid rgba(255,215,0,.2); color:var(--accent); border-radius:8px; padding:6px; font-size:.8rem; cursor:pointer; font-weight:600;">Acessar Workspace →</button>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        // ─── GLOBAL VIEW ─────────────────────────────────────────────────
+        window.loadGlobalView = async function() {
+            if (!window.supabaseClient) return;
+
+            const [{ data: regionals }, { data: workspaces }] = await Promise.all([
+                window.supabaseClient.from('regionals').select('id, name, slug, global_id'),
+                window.supabaseClient.from('workspaces').select('id, name, slug, country, status, plan, regional_id')
+            ]);
+
+            if (!regionals || !workspaces) return;
+
+            const activeWs = workspaces.filter(w => w.status === 'active');
+            const planCounts = workspaces.reduce((a,w) => { if (w.status==='active') a[w.plan||'free']=(a[w.plan||'free']||0)+1; return a; }, {});
+            const planSummary = Object.entries(planCounts).map(([p,c])=>`${c} ${p}`).join(', ');
+
+            // KPIs
+            document.getElementById('gkpi-regionals').textContent = regionals.length;
+            if (typeof hubCountUp === 'function') {
+                hubCountUp(document.getElementById('gkpi-churches'), activeWs.length);
+            } else {
+                document.getElementById('gkpi-churches').textContent = activeWs.length;
+            }
+            document.getElementById('gkpi-plans').textContent = planSummary;
+
+            // Aggregate global leads count
+            const { count: totalLeads } = await window.supabaseClient
+                .from('leads').select('id', {count:'exact', head:true});
+            if (typeof hubCountUp === 'function') {
+                hubCountUp(document.getElementById('gkpi-leads'), totalLeads || 0);
+            } else {
+                document.getElementById('gkpi-leads').textContent = totalLeads || 0;
+            }
+
+            // Render regionals accordion
+            const container = document.getElementById('global-regionals-container');
+            container.innerHTML = '';
+            regionals.forEach(reg => {
+                const regWs = workspaces.filter(w => w.regional_id === reg.id);
+                const section = document.createElement('div');
+                section.className = 'hub-regional-section';
+                section.innerHTML = `
+                    <div class="hub-regional-header" onclick="this.parentElement.classList.toggle('open')">
+                        <svg viewBox="0 0 24 24" width="18" style="flex-shrink:0; stroke:var(--accent); fill:none; stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        ${reg.name}
+                        <span style="margin-left:8px; font-size:.75rem; background:rgba(255,255,255,.07); padding:2px 10px; border-radius:6px; color:var(--text-dim); font-weight:400;">${regWs.length} igrejas</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <div class="hub-regional-body">
+                        <div class="hub-hierarchy-grid">
+                            ${regWs.map(w => `
+                            <div class="hub-hierarchy-card" onclick="switchWorkspace('${w.id}')">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; font-weight:600;">
+                                        <span class="hub-status-dot ${w.status||'draft'}"></span>
+                                        ${w.name}
+                                    </div>
+                                    <span class="hub-plan-badge ${w.plan||'free'}">${w.plan||'free'}</span>
+                                </div>
+                                <div style="font-size:.78rem; color:var(--text-dim);">🌍 ${w.country||'—'}</div>
+                            </div>`).join('')}
+                            ${regWs.length === 0 ? '<p style="color:var(--text-dim); font-size:.85rem; padding:8px 4px;">Nenhuma igreja nesta regional ainda.</p>' : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(section);
+            });
+
+            // Populate city modal regional select
+            const sel = document.getElementById('new-city-regional');
+            if (sel) {
+                sel.innerHTML = regionals.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+            }
+        };
+
+        // ─── SHOW ADD CITY MODAL ─────────────────────────────────────────
+        window.showAddCityModal = function() {
+            const overlay = document.getElementById('add-city-modal-overlay');
+            if (overlay) { overlay.style.display = 'flex'; }
+        };
+
+        // ─── CREATE CITY ─────────────────────────────────────────────────
+        window.createCity = async function() {
+            if (!window.supabaseClient) return;
+            const name    = document.getElementById('new-city-name').value.trim();
+            const country = document.getElementById('new-city-country').value.trim();
+            const regId   = document.getElementById('new-city-regional').value;
+            const email   = document.getElementById('new-city-email').value.trim();
+
+            if (!name || !country || !regId) {
+                hubToast('Preencha nome, país e regional.', 'warn'); return;
+            }
+
+            const { error } = await window.supabaseClient.from('cities').insert({
+                name, country, regional_id: regId,
+                status: email ? 'pending' : 'active',
+                invited_email: email || null,
+                invited_at: email ? new Date().toISOString() : null,
+                activated_at: email ? null : new Date().toISOString()
+            });
+
+            if (error) { hubToast('Erro ao criar cidade: ' + error.message, 'error'); return; }
+
+            hubToast(`Cidade "${name}" criada com sucesso!`, 'success');
+            document.getElementById('add-city-modal-overlay').style.display = 'none';
+            // Clear fields
+            ['new-city-name','new-city-country','new-city-email'].forEach(id => document.getElementById(id).value = '');
+            window.loadGlobalView(); // Refresh
+        };
+
+
 
 
         // Custom Modal UI
