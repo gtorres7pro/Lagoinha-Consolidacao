@@ -681,31 +681,68 @@
             </header>
             <div style="padding: 32px; display: flex; flex-direction: column; gap: 20px; max-width: 860px;">
                 <div class="kpi-box" style="flex-direction: column; align-items: flex-start; gap: 12px; background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.2);">
-                    <h2 style="font-size: 1.35rem; color: var(--accent); font-weight: 800;">👋 Bem-vindo ao HUB!</h2>
+                    <h2 style="font-size: 1.35rem; color: var(--accent); font-weight: 800; display:flex; align-items:center; gap:10px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Bem-vindo ao HUB!
+                    </h2>
                     <p style="color: var(--text-dim); line-height: 1.65; font-size: 0.925rem;">
                         Escolha um dos atalhos abaixo para preencher dados públicos ou navegue pelo menu <strong style="color:#fff;">Consolidados</strong> na barra à esquerda para visualizar as métricas ao vivo.
                     </p>
                 </div>
 
-                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 24px; flex-wrap: wrap; gap: 16px;">
-                    <div style="flex: 1; min-width: 280px;">
-                        <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700;">📝 Formulário de Consolidação</h3>
-                        <p style="color: var(--text-dim); font-size: 0.83rem;">Preenchido pela equipe com a pessoa que tomou uma decisão após o apelo no altar.</p>
+                <!-- Consolida Form Card + QR -->
+                <div class="kpi-box" style="flex-direction: column; gap: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div style="flex:1; min-width:220px;">
+                            <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                Formulário de Consolidação
+                            </h3>
+                            <p style="color: var(--text-dim); font-size: 0.83rem;">Preenchido pela equipe com a pessoa que tomou uma decisão após o apelo no altar.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn-outline" onclick="copyFormLink('consolida-form.html')">Copiar Link</button>
+                            <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('consolida-form.html')">Acessar →</button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-outline" onclick="copyFormLink('consolida-form.html')">📋 Copiar Link</button>
-                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('consolida-form.html')">Acessar →</button>
+                    <div class="hub-qr-card">
+                        <div class="hub-qr-canvas-wrap"><canvas id="qr-consolida" width="96" height="96"></canvas></div>
+                        <div class="hub-qr-info">
+                            <div class="hub-qr-label">QR Code Público</div>
+                            <div class="hub-qr-name">Consolidação</div>
+                            <button class="hub-qr-download" onclick="downloadQR('qr-consolida', 'consolida-form')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Download PNG
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="kpi-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 24px; flex-wrap: wrap; gap: 16px;">
-                    <div style="flex: 1; min-width: 280px;">
-                        <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700;">👋 Registro de Visitantes</h3>
-                        <p style="color: var(--text-dim); font-size: 0.83rem;">Mapeamento das primeiras visitas recepcionadas pelo time do Welcome no lobby.</p>
+                <!-- Visitor Form Card + QR -->
+                <div class="kpi-box" style="flex-direction: column; gap: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div style="flex:1; min-width:220px;">
+                            <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                                Registro de Visitantes
+                            </h3>
+                            <p style="color: var(--text-dim); font-size: 0.83rem;">Mapeamento das primeiras visitas recepcionadas pelo time do Welcome no lobby.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn-outline" onclick="copyFormLink('visitor-form.html')">Copiar Link</button>
+                            <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('visitor-form.html')">Acessar →</button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn-outline" onclick="copyFormLink('visitor-form.html')">📋 Copiar Link</button>
-                        <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('visitor-form.html')">Acessar →</button>
+                    <div class="hub-qr-card">
+                        <div class="hub-qr-canvas-wrap"><canvas id="qr-visitor" width="96" height="96"></canvas></div>
+                        <div class="hub-qr-info">
+                            <div class="hub-qr-label">QR Code Público</div>
+                            <div class="hub-qr-name">Visitantes</div>
+                            <button class="hub-qr-download" onclick="downloadQR('qr-visitor', 'visitor-form')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Download PNG
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -718,8 +755,14 @@
                     <h1>Mesa de Operações</h1>
                     <p>Nenhuma vida deixada para trás. Gerencie do apelo ao discipulado.</p>
                 </div>
-                <div class="actions">
-                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('consolidados', 120)">📤 Enviar Relatório (CSV)</button>
+                <div class="actions" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <div class="hub-period-tabs" id="period-tabs-dashboard">
+                        <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',7,this)">7d</button>
+                        <button class="hub-period-tab active" onclick="setPeriodFilter('dashboard',30,this)">30d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',90,this)">90d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',0,this)">Todos</button>
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('consolidados', 120)">Enviar Relatório</button>
                     <button type="button" class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar</button>
                 </div>
             </header>
@@ -1227,6 +1270,51 @@ REGRAS:
 
     </main>
 
+    <!-- Lead Drawer Overlay + Panel -->
+    <div class="hub-drawer-overlay" id="lead-drawer-overlay" onclick="closeLeadDrawer()"></div>
+    <div class="hub-drawer" id="lead-drawer">
+        <div class="hub-drawer-header">
+            <span class="hub-drawer-title" id="drawer-lead-name">—</span>
+            <button class="hub-drawer-close" onclick="closeLeadDrawer()">✕</button>
+        </div>
+        <div class="hub-drawer-body">
+            <!-- Info section -->
+            <div>
+                <div class="hub-drawer-section-title">Informações</div>
+                <div class="hub-drawer-field">
+                    <label>Nome</label>
+                    <input type="text" id="drawer-field-name" placeholder="—">
+                </div>
+                <div class="hub-drawer-field">
+                    <label>Telefone</label>
+                    <input type="text" id="drawer-field-phone" placeholder="—">
+                </div>
+                <div class="hub-drawer-field">
+                    <label>Idioma Preferencial</label>
+                    <select id="drawer-field-lang">
+                        <option value="pt">Português</option>
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+                <button class="hub-drawer-save-btn" onclick="saveDrawerLead()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Salvar
+                </button>
+            </div>
+            <!-- Tasks section -->
+            <div>
+                <div class="hub-drawer-section-title">Tarefas</div>
+                <div id="drawer-tasks"><!-- populated by JS --></div>
+            </div>
+            <!-- Timeline section -->
+            <div>
+                <div class="hub-drawer-section-title">Timeline</div>
+                <div class="hub-timeline" id="drawer-timeline"><!-- populated by JS --></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Bottom Navigation (shown only on mobile via CSS) -->
     <nav class="bottom-nav" style="display:none;" id="bottom-nav">
         <div class="bottom-nav-item active" id="bnav-home" onclick="switchTab('home'); setBottomNav('home')">
@@ -1453,7 +1541,9 @@ REGRAS:
             // Phase 3: Lazy-load data for specific views
             if (tabName === 'logs' && window.loadAuditLogs) window.loadAuditLogs();
             if (tabName === 'team' && window.loadTeamList) window.loadTeamList();
+            if (tabName === 'home' && typeof generateQRCodes === 'function') setTimeout(generateQRCodes, 50);
         }
+
 
         // Custom Modal UI
         window.showModal = function(title, contentHTML) {
@@ -1830,32 +1920,45 @@ REGRAS:
             
             function updateTopKPIs(leadsArray) {
                 const total = leadsArray.length;
-                let c1 = total; // Celebração always 100% simulated
+                let c1 = total;
                 let c2 = leadsArray.filter(l => Boolean(l.task_start)).length;
                 let c_gc = leadsArray.filter(l => Boolean(l.task_gc)).length;
                 let c3 = leadsArray.filter(l => Boolean(l.task_batismo)).length;
                 let c4 = leadsArray.filter(l => Boolean(l.task_cafe)).length;
-                
-                function safeSetText(id, text) { const el = document.getElementById(id); if(el) el.innerText = text; }
 
-                safeSetText('kpi-t1', c1);
-                safeSetText('kpi-total-1', total);
-                safeSetText('kpi-t2', c2);
-                safeSetText('kpi-total-2', total);
-                safeSetText('kpi-tgc', c_gc);
-                safeSetText('kpi-total-gc', total);
-                safeSetText('kpi-t3', c3);
-                safeSetText('kpi-total-3', total);
-                safeSetText('kpi-t4', c4);
-                safeSetText('kpi-total-4', total);
+                function animateKpi(id, val) {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const prev = parseInt(el.innerText) || 0;
+                    if (typeof hubCountUp === 'function') {
+                        hubCountUp(el, val, 900);
+                    } else {
+                        el.innerText = val;
+                    }
+                }
+
+                animateKpi('kpi-t1', c1);
+                animateKpi('kpi-total-1', total);
+                animateKpi('kpi-t2', c2);
+                animateKpi('kpi-total-2', total);
+                animateKpi('kpi-tgc', c_gc);
+                animateKpi('kpi-total-gc', total);
+                animateKpi('kpi-t3', c3);
+                animateKpi('kpi-total-3', total);
+                animateKpi('kpi-t4', c4);
+                animateKpi('kpi-total-4', total);
             }
 
             window.fetchLiveLeads = async function() {
                 try {
                     const leadsContainer = document.getElementById('leads-container');
                     const visitorContainer = document.getElementById('visitors-container');
-                    if (leadsContainer) leadsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
-                    if (visitorContainer) visitorContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-dim); padding: 40px;"><p>Sincronizando dezenas de milhares de registros com o servidor...</p></div>';
+                    // Skeleton shimmer while loading
+                    const skeletonRows = Array.from({length:6}, () =>
+                        `<div class="hub-skeleton hub-skeleton-row"></div>`
+                    ).join('');
+                    if (leadsContainer) leadsContainer.innerHTML = `<div style="grid-column:1/-1;padding:8px 0;">${skeletonRows}</div>`;
+                    if (visitorContainer) visitorContainer.innerHTML = `<div style="grid-column:1/-1;padding:8px 0;">${skeletonRows}</div>`;
 
                     let allLeads = [];
                     let start = 0;
@@ -2276,6 +2379,12 @@ REGRAS:
                             <a href="#" class="card-action" onclick="showWAChatModal('${lead.id}'); return false;" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4; pointer-events:none; cursor:not-allowed;'}">${window.hasWhatsappConfig ? 'Acessar Histórico ➔' : 'IA Não Configurada'}</a>
                         </div>
                     `;
+                    // Open lead drawer on card click (skip checkbox / link clicks)
+                    card.addEventListener('click', function(e) {
+                        if (e.target.closest('input, a, .icon-btn')) return;
+                        if (typeof openLeadDrawer === 'function') openLeadDrawer(lead);
+                    });
+                    card.style.cursor = 'pointer';
                     tContainer.appendChild(card);
                 });
             }
@@ -3099,6 +3208,180 @@ REGRAS:
         });
     });
 
+    // ─── Lead Drawer Logic ────────────────────────────────────────────
+    let _drawerLeadId = null;
+
+    window.openLeadDrawer = async function(lead) {
+        _drawerLeadId = lead.id;
+        // Populate fields
+        document.getElementById('drawer-lead-name').textContent = lead.name || '—';
+        document.getElementById('drawer-field-name').value = lead.name || '';
+        document.getElementById('drawer-field-phone').value = lead.phone || '';
+        const langSel = document.getElementById('drawer-field-lang');
+        if (langSel) langSel.value = lead.preferred_language || 'pt';
+
+        // Build tasks
+        const taskDefs = [
+            { key: 'task_start',    label: 'Convidar para Start' },
+            { key: 'task_gc',       label: 'Convidar para GC' },
+            { key: 'task_batismo',  label: 'Convite de Batismo' },
+            { key: 'task_cafe',     label: 'Café de Novos Membros' },
+            { key: 'task_followup', label: 'Follow-up Humano' }
+        ];
+        const tasksEl = document.getElementById('drawer-tasks');
+        if (tasksEl) {
+            tasksEl.innerHTML = taskDefs.map(t => {
+                const done = Boolean(lead[t.key]);
+                return `
+                <div class="hub-task-item ${done ? 'done' : ''}" id="task-row-${t.key}" onclick="toggleLeadTask('${t.key}', this)">
+                    <div class="hub-task-check">
+                        <svg viewBox="0 0 20 20">
+                            <circle class="check-circle" cx="10" cy="10" r="9" stroke-width="1.5"/>
+                            <polyline class="check-mark" points="6,10 9,13 14,7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="hub-task-label">${t.label}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // Open panel
+        document.getElementById('lead-drawer').classList.add('open');
+        document.getElementById('lead-drawer-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+
+        // Load timeline from messages
+        const timelineEl = document.getElementById('drawer-timeline');
+        if (timelineEl) {
+            timelineEl.innerHTML = '<div class="hub-skeleton hub-skeleton-row" style="height:36px;"></div>';
+            try {
+                const sb = window.supabaseClient;
+                const { data: msgs } = await sb.from('messages')
+                    .select('content, direction, automated, created_at')
+                    .eq('lead_id', lead.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                // Also add registration event
+                const events = [
+                    { type: 'register', content: `Cadastro recebido (${lead.type === 'visitor' ? 'Visitante' : 'Consolidação'})`, ts: lead.created_at }
+                ];
+                (msgs || []).forEach(m => events.push({ type: m.automated ? 'ai' : (m.direction === 'inbound' ? 'inbound' : 'human'), content: m.content, ts: m.created_at }));
+                events.sort((a,b) => new Date(b.ts) - new Date(a.ts));
+
+                if (events.length === 0) {
+                    timelineEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;">Sem interações registradas.</div>';
+                } else {
+                    timelineEl.innerHTML = events.map(ev => {
+                        const dotClass = ev.type === 'register' ? '' : ev.type === 'inbound' ? 'blue' : 'muted';
+                        const d = new Date(ev.ts);
+                        const dateStr = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                        const label = ev.type === 'ai' ? '(IA)' : ev.type === 'inbound' ? '(Resposta)' : ev.type === 'human' ? '(Humano)' : '';
+                        return `
+                        <div class="hub-timeline-item">
+                            <div class="hub-timeline-dot ${dotClass}"></div>
+                            <div class="hub-timeline-content">
+                                <div class="hub-timeline-text">${(ev.content || '').substring(0, 160)}${ev.content && ev.content.length > 160 ? '…' : ''}</div>
+                                <div class="hub-timeline-meta">${dateStr} ${label}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+            } catch(e) {
+                timelineEl.innerHTML = '<div style="color:#f87171;font-size:0.8rem;">Erro ao carregar timeline.</div>';
+            }
+        }
+    };
+
+    window.closeLeadDrawer = function() {
+        document.getElementById('lead-drawer').classList.remove('open');
+        document.getElementById('lead-drawer-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+        _drawerLeadId = null;
+    };
+
+    window.saveDrawerLead = async function() {
+        if (!_drawerLeadId) return;
+        const name = document.getElementById('drawer-field-name').value.trim();
+        const phone = document.getElementById('drawer-field-phone').value.trim();
+        const lang = document.getElementById('drawer-field-lang').value;
+        const sb = window.supabaseClient;
+        const { error } = await sb.from('leads').update({ name, phone, preferred_language: lang }).eq('id', _drawerLeadId);
+        if (error) {
+            if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar', 'error');
+        } else {
+            if (typeof hubToast !== 'undefined') hubToast('Lead atualizado!', 'success');
+            document.getElementById('drawer-lead-name').textContent = name || '—';
+        }
+    };
+
+    window.toggleLeadTask = async function(taskKey, rowEl) {
+        if (!_drawerLeadId) return;
+        const isDone = rowEl.classList.contains('done');
+        const newVal = !isDone;
+        rowEl.classList.toggle('done', newVal);
+        const sb = window.supabaseClient;
+        await sb.from('leads').update({ [taskKey]: newVal }).eq('id', _drawerLeadId);
+        // Update in-memory lead
+        const lead = (window.globalLeads || []).find(l => l.id === _drawerLeadId);
+        if (lead) lead[taskKey] = newVal;
+        // Recompute KPIs
+        if (window._allSaved) {
+            const saved = window._allSaved;
+            if (typeof updateTopKPIs === 'function') updateTopKPIs(saved);
+        }
+        if (typeof hubToast !== 'undefined') hubToast(newVal ? 'Tarefa concluída!' : 'Tarefa reaberta', newVal ? 'success' : 'info');
+    };
+
+    // ─── Period filter ────────────────────────────────────────────────
+    window.setPeriodFilter = function(view, days, btn) {
+        const tabsId = view === 'dashboard' ? 'period-tabs-dashboard' : 'period-tabs-visitors';
+        const tabs = document.querySelectorAll('#' + tabsId + ' .hub-period-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        const cutoff = days === 0 ? null : new Date(Date.now() - days * 86400000).toISOString();
+        const source = view === 'dashboard' ? window._allSaved : window._allVisit;
+        if (!source) return;
+        const filtered = cutoff ? source.filter(l => l.created_at >= cutoff) : source;
+
+        if (view === 'dashboard') {
+            if (typeof applyFilters === 'function') {
+                // Store cutoff for applyFilters to use
+                window._periodCutoff = cutoff;
+                applyFilters();
+            }
+        } else {
+            window._periodCutoff = cutoff;
+            if (typeof applyVisitorFilters === 'function') applyVisitorFilters();
+        }
+    };
+
+    // ─── QR Code generators ───────────────────────────────────────────
+    window.generateQRCodes = function() {
+        if (typeof QRCode === 'undefined') return;
+        const base = window.location.origin + '/' + (_slug || 'orlando');
+        function makeQR(canvasId, path) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            QRCode.toCanvas(canvas, base + '/' + path, {
+                width: 96, margin: 1,
+                color: { dark: '#000000', light: '#ffffff' }
+            }, function(err) { if(err) console.warn('QR error:', err); });
+        }
+        makeQR('qr-consolida', 'consolida-form.html');
+        makeQR('qr-visitor',   'visitor-form.html');
+    };
+
+    window.downloadQR = function(canvasId, filename) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const link = document.createElement('a');
+        link.download = filename + '-qr.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    };
+
     // ─── copyFormLink override: use toast instead of alert ────────────
     // (hub.js is loaded below and provides hubCopy)
     function copyFormLink(page) {
@@ -3113,5 +3396,7 @@ REGRAS:
 
     <!-- Load hub.js shared utilities (toast, ripple, countUp, skeleton) -->
     <script src="/hub.js"></script>
+    <!-- QR Code generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="if(document.readyState!=='loading') generateQRCodes();"></script>
 </body>
 </html>
