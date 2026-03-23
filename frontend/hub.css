@@ -5,6 +5,50 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+/* ── Animation Keyframes ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.0); }
+  50%       { box-shadow: 0 0 0 6px rgba(251,191,36,0.15); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+@keyframes counterUp {
+  from { opacity: 0; transform: scale(0.6) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Animation Utilities ── */
+.anim-fade-up   { animation: fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-scale-in  { animation: scaleIn  0.35s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-slide-left{ animation: slideInLeft 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-counter   { animation: counterUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; }
+.delay-5 { animation-delay: 0.25s; }
+
 /* ── Tokens ── */
 :root {
   --bg:          #0a0a0a;
