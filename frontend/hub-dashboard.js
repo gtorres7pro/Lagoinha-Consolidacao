@@ -148,6 +148,20 @@
             if (typeof initEngine === 'function') initEngine();
         };
 
+        // Helper: switch workspace by ID only (for onclick buttons in templates)
+        window._switchWsById = function(wsId) {
+            const ws = _allWorkspaces.find(w => w.id === wsId);
+            if (ws) {
+                window.switchWorkspace(ws);
+            } else {
+                // Fallback: fetch from DB if not in local list
+                const sb = window.supabaseClient;
+                if (!sb) return;
+                sb.from('workspaces').select('id,name,status,plan,modules').eq('id', wsId).single()
+                    .then(({ data }) => { if (data) window.switchWorkspace(data); });
+            }
+        };
+
         // Close workspace dropdown when clicking outside
         document.addEventListener('click', function(e) {
             const switcher = document.getElementById('ws-switcher');
@@ -306,7 +320,7 @@
                         <span>👥 <b>${cnt.saved}</b> Consol.</span>
                         <span>🧑 <b>${cnt.visitors}</b> Visit.</span>
                     </div>
-                    <button onclick="switchWorkspace('${w.id}')" style="margin-top:14px; width:100%; background:rgba(255,215,0,.1); border:1px solid rgba(255,215,0,.2); color:var(--accent); border-radius:8px; padding:6px; font-size:.8rem; cursor:pointer; font-weight:600;">Acessar Workspace →</button>
+                    <button onclick="window._switchWsById('${w.id}')" style="margin-top:14px; width:100%; background:rgba(255,215,0,.1); border:1px solid rgba(255,215,0,.2); color:var(--accent); border-radius:8px; padding:6px; font-size:.8rem; cursor:pointer; font-weight:600;">Acessar Workspace →</button>
                 `;
                 grid.appendChild(card);
             });
@@ -2888,11 +2902,11 @@ function toggleCrieMenu() {
 const _originalSwitchTab = window.switchTab;
 window.switchTab = function(tab) {
     if (tab.startsWith('crie-')) {
-        // Hide all view sections
-        document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
-        // Show target
+        // Use classList.remove('active') on ALL view-sections (works with !important CSS)
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        // Activate the target view
         const target = document.getElementById('view-' + tab);
-        if (target) target.style.display = 'block';
+        if (target) target.classList.add('active');
         // Update sidebar active state
         document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
         const navItem = document.getElementById('nav-' + tab);

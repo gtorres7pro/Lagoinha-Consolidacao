@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324b">
+    <link rel="stylesheet" href="/hub.css?v=20260324c">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -143,29 +143,29 @@
         }
         .ws-pill {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            gap: 3px;
-            background: var(--accent-dim);
+            gap: 8px;
+            background: rgba(255,215,0,0.06);
             border: 1px solid rgba(255,215,0,0.2);
-            border-radius: var(--radius-sm);
-            padding: 8px 4px;
+            border-radius: 10px;
+            padding: 10px 12px;
             cursor: pointer;
             transition: 0.2s;
             width: 100%;
         }
-        .ws-pill:hover { background: rgba(255,215,0,0.2); }
-        .ws-pill-icon { font-size: 1rem; }
-        .ws-pill-name { font-size: 0.52rem; font-weight: 600; color: var(--accent); text-align: center; letter-spacing: 0.3px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 56px; }
-        .ws-pill-arrow { font-size: 0.5rem; color: rgba(255,215,0,0.6); }
+        .ws-pill:hover { background: rgba(255,215,0,0.12); border-color: rgba(255,215,0,0.4); }
+        .ws-pill-icon { font-size: 0.95rem; flex-shrink:0; }
+        .ws-pill-name { font-size: 0.78rem; font-weight: 700; color: var(--accent); flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ws-pill-arrow { font-size: 0.6rem; color: rgba(255,215,0,0.6); flex-shrink:0; }
         .ws-dropdown {
             position: absolute;
-            left: calc(100% + 6px);
+            left: calc(100% + 8px);
             bottom: 0;
             background: #1a1a1a;
             border: 1px solid var(--card-border);
             border-radius: var(--radius);
-            width: 200px;
+            width: 220px;
             z-index: 500;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -2043,7 +2043,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js"></script>
+    <script src="/hub-dashboard.js?v=20260324c"></script>
 </body>
 </html>
 

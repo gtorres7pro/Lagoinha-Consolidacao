@@ -2,8 +2,378 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Lagoinha HUB</title>
-    <script src="/hub-router.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lagoinha HUB — Plataforma de Consolidação</title>
+    <meta name="description" content="HUB de Consolidação da Lagoinha. Gerencie consolidados, visitantes e membros com inteligência artificial.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <style>
+        :root {
+            --accent: #FFD700;
+            --bg: #0a0a0a;
+            --card: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --text: #ffffff;
+            --dim: rgba(255,255,255,0.5);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Ambient glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            right: -10%;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(255,150,0,0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 40px 24px;
+            max-width: 560px;
+            width: 100%;
+        }
+
+        /* Logo / Brand */
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 48px;
+            animation: fadeUp 0.6s ease both;
+        }
+        .logo-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--accent), #ff9500);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 30px rgba(255,215,0,0.3);
+        }
+        .logo-text { text-align: left; }
+        .logo-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+        .logo-subtitle {
+            font-size: 0.72rem;
+            color: var(--dim);
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* Hero text */
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 18px;
+            animation: fadeUp 0.6s 0.1s ease both;
+        }
+        .hero-title span { color: var(--accent); }
+
+        .hero-sub {
+            font-size: 1rem;
+            color: var(--dim);
+            line-height: 1.7;
+            max-width: 420px;
+            margin-bottom: 48px;
+            animation: fadeUp 0.6s 0.2s ease both;
+        }
+
+        /* Action card */
+        .action-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            width: 100%;
+            max-width: 380px;
+            backdrop-filter: blur(12px);
+            animation: fadeUp 0.6s 0.3s ease both;
+        }
+        .action-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .action-card p {
+            font-size: 0.82rem;
+            color: var(--dim);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: -0.2px;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,215,0,0.35);
+        }
+        .btn-primary:active { transform: translateY(0); }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0 12px;
+            color: var(--dim);
+            font-size: 0.75rem;
+        }
+        .or-divider::before, .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Workspace direct access (for logged in devs) */
+        #quick-access {
+            display: none;
+            width: 100%;
+            max-width: 380px;
+            margin-top: 16px;
+            animation: fadeUp 0.3s ease both;
+        }
+        .ws-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text);
+        }
+        .ws-list-item:hover {
+            border-color: rgba(255,215,0,0.3);
+            background: rgba(255,215,0,0.05);
+        }
+        .ws-name { font-weight: 600; font-size: 0.9rem; }
+        .ws-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: rgba(255,215,0,0.15);
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .ws-arrow { color: var(--dim); font-size: 0.8rem; }
+
+        .loading-spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,215,0,0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 16px auto;
+        }
+
+        /* Footer */
+        .footer-links {
+            margin-top: 48px;
+            display: flex;
+            gap: 24px;
+            font-size: 0.75rem;
+            color: var(--dim);
+            animation: fadeUp 0.6s 0.4s ease both;
+        }
+        .footer-links a { color: var(--dim); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--accent); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(255,215,0,0.15);
+            animation: float linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) scale(1); opacity: 0; }
+        }
+    </style>
 </head>
-<body></body>
+<body>
+
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-wrap">
+            <div class="logo-icon">⛪</div>
+            <div class="logo-text">
+                <div class="logo-title">Lagoinha HUB</div>
+                <div class="logo-subtitle">Plataforma de Consolidação</div>
+            </div>
+        </div>
+
+        <!-- Hero -->
+        <h1 class="hero-title">Nenhuma vida<br>deixada <span>para trás.</span></h1>
+        <p class="hero-sub">
+            Gerencie consolidados, visitantes e membros com inteligência artificial — tudo integrado ao WhatsApp.
+        </p>
+
+        <!-- Action card -->
+        <div class="action-card">
+            <h3>Acesse o seu workspace</h3>
+            <p>Faça login com as suas credenciais para acessar o painel da sua igreja.</p>
+            <a href="/login.html" class="btn-primary">→ Entrar no HUB</a>
+        </div>
+
+        <!-- Quick access (shown if already logged in as master_admin) -->
+        <div id="quick-access">
+            <div class="or-divider">ou acesse diretamente</div>
+            <div id="ws-quick-list">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-links">
+            <a href="/login.html">Login</a>
+            <span>·</span>
+            <span>© 2026 Lagoinha HUB</span>
+            <span>·</span>
+            <a href="mailto:suporte@7pro.tech">Suporte</a>
+        </div>
+    </div>
+
+    <script>
+        // ── Floating particles ambient effect ──
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 6 + 3;
+            p.style.cssText = `
+                width:${size}px; height:${size}px;
+                left:${Math.random()*100}%;
+                animation-duration:${Math.random()*12+8}s;
+                animation-delay:${Math.random()*8}s;
+            `;
+            document.body.appendChild(p);
+        }
+
+        // ── Check if user is already logged in ──
+        const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+
+        (async () => {
+            try {
+                const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) return; // not logged in, show login button only
+
+                const role = session.user.user_metadata?.role || 'user';
+
+                if (role === 'master_admin') {
+                    // Show all workspaces for quick jump
+                    document.getElementById('quick-access').style.display = 'block';
+                    const { data: workspaces } = await sb.from('workspaces')
+                        .select('id, name, slug, status')
+                        .eq('status', 'active')
+                        .order('name');
+
+                    const list = document.getElementById('ws-quick-list');
+                    if (!workspaces || workspaces.length === 0) {
+                        list.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);font-size:0.8rem;">Nenhum workspace ativo</p>';
+                        return;
+                    }
+                    list.innerHTML = workspaces.map(ws => `
+                        <a href="/${ws.slug}/dashboard.html" class="ws-list-item">
+                            <span class="ws-name">🏛 ${ws.name}</span>
+                            <span style="display:flex;align-items:center;gap:8px;">
+                                <span class="ws-badge">${ws.status}</span>
+                                <span class="ws-arrow">→</span>
+                            </span>
+                        </a>
+                    `).join('');
+
+                } else {
+                    // Regular user → redirect directly to their workspace
+                    const { data: userRow } = await sb.from('users')
+                        .select('workspace_id')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    if (userRow?.workspace_id) {
+                        const { data: ws } = await sb.from('workspaces')
+                            .select('slug')
+                            .eq('id', userRow.workspace_id)
+                            .single();
+                        if (ws?.slug) {
+                            window.location.href = `/${ws.slug}/dashboard.html`;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[Landing] session check failed:', e);
+            }
+        })();
+    </script>
+</body>
 </html>
