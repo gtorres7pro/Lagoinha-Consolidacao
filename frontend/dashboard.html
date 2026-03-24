@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324e">
+    <link rel="stylesheet" href="/hub.css?v=20260324f">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -1834,7 +1834,32 @@ REGRAS:
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div><label class="hub-field-label">Local</label><input name="location" required placeholder="Endereço ou link" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
-                        <div><label class="hub-field-label">Preço (€)</label><input name="price" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                        <div>
+                            <label class="hub-field-label">Preço & Moeda</label>
+                            <div style="display:flex; gap:8px;">
+                                <select name="currency" style="width:40%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 6px; color:#fff; font-size:.85rem; outline:none; box-sizing:border-box;">
+                                    <optgroup label="Principais">
+                                        <option value="US$">US$</option>
+                                        <option value="€">Euro (€)</option>
+                                        <option value="R$" selected>Real (R$)</option>
+                                        <option value="CAD$">Canada$</option>
+                                        <option value="£">Libras (£)</option>
+                                    </optgroup>
+                                    <optgroup label="Outras">
+                                        <option value="ARS$">ARS$</option>
+                                        <option value="AUD$">AUD$</option>
+                                        <option value="CHF">CHF</option>
+                                        <option value="CLP$">CLP$</option>
+                                        <option value="COP$">COP$</option>
+                                        <option value="¥">¥ (JPY)</option>
+                                        <option value="MXN$">MXN$</option>
+                                        <option value="PYG">PYG</option>
+                                        <option value="$U">$U (UYU)</option>
+                                    </optgroup>
+                                </select>
+                                <input name="price" type="number" min="0" step="0.01" placeholder="0.00" style="flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;">
+                            </div>
+                        </div>
                     </div>
                     <div><label class="hub-field-label">Status</label>
                         <select name="status" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;">
@@ -2104,7 +2129,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260324e"></script>
+    <script src="/hub-dashboard.js?v=20260324f"></script>
 </body>
 </html>
 

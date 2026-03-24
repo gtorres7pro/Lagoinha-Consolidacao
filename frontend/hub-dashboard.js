@@ -1226,8 +1226,8 @@
                     }
 
                     if(allLeads.length === 0) {
-                        reportError("A base de leads retornou vazia (0 registros).");
-                        return;
+                        console.log("A base de leads retornou 0 registros — base vazia ou nova.");
+                        // DO NOT RETURN! Allow the UI to render with 0 items normally.
                     }
 
                     window._allSaved = allLeads.filter(l => (l.type || 'saved').toLowerCase() === 'saved');
@@ -2640,7 +2640,9 @@ let _overrideTargetId = null;
 // ── G2: Mural de Anúncios ────────────────────────────
 async function loadMural() {
     try {
-        const { data, error } = await _sb
+        const sb = window.supabaseClient;
+        if (!sb) return;
+        const { data, error } = await sb
             .from('announcements')
             .select('*, users(name)')
             .order('created_at', { ascending: false });
@@ -2705,10 +2707,11 @@ async function createAnnouncement() {
     const scope = document.getElementById('ann-scope').value;
     if (!title) { window.showToast && showToast('Título obrigatório', 'error'); return; }
     try {
-        const { error } = await _sb.from('announcements').insert([{
+        const sb = window.supabaseClient;
+        const { error } = await sb.from('announcements').insert([{
             title, body, scope,
             workspace_id: window.currentWorkspaceId || null,
-            author_id: (await _sb.auth.getUser()).data.user?.id
+            author_id: (await sb.auth.getUser()).data.user?.id
         }]);
         if (error) throw error;
         closeAnnouncementModal();
@@ -2723,7 +2726,8 @@ async function createAnnouncement() {
 async function loadWorkspaceSettings() {
     if (!window.currentWorkspaceId) return;
     try {
-        const { data, error } = await _sb
+        const sb = window.supabaseClient;
+        const { data, error } = await sb
             .from('workspaces')
             .select('name, country, knowledge_base')
             .eq('id', window.currentWorkspaceId)
@@ -2747,13 +2751,14 @@ async function saveWorkspaceSettings() {
     const g = id => (document.getElementById(id)?.value || '').trim();
     try {
         // First, get existing knowledge_base so we don't overwrite unrelated fields
-        const { data: ws } = await _sb.from('workspaces').select('knowledge_base').eq('id', window.currentWorkspaceId).single();
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('knowledge_base').eq('id', window.currentWorkspaceId).single();
         const kb = { ...(ws?.knowledge_base || {}) };
         kb.pastor  = g('ws-cfg-pastor');
         kb.address = g('ws-cfg-address');
         kb.phone   = g('ws-cfg-phone');
         kb.social  = { instagram: g('ws-cfg-instagram'), youtube: g('ws-cfg-youtube'), facebook: g('ws-cfg-facebook') };
-        const { error } = await _sb.from('workspaces').update({
+        const { error } = await sb.from('workspaces').update({
             name: g('ws-cfg-name') || undefined,
             country: g('ws-cfg-country') || undefined,
             knowledge_base: kb
@@ -2766,10 +2771,11 @@ async function saveWorkspaceSettings() {
 // ── G5: Dev Menu ─────────────────────────────────────
 async function loadDevView() {
     try {
-        // Fetch all workspaces (master admin bypasses RLS via service_role? No — anon can read if RLS allows master_admin)
-        const { data: allWs } = await _sb.from('workspaces').select('*');
-        const { data: allLeads } = await _sb.from('leads').select('id, workspace_id');
-        const { data: allUsers } = await _sb.from('users').select('id');
+        const sb = window.supabaseClient;
+        // Fetch all workspaces
+        const { data: allWs } = await sb.from('workspaces').select('*');
+        const { data: allLeads } = await sb.from('leads').select('id, workspace_id');
+        const { data: allUsers } = await sb.from('users').select('id');
         _devWorkspaces = allWs || [];
 
         // KPIs
@@ -2850,7 +2856,8 @@ async function saveOverrideModules() {
     const checked = Array.from(document.querySelectorAll('#override-modules-list input:checked')).map(c => c.value);
     const update = { modules: checked };
     if (newPlan) update.plan = newPlan;
-    const { error } = await _sb.from('workspaces').update(update).eq('id', _overrideTargetId);
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('workspaces').update(update).eq('id', _overrideTargetId);
     if (error) { window.showToast && showToast('Erro ao salvar override', 'error'); return; }
     window.showToast && showToast('Override salvo!', 'success');
     closeOverrideModal();
@@ -2963,7 +2970,7 @@ window.switchTab = function(tab) {
 
 // ── Helper: get current workspace_id ───────────────────────
 function getCrieWorkspaceId() {
-    return window._currentUser?.workspace_id || null;
+    return window.currentWorkspaceId || null;
 }
 
 // ── Payment badge helper ────────────────────────────────────
@@ -3232,11 +3239,15 @@ async function loadCrieEventos() {
     const wsId = getCrieWorkspaceId();
     if (!wsId) return;
     const sb = window.supabaseClient;
-    const { data } = await sb
-        .from('crie_events')
-        .select('*, crie_attendees(count)')
-        .eq('workspace_id', wsId)
-        .order('date', { ascending: false });
+    // Do not fail if relation does not exist; try-catch it
+    let data = [];
+    try {
+        const res = await sb.from('crie_events').select('*').eq('workspace_id', wsId).order('date', { ascending: false });
+        if (res.error) throw res.error;
+        data = res.data || [];
+    } catch(e) {
+        console.error('loadCrieEventos:', e);
+    }
     crieEventos = data || [];
     renderCrieEventos(crieEventos);
     // Also populate checkin event selector
@@ -3321,6 +3332,7 @@ async function saveCrieEvento(e) {
         capacity: parseInt(form.capacity.value) || 0,
         location: form.location.value,
         price: parseFloat(form.price.value) || 0,
+        currency: form.currency ? form.currency.value : 'R$',
         status: form.status.value,
     };
     const sb = window.supabaseClient;
