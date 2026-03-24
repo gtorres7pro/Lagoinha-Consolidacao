@@ -24,21 +24,120 @@
                 window.location.href = 'login.html';
                 return;
             }
-            // Populate user info in sidebar
+            // Populate user info in sidebar — load name from public.users table
             const user = session.user;
-            const initials = (user.email || 'U').substring(0, 1).toUpperCase();
-            const avatarEl = document.getElementById('user-avatar-initials');
-            if (avatarEl) avatarEl.textContent = initials;
-            // Show role label from metadata if available
-            const roleEl = document.getElementById('user-role-label');
-            if (roleEl && user.user_metadata?.role) roleEl.textContent = user.user_metadata.role;
+            const userId = user.id;
+            // Fetch name from public.users
+            (async () => {
+                const { data: uRow } = await window.supabaseClient
+                    .from('users')
+                    .select('name, phone, role')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                const name = uRow?.name || user.user_metadata?.full_name || user.email || 'Usuário';
+                const initial = name.substring(0, 1).toUpperCase();
+
+                const avatarEl = document.getElementById('user-avatar-initials');
+                if (avatarEl) avatarEl.textContent = initial;
+
+                const nameEl = document.getElementById('user-display-name');
+                if (nameEl) nameEl.textContent = name;
+
+                const roleEl = document.getElementById('user-role-label');
+                if (roleEl) {
+                    const roleMap = { master_admin: 'Master Admin', church_admin: 'Admin', user: 'Líder' };
+                    roleEl.textContent = roleMap[uRow?.role] || uRow?.role || 'Admin';
+                }
+
+                // Store for profile modal pre-fill
+                window._profileCache = { name, phone: uRow?.phone || '', email: user.email, initial };
+            })();
         })();
 
         // ===== LOGOUT =====
         window.handleLogout = async function() {
-            if (!confirm('Deseja sair da sua conta?')) return;
             await window.supabaseClient.auth.signOut();
-            window.location.href = 'login.html';
+            const slug = window.location.pathname.split('/').filter(Boolean)[0];
+            window.location.href = (slug && !slug.endsWith('.html'))
+                ? `/${slug}/login.html`
+                : '/login.html';
+        };
+
+        // ===== PROFILE MODAL =====
+        window.openProfileModal = function() {
+            const overlay = document.getElementById('profile-modal-overlay');
+            if (!overlay) return;
+            const p = window._profileCache || {};
+            const nameInput = document.getElementById('profile-input-name');
+            const phoneInput = document.getElementById('profile-input-phone');
+            if (nameInput) nameInput.value = p.name || '';
+            if (phoneInput) phoneInput.value = p.phone || '';
+            const headerName = document.getElementById('profile-modal-name-display');
+            const headerEmail = document.getElementById('profile-modal-email-display');
+            const headerAvatar = document.getElementById('profile-modal-avatar');
+            if (headerName) headerName.textContent = p.name || 'Meu Perfil';
+            if (headerEmail) headerEmail.textContent = p.email || '';
+            if (headerAvatar) headerAvatar.textContent = p.initial || 'G';
+            ['profile-input-password','profile-input-password2'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.value = '';
+            });
+            const msg = document.getElementById('profile-modal-msg');
+            if (msg) { msg.textContent = ''; msg.style.color = ''; }
+            overlay.style.display = 'flex';
+        };
+
+        window.closeProfileModal = function() {
+            const overlay = document.getElementById('profile-modal-overlay');
+            if (overlay) overlay.style.display = 'none';
+        };
+
+        document.addEventListener('click', function(e) {
+            const overlay = document.getElementById('profile-modal-overlay');
+            if (overlay && e.target === overlay) window.closeProfileModal();
+        });
+
+        window.saveProfile = async function() {
+            const sb = window.supabaseClient;
+            const msg = document.getElementById('profile-modal-msg');
+            const name = document.getElementById('profile-input-name')?.value.trim();
+            const phone = document.getElementById('profile-input-phone')?.value.trim();
+            const pw1 = document.getElementById('profile-input-password')?.value;
+            const pw2 = document.getElementById('profile-input-password2')?.value;
+
+            if (!name) { msg.style.color='#ff6b6b'; msg.textContent='O nome não pode ficar vazio.'; return; }
+            if (pw1 && pw1 !== pw2) { msg.style.color='#ff6b6b'; msg.textContent='As senhas não coincidem.'; return; }
+            if (pw1 && pw1.length < 6) { msg.style.color='#ff6b6b'; msg.textContent='A senha deve ter pelo menos 6 caracteres.'; return; }
+
+            msg.style.color='var(--text-dim)'; msg.textContent='Salvando...';
+
+            try {
+                const { data: { user } } = await sb.auth.getUser();
+                const { error: dbErr } = await sb.from('users').update({ name, phone }).eq('id', user.id);
+                if (dbErr) throw dbErr;
+
+                if (pw1) {
+                    const { error: pwErr } = await sb.auth.updateUser({ password: pw1 });
+                    if (pwErr) throw pwErr;
+                }
+
+                // Update sidebar
+                const nameEl = document.getElementById('user-display-name');
+                if (nameEl) nameEl.textContent = name;
+                const avatarEl = document.getElementById('user-avatar-initials');
+                if (avatarEl) avatarEl.textContent = name.substring(0,1).toUpperCase();
+                const headerName = document.getElementById('profile-modal-name-display');
+                if (headerName) headerName.textContent = name;
+                const headerAvatar = document.getElementById('profile-modal-avatar');
+                if (headerAvatar) headerAvatar.textContent = name.substring(0,1).toUpperCase();
+
+                window._profileCache = { ...window._profileCache, name, phone, initial: name.substring(0,1).toUpperCase() };
+
+                msg.style.color='#4ade80'; msg.textContent='✓ Alterações salvas com sucesso!';
+                setTimeout(() => window.closeProfileModal(), 1500);
+            } catch(e) {
+                msg.style.color='#ff6b6b'; msg.textContent='Erro: ' + e.message;
+            }
         };
 
         // ===== BOTTOM NAV SYNC =====

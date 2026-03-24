@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324l">
+    <link rel="stylesheet" href="/hub.css?v=20260324m">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -160,15 +160,16 @@
         .ws-pill-arrow { font-size: 0.6rem; color: rgba(255,215,0,0.6); flex-shrink:0; }
         .ws-dropdown {
             position: absolute;
-            left: calc(100% + 8px);
-            bottom: 0;
+            left: 8px;
+            right: 8px;
+            bottom: calc(100% + 6px);
             background: #1a1a1a;
             border: 1px solid var(--card-border);
             border-radius: var(--radius);
-            width: 220px;
+            width: auto;
             z-index: 500;
             overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
             display: none;
         }
         .ws-dropdown.open { display: block; }
@@ -779,14 +780,62 @@
             </button>
         </div>
 
-        <div class="user">
-            <div class="user-avatar" id="user-avatar-initials" title="Sair" onclick="handleLogout()" style="cursor:pointer;">G</div>
+        <div class="user" id="user-card" onclick="openProfileModal()" style="cursor:pointer;" title="Editar perfil">
+            <div class="user-avatar" id="user-avatar-initials">G</div>
             <div class="user-info">
-                <div class="user-name" id="user-display-name">Usuário</div>
+                <div class="user-name" id="user-display-name">Carregando...</div>
                 <div class="user-label" id="user-role-label">Admin</div>
+            </div>
+            <div style="margin-left:auto; padding-left:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
             </div>
         </div>
     </aside>
+
+    <!-- ═══ PROFILE MODAL ═══ -->
+    <div id="profile-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); z-index:9200; align-items:center; justify-content:center;">
+        <div style="background:#111; border:1px solid rgba(255,215,0,0.18); border-radius:20px; width:100%; max-width:420px; margin:16px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.7);">
+            <!-- Header -->
+            <div style="padding:20px 24px 16px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:14px;">
+                <div id="profile-modal-avatar" style="width:46px;height:46px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0;">G</div>
+                <div>
+                    <div style="font-weight:700;font-size:1rem;color:#fff;" id="profile-modal-name-display">Meu Perfil</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);" id="profile-modal-email-display"></div>
+                </div>
+                <button onclick="closeProfileModal()" style="margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px;">✕</button>
+            </div>
+            <!-- Body -->
+            <div style="padding:20px 24px; display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label style="font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Nome completo</label>
+                    <input id="profile-input-name" type="text" placeholder="Seu nome" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+                <div>
+                    <label style="font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Telefone / WhatsApp</label>
+                    <input id="profile-input-phone" type="tel" placeholder="+1 (407) 000-0000" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:0;">
+                <div>
+                    <label style="font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Nova senha (opcional)</label>
+                    <input id="profile-input-password" type="password" placeholder="Deixe em branco para manter" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+                <div>
+                    <label style="font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Confirmar nova senha</label>
+                    <input id="profile-input-password2" type="password" placeholder="Repita a nova senha" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+                <div id="profile-modal-msg" style="font-size:0.8rem;min-height:18px;text-align:center;"></div>
+                <button onclick="saveProfile()" style="background:var(--accent);color:#000;font-weight:700;font-size:0.88rem;border:none;border-radius:12px;padding:12px;cursor:pointer;font-family:var(--font);transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                    Salvar Alterações
+                </button>
+            </div>
+            <!-- Footer: logout link -->
+            <div style="padding:12px 24px 20px; text-align:center;">
+                <a href="#" onclick="handleLogout(); return false;" style="font-size:0.78rem; color:#ff6b6b; text-decoration:none; opacity:.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
+                    ⏻ &nbsp;Sair da conta
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="main">
@@ -2129,7 +2178,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260324l"></script>
+    <script src="/hub-dashboard.js?v=20260324m"></script>
 </body>
 </html>
 
