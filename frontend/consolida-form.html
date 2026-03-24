@@ -219,8 +219,23 @@
 
         <!-- Form Content Area -->
         <div class="form-content">
+            <!-- G1: Email Duplicate Popup (blocking) -->
+            <div id="email-duplicate-popup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(12px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+                <div style="background:#1a1a1a; border:1px solid rgba(255,215,0,.3); border-radius:20px; padding:32px; max-width:420px; width:100%; text-align:center; animation: fadeInUp .3s ease;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,215,0,.1); border:1.5px solid rgba(255,215,0,.3); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+                        <svg viewBox="0 0 24 24" width="22" height="22" style="stroke:#FFD700;fill:none;stroke-width:1.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:10px; color:#fff;">Este email já está registrado</h3>
+                    <p style="font-size:.85rem; color:#999; margin-bottom:6px;">Parece que você já faz parte da nossa família!</p>
+                    <p style="font-size:.82rem; color:#666; margin-bottom:24px;">Usamos o email como identificador único em toda a sua jornada.<br>Fale com nossa equipe para qualquer ajuda.</p>
+                    <a href="https://wa.me/14078165596?text=Olá,%20quero%20atualizar%20meu%20cadastro" target="_blank" style="display:block; background:rgba(37,211,102,.1); border:1px solid rgba(37,211,102,.3); color:#25D366; padding:10px; border-radius:10px; font-size:.82rem; font-weight:600; text-decoration:none; margin-bottom:10px;">Falar com a Equipe no WhatsApp</a>
+                    <button onclick="document.getElementById('email-duplicate-popup').style.display='none'" style="width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:#aaa; padding:10px; border-radius:10px; font-size:.82rem; cursor:pointer;">Fechar e usar outro email</button>
+                </div>
+            </div>
+
             <!-- Success Screen -->
             <div class="success-overlay" id="successScreen">
+
                 <h3 data-i18n="success_title" style="color: var(--accent-color); font-size: 2rem;">Obrigado!</h3>
                 <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
                 <p style="font-weight: 600;"><span data-i18n="redirecting">Redirecionando em</span> <span id="countdown">3</span>...</p>
@@ -696,7 +711,30 @@
                     tasks: [{"task_name": "Boas Vindas", "status": "pending", "assigned_to": "ai"}]
                 };
 
+                // ── G1: Email Duplicate Check (Consolidação blocks duplicates) ──
+                const emailInput = document.getElementById('email').value.trim().toLowerCase();
+                if (emailInput) {
+                    const { data: existing } = await supabase
+                        .from('leads')
+                        .select('id')
+                        .eq('workspace_id', workspaceId)
+                        .eq('email', emailInput)
+                        .eq('type', 'saved')
+                        .maybeSingle();
+                    if (existing) {
+                        // Restore button
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        // Show elegant duplicate popup
+                        document.getElementById('email-duplicate-popup').style.display = 'flex';
+                        return;
+                    }
+                }
+                // ── End G1 ──────────────────────────────────────────────────────
+
                 const { data, error } = await supabase.from('leads').insert([leadData]).select();
+
                 if (error) throw error;
                 
                 document.getElementById('successScreen').classList.add('active');

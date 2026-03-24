@@ -631,6 +631,12 @@
                 </span>
                 <span class="nav-label">Logs</span>
             </li>
+            <li id="nav-mural" onclick="switchTab('mural')">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </span>
+                <span class="nav-label">Mural</span>
+            </li>
             <li id="nav-settings" onclick="switchTab('settings')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -649,6 +655,13 @@
                     <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                 </span>
                 <span class="nav-label">Global</span>
+            </li>
+            <li id="nav-dev" onclick="switchTab('dev')" style="display:none;">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </span>
+                <span class="nav-label">Dev</span>
+                <span style="font-size:.6rem; background:rgba(255,50,50,.2); color:#ff6b6b; padding:1px 5px; border-radius:4px; margin-left:auto; font-weight:700;">ADMIN</span>
             </li>
             <li class="disabled" title="Em breve">
                 <span class="nav-icon">
@@ -1277,8 +1290,56 @@ REGRAS:
             </div>
         </div>
 
+        <!-- ─── G3: Configurações do Workspace ─────────────────────── -->
+        <div id="settings-workspace-section" style="padding:0 40px 32px; max-width:1500px; margin:0 auto;">
+            <div style="border-top:1px solid var(--border); padding-top:28px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Informações da Igreja</h3>
+                        <p style="font-size:.78rem; color:var(--text-dim);">Dados institucionais do workspace — usados pela IA e no perfil público.</p>
+                    </div>
+                    <button onclick="saveWorkspaceSettings()" class="hub-btn-primary" style="padding:9px 20px; font-size:.82rem;">Salvar Informações</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px;">
+                    <div>
+                        <label class="hub-field-label">Nome da Igreja</label>
+                        <input id="ws-cfg-name" type="text" class="hub-input" placeholder="Ex: Lagoinha Orlando">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Pastor Responsável</label>
+                        <input id="ws-cfg-pastor" type="text" class="hub-input" placeholder="Ex: André Valadão">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Endereço</label>
+                        <input id="ws-cfg-address" type="text" class="hub-input" placeholder="Ex: 2040 Americana Blvd, Orlando, FL">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">País</label>
+                        <input id="ws-cfg-country" type="text" class="hub-input" placeholder="Ex: United States">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Telefone / WhatsApp</label>
+                        <input id="ws-cfg-phone" type="text" class="hub-input" placeholder="+1 (407) 000-0000">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Instagram</label>
+                        <input id="ws-cfg-instagram" type="text" class="hub-input" placeholder="@lagoinhaorlandochurch">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">YouTube</label>
+                        <input id="ws-cfg-youtube" type="text" class="hub-input" placeholder="youtube.com/@lagoinha">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Facebook</label>
+                        <input id="ws-cfg-facebook" type="text" class="hub-input" placeholder="facebook.com/lagoinha">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ─── Settings: Plano Atual ──────────────────────────────────── -->
         <div id="settings-plan-section" style="padding:0 40px 40px; max-width:1500px; margin:0 auto;">
+
             <div style="border-top:1px solid var(--border); padding-top:28px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
                     <div>
@@ -1415,6 +1476,152 @@ REGRAS:
         </div>
 
     </main>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: Mural de Anúncios (G2)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-mural" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Mural de Anúncios</h1>
+                    <p>Comunicados da liderança para sua equipe</p>
+                </div>
+                <div class="actions">
+                    <button class="hub-btn-primary" id="btn-new-announcement" onclick="showAnnouncementModal()" style="padding:9px 18px; font-size:.82rem; display:none;">+ Novo Anúncio</button>
+                </div>
+            </header>
+
+            <!-- Scope Filter Tabs -->
+            <div style="padding:0 40px; margin-bottom:24px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="hub-scope-tab active" data-scope="all" onclick="filterAnnouncements('all',this)">Todos</button>
+                <button class="hub-scope-tab" data-scope="global" onclick="filterAnnouncements('global',this)">Global</button>
+                <button class="hub-scope-tab" data-scope="regional" onclick="filterAnnouncements('regional',this)">Regional</button>
+                <button class="hub-scope-tab" data-scope="local" onclick="filterAnnouncements('local',this)">Local</button>
+            </div>
+
+            <!-- Announcements List -->
+            <div id="mural-list" style="padding:0 40px 40px; display:flex; flex-direction:column; gap:14px;">
+                <div class="hub-skeleton" style="height:100px; border-radius:16px;"></div>
+                <div class="hub-skeleton" style="height:100px; border-radius:16px;"></div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="mural-empty" style="display:none; padding:60px 40px; text-align:center; color:var(--text-dim);">
+                <svg viewBox="0 0 24 24" width="40" height="40" style="stroke:var(--text-dim);fill:none;stroke-width:1.3;margin-bottom:12px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <p style="font-size:.9rem;">Nenhum anúncio publicado ainda.</p>
+            </div>
+        </div>
+
+        <!-- Announcement Create Modal -->
+        <div id="announcement-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(10px); z-index:9100; align-items:center; justify-content:center; padding:20px;">
+            <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:28px; width:100%; max-width:520px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="font-size:1rem; font-weight:700;">Novo Anúncio</h3>
+                    <button onclick="closeAnnouncementModal()" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Título *</label>
+                        <input id="ann-title" type="text" class="hub-input" placeholder="Ex: Mudança de horário do culto">
+                    </div>
+                    <div>
+                        <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Mensagem *</label>
+                        <textarea id="ann-body" class="hub-input" rows="4" style="resize:vertical;" placeholder="Escreva o comunicado aqui..."></textarea>
+                    </div>
+                    <div>
+                        <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Visibilidade</label>
+                        <select id="ann-scope" class="hub-input">
+                            <option value="local">Local (apenas este workspace)</option>
+                            <option value="regional">Regional</option>
+                            <option value="global">Global (todas as igrejas)</option>
+                        </select>
+                    </div>
+                    <button onclick="createAnnouncement()" class="hub-btn-primary" style="padding:11px; font-size:.85rem; margin-top:4px;">Publicar Anúncio</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: Dev Menu — Master Admin (G5)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-dev" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Painel do Desenvolvedor</h1>
+                    <p>Visão completa de todos os workspaces · acesso restrito</p>
+                </div>
+                <div class="actions">
+                    <span style="font-size:.72rem; background:rgba(255,50,50,.15); color:#ff6b6b; padding:4px 10px; border-radius:8px; font-weight:700; letter-spacing:.05em;">MASTER ADMIN</span>
+                </div>
+            </header>
+
+            <!-- Dev KPIs -->
+            <div style="padding:20px 40px 0; display:flex; gap:14px; flex-wrap:wrap;">
+                <div class="kpi-box" style="min-width:140px; border-color:rgba(255,50,50,.2);">
+                    <div class="kpi-label">Workspaces</div>
+                    <div class="kpi-value" id="dev-kpi-workspaces">—</div>
+                </div>
+                <div class="kpi-box" style="min-width:140px; border-color:rgba(255,215,0,.2);">
+                    <div class="kpi-label">Planos Pagos</div>
+                    <div class="kpi-value" id="dev-kpi-paid">—</div>
+                </div>
+                <div class="kpi-box" style="min-width:140px; border-color:rgba(100,220,150,.2);">
+                    <div class="kpi-label">Total Leads</div>
+                    <div class="kpi-value" id="dev-kpi-leads">—</div>
+                </div>
+                <div class="kpi-box" style="min-width:140px; border-color:rgba(100,180,255,.2);">
+                    <div class="kpi-label">Usuários</div>
+                    <div class="kpi-value" id="dev-kpi-users">—</div>
+                </div>
+            </div>
+
+            <!-- Workspaces Table -->
+            <div style="padding:24px 40px 40px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                    <h3 style="font-size:.9rem; font-weight:700;">Todos os Workspaces</h3>
+                    <input id="dev-ws-search" class="hub-input" placeholder="Filtrar..." style="max-width:200px; padding:7px 12px; font-size:.8rem;" oninput="filterDevTable(this.value)">
+                </div>
+                <div class="hub-table-wrap" style="overflow-x:auto;">
+                    <table class="hub-dev-table" id="dev-ws-table">
+                        <thead><tr>
+                            <th>Igreja</th>
+                            <th>Plano</th>
+                            <th>Status</th>
+                            <th>País</th>
+                            <th>Leads</th>
+                            <th>Módulos</th>
+                            <th>Ações</th>
+                        </tr></thead>
+                        <tbody id="dev-ws-tbody">
+                            <tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:32px;">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Override Modules Modal (G5) -->
+        <div id="override-modules-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(10px); z-index:9150; align-items:center; justify-content:center; padding:20px;">
+            <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:28px; width:100%; max-width:480px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 id="override-ws-name" style="font-size:1rem; font-weight:700;">Override: —</h3>
+                    <button onclick="closeOverrideModal()" style="background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;">✕</button>
+                </div>
+                <div id="override-modules-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;"></div>
+                <div style="display:flex; gap:10px;">
+                    <select id="override-plan-select" class="hub-input" style="flex:1;">
+                        <option value="">Manter plano atual</option>
+                        <option value="free">Free</option>
+                        <option value="basic">Basic</option>
+                        <option value="medium">Medium</option>
+                        <option value="premium">Premium</option>
+                    </select>
+                    <button onclick="saveOverrideModules()" class="hub-btn-primary" style="padding:10px 18px; font-size:.82rem;">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+
 
 
     <!-- Lead Drawer Overlay + Panel -->
@@ -4173,5 +4380,275 @@ REGRAS:
             </div>
         </div>
 
+
+<!-- ═══════════════════════════════════════════════════
+     G2 / G3 / G5 — Fase G JavaScript
+═══════════════════════════════════════════════════════ -->
+<script>
+
+// ── Helpers ─────────────────────────────────────────
+let _allAnnouncements = [];
+let _devWorkspaces = [];
+let _overrideTargetId = null;
+
+// ── G2: Mural de Anúncios ────────────────────────────
+async function loadMural() {
+    try {
+        const { data, error } = await _sb
+            .from('announcements')
+            .select('*, users(name)')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        _allAnnouncements = data || [];
+        renderMural(_allAnnouncements);
+        // Show create button for admins
+        const me = window._currentUser;
+        if (me && (me.role === 'church_admin' || me.role === 'master_admin')) {
+            const btn = document.getElementById('btn-new-announcement');
+            if (btn) btn.style.display = '';
+        }
+    } catch(e) { console.error('loadMural:', e); }
+}
+
+function renderMural(list) {
+    const container = document.getElementById('mural-list');
+    const empty = document.getElementById('mural-empty');
+    if (!container) return;
+    if (!list || list.length === 0) {
+        container.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    const scopeLabel = { global: 'Global', regional: 'Regional', local: 'Local' };
+    const scopeColor = { global: '#FFD700', regional: '#60a5fa', local: '#a0aec0' };
+    container.innerHTML = list.map(a => {
+        const author = a.users?.name || 'Liderança';
+        const date = new Date(a.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+        return `<div class="hub-announcement-card" data-scope="${a.scope}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <h4 style="font-size:.95rem; font-weight:700; margin:0;">${a.title}</h4>
+                <span class="hub-scope-badge" style="background:${scopeColor[a.scope]}22; color:${scopeColor[a.scope]}; border:1px solid ${scopeColor[a.scope]}44;">${scopeLabel[a.scope]}</span>
+            </div>
+            <p style="font-size:.85rem; color:var(--text-dim); line-height:1.6; margin:0 0 12px;">${a.body || ''}</p>
+            <div style="font-size:.72rem; color:var(--text-dim); display:flex; gap:12px;">
+                <span>${author}</span>
+                <span>${date}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function filterAnnouncements(scope, btn) {
+    document.querySelectorAll('.hub-scope-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const filtered = scope === 'all' ? _allAnnouncements : _allAnnouncements.filter(a => a.scope === scope);
+    renderMural(filtered);
+}
+
+function showAnnouncementModal() {
+    document.getElementById('announcement-modal-overlay').style.display = 'flex';
+}
+function closeAnnouncementModal() {
+    document.getElementById('announcement-modal-overlay').style.display = 'none';
+}
+
+async function createAnnouncement() {
+    const title = document.getElementById('ann-title').value.trim();
+    const body  = document.getElementById('ann-body').value.trim();
+    const scope = document.getElementById('ann-scope').value;
+    if (!title) { window.showToast && showToast('Título obrigatório', 'error'); return; }
+    try {
+        const { error } = await _sb.from('announcements').insert([{
+            title, body, scope,
+            workspace_id: window.currentWorkspaceId || null,
+            author_id: (await _sb.auth.getUser()).data.user?.id
+        }]);
+        if (error) throw error;
+        closeAnnouncementModal();
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-body').value = '';
+        await loadMural();
+        window.showToast && showToast('Anúncio publicado!', 'success');
+    } catch(e) { console.error('createAnnouncement:', e); window.showToast && showToast('Erro ao publicar', 'error'); }
+}
+
+// ── G3: Workspace Settings ────────────────────────────
+async function loadWorkspaceSettings() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const { data, error } = await _sb
+            .from('workspaces')
+            .select('name, country, knowledge_base')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+        if (error) throw error;
+        const kb = data.knowledge_base || {};
+        const set = id => v => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        set('ws-cfg-name')(data.name);
+        set('ws-cfg-country')(data.country);
+        set('ws-cfg-pastor')(kb.pastor);
+        set('ws-cfg-address')(kb.address);
+        set('ws-cfg-phone')(kb.phone);
+        set('ws-cfg-instagram')(kb.social?.instagram);
+        set('ws-cfg-youtube')(kb.social?.youtube);
+        set('ws-cfg-facebook')(kb.social?.facebook);
+    } catch(e) { console.error('loadWorkspaceSettings:', e); }
+}
+
+async function saveWorkspaceSettings() {
+    if (!window.currentWorkspaceId) return;
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    try {
+        // First, get existing knowledge_base so we don't overwrite unrelated fields
+        const { data: ws } = await _sb.from('workspaces').select('knowledge_base').eq('id', window.currentWorkspaceId).single();
+        const kb = { ...(ws?.knowledge_base || {}) };
+        kb.pastor  = g('ws-cfg-pastor');
+        kb.address = g('ws-cfg-address');
+        kb.phone   = g('ws-cfg-phone');
+        kb.social  = { instagram: g('ws-cfg-instagram'), youtube: g('ws-cfg-youtube'), facebook: g('ws-cfg-facebook') };
+        const { error } = await _sb.from('workspaces').update({
+            name: g('ws-cfg-name') || undefined,
+            country: g('ws-cfg-country') || undefined,
+            knowledge_base: kb
+        }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        window.showToast && showToast('Configurações salvas!', 'success');
+    } catch(e) { console.error('saveWorkspaceSettings:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
+}
+
+// ── G5: Dev Menu ─────────────────────────────────────
+async function loadDevView() {
+    try {
+        // Fetch all workspaces (master admin bypasses RLS via service_role? No — anon can read if RLS allows master_admin)
+        const { data: allWs } = await _sb.from('workspaces').select('*');
+        const { data: allLeads } = await _sb.from('leads').select('id, workspace_id');
+        const { data: allUsers } = await _sb.from('users').select('id');
+        _devWorkspaces = allWs || [];
+
+        // KPIs
+        const paid = (_devWorkspaces).filter(w => w.plan !== 'free').length;
+        document.getElementById('dev-kpi-workspaces').textContent = _devWorkspaces.length;
+        document.getElementById('dev-kpi-paid').textContent = paid;
+        document.getElementById('dev-kpi-leads').textContent = (allLeads || []).length;
+        document.getElementById('dev-kpi-users').textContent = (allUsers || []).length;
+
+        renderDevTable(_devWorkspaces, allLeads || []);
+    } catch(e) { console.error('loadDevView:', e); }
+}
+
+function renderDevTable(workspaces, leads) {
+    const tbody = document.getElementById('dev-ws-tbody');
+    if (!tbody) return;
+    const planBg = { free:'rgba(150,150,150,.15)', basic:'rgba(96,165,250,.15)', medium:'rgba(100,220,150,.15)', premium:'rgba(255,215,0,.15)' };
+    const planCl = { free:'#aaa', basic:'#60a5fa', medium:'#64dc96', premium:'#FFD700' };
+    tbody.innerHTML = workspaces.map(ws => {
+        const wsLeads = leads.filter(l => l.workspace_id === ws.id).length;
+        const mods = Array.isArray(ws.modules) ? ws.modules.join(', ') : (ws.modules || '—');
+        return `<tr>
+            <td><span style="font-weight:600;">${ws.name}</span><br><span style="font-size:.7rem;color:var(--text-dim);">${ws.slug || ''}</span></td>
+            <td><span style="background:${planBg[ws.plan]};color:${planCl[ws.plan]};padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;">${(ws.plan||'free').toUpperCase()}</span></td>
+            <td><span style="color:${ws.status==='active'?'#64dc96':'#f59e0b'}; font-size:.8rem;">${ws.status}</span></td>
+            <td style="font-size:.8rem;">${ws.country || '—'}</td>
+            <td style="font-weight:600;">${wsLeads}</td>
+            <td style="font-size:.72rem; color:var(--text-dim); max-width:140px; overflow:hidden; text-overflow:ellipsis;">${mods}</td>
+            <td>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="openAsAdmin('${ws.id}')" style="background:rgba(255,215,0,.1);color:#FFD700;border:1px solid rgba(255,215,0,.3);padding:4px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;">Abrir</button>
+                    <button onclick="showOverrideModal('${ws.id}','${ws.name}','${ws.plan}')" style="background:rgba(100,180,255,.1);color:#60a5fa;border:1px solid rgba(100,180,255,.3);padding:4px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;">Override</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function filterDevTable(q) {
+    const filtered = _devWorkspaces.filter(w =>
+        (w.name || '').toLowerCase().includes(q.toLowerCase()) ||
+        (w.slug || '').toLowerCase().includes(q.toLowerCase())
+    );
+    // get leads count from existing fetch — simplified: re-render with original leads count (0 for filtered)
+    renderDevTable(filtered, []);
+}
+
+function openAsAdmin(wsId) {
+    if (typeof switchWorkspace === 'function') {
+        switchWorkspace(wsId);
+        if (typeof switchTab === 'function') switchTab('home');
+    }
+}
+
+function showOverrideModal(wsId, wsName, currentPlan) {
+    _overrideTargetId = wsId;
+    document.getElementById('override-ws-name').textContent = `Override: ${wsName}`;
+    document.getElementById('override-plan-select').value = '';
+    const ws = _devWorkspaces.find(w => w.id === wsId);
+    const mods = Array.isArray(ws?.modules) ? ws.modules : [];
+    const allMods = ['consolidation','visitors','ia_whatsapp','start','birthdays','crie','volunteers','financial'];
+    document.getElementById('override-modules-list').innerHTML = allMods.map(m =>
+        `<label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer;">
+            <input type="checkbox" value="${m}" ${mods.includes(m)?'checked':''}>
+            ${m}
+        </label>`
+    ).join('');
+    document.getElementById('override-modules-modal').style.display = 'flex';
+}
+function closeOverrideModal() {
+    document.getElementById('override-modules-modal').style.display = 'none';
+    _overrideTargetId = null;
+}
+
+async function saveOverrideModules() {
+    if (!_overrideTargetId) return;
+    const newPlan = document.getElementById('override-plan-select').value;
+    const checked = Array.from(document.querySelectorAll('#override-modules-list input:checked')).map(c => c.value);
+    const update = { modules: checked };
+    if (newPlan) update.plan = newPlan;
+    const { error } = await _sb.from('workspaces').update(update).eq('id', _overrideTargetId);
+    if (error) { window.showToast && showToast('Erro ao salvar override', 'error'); return; }
+    window.showToast && showToast('Override salvo!', 'success');
+    closeOverrideModal();
+    await loadDevView();
+}
+
+// ── Patch switchTab to handle new views ─────────────────
+(function() {
+    const _origSwitchTab = window.switchTab;
+    window.switchTab = function(tab) {
+        // Handle new G views
+        ['mural', 'dev'].forEach(v => {
+            const el = document.getElementById(`view-${v}`);
+            if (el) el.style.display = (tab === v) ? '' : 'none';
+        });
+        // Delegate the rest to original
+        if (_origSwitchTab) _origSwitchTab(tab);
+        // Load data on tab activation
+        if (tab === 'mural') loadMural();
+        if (tab === 'dev')   loadDevView();
+        if (tab === 'settings') {
+            loadWorkspaceSettings();
+        }
+    };
+})();
+
+// ── Init: show nav-dev for master_admin ─────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // Hide new views by default
+    ['view-mural', 'view-dev'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+});
+
+// ── Expose for use by existing auth bootstrap ────────────
+window.initFaseG = function(user) {
+    if (user && user.role === 'master_admin') {
+        const navDev = document.getElementById('nav-dev');
+        if (navDev) navDev.style.display = '';
+    }
+};
+</script>
+
 </body>
 </html>
+

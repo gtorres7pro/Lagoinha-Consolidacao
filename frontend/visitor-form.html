@@ -154,8 +154,11 @@
             <div class="success-overlay" id="successScreen">
                 <h3 data-i18n="success_title" style="color: var(--accent-color); font-size: 2rem;">Obrigado!</h3>
                 <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
+                <!-- G1: Welcome-back note (hidden by default, shown when email already exists) -->
+                <p id="success-welcome-note" style="display:none; font-size:.85rem; color:#64dc96; margin-top:6px; background:rgba(100,220,150,.08); padding:8px 14px; border-radius:8px; border:1px solid rgba(100,220,150,.2);">Bem-vindo(a) de volta! Sua nova visita foi registrada no seu perfil existente.</p>
                 <p style="font-weight: 600;"><span data-i18n="redirecting">Redirecionando em</span> <span id="countdown">3</span>...</p>
             </div>
+
 
             <div class="header">
         <div class="logo-placeholder">
@@ -584,7 +587,41 @@
                     tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
                 };
 
+                // ── G1: Email Duplicate Check (Visitantes → merge on existing lead) ──
+                const emailInput = document.getElementById('email').value.trim().toLowerCase();
+                if (emailInput) {
+                    const { data: existingLead } = await supabase
+                        .from('leads')
+                        .select('id, tasks')
+                        .eq('workspace_id', workspaceId)
+                        .eq('email', emailInput)
+                        .maybeSingle();
+                    if (existingLead) {
+                        // Append new visit task to existing lead
+                        const taskList = Array.isArray(existingLead.tasks) ? existingLead.tasks : [];
+                        taskList.push({ task_name: 'Nova Visita Registrada', status: 'pending', assigned_to: 'human' });
+                        await supabase.from('leads').update({
+                            last_interaction: new Date().toISOString(),
+                            tasks: taskList
+                        }).eq('id', existingLead.id);
+                        // Show welcome-back success
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        document.getElementById('successScreen').classList.add('active');
+                        const welcomeMsg = document.getElementById('success-welcome-note');
+                        if (welcomeMsg) welcomeMsg.style.display = 'block';
+                        let count = 3;
+                        const interval = setInterval(() => {
+                            count--;
+                            document.getElementById('countdown').innerText = count;
+                            if (count <= 0) { clearInterval(interval); window.location.href = 'https://www.lagoinhaorlandochurch.com'; }
+                        }, 1000);
+                        return;
+                    }
+                }
+                // ── End G1 ──────────────────────────────────────────────────────
+
                 const { data, error } = await supabase.from('leads').insert([leadData]).select();
+
                 if (error) throw error;
                 
                 window.scrollTo({ top: 0, behavior: "smooth" });

@@ -1046,3 +1046,24 @@ body {
 .hub-plan-cta-outline { background: rgba(255,255,255,.06); color: var(--text-main); border: 1px solid var(--border); }
 .hub-plan-cta-premium { background: var(--accent); color: #000; }
 
+/* ─────────────────────────────────────────────
+   Fase G — G2 / G3 / G5
+─────────────────────────────────────────────── */
+.hub-announcement-card {
+  background: var(--card-bg, #111); border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 16px; padding: 20px; transition: border-color .2s, transform .15s;
+}
+.hub-announcement-card:hover { border-color: rgba(255,215,0,.3); transform: translateY(-1px); }
+.hub-scope-badge { font-size:.68rem; font-weight:700; padding:2px 10px; border-radius:6px; white-space:nowrap; letter-spacing:.04em; flex-shrink:0; }
+.hub-scope-tab { background:rgba(255,255,255,.05); border:1px solid var(--border,rgba(255,255,255,.1)); color:var(--text-dim,#7a7a8c); padding:7px 16px; border-radius:20px; font-size:.8rem; font-weight:600; cursor:pointer; transition:all .15s; }
+.hub-scope-tab:hover { border-color:rgba(255,215,0,.4); color:#FFD700; }
+.hub-scope-tab.active { background:rgba(255,215,0,.12); border-color:rgba(255,215,0,.5); color:#FFD700; }
+.hub-dev-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.hub-dev-table thead tr { background:rgba(255,255,255,.03); }
+.hub-dev-table th { text-align:left; padding:10px 14px; font-size:.72rem; font-weight:700; letter-spacing:.06em; color:var(--text-dim,#7a7a8c); border-bottom:1px solid rgba(255,255,255,.06); text-transform:uppercase; }
+.hub-dev-table td { padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.hub-dev-table tbody tr:hover { background:rgba(255,215,0,.03); }
+.hub-table-wrap { border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; }
+.hub-field-label { display:block; font-size:.75rem; font-weight:600; color:var(--text-dim,#7a7a8c); margin-bottom:6px; letter-spacing:.02em; }
+
+
