@@ -1224,9 +1224,17 @@
 
             window.fetchLiveLeads = async function() {
                 try {
+                    const sb = window.supabaseClient;
+                    if (!sb) { console.error('fetchLiveLeads: supabaseClient not ready'); return; }
+
+                    const wsId = window.currentWorkspaceId;
+                    if (!wsId) { console.warn('fetchLiveLeads: no currentWorkspaceId — waiting and retrying'); 
+                        setTimeout(() => { if (window.currentWorkspaceId) window.fetchLiveLeads(); }, 500);
+                        return; 
+                    }
+
                     const leadsContainer = document.getElementById('leads-container');
                     const visitorContainer = document.getElementById('visitors-container');
-                    // Skeleton shimmer while loading
                     const skeletonRows = Array.from({length:6}, () =>
                         `<div class="hub-skeleton hub-skeleton-row"></div>`
                     ).join('');
@@ -1239,13 +1247,15 @@
                     let hasMore = true;
 
                     while(hasMore) {
-                        const { data, error } = await supabase.from('leads')
+                        // CRITICAL: Always filter by workspace_id to avoid cross-contamination
+                        const { data, error } = await sb.from('leads')
                                 .select('*')
+                                .eq('workspace_id', wsId)
                                 .order('created_at', { ascending: false })
                                 .range(start, start + step - 1);
                         
                         if (error) { 
-                            reportError("Erro de acesso ao banco Supabase: " + error.message);
+                            console.error('fetchLiveLeads error:', error.message);
                             return; 
                         }
 
