@@ -50,7 +50,9 @@
 
         // ===== WORKSPACE SWITCHER ENGINE =====
         window.currentWorkspaceId = null;
-        let _allWorkspaces = [];
+        window._allWorkspaces = [];
+        // Keep local alias for backward compat
+        let _allWorkspaces = window._allWorkspaces;
 
         // Load all accessible workspaces for this user
         window.loadWorkspaces = async function() {
@@ -67,33 +69,43 @@
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data } = await sb.from('workspaces').select('id, name, status').order('name');
+                    const { data } = await sb.from('workspaces').select('id, name, slug, status').order('name');
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
                     const { data: userRow } = await sb.from('users').select('workspace_id, level, regional_id, global_id').eq('id', userId).single();
                     if (userRow?.workspace_id) {
-                        const { data } = await sb.from('workspaces').select('id, name, status').eq('id', userRow.workspace_id);
+                        const { data } = await sb.from('workspaces').select('id, name, slug, status').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
                 }
 
 
+                window._allWorkspaces = workspaces;
                 _allWorkspaces = workspaces;
 
                 // Set initial workspace (persisted in sessionStorage or first available)
                 const stored = sessionStorage.getItem('ws_id');
-                const match = workspaces.find(w => w.id === stored);
+                // Also try slug-based detection: grab slug from URL
+                const _urlSlug = window.location.pathname.split('/').filter(Boolean)[0];
+                const slugMatch = workspaces.find(w => w.slug === _urlSlug);
+                const match = slugMatch || workspaces.find(w => w.id === stored);
                 const initial = match || workspaces[0];
 
                 if (initial) {
                     window.currentWorkspaceId = initial.id;
                     sessionStorage.setItem('ws_id', initial.id);
-                    document.getElementById('ws-pill-name').textContent = initial.name;
+                    // Update ws-pill-name in bottom bar
+                    const pillName = document.getElementById('ws-pill-name');
+                    if (pillName) pillName.textContent = initial.name;
+                    // Update sidebar brand sub-label to show city/workspace name
+                    const sidebarLabel = document.getElementById('sidebar-workspace-name');
+                    if (sidebarLabel) sidebarLabel.textContent = initial.name;
                 } else {
-                    document.getElementById('ws-pill-name').textContent = 'N/D';
+                    const pillName = document.getElementById('ws-pill-name');
+                    if (pillName) pillName.textContent = 'N/D';
                 }
 
                 renderWsDropdown();
@@ -133,7 +145,12 @@
         window.switchWorkspace = function(ws) {
             window.currentWorkspaceId = ws.id;
             sessionStorage.setItem('ws_id', ws.id);
-            document.getElementById('ws-pill-name').textContent = ws.name;
+            // Update ws-pill-name (bottom workspace card)
+            const pillNameEl = document.getElementById('ws-pill-name');
+            if (pillNameEl) pillNameEl.textContent = ws.name;
+            // Update sidebar brand sub-label to show city name
+            const sidebarLabel = document.getElementById('sidebar-workspace-name');
+            if (sidebarLabel) sidebarLabel.textContent = ws.name;
             // Apply plan gating (Fase F)
             if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
 
@@ -2897,6 +2914,19 @@ function toggleCrieMenu() {
     const toggle = document.getElementById('nav-crie-toggle');
     if (toggle) toggle.classList.toggle('active', crieMenuOpen);
 }
+
+// ── Settings submenu toggle ──────────────────────────────────
+let settingsMenuOpen = false;
+function toggleSettingsMenu() {
+    settingsMenuOpen = !settingsMenuOpen;
+    const sub = document.getElementById('settings-submenu');
+    const arrow = document.getElementById('settings-arrow');
+    if (sub) sub.style.display = settingsMenuOpen ? 'block' : 'none';
+    if (arrow) arrow.style.transform = settingsMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+    const toggle = document.getElementById('nav-settings-toggle');
+    if (toggle) toggle.classList.toggle('active', settingsMenuOpen);
+}
+window.toggleSettingsMenu = toggleSettingsMenu;
 
 // ── switchTab patch — handle crie-* tabs ───────────────────
 const _originalSwitchTab = window.switchTab;

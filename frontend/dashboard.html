@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324c">
+    <link rel="stylesheet" href="/hub.css?v=20260324d">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -588,43 +588,16 @@
                 <div class="sub-brand" id="sidebar-workspace-name">Workspace</div>
             </div>
         </div>
-        <ul class="nav">
+        <ul class="nav" id="sidebar">
+            <!-- 1. Início -->
             <li id="nav-home" class="active" onclick="switchTab('home')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 </span>
                 <span class="nav-label">Início</span>
             </li>
-            <li id="nav-dashboard" onclick="switchTab('dashboard')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                </span>
-                <span class="nav-label">Consolidados</span>
-            </li>
-            <li id="nav-visitors" onclick="switchTab('visitors')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                </span>
-                <span class="nav-label">Visitantes</span>
-            </li>
-            <li id="nav-messages" onclick="switchTab('messages')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </span>
-                <span class="nav-label">IA Chat</span>
-            </li>
-            <li id="nav-users" onclick="switchTab('users')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </span>
-                <span class="nav-label">Equipe</span>
-            </li>
-            <li id="nav-logs" onclick="switchTab('logs')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </span>
-                <span class="nav-label">Logs</span>
-            </li>
+
+            <!-- 2. Mural -->
             <li id="nav-mural" onclick="switchTab('mural')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -632,7 +605,70 @@
                 <span class="nav-label">Mural</span>
             </li>
 
-            <!-- ── CRIE Module (collapsible group) ── -->
+            <!-- 3. Consolidados -->
+            <li id="nav-dashboard" onclick="switchTab('dashboard')">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span class="nav-label">Consolidados</span>
+            </li>
+
+            <!-- 4. Start (em desenvolvimento) -->
+            <li id="nav-start" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </span>
+                <span class="nav-label">Start</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- 5. Visitantes -->
+            <li id="nav-visitors" onclick="switchTab('visitors')">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                </span>
+                <span class="nav-label">Visitantes</span>
+            </li>
+
+            <!-- 6. Aniversariantes (em desenvolvimento) -->
+            <li id="nav-birthdays" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v-4"/><path d="M9 17h6"/></svg>
+                </span>
+                <span class="nav-label">Aniversariantes</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- 7. IA Chat (em desenvolvimento) -->
+            <li id="nav-messages" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </span>
+                <span class="nav-label">IA Chat</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- 8. Relatórios (em desenvolvimento) -->
+            <li id="nav-relatorios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </span>
+                <span class="nav-label">Relatórios</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- 9. Logs -->
+            <li id="nav-logs" onclick="switchTab('logs')">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </span>
+                <span class="nav-label">Logs</span>
+            </li>
+
+            <!-- ══ MINISTÉRIOS ══════════════════════════════════════ -->
+            <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Ministérios</li>
+
+            <!-- 10. CRIE (collapsible) -->
             <li id="nav-crie-toggle" onclick="toggleCrieMenu()" style="position:relative;">
                 <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
                 <span class="nav-label" style="font-weight:800;">CRIE</span>
@@ -660,38 +696,63 @@
                     <span class="nav-label">Relatórios</span>
                 </li>
             </ul>
-            <li id="nav-settings" onclick="switchTab('settings')">
+
+            <!-- 11. Voluntários (em desenvolvimento) -->
+            <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+                <span class="nav-label">Voluntários</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- 12. We Care (em desenvolvimento) -->
+            <li id="nav-wecare" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+                </span>
+                <span class="nav-label">We Care</span>
+                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+            </li>
+
+            <!-- ══ CONFIGURAÇÕES (collapsível) — SEMPRE ÚLTIMO ══ -->
+            <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Sistema</li>
+
+            <li id="nav-settings-toggle" onclick="toggleSettingsMenu()" style="position:relative;">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </span>
                 <span class="nav-label">Configurações</span>
+                <span id="settings-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
             </li>
-            <!-- Regional/Global nav — shown by JS based on user.level -->
+            <ul id="settings-submenu" style="display:none; padding-left:8px; margin:0; list-style:none;">
+                <li id="nav-users" onclick="switchTab('users')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <span class="nav-label">Equipe</span>
+                </li>
+                <li id="nav-settings" onclick="switchTab('settings')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span class="nav-label">Base de Conhecimento IA</span>
+                </li>
+                <li id="nav-plans" onclick="showUpgradeModal()" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                    <span class="nav-label">Planos</span>
+                </li>
+            </ul>
+
+            <!-- Admin-only links (hidden by default, shown by JS) -->
             <li id="nav-regional" onclick="switchTab('regional')" style="display:none;">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                </span>
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
                 <span class="nav-label">Regional</span>
             </li>
             <li id="nav-global" onclick="switchTab('global')" style="display:none;">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                </span>
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" fill="none"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></span>
                 <span class="nav-label">Global</span>
             </li>
             <li id="nav-dev" onclick="switchTab('dev')" style="display:none;">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                </span>
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
                 <span class="nav-label">Dev</span>
                 <span style="font-size:.6rem; background:rgba(255,50,50,.2); color:#ff6b6b; padding:1px 5px; border-radius:4px; margin-left:auto; font-weight:700;">ADMIN</span>
-            </li>
-            <li class="disabled" title="Em breve">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </span>
-                <span class="nav-label">Batismo</span>
-                <span style="font-size:0.65rem; margin-left:auto; opacity:0.4; font-weight:500;">breve</span>
             </li>
         </ul>
 
@@ -2043,7 +2104,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260324c"></script>
+    <script src="/hub-dashboard.js?v=20260324d"></script>
 </body>
 </html>
 
