@@ -275,25 +275,27 @@
         };
 
         window.switchWorkspace = function(ws) {
+            // If the workspace has a slug, navigate to its URL for a clean full reload
+            if (ws.slug) {
+                const currentSlug = window.location.pathname.split('/').filter(Boolean)[0];
+                if (ws.slug !== currentSlug) {
+                    if (window.showToast) showToast('🏛 ' + ws.name, 800);
+                    setTimeout(() => { window.location.href = `/${ws.slug}/dashboard.html`; }, 300);
+                    return;
+                }
+            }
+            // Same workspace or no slug — update in place
             window.currentWorkspaceId = ws.id;
             sessionStorage.setItem('ws_id', ws.id);
-            // Update ws-pill-name (bottom workspace card)
             const pillNameEl = document.getElementById('ws-pill-name');
             if (pillNameEl) pillNameEl.textContent = ws.name;
-            // Update sidebar brand sub-label to show city name
             const sidebarLabel = document.getElementById('sidebar-workspace-name');
             if (sidebarLabel) sidebarLabel.textContent = displayWsName(ws.name);
-            // Apply plan gating (Fase F)
             if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
-
-            // Close dropdown
             const dd = document.getElementById('ws-dropdown');
             if (dd) dd.classList.remove('open');
-            // Re-render dropdown to update active state
             renderWsDropdown();
-            // Show quick toast
             showToast('🏛 ' + ws.name, 2000);
-            // Re-fetch all data under new workspace
             if (typeof initEngine === 'function') initEngine();
         };
 
