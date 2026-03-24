@@ -1,3 +1,15 @@
+/* ── Critical Layout Rules (override inline styles if needed) ──── */
+/* Ensure inactive view sections are always hidden */
+.view-section { display: none !important; }
+.view-section.active { display: flex !important; }
+
+/* Ensure the lead drawer stays off-screen when not open */
+.hub-drawer { transform: translateX(100%) !important; overflow: hidden; }
+.hub-drawer.open { transform: translateX(0) !important; }
+
+/* Ensure the main layout never overflows */
+.main { overflow: hidden !important; }
+
 /* ─────────────────────────────────────────────
    HUB Design System — Transpiled from Crie
    Source: gtorres7pro/crie (Tailwind → CSS)
