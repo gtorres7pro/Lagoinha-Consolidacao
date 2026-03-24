@@ -276,9 +276,7 @@
                 window._allWorkspaces = workspaces;
                 _allWorkspaces = workspaces;
 
-                // Set initial workspace (persisted in sessionStorage or first available)
-                const stored = sessionStorage.getItem('ws_id');
-                // Also try slug-based detection: grab slug from URL (but ignore on local file:// testing)
+                // Set initial workspace — URL slug takes ABSOLUTE priority over sessionStorage
                 let _urlSlug = null;
                 if (window.location.protocol !== 'file:') {
                     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -286,9 +284,19 @@
                         _urlSlug = parts[0];
                     }
                 }
-                const slugMatch = workspaces.find(w => w.slug === _urlSlug);
+                const slugMatch = _urlSlug
+                    ? workspaces.find(w => w.slug === _urlSlug)
+                    : null;
+
+                // If URL has slug, always use slug-matched workspace (clear any stale cache)
+                if (slugMatch) {
+                    sessionStorage.setItem('ws_id', slugMatch.id);
+                }
+
+                const stored = sessionStorage.getItem('ws_id');
                 const match = slugMatch || workspaces.find(w => w.id === stored);
                 const initial = match || workspaces[0];
+
 
                 if (initial) {
                     window.currentWorkspaceId = initial.id;

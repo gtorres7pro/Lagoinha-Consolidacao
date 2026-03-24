@@ -18,9 +18,10 @@ function getSlugFromPath() {
 
 const _urlSlug = getSlugFromPath();
 
+
 // Show workspace badge if URL already has a slug
 if (_urlSlug) {
-    sb.from('workspaces').select('name').eq('slug', _urlSlug).single()
+    sb.from('workspaces').select('name').eq('slug', _urlSlug).maybeSingle()
         .then(({ data }) => {
             if (data?.name) {
                 document.getElementById('workspace-name').textContent = data.name;
@@ -28,6 +29,7 @@ if (_urlSlug) {
             }
         });
 }
+
 
 /**
  * After login, find the correct slug for this user.
