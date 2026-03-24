@@ -62,19 +62,31 @@
                 if (!session) return;
 
                 const userId = session.user.id;
-                const userEmail = session.user.email;
-                const role = session.user.user_metadata?.role || 'user';
+
+                // ALWAYS read role from the public.users table, NOT from JWT metadata
+                // (JWT metadata is not reliably updated and was causing master_admin to be treated as regular user)
+                const { data: userRow, error: userErr } = await sb
+                    .from('users')
+                    .select('role, workspace_id, level, regional_id, global_id')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (userErr) console.warn('loadWorkspaces: users query error', userErr);
+
+                const role = userRow?.role || 'user';
+                // Store user info globally for other parts of the app
+                window._currentUser = { id: userId, role, ...userRow };
 
                 let workspaces = [];
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data } = await sb.from('workspaces').select('id, name, slug, status').order('name');
+                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status').order('name');
+                    if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
-                    const { data: userRow } = await sb.from('users').select('workspace_id, level, regional_id, global_id').eq('id', userId).single();
                     if (userRow?.workspace_id) {
                         const { data } = await sb.from('workspaces').select('id, name, slug, status').eq('id', userRow.workspace_id);
                         workspaces = data || [];
@@ -2648,9 +2660,11 @@ async function loadMural() {
     try {
         const sb = window.supabaseClient;
         if (!sb) return;
+        // Note: We do NOT join users(name) here because author_id → public.users causes PostgREST PGRST200.
+        // Instead we fetch announcements without the join and show a generic author label.
         const { data, error } = await sb
             .from('announcements')
-            .select('*, users(name)')
+            .select('id, title, body, scope, workspace_id, author_id, created_at')
             .order('created_at', { ascending: false });
         if (error) throw error;
         _allAnnouncements = data || [];
