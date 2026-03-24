@@ -637,6 +637,35 @@
                 </span>
                 <span class="nav-label">Mural</span>
             </li>
+
+            <!-- ── CRIE Module (collapsible group) ── -->
+            <li id="nav-crie-toggle" onclick="toggleCrieMenu()" style="position:relative;">
+                <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
+                <span class="nav-label" style="font-weight:800;">CRIE</span>
+                <span id="crie-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+            </li>
+            <ul id="crie-submenu" style="display:none; padding-left:8px; margin:0; list-style:none;">
+                <li id="nav-crie-inscritos" onclick="switchTab('crie-inscritos')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span class="nav-label">Inscritos</span>
+                </li>
+                <li id="nav-crie-membros" onclick="switchTab('crie-membros')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                    <span class="nav-label">Membros</span>
+                </li>
+                <li id="nav-crie-eventos" onclick="switchTab('crie-eventos')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                    <span class="nav-label">Eventos</span>
+                </li>
+                <li id="nav-crie-checkin" onclick="switchTab('crie-checkin')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                    <span class="nav-label">Check-in</span>
+                </li>
+                <li id="nav-crie-relatorios" onclick="switchTab('crie-relatorios')" style="padding-left:8px;">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                    <span class="nav-label">Relatórios</span>
+                </li>
+            </ul>
             <li id="nav-settings" onclick="switchTab('settings')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1538,6 +1567,229 @@ REGRAS:
                     </div>
                     <button onclick="createAnnouncement()" class="hub-btn-primary" style="padding:11px; font-size:.85rem; margin-top:4px;">Publicar Anúncio</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: CRIE — Inscritos
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-crie-inscritos" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Inscritos</h1>
+                    <p>Base de dados de inscritos por evento CRIE</p>
+                </div>
+                <div class="actions">
+                    <button class="btn-sm" onclick="exportCrieCSV()" style="background:rgba(255,255,255,.07); color:#fff;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Exportar CSV
+                    </button>
+                    <button class="hub-btn" onclick="openCrieInviteModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/><polyline points="9 11 12 14 22 4"/></svg>
+                        Convidar
+                    </button>
+                </div>
+            </header>
+            <!-- KPI row -->
+            <div style="padding:24px 40px 0; display:flex; gap:14px; flex-wrap:wrap;">
+                <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="crie-kpi-total">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(245,158,11,.25);"><p class="kpi-label">Membros</p><p class="kpi-value" id="crie-kpi-membros" style="color:#F59E0B;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(96,165,250,.25);"><p class="kpi-label">Convidados</p><p class="kpi-value" id="crie-kpi-convidados" style="color:#60a5fa;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(74,222,128,.25);"><p class="kpi-label">Pagos</p><p class="kpi-value" id="crie-kpi-pagos" style="color:#4ade80;">–</p></div>
+            </div>
+            <!-- Filters -->
+            <div style="padding:20px 40px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <input id="crie-search" type="text" placeholder="Buscar por nome, email, área…" oninput="filterCrieInscritos()" style="flex:1; min-width:200px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.84rem; outline:none;">
+                <select id="crie-filter-event" onchange="filterCrieInscritos()" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.8rem; outline:none;">
+                    <option value="all">Todos os Eventos</option>
+                </select>
+                <select id="crie-filter-payment" onchange="filterCrieInscritos()" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.8rem; outline:none;">
+                    <option value="all">Todos os Status</option>
+                    <option value="Pago">Pagos</option>
+                    <option value="Pendente">Pendentes</option>
+                    <option value="Gratuito">Gratuitos</option>
+                </select>
+                <select id="crie-filter-type" onchange="filterCrieInscritos()" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.8rem; outline:none;">
+                    <option value="all">Todos os Tipos</option>
+                    <option value="member">Membros</option>
+                    <option value="guest">Convidados</option>
+                </select>
+            </div>
+            <!-- Table -->
+            <div style="padding:0 40px 40px;">
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr>
+                            <th><input type="checkbox" id="crie-select-all" onchange="crieToggleAll(this)"></th>
+                            <th>Participante</th><th>Contactos</th><th>Evento</th>
+                            <th>Tipo</th><th>Pag.</th><th>Presença</th><th></th>
+                        </tr></thead>
+                        <tbody id="crie-inscritos-body">
+                            <tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">A carregar inscritos…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: CRIE — Membros
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-crie-membros" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Membros</h1>
+                    <p>Membros permanentes do CRIE neste workspace</p>
+                </div>
+                <div class="actions">
+                    <button class="hub-btn" onclick="openAddMembroModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Novo Membro
+                    </button>
+                </div>
+            </header>
+            <div style="padding:24px 40px;">
+                <input id="crie-membro-search" type="text" placeholder="Buscar membro…" oninput="filterCrieMembros()" style="width:100%; max-width:400px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.84rem; outline:none; margin-bottom:20px;">
+                <div id="crie-membros-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
+                    <div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">A carregar membros…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: CRIE — Eventos
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-crie-eventos" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Eventos</h1>
+                    <p>Gestão de eventos CRIE — criar, editar, arquivar</p>
+                </div>
+                <div class="actions">
+                    <button class="hub-btn" onclick="openCreateEventoModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Criar Evento
+                    </button>
+                </div>
+            </header>
+            <div style="padding:24px 40px;">
+                <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+                    <button class="hub-scope-tab active" onclick="filterEventos('all',this)">Todos</button>
+                    <button class="hub-scope-tab" onclick="filterEventos('ACTIVE',this)">Ativos</button>
+                    <button class="hub-scope-tab" onclick="filterEventos('DRAFT',this)">Rascunhos</button>
+                    <button class="hub-scope-tab" onclick="filterEventos('ARCHIVED',this)">Arquivados</button>
+                </div>
+                <div id="crie-eventos-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px;">
+                    <div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">A carregar eventos…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: CRIE — Check-in
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-crie-checkin" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Check-in</h1>
+                    <p>Marcar presença dos inscritos em tempo real</p>
+                </div>
+                <div class="actions">
+                    <span id="checkin-counter" style="background:rgba(74,222,128,.12); color:#4ade80; border:1px solid rgba(74,222,128,.25); padding:8px 16px; border-radius:12px; font-size:.8rem; font-weight:700;">0 presentes</span>
+                </div>
+            </header>
+            <div style="padding:24px 40px;">
+                <!-- Event selector -->
+                <select id="checkin-event-select" onchange="loadCheckinList()" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px 20px; color:#fff; font-size:.9rem; outline:none; margin-bottom:20px; width:100%; max-width:500px;">
+                    <option value="">Selecionar Evento…</option>
+                </select>
+                <!-- Search -->
+                <input id="checkin-search" type="text" placeholder="🔍  Buscar por nome, email ou telefone…" oninput="filterCheckin()" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:14px 20px; color:#fff; font-size:.95rem; outline:none; margin-bottom:24px; letter-spacing:.01em;">
+                <!-- List -->
+                <div id="checkin-list" style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Seleciona um evento para iniciar o check-in</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             View: CRIE — Relatórios
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-crie-relatorios" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Relatórios</h1>
+                    <p>KPIs consolidados e histórico financeiro do CRIE</p>
+                </div>
+            </header>
+            <div style="padding:24px 40px;">
+                <!-- KPI summary -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; margin-bottom:32px;">
+                    <div class="kpi-box"><p class="kpi-label">Total Inscritos</p><p class="kpi-value" id="rel-total-inscritos">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(245,158,11,.25);"><p class="kpi-label">Membros Ativos</p><p class="kpi-value" id="rel-membros-ativos" style="color:#F59E0B;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(74,222,128,.25);"><p class="kpi-label">Receita Total</p><p class="kpi-value" id="rel-receita" style="color:#4ade80;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="rel-despesas" style="color:#f87171;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(96,165,250,.25);"><p class="kpi-label">Resultado</p><p class="kpi-value" id="rel-resultado" style="color:#60a5fa;">–</p></div>
+                    <div class="kpi-box"><p class="kpi-label">Eventos Realizados</p><p class="kpi-value" id="rel-eventos">–</p></div>
+                </div>
+                <!-- Event breakdown table -->
+                <h3 style="font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:16px;">Por Evento</h3>
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr>
+                            <th>Evento</th><th>Data</th><th>Inscritos</th><th>Presenças</th><th>Pagos</th><th>Receita</th><th>Despesas</th><th>Resultado</th>
+                        </tr></thead>
+                        <tbody id="rel-eventos-body">
+                            <tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">A carregar…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             CRIE Modals — Add Membro / Create Evento / Invite
+        ═══════════════════════════════════════════════════════════ -->
+        <!-- Add Membro Modal -->
+        <div id="modal-add-membro" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px;">
+            <div style="background:#111; border:1px solid rgba(255,255,255,.1); border-radius:24px; padding:32px; width:100%; max-width:440px; position:relative;">
+                <button onclick="closeModal('modal-add-membro')" style="position:absolute; top:16px; right:16px; background:none; border:none; color:rgba(255,255,255,.4); font-size:1.2rem; cursor:pointer;">✕</button>
+                <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:20px; text-transform:uppercase;">Novo Membro CRIE</h3>
+                <form onsubmit="saveCrieMembro(event)" style="display:flex; flex-direction:column; gap:14px;">
+                    <div><label class="hub-field-label">Nome Completo</label><input name="name" required placeholder="Nome" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">Email</label><input name="email" type="email" required placeholder="email@dominio.com" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">WhatsApp</label><input name="phone" required placeholder="+351 …" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">Empresa</label><input name="company" placeholder="Empresa (opcional)" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">Área / Indústria</label><input name="industry" placeholder="Ex: Tecnologia" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <button type="submit" class="hub-btn" style="width:100%; padding:14px; margin-top:8px;">Salvar Membro</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Create Evento Modal -->
+        <div id="modal-create-evento" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+            <div style="background:#111; border:1px solid rgba(255,255,255,.1); border-radius:24px; padding:32px; width:100%; max-width:480px; position:relative; margin:auto;">
+                <button onclick="closeModal('modal-create-evento')" style="position:absolute; top:16px; right:16px; background:none; border:none; color:rgba(255,255,255,.4); font-size:1.2rem; cursor:pointer;">✕</button>
+                <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:20px; text-transform:uppercase;">Criar Evento CRIE</h3>
+                <form onsubmit="saveCrieEvento(event)" style="display:flex; flex-direction:column; gap:14px;">
+                    <div><label class="hub-field-label">Título</label><input name="title" required placeholder="Ex: CRIE Braga — Ciclo 5" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">Descrição</label><textarea name="description" rows="2" placeholder="Descrição opcional…" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; resize:none; box-sizing:border-box;"></textarea></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div><label class="hub-field-label">Data & Hora</label><input name="date" type="datetime-local" required style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.88rem; outline:none; box-sizing:border-box;"></div>
+                        <div><label class="hub-field-label">Capacidade</label><input name="capacity" type="number" min="0" placeholder="0 = ilimitado" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div><label class="hub-field-label">Local</label><input name="location" required placeholder="Endereço ou link" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                        <div><label class="hub-field-label">Preço (€)</label><input name="price" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    </div>
+                    <div><label class="hub-field-label">Status</label>
+                        <select name="status" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;">
+                            <option value="DRAFT">Rascunho</option>
+                            <option value="ACTIVE">Ativo</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="hub-btn" style="width:100%; padding:14px; margin-top:8px;">Criar Evento</button>
+                </form>
             </div>
         </div>
 
@@ -4645,6 +4897,582 @@ window.initFaseG = function(user) {
         if (navDev) navDev.style.display = '';
     }
 };
+
+// ═══════════════════════════════════════════════════════════
+// CRIE MODULE — Fase I
+// ═══════════════════════════════════════════════════════════
+
+// ── State ───────────────────────────────────────────────────
+let crieInscritos = [];
+let crieMembros = [];
+let crieEventos = [];
+let crieCheckinData = [];
+let crieMenuOpen = false;
+
+// ── Sidebar toggle ──────────────────────────────────────────
+function toggleCrieMenu() {
+    crieMenuOpen = !crieMenuOpen;
+    const sub = document.getElementById('crie-submenu');
+    const arrow = document.getElementById('crie-arrow');
+    if (sub) sub.style.display = crieMenuOpen ? 'block' : 'none';
+    if (arrow) {
+        arrow.style.transform = crieMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+    }
+    // Mark nav-crie-toggle as active when open
+    const toggle = document.getElementById('nav-crie-toggle');
+    if (toggle) toggle.classList.toggle('active', crieMenuOpen);
+}
+
+// ── switchTab patch — handle crie-* tabs ───────────────────
+const _originalSwitchTab = window.switchTab;
+window.switchTab = function(tab) {
+    if (tab.startsWith('crie-')) {
+        // Hide all view sections
+        document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+        // Show target
+        const target = document.getElementById('view-' + tab);
+        if (target) target.style.display = 'block';
+        // Update sidebar active state
+        document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
+        const navItem = document.getElementById('nav-' + tab);
+        if (navItem) navItem.classList.add('active');
+        // Open CRIE submenu if not already
+        if (!crieMenuOpen) toggleCrieMenu();
+        // Load data for the view
+        const loaders = {
+            'crie-inscritos': loadCrieInscritos,
+            'crie-membros': loadCrieMembros,
+            'crie-eventos': loadCrieEventos,
+            'crie-checkin': loadCrieCheckinEventos,
+            'crie-relatorios': loadCrieRelatorios,
+        };
+        if (loaders[tab]) loaders[tab]();
+        return;
+    }
+    if (_originalSwitchTab) _originalSwitchTab(tab);
+};
+
+// ── Helper: get current workspace_id ───────────────────────
+function getCrieWorkspaceId() {
+    return window._currentUser?.workspace_id || null;
+}
+
+// ── Payment badge helper ────────────────────────────────────
+function payBadge(status) {
+    const map = {
+        'Pago':     'background:rgba(74,222,128,.12); color:#4ade80; border:1px solid rgba(74,222,128,.25)',
+        'Gratuito': 'background:rgba(96,165,250,.12); color:#60a5fa; border:1px solid rgba(96,165,250,.25)',
+        'Pendente': 'background:rgba(245,158,11,.12); color:#F59E0B; border:1px solid rgba(245,158,11,.25)',
+    };
+    const s = map[status] || map['Pendente'];
+    return `<span style="${s}; padding:3px 10px; border-radius:20px; font-size:.72rem; font-weight:700; white-space:nowrap; cursor:pointer;">${status.toUpperCase()}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRIE — INSCRITOS
+// ═══════════════════════════════════════════════════════════
+async function loadCrieInscritos() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+    const { data, error } = await sb
+        .from('crie_attendees')
+        .select('*, crie_events(title, date)')
+        .eq('workspace_id', wsId)
+        .order('created_at', { ascending: false });
+
+    if (error) { console.error('CRIE inscritos:', error); return; }
+    crieInscritos = data || [];
+
+    // Populate event filter
+    const events = [...new Set(crieInscritos.map(a => a.crie_events?.title).filter(Boolean))];
+    const sel = document.getElementById('crie-filter-event');
+    if (sel) {
+        sel.innerHTML = '<option value="all">Todos os Eventos</option>' +
+            events.map(e => `<option value="${e}">${e}</option>`).join('');
+    }
+
+    updateCrieInscritosKPIs();
+    renderCrieInscritos(crieInscritos);
+}
+
+function updateCrieInscritosKPIs() {
+    const total = crieInscritos.length;
+    const membros = crieInscritos.filter(a => a.is_member).length;
+    const pagos = crieInscritos.filter(a => a.payment_status === 'Pago').length;
+    document.getElementById('crie-kpi-total').textContent = total;
+    document.getElementById('crie-kpi-membros').textContent = membros;
+    document.getElementById('crie-kpi-convidados').textContent = total - membros;
+    document.getElementById('crie-kpi-pagos').textContent = pagos;
+}
+
+function filterCrieInscritos() {
+    const search = document.getElementById('crie-search')?.value.toLowerCase() || '';
+    const eventFilter = document.getElementById('crie-filter-event')?.value || 'all';
+    const payFilter = document.getElementById('crie-filter-payment')?.value || 'all';
+    const typeFilter = document.getElementById('crie-filter-type')?.value || 'all';
+
+    const filtered = crieInscritos.filter(a => {
+        const matchSearch = !search ||
+            a.name?.toLowerCase().includes(search) ||
+            a.email?.toLowerCase().includes(search) ||
+            a.industry?.toLowerCase().includes(search);
+        const matchEvent = eventFilter === 'all' || a.crie_events?.title === eventFilter;
+        const matchPay = payFilter === 'all' || a.payment_status === payFilter;
+        const matchType = typeFilter === 'all' ||
+            (typeFilter === 'member' && a.is_member) ||
+            (typeFilter === 'guest' && !a.is_member);
+        return matchSearch && matchEvent && matchPay && matchType;
+    });
+    renderCrieInscritos(filtered);
+}
+
+function renderCrieInscritos(list) {
+    const tbody = document.getElementById('crie-inscritos-body');
+    if (!tbody) return;
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Nenhum inscrito encontrado.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = list.map(a => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
+            <td style="padding:12px 16px;"><input type="checkbox" class="crie-row-check" value="${a.id}"></td>
+            <td style="padding:12px 16px;">
+                <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
+                    ${a.name}
+                    ${a.is_member ? '<span style="color:#F59E0B; font-size:.7rem;">★</span>' : ''}
+                </div>
+                <div style="font-size:.75rem; color:rgba(255,255,255,.35); margin-top:2px;">${new Date(a.created_at).toLocaleDateString('pt-PT')}</div>
+            </td>
+            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">
+                <div>${a.email}</div>
+                <div>${a.phone}</div>
+            </td>
+            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${a.crie_events?.title || 'N/A'}</td>
+            <td style="padding:12px 16px;">
+                ${a.is_member
+                    ? '<span style="background:rgba(245,158,11,.15); color:#F59E0B; padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">MEMBRO</span>'
+                    : '<span style="background:rgba(255,255,255,.06); color:rgba(255,255,255,.4); padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">CONVIDADO</span>'
+                }
+            </td>
+            <td style="padding:12px 16px;" onclick="cycleCriePayment('${a.id}', '${a.payment_status}')" style="cursor:pointer;">${payBadge(a.payment_status)}</td>
+            <td style="padding:12px 16px;">
+                ${a.presence_status === 'Presente'
+                    ? '<span style="background:rgba(74,222,128,.12); color:#4ade80; padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">PRESENTE</span>'
+                    : a.presence_status === 'Faltou'
+                    ? '<span style="background:rgba(248,113,113,.12); color:#f87171; padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">FALTOU</span>'
+                    : '<span style="background:rgba(255,255,255,.06); color:rgba(255,255,255,.35); padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">PENDENTE</span>'
+                }
+            </td>
+            <td style="padding:12px 16px;">
+                <button onclick="deleteCrieInscrito('${a.id}')" style="background:none; border:none; color:rgba(255,100,100,.5); cursor:pointer; font-size:.8rem; padding:4px;" title="Remover">✕</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function cycleCriePayment(id, current) {
+    const cycle = ['Pendente', 'Pago', 'Gratuito'];
+    const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
+    const sb = window.supabaseClient;
+    await sb.from('crie_attendees').update({ payment_status: next }).eq('id', id);
+    const idx = crieInscritos.findIndex(a => a.id === id);
+    if (idx !== -1) crieInscritos[idx].payment_status = next;
+    filterCrieInscritos();
+}
+
+async function deleteCrieInscrito(id) {
+    if (!confirm('Remover este inscrito?')) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_attendees').delete().eq('id', id);
+    crieInscritos = crieInscritos.filter(a => a.id !== id);
+    updateCrieInscritosKPIs();
+    filterCrieInscritos();
+}
+
+function crieToggleAll(checkbox) {
+    document.querySelectorAll('.crie-row-check').forEach(c => c.checked = checkbox.checked);
+}
+
+function exportCrieCSV() {
+    const headers = ['Nome','Email','Telefone','Evento','Tipo','Pagamento','Presença','Inscrito em'];
+    const rows = crieInscritos.map(a => [
+        a.name, a.email, a.phone,
+        a.crie_events?.title || '',
+        a.is_member ? 'Membro' : 'Convidado',
+        a.payment_status, a.presence_status,
+        new Date(a.created_at).toLocaleDateString('pt-PT')
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `crie_inscritos_${Date.now()}.csv`;
+    a.click();
+}
+
+function openCrieInviteModal() {
+    alert('Funcionalidade de convite por email: em desenvolvimento.');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRIE — MEMBROS
+// ═══════════════════════════════════════════════════════════
+async function loadCrieMembros() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+    const { data } = await sb
+        .from('crie_members')
+        .select('*')
+        .eq('workspace_id', wsId)
+        .order('name');
+    crieMembros = data || [];
+    renderCrieMembros(crieMembros);
+}
+
+function filterCrieMembros() {
+    const q = document.getElementById('crie-membro-search')?.value.toLowerCase() || '';
+    renderCrieMembros(crieMembros.filter(m =>
+        m.name?.toLowerCase().includes(q) ||
+        m.email?.toLowerCase().includes(q) ||
+        m.company?.toLowerCase().includes(q)
+    ));
+}
+
+function renderCrieMembros(list) {
+    const grid = document.getElementById('crie-membros-grid');
+    if (!grid) return;
+    if (!list.length) {
+        grid.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">Nenhum membro encontrado.</div>';
+        return;
+    }
+    grid.innerHTML = list.map(m => {
+        const initials = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        const statusColor = m.status === 'Ativo' ? '#4ade80' : '#f87171';
+        return `
+        <div class="hub-announcement-card" style="cursor:default;">
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+                <div style="width:44px; height:44px; border-radius:50%; background:rgba(245,158,11,.15); border:1px solid rgba(245,158,11,.3); display:flex; align-items:center; justify-content:center; font-weight:900; color:#F59E0B; font-size:1rem; flex-shrink:0;">${initials}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:800; color:#fff; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}</div>
+                    <div style="font-size:.72rem; color:rgba(255,255,255,.4); margin-top:2px;">${m.company || m.industry || ''}</div>
+                </div>
+                <span style="background:${m.status==='Ativo'?'rgba(74,222,128,.12)':'rgba(248,113,113,.12)'}; color:${statusColor}; border:1px solid ${statusColor}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700;">${m.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size:.75rem; color:rgba(255,255,255,.4); display:flex; flex-direction:column; gap:4px;">
+                <span>📧 ${m.email}</span>
+                <span>📞 ${m.phone}</span>
+                ${m.industry ? `<span>💼 ${m.industry}</span>` : ''}
+            </div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+                <button onclick="toggleCrieMembroStatus('${m.id}','${m.status}')" style="flex:1; padding:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:700; cursor:pointer;">
+                    ${m.status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                </button>
+                <button onclick="deleteCrieMembro('${m.id}')" style="padding:8px 12px; background:rgba(255,100,100,.08); border:1px solid rgba(255,100,100,.15); border-radius:10px; color:#f87171; font-size:.72rem; cursor:pointer;">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openAddMembroModal() {
+    const modal = document.getElementById('modal-add-membro');
+    if (modal) { modal.style.display = 'flex'; }
+}
+
+async function saveCrieMembro(e) {
+    e.preventDefault();
+    const wsId = getCrieWorkspaceId();
+    const form = e.target;
+    const data = {
+        workspace_id: wsId,
+        name: form.name.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        company: form.company.value || null,
+        industry: form.industry.value || null,
+    };
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('crie_members').insert(data);
+    if (error) { alert('Erro: ' + error.message); return; }
+    closeModal('modal-add-membro');
+    form.reset();
+    loadCrieMembros();
+}
+
+async function toggleCrieMembroStatus(id, current) {
+    const next = current === 'Ativo' ? 'Inativo' : 'Ativo';
+    const sb = window.supabaseClient;
+    await sb.from('crie_members').update({ status: next }).eq('id', id);
+    const idx = crieMembros.findIndex(m => m.id === id);
+    if (idx !== -1) crieMembros[idx].status = next;
+    renderCrieMembros(crieMembros);
+}
+
+async function deleteCrieMembro(id) {
+    if (!confirm('Remover este membro permanentemente?')) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_members').delete().eq('id', id);
+    crieMembros = crieMembros.filter(m => m.id !== id);
+    renderCrieMembros(crieMembros);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRIE — EVENTOS
+// ═══════════════════════════════════════════════════════════
+async function loadCrieEventos() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+    const { data } = await sb
+        .from('crie_events')
+        .select('*, crie_attendees(count)')
+        .eq('workspace_id', wsId)
+        .order('date', { ascending: false });
+    crieEventos = data || [];
+    renderCrieEventos(crieEventos);
+    // Also populate checkin event selector
+    populateCheckinEventos(crieEventos);
+}
+
+let _eventoStatusFilter = 'all';
+function filterEventos(status, btn) {
+    _eventoStatusFilter = status;
+    document.querySelectorAll('#view-crie-eventos .hub-scope-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const filtered = status === 'all' ? crieEventos : crieEventos.filter(e => e.status === status);
+    renderCrieEventos(filtered);
+}
+
+function renderCrieEventos(list) {
+    const grid = document.getElementById('crie-eventos-grid');
+    if (!grid) return;
+    if (!list.length) {
+        grid.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">Nenhum evento encontrado.</div>';
+        return;
+    }
+
+    const statusMap = {
+        ACTIVE:   { label: 'ATIVO',      color: '#4ade80', bg: 'rgba(74,222,128,.12)'  },
+        DRAFT:    { label: 'RASCUNHO',   color: '#F59E0B', bg: 'rgba(245,158,11,.12)'  },
+        ARCHIVED: { label: 'ARQUIVADO',  color: 'rgba(255,255,255,.3)', bg: 'rgba(255,255,255,.05)' },
+    };
+
+    grid.innerHTML = list.map(ev => {
+        const st = statusMap[ev.status] || statusMap.DRAFT;
+        const attendeeCount = ev.crie_attendees?.[0]?.count || 0;
+        const occupancy = ev.capacity > 0 ? Math.round((attendeeCount / ev.capacity) * 100) : null;
+        const dateStr = new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+        return `
+        <div class="hub-announcement-card" style="cursor:default; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:900; color:#fff; font-size:1.05rem; margin-bottom:4px;">${ev.title}</div>
+                    <div style="font-size:.75rem; color:rgba(255,255,255,.4);">📍 ${ev.location}</div>
+                </div>
+                <span style="background:${st.bg}; color:${st.color}; border:1px solid ${st.color}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700; flex-shrink:0; margin-left:10px;">${st.label}</span>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <span style="font-size:.78rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 10px; color:rgba(255,255,255,.6);">📅 ${dateStr}</span>
+                ${ev.price > 0 ? `<span style="font-size:.78rem; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); border-radius:8px; padding:5px 10px; color:#F59E0B; font-weight:700;">${ev.price.toFixed(2)}€</span>` : '<span style="font-size:.78rem; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:8px; padding:5px 10px; color:#4ade80; font-weight:700;">GRATUITO</span>'}
+                <span style="font-size:.78rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 10px; color:rgba(255,255,255,.5);">👥 ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
+            </div>
+            ${occupancy !== null ? `
+            <div style="background:rgba(255,255,255,.04); border-radius:6px; height:4px; overflow:hidden;">
+                <div style="height:100%; width:${Math.min(occupancy,100)}%; background:${occupancy>=90?'#f87171':occupancy>=70?'#F59E0B':'#4ade80'}; border-radius:6px; transition:width .5s;"></div>
+            </div>` : ''}
+            <div style="display:flex; gap:8px; margin-top:auto;">
+                <button onclick="switchTab('crie-checkin'); setTimeout(()=>{const s=document.getElementById('checkin-event-select'); if(s){s.value='${ev.id}'; loadCheckinList();}},200)" 
+                    style="flex:1; padding:9px; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); border-radius:10px; color:#F59E0B; font-size:.75rem; font-weight:700; cursor:pointer;">
+                    ✓ Check-in
+                </button>
+                <button onclick="archiveCrieEvento('${ev.id}','${ev.status}')"
+                    style="padding:9px 12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; color:rgba(255,255,255,.5); font-size:.75rem; cursor:pointer;">
+                    ${ev.status === 'ARCHIVED' ? '↩ Restaurar' : '📦 Arquivar'}
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openCreateEventoModal() {
+    const modal = document.getElementById('modal-create-evento');
+    if (modal) modal.style.display = 'flex';
+}
+
+async function saveCrieEvento(e) {
+    e.preventDefault();
+    const wsId = getCrieWorkspaceId();
+    const form = e.target;
+    const payload = {
+        workspace_id: wsId,
+        title: form.title.value,
+        description: form.description.value || null,
+        date: form.date.value,
+        capacity: parseInt(form.capacity.value) || 0,
+        location: form.location.value,
+        price: parseFloat(form.price.value) || 0,
+        status: form.status.value,
+    };
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('crie_events').insert(payload);
+    if (error) { alert('Erro: ' + error.message); return; }
+    closeModal('modal-create-evento');
+    form.reset();
+    loadCrieEventos();
+}
+
+async function archiveCrieEvento(id, currentStatus) {
+    const newStatus = currentStatus === 'ARCHIVED' ? 'DRAFT' : 'ARCHIVED';
+    const sb = window.supabaseClient;
+    await sb.from('crie_events').update({ status: newStatus }).eq('id', id);
+    loadCrieEventos();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRIE — CHECK-IN
+// ═══════════════════════════════════════════════════════════
+function populateCheckinEventos(eventos) {
+    const sel = document.getElementById('checkin-event-select');
+    if (!sel) return;
+    const active = eventos.filter(e => e.status !== 'ARCHIVED');
+    sel.innerHTML = '<option value="">Selecionar Evento…</option>' +
+        active.map(e => `<option value="${e.id}">${e.title} — ${new Date(e.date).toLocaleDateString('pt-PT')}</option>`).join('');
+}
+
+function loadCrieCheckinEventos() {
+    if (!crieEventos.length) {
+        loadCrieEventos().then(() => populateCheckinEventos(crieEventos));
+    } else {
+        populateCheckinEventos(crieEventos);
+    }
+}
+
+async function loadCheckinList() {
+    const eventId = document.getElementById('checkin-event-select')?.value;
+    if (!eventId) return;
+    const sb = window.supabaseClient;
+    const { data } = await sb
+        .from('crie_attendees')
+        .select('id, name, email, phone, presence_status, is_member')
+        .eq('event_id', eventId)
+        .order('name');
+    crieCheckinData = data || [];
+    filterCheckin();
+    updateCheckinCounter();
+}
+
+function filterCheckin() {
+    const q = document.getElementById('checkin-search')?.value.toLowerCase() || '';
+    const filtered = !q ? crieCheckinData : crieCheckinData.filter(a =>
+        a.name?.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q) ||
+        a.phone?.includes(q)
+    );
+    renderCheckinList(filtered);
+}
+
+function renderCheckinList(list) {
+    const container = document.getElementById('checkin-list');
+    if (!container) return;
+    if (!list.length) {
+        container.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Nenhum inscrito encontrado.</div>';
+        return;
+    }
+    container.innerHTML = list.map(a => {
+        const isPresente = a.presence_status === 'Presente';
+        return `
+        <div onclick="toggleCheckinPresence('${a.id}')" style="display:flex; align-items:center; gap:16px; background:${isPresente?'rgba(74,222,128,.07)':'rgba(255,255,255,.03)'}; border:1px solid ${isPresente?'rgba(74,222,128,.25)':'rgba(255,255,255,.07)'}; border-radius:16px; padding:16px 20px; cursor:pointer; transition:all .2s; user-select:none;">
+            <div style="width:40px; height:40px; border-radius:50%; background:${isPresente?'rgba(74,222,128,.15)':'rgba(255,255,255,.06)'}; border:2px solid ${isPresente?'rgba(74,222,128,.5)':'rgba(255,255,255,.1)'}; display:flex; align-items:center; justify-content:center; font-size:1.1rem; transition:all .2s; flex-shrink:0;">
+                ${isPresente ? '✓' : ''}
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
+                    ${a.name}
+                    ${a.is_member ? '<span style="color:#F59E0B; font-size:.7rem;">★</span>' : ''}
+                </div>
+                <div style="font-size:.75rem; color:rgba(255,255,255,.4);">${a.email} · ${a.phone}</div>
+            </div>
+            <div style="font-size:.8rem; font-weight:700; color:${isPresente?'#4ade80':'rgba(255,255,255,.25)'};">${isPresente?'PRESENTE':'TAP PARA CONFIRMAR'}</div>
+        </div>`;
+    }).join('');
+}
+
+async function toggleCheckinPresence(id) {
+    const attendee = crieCheckinData.find(a => a.id === id);
+    if (!attendee) return;
+    const next = attendee.presence_status === 'Presente' ? 'Pendente' : 'Presente';
+    const sb = window.supabaseClient;
+    await sb.from('crie_attendees').update({ presence_status: next }).eq('id', id);
+    attendee.presence_status = next;
+    filterCheckin();
+    updateCheckinCounter();
+}
+
+function updateCheckinCounter() {
+    const count = crieCheckinData.filter(a => a.presence_status === 'Presente').length;
+    const el = document.getElementById('checkin-counter');
+    if (el) el.textContent = `${count} presente${count !== 1 ? 's' : ''}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRIE — RELATÓRIOS
+// ═══════════════════════════════════════════════════════════
+async function loadCrieRelatorios() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+
+    const [{ data: attendees }, { data: membros }, { data: eventos }, { data: financas }] = await Promise.all([
+        sb.from('crie_attendees').select('id, payment_status, presence_status, event_id').eq('workspace_id', wsId),
+        sb.from('crie_members').select('id, status').eq('workspace_id', wsId),
+        sb.from('crie_events').select('id, title, date, status').eq('workspace_id', wsId).neq('status','ARCHIVED').order('date',{ascending:false}),
+        sb.from('crie_finances').select('type, amount, event_id').eq('workspace_id', wsId),
+    ]);
+
+    const totalInscritos = attendees?.length || 0;
+    const membrosAtivos = (membros||[]).filter(m => m.status === 'Ativo').length;
+    const receita = (financas||[]).filter(f => f.type==='Receita').reduce((s,f) => s + Number(f.amount), 0);
+    const despesas = (financas||[]).filter(f => f.type==='Despesa').reduce((s,f) => s + Number(f.amount), 0);
+
+    document.getElementById('rel-total-inscritos').textContent = totalInscritos;
+    document.getElementById('rel-membros-ativos').textContent = membrosAtivos;
+    document.getElementById('rel-receita').textContent = `${receita.toFixed(2)}€`;
+    document.getElementById('rel-despesas').textContent = `${despesas.toFixed(2)}€`;
+    document.getElementById('rel-resultado').textContent = `${(receita-despesas).toFixed(2)}€`;
+    document.getElementById('rel-eventos').textContent = (eventos||[]).length;
+
+    // Build per-event table
+    const tbody = document.getElementById('rel-eventos-body');
+    if (tbody && eventos?.length) {
+        tbody.innerHTML = eventos.map(ev => {
+            const evAttendees = (attendees||[]).filter(a => a.event_id === ev.id);
+            const presences = evAttendees.filter(a => a.presence_status === 'Presente').length;
+            const pagos = evAttendees.filter(a => a.payment_status === 'Pago').length;
+            const evReceita = (financas||[]).filter(f => f.event_id === ev.id && f.type==='Receita').reduce((s,f)=>s+Number(f.amount),0);
+            const evDespesas = (financas||[]).filter(f => f.event_id === ev.id && f.type==='Despesa').reduce((s,f)=>s+Number(f.amount),0);
+            const resultado = evReceita - evDespesas;
+            return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+                <td style="padding:12px 16px; font-weight:700; color:#fff;">${ev.title}</td>
+                <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${new Date(ev.date).toLocaleDateString('pt-PT')}</td>
+                <td style="padding:12px 16px; text-align:center; color:rgba(255,255,255,.7);">${evAttendees.length}</td>
+                <td style="padding:12px 16px; text-align:center; color:#4ade80;">${presences}</td>
+                <td style="padding:12px 16px; text-align:center; color:#F59E0B;">${pagos}</td>
+                <td style="padding:12px 16px; color:#4ade80; font-weight:700;">${evReceita.toFixed(2)}€</td>
+                <td style="padding:12px 16px; color:#f87171; font-weight:700;">${evDespesas.toFixed(2)}€</td>
+                <td style="padding:12px 16px; font-weight:800; color:${resultado>=0?'#4ade80':'#f87171'};">${resultado.toFixed(2)}€</td>
+            </tr>`;
+        }).join('');
+    }
+}
+
+// ── closeModal utility (if not already defined) ─────────────
+if (!window.closeModal) {
+    window.closeModal = function(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    };
+}
 </script>
 
 </body>
