@@ -10,6 +10,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
  * Invalid: /login.html → null
  */
 function getSlugFromPath() {
+    if (window.location.protocol === 'file:') return null;
     const parts = window.location.pathname.split('/').filter(Boolean);
     if (parts.length >= 2 && !parts[0].endsWith('.html')) return parts[0];
     return null;
@@ -67,7 +68,8 @@ async function resolveRedirectSlug(userId) {
 sb.auth.getSession().then(async ({ data }) => {
     if (data?.session) {
         const slug = await resolveRedirectSlug(data.session.user.id);
-        window.location.replace('/' + slug + '/dashboard.html');
+        if (window.location.protocol === 'file:') window.location.href = 'dashboard.html';
+        else window.location.replace('/' + slug + '/dashboard.html');
     }
 });
 
@@ -83,7 +85,11 @@ document.getElementById('pw-toggle-btn').addEventListener('click', () => {
 
 function goForgot() {
     const slug = _urlSlug || 'orlando';
-    window.location.href = '/' + slug + '/forgot-password.html';
+    if (window.location.protocol === 'file:') {
+        window.location.href = 'forgot-password.html';
+    } else {
+        window.location.href = '/' + slug + '/forgot-password.html';
+    }
 }
 window.goForgot = goForgot;
 
@@ -117,7 +123,11 @@ async function doLogin() {
     // Success — resolve destination slug
     document.getElementById('btn-text').textContent = 'Redirecionando...';
     const slug = await resolveRedirectSlug(authData.user.id);
-    window.location.replace('/' + slug + '/dashboard.html');
+    if (window.location.protocol === 'file:') {
+        window.location.href = 'dashboard.html';
+    } else {
+        window.location.replace('/' + slug + '/dashboard.html');
+    }
 }
 window.doLogin = doLogin;
 
