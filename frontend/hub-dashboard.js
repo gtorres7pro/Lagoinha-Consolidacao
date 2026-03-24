@@ -127,6 +127,13 @@
                 }
 
                 renderWsDropdown();
+                // CRITICAL: Trigger data load for the initial workspace.
+                // (switchWorkspace calls initEngine when user manually switches,
+                //  but the page load path goes through loadWorkspaces — so we must
+                //  call initEngine here too, after currentWorkspaceId is set.)
+                if (initial && typeof initEngine === 'function') {
+                    initEngine();
+                }
             } catch (e) {
                 console.warn('loadWorkspaces error:', e);
             }
