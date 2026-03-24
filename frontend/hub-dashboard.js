@@ -54,6 +54,12 @@
         // Keep local alias for backward compat
         let _allWorkspaces = window._allWorkspaces;
 
+        // Helper: strip 'Lagoinha ' prefix for sidebar display only
+        // e.g. 'Lagoinha Orlando' → 'Orlando' | 'Igreja Alpha' → 'Igreja Alpha'
+        function displayWsName(name) {
+            return (name || '').replace(/^Lagoinha\s+/i, '');
+        }
+
         // Load all accessible workspaces for this user
         window.loadWorkspaces = async function() {
             try {
@@ -120,7 +126,7 @@
                     if (pillName) pillName.textContent = initial.name;
                     // Update sidebar brand sub-label to show city/workspace name
                     const sidebarLabel = document.getElementById('sidebar-workspace-name');
-                    if (sidebarLabel) sidebarLabel.textContent = initial.name;
+                    if (sidebarLabel) sidebarLabel.textContent = displayWsName(initial.name);
                 } else {
                     const pillName = document.getElementById('ws-pill-name');
                     if (pillName) pillName.textContent = 'N/D';
@@ -177,7 +183,7 @@
             if (pillNameEl) pillNameEl.textContent = ws.name;
             // Update sidebar brand sub-label to show city name
             const sidebarLabel = document.getElementById('sidebar-workspace-name');
-            if (sidebarLabel) sidebarLabel.textContent = ws.name;
+            if (sidebarLabel) sidebarLabel.textContent = displayWsName(ws.name);
             // Apply plan gating (Fase F)
             if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
 
