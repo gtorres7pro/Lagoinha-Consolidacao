@@ -235,18 +235,33 @@
             }, duration);
         };
 
-        // Call loadWorkspaces after auth guard resolves
-        document.addEventListener('DOMContentLoaded', () => {
-            // small delay to ensure supabaseClient is ready
-            setTimeout(() => {
-                if (window.supabaseClient) loadWorkspaces();
-                else {
+        // ── Bootstrap loadWorkspaces ──────────────────────────────────────
+        // This script is loaded at the END of <body>, so DOMContentLoaded has
+        // already fired by the time this code runs. We call loadWorkspaces()
+        // directly, with a tiny delay to guarantee supabaseClient is initialized.
+        (function bootstrapWorkspaces() {
+            function tryLoad() {
+                if (window.supabaseClient) {
+                    loadWorkspaces();
+                } else {
+                    // supabaseClient not ready yet — retry every 100ms (max 5s)
+                    let attempts = 0;
                     const iv = setInterval(() => {
-                        if (window.supabaseClient) { clearInterval(iv); loadWorkspaces(); }
-                    }, 200);
+                        attempts++;
+                        if (window.supabaseClient) {
+                            clearInterval(iv);
+                            loadWorkspaces();
+                        } else if (attempts > 50) {
+                            clearInterval(iv);
+                            console.error('supabaseClient never became available');
+                        }
+                    }, 100);
                 }
-            }, 300);
-        });
+            }
+            // DOM is already ready (script is at bottom of body)
+            // but auth guard IIFE is async — wait one tick for it to initialize supabase
+            setTimeout(tryLoad, 50);
+        })();
 
         window.copyLink = function(url) {
             navigator.clipboard.writeText(url).then(() => {
