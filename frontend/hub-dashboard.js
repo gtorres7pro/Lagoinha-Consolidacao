@@ -118,11 +118,13 @@
             const list = document.getElementById('ws-list');
             if (!list) return;
             list.innerHTML = '';
-            if (_allWorkspaces.length === 0) {
-                list.innerHTML = '<div style="padding:12px 14px;color:#555;font-size:0.8rem;">Nenhum workspace</div>';
+            // Always read from global (not stale closure copy)
+            const allWs = window._allWorkspaces || [];
+            if (allWs.length === 0) {
+                list.innerHTML = '<div style="padding:12px 14px;color:#555;font-size:0.8rem;">Nenhum workspace disponível</div>';
                 return;
             }
-            _allWorkspaces.forEach(ws => {
+            allWs.forEach(ws => {
                 const isActive = ws.id === window.currentWorkspaceId;
                 const div = document.createElement('div');
                 div.className = 'ws-option' + (isActive ? ' active' : '');
@@ -130,9 +132,9 @@
                     <div class="ws-option-dot"></div>
                     <div>
                         <div class="ws-option-name">${ws.name}</div>
-                        <div class="ws-option-badge">${ws.status || 'active'}</div>
+                        <div class="ws-option-badge">${ws.slug || ws.status || 'active'}</div>
                     </div>`;
-                div.onclick = () => switchWorkspace(ws);
+                div.onclick = (e) => { e.stopPropagation(); switchWorkspace(ws); };
                 list.appendChild(div);
             });
         }
@@ -167,14 +169,16 @@
 
         // Helper: switch workspace by ID only (for onclick buttons in templates)
         window._switchWsById = function(wsId) {
-            const ws = _allWorkspaces.find(w => w.id === wsId);
+            // Always use global array (not stale closure)
+            const allWs = window._allWorkspaces || [];
+            const ws = allWs.find(w => w.id === wsId);
             if (ws) {
                 window.switchWorkspace(ws);
             } else {
                 // Fallback: fetch from DB if not in local list
                 const sb = window.supabaseClient;
                 if (!sb) return;
-                sb.from('workspaces').select('id,name,status,plan,modules').eq('id', wsId).single()
+                sb.from('workspaces').select('id,name,slug,status,plan,modules').eq('id', wsId).single()
                     .then(({ data }) => { if (data) window.switchWorkspace(data); });
             }
         };

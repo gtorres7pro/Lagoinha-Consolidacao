@@ -3,13 +3,23 @@ const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const _parts = window.location.pathname.split('/').filter(Boolean);
-// Only treat first segment as slug if it doesn't end in .html
-const _slug = (_parts[0] && !_parts[0].endsWith('.html')) ? _parts[0] : null;
+/**
+ * Extract workspace slug from URL path.
+ * Returns null if the first segment is an .html file (e.g. /login.html → null).
+ * Valid: /orlando/login.html → 'orlando'
+ * Invalid: /login.html → null
+ */
+function getSlugFromPath() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && !parts[0].endsWith('.html')) return parts[0];
+    return null;
+}
 
-// Load workspace name badge (only if URL has a slug)
-if (_slug) {
-    sb.from('workspaces').select('name').eq('slug', _slug).single()
+const _urlSlug = getSlugFromPath();
+
+// Show workspace badge if URL already has a slug
+if (_urlSlug) {
+    sb.from('workspaces').select('name').eq('slug', _urlSlug).single()
         .then(({ data }) => {
             if (data?.name) {
                 document.getElementById('workspace-name').textContent = data.name;
@@ -19,55 +29,49 @@ if (_slug) {
 }
 
 /**
- * After login, resolve where to send the user:
- * - master_admin → their first active workspace (or 'orlando' fallback)
- * - regular user → their assigned workspace
+ * After login, find the correct slug for this user.
+ * Priority:
+ * 1. Slug already in the URL (e.g. /orlando/login.html)
+ * 2. User's workspace_id → look up that workspace's slug
+ * 3. Fallback: 'orlando'
  */
 async function resolveRedirectSlug(userId) {
+    // 1. URL already has a valid slug → use it
+    if (_urlSlug) return _urlSlug;
+
     try {
-        // If URL already has a valid workspace slug, use it
-        if (_slug) return _slug;
-
-        // Fetch user row to get role and workspace_id
-        const { data: userRow } = await sb.from('users')
-            .select('workspace_id, level')
+        // 2. Query user row for workspace_id
+        const { data: userRow, error: ue } = await sb
+            .from('users')
+            .select('workspace_id')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
-        if (userRow?.workspace_id) {
-            const { data: ws } = await sb.from('workspaces')
+        if (!ue && userRow?.workspace_id) {
+            const { data: ws } = await sb
+                .from('workspaces')
                 .select('slug')
                 .eq('id', userRow.workspace_id)
-                .single();
+                .maybeSingle();
             if (ws?.slug) return ws.slug;
-        }
-
-        // master_admin fallback: grab first active workspace alphabetically
-        const session = await sb.auth.getSession();
-        const role = session.data.session?.user?.user_metadata?.role;
-        if (role === 'master_admin') {
-            const { data: workspaces } = await sb.from('workspaces')
-                .select('slug')
-                .eq('status', 'active')
-                .order('name')
-                .limit(1);
-            if (workspaces?.[0]?.slug) return workspaces[0].slug;
         }
     } catch (e) {
         console.warn('[Login] resolveRedirectSlug error:', e);
     }
-    return 'orlando'; // ultimate fallback
+
+    // 3. Ultimate fallback
+    return 'orlando';
 }
 
-// Redirect if already logged in
+// If already logged in → redirect immediately
 sb.auth.getSession().then(async ({ data }) => {
-    if (data.session) {
+    if (data?.session) {
         const slug = await resolveRedirectSlug(data.session.user.id);
         window.location.replace('/' + slug + '/dashboard.html');
     }
 });
 
-// Password toggle
+// Password visibility toggle
 document.getElementById('pw-toggle-btn').addEventListener('click', () => {
     const inp = document.getElementById('password');
     const isHidden = inp.type === 'password';
@@ -78,24 +82,24 @@ document.getElementById('pw-toggle-btn').addEventListener('click', () => {
 });
 
 function goForgot() {
-    const fallback = _slug || 'orlando';
-    window.location.href = '/' + fallback + '/forgot-password.html';
+    const slug = _urlSlug || 'orlando';
+    window.location.href = '/' + slug + '/forgot-password.html';
 }
+window.goForgot = goForgot;
 
 async function doLogin() {
     const email = document.getElementById('email').value.trim();
     const pass  = document.getElementById('password').value;
     const btn   = document.getElementById('login-btn');
-    const err   = document.getElementById('error-msg');
 
     if (!email || !pass) { showError('Por favor preencha email e senha.'); return; }
 
     // Loading state
     btn.disabled = true;
-    document.getElementById('btn-text').textContent = 'Entrando';
+    document.getElementById('btn-text').textContent = 'Entrando...';
     document.getElementById('btn-spinner').style.display = 'block';
     document.getElementById('btn-arrow').style.display = 'none';
-    err.classList.remove('show');
+    document.getElementById('error-msg').classList.remove('show');
 
     const { data: authData, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
@@ -107,15 +111,15 @@ async function doLogin() {
         document.getElementById('btn-text').textContent = 'Entrar';
         document.getElementById('btn-spinner').style.display = 'none';
         document.getElementById('btn-arrow').style.display = 'block';
-    } else {
-        document.getElementById('btn-text').textContent = 'Redirecionando...';
-        const slug = await resolveRedirectSlug(authData.user.id);
-        window.location.replace('/' + slug + '/dashboard.html');
+        return;
     }
-}
 
+    // Success — resolve destination slug
+    document.getElementById('btn-text').textContent = 'Redirecionando...';
+    const slug = await resolveRedirectSlug(authData.user.id);
+    window.location.replace('/' + slug + '/dashboard.html');
+}
 window.doLogin = doLogin;
-window.goForgot = goForgot;
 
 function showError(msg) {
     const e = document.getElementById('error-msg');
