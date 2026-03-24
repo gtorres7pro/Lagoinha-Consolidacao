@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324o">
+    <link rel="stylesheet" href="/hub.css?v=20260324p">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -39,7 +39,7 @@
             display: flex;
             flex-direction: column;
             border-right: 1px solid var(--card-border);
-            background: #050505;
+            background: #0d0d0d;
             z-index: 10;
             flex-shrink: 0;
             overflow-y: auto;
@@ -224,20 +224,49 @@
         /* Sidebar overlay for mobile */
         .sidebar-overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            z-index: 45;
+            background: rgba(0,0,0,0.75); backdrop-filter: blur(3px);
+            z-index: 98; /* below sidebar (99), above content */
         }
         .sidebar-overlay.show { display: block; }
+
+        /* ─── MOBILE: up to 1023px ─── */
         @media (max-width: 1023px) {
             .mobile-topbar { display: flex; }
             body { overflow-x: hidden; }
             .main { margin-left: 0 !important; padding-top: 72px !important; }
             .sidebar {
+                position: fixed;
+                top: 0; left: 0;
+                height: 100dvh;
+                width: 280px;
                 transform: translateX(-100%);
                 transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
-                z-index: 50;
+                z-index: 99;         /* above overlay */
+                background: #0d0d0d;
+                border-right: 1px solid rgba(255,215,0,0.12);
+                box-shadow: 4px 0 32px rgba(0,0,0,0.8);
             }
             .sidebar.open { transform: translateX(0); }
+        }
+
+        /* ─── iPHONE / small phones: up to 430px ─── */
+        @media (max-width: 430px) {
+            .sidebar {
+                width: 82vw;          /* comfortable draw width on any iPhone */
+                max-width: 320px;
+                background: #111;    /* slightly lighter — items visible */
+            }
+            .nav li {
+                padding: 12px 14px;  /* bigger tap targets on touch */
+                font-size: 0.92rem;
+            }
+            .nav li .nav-icon { width: 26px; height: 26px; }
+            .nav li .nav-icon svg { width: 18px; height: 18px; }
+            /* Workspace pill larger */
+            .ws-pill { padding: 12px 14px; }
+            .ws-pill-name { font-size: 0.85rem; }
+            /* User card */
+            .user { padding: 14px 16px 20px; }
         }
 
         /* ===== TOP BAR ===== */
@@ -2149,7 +2178,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260324o"></script>
+    <script src="/hub-dashboard.js?v=20260324p"></script>
 </body>
 </html>
 
