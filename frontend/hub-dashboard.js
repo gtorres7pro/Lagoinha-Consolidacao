@@ -52,8 +52,81 @@
 
                 // Store for profile modal pre-fill
                 window._profileCache = { name, phone: uRow?.phone || '', email: user.email, initial };
+
+                // ── Personalized Home Greeting ──────────────────────────
+                const firstName = name.split(' ')[0];
+                const greetingTitle = document.getElementById('home-greeting-title');
+                if (greetingTitle) greetingTitle.textContent = `Bem-vindo, ${firstName}!`;
+
+                // ── Daily Bible Verse (rotates at 7am each day) ──────────
+                loadDailyVerse();
             })();
         })();
+
+        // ─── DAILY VERSE SYSTEM ──────────────────────────────────────────
+        function loadDailyVerse() {
+            const VERSES = [
+                { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
+                { text: "O SENHOR é o meu pastor e nada me faltará.", ref: "Salmos 23:1" },
+                { text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a minha diestra fiel.", ref: "Isaías 41:10" },
+                { text: "Porque eu bem sei os planos que tenho a vosso respeito, diz o SENHOR; planos de paz e não de mal, para vos dar um futuro e uma esperança.", ref: "Jeremias 29:11" },
+                { text: "Buscai, pois, em primeiro lugar, o seu reino e a sua justiça, e todas estas coisas vos serão acrescentadas.", ref: "Mateus 6:33" },
+                { text: "Vinde a mim, todos os que estais cansados e sobrecarregados, e eu vos aliviarei.", ref: "Mateus 11:28" },
+                { text: "Mas os que esperam no SENHOR renovam as suas forças, sobem com asas como águias, correm e não se cansam, caminham e não se fatigam.", ref: "Isaías 40:31" },
+                { text: "Porque o SENHOR, vosso Deus, é o que vai convosco, para pelegar por vós contra os vossos inimigos, para salvar-vos.", ref: "Deuteronômio 20:4" },
+                { text: "Entreguem ao SENHOR tudo o que fazem, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3" },
+                { text: "Porque Deus tanto amou o mundo que deu o seu Filho Unigênito, para que todo o que nele crer não pereça, mas tenha a vida eterna.", ref: "João 3:16" },
+                { text: "O ladrão não vem senão para roubar, matar e destruir; eu vim para que tenham vida e a tenham em abundância.", ref: "João 10:10" },
+                { text: "Mas graças a Deus que, em Cristo, sempre nos leva em triunfo e, por nosso intermédio, manifesta em todo lugar o perfume do seu conhecimento.", ref: "2 Coríntios 2:14" },
+                { text: "Confie no SENHOR de todo o seu coração e não se apoie no seu próprio entendimento.", ref: "Provérbios 3:5" },
+                { text: "Não vos conformeis com este século, mas transformai-vos pela renovação da vossa mente.", ref: "Romanos 12:2" },
+                { text: "Porque não nos deu Deus espírito de covardia, mas de poder, de amor e de moderação.", ref: "2 Timóteo 1:7" },
+                { text: "Fui crucificado com Cristo; e vivo, não mais eu, mas Cristo vive em mim.", ref: "Gálatas 2:20" },
+                { text: "O SENHOR é a minha luz e a minha salvação; a quem temerei?", ref: "Salmos 27:1" },
+                { text: "Alegrai-vos sempre no Senhor; outra vez digo: alegrai-vos.", ref: "Filipenses 4:4" },
+                { text: "Maior é o que está em vós do que o que está no mundo.", ref: "1 João 4:4" },
+                { text: "Este é o dia que o Senhor fez; regozijemo-nos e alegremo-nos nele.", ref: "Salmos 118:24" },
+                { text: "E tudo o que pedirdes em meu nome, eu o farei, para que o Pai seja glorificado no Filho.", ref: "João 14:13" },
+                { text: "Sede fortes e corajosos. Não temais, nem vos assusteis por causa deles, porque o SENHOR, teu Deus, é quem marcha contigo; não te deixará, nem te abandonará.", ref: "Deuteronômio 31:6" },
+                { text: "Ora, àquele que é poderoso para fazer tudo muito mais abundantemente além do que pedimos ou pensamos, segundo o poder que opera em nós, a ele seja a glória.", ref: "Efésios 3:20-21" },
+                { text: "Produzi, pois, frutos dignos de arrependimento.", ref: "Mateus 3:8" },
+                { text: "Mas recebereis poder, ao descer sobre vós o Espírito Santo, e sereis minhas testemunhas.", ref: "Atos 1:8" },
+                { text: "Não se turbe o vosso coração; credes em Deus, crede também em mim.", ref: "João 14:1" },
+                { text: "A graça do Senhor Jesus Cristo, o amor de Deus e a comunhão do Espírito Santo sejam com todos vós.", ref: "2 Coríntios 13:14" },
+                { text: "Sejam gratos em qualquer situação, pois esta é a vontade de Deus em Cristo Jesus para vocês.", ref: "1 Tessalonicenses 5:18" },
+                { text: "Nenhuma arma forjada contra ti prosperará.", ref: "Isaías 54:17" },
+                { text: "Porque onde dois ou três estão reunidos em meu nome, aí estou eu no meio deles.", ref: "Mateus 18:20" }
+            ];
+
+            // Use day-of-year as index (stable across page reloads, changes daily)
+            const now = new Date();
+            // Anchor at 7am: if before 7am use yesterday's verse
+            const anchorHour = 7;
+            if (now.getHours() < anchorHour) {
+                now.setDate(now.getDate() - 1);
+            }
+            const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+            const idx = dayOfYear % VERSES.length;
+
+            // Check localStorage cache to avoid flicker
+            const cacheKey = 'lago_verse_day';
+            const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+            const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+
+            let verse;
+            if (cached.key === todayKey) {
+                verse = cached.verse;
+            } else {
+                verse = VERSES[idx];
+                localStorage.setItem(cacheKey, JSON.stringify({ key: todayKey, verse }));
+            }
+
+            const textEl = document.getElementById('verse-text');
+            const refEl  = document.getElementById('verse-ref');
+            if (textEl) textEl.textContent = `"${verse.text}"`;
+            if (refEl)  refEl.textContent  = `— ${verse.ref}`;
+        }
+
 
         // ===== LOGOUT =====
         window.handleLogout = async function() {

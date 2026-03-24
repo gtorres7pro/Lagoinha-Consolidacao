@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260324q">
+    <link rel="stylesheet" href="/hub.css?v=20260324r">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -846,76 +846,107 @@
         <div id="view-home" class="view-section active">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Início / Bem-Vindo</h1>
-                    <p>Atalhos rápidos para os funis de entrada da igreja.</p>
+                    <h1 id="home-greeting-title">Bem-vindo!</h1>
+                    <p id="home-greeting-sub">Lago HUB — Controle de Múltiplos Ministérios</p>
                 </div>
             </header>
-            <div style="padding: 32px; display: flex; flex-direction: column; gap: 20px; max-width: 860px;">
-                <div class="kpi-box" style="flex-direction: column; align-items: flex-start; gap: 12px; background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.2);">
-                    <h2 style="font-size: 1.35rem; color: var(--accent); font-weight: 800; display:flex; align-items:center; gap:10px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        Bem-vindo ao HUB!
+            <div style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; max-width: 860px;">
+
+                <!-- Welcome card -->
+                <div class="kpi-box" style="flex-direction: column; align-items: flex-start; gap: 10px; background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.2);">
+                    <h2 style="font-size: 1.15rem; color: var(--accent); font-weight: 800; display:flex; align-items:center; gap:10px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Painel de Controle Central
                     </h2>
-                    <p style="color: var(--text-dim); line-height: 1.65; font-size: 0.925rem;">
-                        Escolha um dos atalhos abaixo para preencher dados públicos ou navegue pelo menu <strong style="color:#fff;">Consolidados</strong> na barra à esquerda para visualizar as métricas ao vivo.
+                    <p style="color: var(--text-dim); line-height: 1.65; font-size: 0.9rem;">
+                        Aqui você acompanha em tempo real o fluxo de pessoas da sua igreja — de quem tomou uma decisão no altar até o acompanhamento de cada visitante. Use o menu lateral para navegar pelos módulos ativos e gerencie cada ministério com precisão e intenção.
                     </p>
                 </div>
 
-                <!-- Consolida Form Card + QR -->
-                <div class="kpi-box" style="flex-direction: column; gap: 16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                        <div style="flex:1; min-width:220px;">
-                            <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700; display:flex; align-items:center; gap:8px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                Formulário de Consolidação
-                            </h3>
-                            <p style="color: var(--text-dim); font-size: 0.83rem;">Preenchido pela equipe com a pessoa que tomou uma decisão após o apelo no altar.</p>
-                        </div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <button class="btn-outline" onclick="copyFormLink('consolida-form.html')">Copiar Link</button>
-                            <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('consolida-form.html')">Acessar →</button>
-                        </div>
-                    </div>
-                    <div class="hub-qr-card">
-                        <div class="hub-qr-canvas-wrap"><canvas id="qr-consolida" width="96" height="96"></canvas></div>
-                        <div class="hub-qr-info">
-                            <div class="hub-qr-label">QR Code Público</div>
-                            <div class="hub-qr-name">Consolidação</div>
-                            <button class="hub-qr-download" onclick="downloadQR('qr-consolida', 'consolida-form')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Download PNG
-                            </button>
-                        </div>
+                <!-- Daily Bible Verse (rotates daily at 7am) -->
+                <div class="kpi-box" style="flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.07); position:relative; overflow:hidden;">
+                    <div style="position:absolute; top:0; left:0; width:3px; height:100%; background: linear-gradient(to bottom, var(--accent), #f59e0b);"></div>
+                    <div style="padding-left:8px;">
+                        <div style="font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim); margin-bottom:6px;">✦ Palavra do Dia</div>
+                        <p id="verse-text" style="font-size: 0.95rem; line-height: 1.75; color: var(--text-mid); font-style: italic;">"..."</p>
+                        <p id="verse-ref" style="font-size: 0.78rem; color: var(--accent); font-weight: 700; margin-top: 6px;"></p>
                     </div>
                 </div>
 
-                <!-- Visitor Form Card + QR -->
-                <div class="kpi-box" style="flex-direction: column; gap: 16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                        <div style="flex:1; min-width:220px;">
-                            <h3 style="font-size: 1.05rem; margin-bottom: 5px; font-weight: 700; display:flex; align-items:center; gap:8px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                                Registro de Visitantes
-                            </h3>
-                            <p style="color: var(--text-dim); font-size: 0.83rem;">Mapeamento das primeiras visitas recepcionadas pelo time do Welcome no lobby.</p>
-                        </div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <button class="btn-outline" onclick="copyFormLink('visitor-form.html')">Copiar Link</button>
-                            <button class="btn-outline" style="background: var(--text-main); color: #000; border: none; font-weight: 700;" onclick="openForm('visitor-form.html')">Acessar →</button>
-                        </div>
-                    </div>
-                    <div class="hub-qr-card">
-                        <div class="hub-qr-canvas-wrap"><canvas id="qr-visitor" width="96" height="96"></canvas></div>
-                        <div class="hub-qr-info">
-                            <div class="hub-qr-label">QR Code Público</div>
-                            <div class="hub-qr-name">Visitantes</div>
-                            <button class="hub-qr-download" onclick="downloadQR('qr-visitor', 'visitor-form')">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Download PNG
-                            </button>
-                        </div>
-                    </div>
+                <!-- Forms Section Label -->
+                <div style="margin-top:4px; padding-bottom:4px; border-bottom: 1px solid var(--card-border);">
+                    <p style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim);">Formulários Ativos</p>
                 </div>
+
+                <!-- Compact form module cards -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+
+                    <!-- Consolidação -->
+                    <div class="kpi-box" style="flex-direction:column; gap:10px; padding:16px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:34px;height:34px;background:rgba(251,191,36,0.12);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                            <div>
+                                <div style="font-size:0.88rem; font-weight:700; line-height:1.2;">Consolidação</div>
+                                <div style="font-size:0.7rem; color:var(--text-dim);">Decisões no altar</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:7px;">
+                            <button class="btn-outline" style="flex:1; font-size:0.72rem; padding:7px 6px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="copyFormLink('consolida-form.html')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Copiar
+                            </button>
+                            <button class="btn-outline" style="flex:1; font-size:0.72rem; padding:7px 6px; background:var(--accent); color:#000; border-color:var(--accent); font-weight:700;" onclick="openForm('consolida-form.html')">Abrir →</button>
+                        </div>
+                    </div>
+
+                    <!-- Visitantes -->
+                    <div class="kpi-box" style="flex-direction:column; gap:10px; padding:16px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:34px;height:34px;background:rgba(96,165,250,0.1);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                            </div>
+                            <div>
+                                <div style="font-size:0.88rem; font-weight:700; line-height:1.2;">Visitantes</div>
+                                <div style="font-size:0.7rem; color:var(--text-dim);">Primeira visita</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:7px;">
+                            <button class="btn-outline" style="flex:1; font-size:0.72rem; padding:7px 6px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="copyFormLink('visitor-form.html')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Copiar
+                            </button>
+                            <button class="btn-outline" style="flex:1; font-size:0.72rem; padding:7px 6px; background:var(--accent); color:#000; border-color:var(--accent); font-weight:700;" onclick="openForm('visitor-form.html')">Abrir →</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- QR Codes collapsed -->
+                <details>
+                    <summary style="cursor:pointer; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim); padding:6px 0; user-select:none; display:flex; align-items:center; gap:6px; list-style:none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        QR Codes Públicos
+                    </summary>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
+                        <div class="kpi-box" style="flex-direction:column; align-items:center; gap:10px; padding:16px;">
+                            <div class="hub-qr-canvas-wrap"><canvas id="qr-consolida" width="90" height="90"></canvas></div>
+                            <div style="text-align:center;">
+                                <div style="font-size:0.75rem; font-weight:700;">QR Consolidação</div>
+                                <button class="hub-qr-download" style="margin-top:6px;" onclick="downloadQR('qr-consolida', 'consolida-form')">⬇ PNG</button>
+                            </div>
+                        </div>
+                        <div class="kpi-box" style="flex-direction:column; align-items:center; gap:10px; padding:16px;">
+                            <div class="hub-qr-canvas-wrap"><canvas id="qr-visitor" width="90" height="90"></canvas></div>
+                            <div style="text-align:center;">
+                                <div style="font-size:0.75rem; font-weight:700;">QR Visitantes</div>
+                                <button class="hub-qr-download" style="margin-top:6px;" onclick="downloadQR('qr-visitor', 'visitor-form')">⬇ PNG</button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
             </div>
         </div>
 
@@ -2180,7 +2211,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260324q"></script>
+    <script src="/hub-dashboard.js?v=20260324r"></script>
 </body>
 </html>
 
