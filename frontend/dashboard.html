@@ -2624,9 +2624,7 @@ REGRAS:
 
 
         document.addEventListener('DOMContentLoaded', () => {
-            const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // H1 (Fase H): supabaseClient is already created by hub.js — no duplicate init needed
             const supabase = window.supabaseClient;
 
             const leadsContainer = document.getElementById('leads-container');
@@ -4009,7 +4007,7 @@ REGRAS:
             if (error) throw error;
             
             if (btn) { btn.innerText = '✅ Salvo!'; setTimeout(() => { btn.innerText = 'Salvar Instruções (Nuvem)'; btn.disabled = false; }, 2000); }
-            console.log('✅ AI Instructions saved to Supabase.');
+            // [H5] console.log removed — no sensitive data in prod console
         } catch(e) {
             alert('❌ Erro ao salvar: ' + e.message);
             const btn = document.querySelector('[onclick="saveAIInstructions()"]');
@@ -4031,7 +4029,7 @@ REGRAS:
                 table: 'messages'
             }, (payload) => {
                 const newMsg = payload.new;
-                console.log('📡 Realtime: new message received', newMsg);
+                // [H5] Realtime payload not logged in prod — contains lead PII
 
                 // If the chat is currently open for this lead, reload the messages live
                 if (waActiveLeadId && String(newMsg.lead_id) === String(waActiveLeadId)) {
@@ -4043,7 +4041,7 @@ REGRAS:
             })
             .subscribe();
         
-        console.log('📡 Supabase Realtime: messages channel active.');
+        // [H5] Realtime channel active (log removed)
     }
 
     // Start Realtime after Supabase is ready (slight delay to ensure init)  
