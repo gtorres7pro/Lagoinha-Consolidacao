@@ -3324,7 +3324,8 @@ async function loadCrieInscritos() {
     }
 
     updateCrieInscritosKPIs();
-    renderCrieInscritos(crieInscritos);
+    filterCrieInscritos();
+
 }
 
 function updateCrieInscritosKPIs() {
