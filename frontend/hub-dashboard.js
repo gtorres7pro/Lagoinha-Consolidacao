@@ -4194,24 +4194,38 @@ async function saveCrieEvento(e) {
     e.preventDefault();
     const wsId = getCrieWorkspaceId();
     const form = e.target;
+    // ⚠️ form.title resolves to document.title in DOM — use elements[] instead
     const payload = {
         workspace_id: wsId,
-        title: form.title.value,
-        description: form.description.value || null,
-        date: form.date.value,
-        capacity: parseInt(form.capacity.value) || 0,
-        location: form.location.value,
-        price: parseFloat(form.price.value) || 0,
-        currency: form.currency ? form.currency.value : 'R$',
-        status: form.status.value,
+        title: form.elements['title'].value.trim(),
+        description: form.elements['description'].value.trim() || null,
+        date: form.elements['date'].value,
+        capacity: parseInt(form.elements['capacity'].value) || 0,
+        location: form.elements['location'].value.trim(),
+        price: parseFloat(form.elements['price'].value) || 0,
+        currency: form.elements['currency'] ? form.elements['currency'].value : '€',
+        status: form.elements['status'].value,
     };
+    if (!payload.title) {
+        if (typeof hubToast !== 'undefined') hubToast('Título é obrigatório', 'error');
+        return;
+    }
     const sb = window.supabaseClient;
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'A criar…'; }
     const { error } = await sb.from('crie_events').insert(payload);
-    if (error) { alert('Erro: ' + error.message); return; }
-    closeModal('modal-create-evento');
+    if (btn) { btn.disabled = false; btn.textContent = 'Criar Evento'; }
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro: ' + error.message, 'error');
+        else alert('Erro: ' + error.message);
+        return;
+    }
     form.reset();
+    closeModal('modal-create-evento');
+    if (typeof hubToast !== 'undefined') hubToast('Evento criado com sucesso!', 'success');
     loadCrieEventos();
 }
+
 
 async function archiveCrieEvento(id, currentStatus) {
     const newStatus = currentStatus === 'ARCHIVED' ? 'DRAFT' : 'ARCHIVED';
