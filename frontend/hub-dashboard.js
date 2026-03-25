@@ -2699,11 +2699,12 @@
         document.getElementById('sidebar-overlay')?.classList.remove('show');
     }
     // Close sidebar when nav item clicked on mobile — skip submenu toggles
-    document.querySelectorAll('.nav li[onclick]').forEach(li => {
-        li.addEventListener('click', () => {
-            if (window.innerWidth < 1024 && !li.dataset.submenuToggle) closeSidebar();
+    document.querySelectorAll('.nav li[onclick], .nav-item-row[onclick]').forEach(el => {
+        el.addEventListener('click', () => {
+            if (window.innerWidth < 1024 && !el.dataset.submenuToggle) closeSidebar();
         });
     });
+
 
     // ─── Lead Drawer Logic ────────────────────────────────────────────
     let _drawerLeadId = null;
@@ -3214,8 +3215,8 @@ function toggleCrieMenu() {
     const arrow = document.getElementById('crie-arrow');
     if (wrap) wrap.style.display = crieMenuOpen ? 'flex' : 'none';
     if (arrow) arrow.style.transform = crieMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-    const toggle = document.getElementById('nav-crie-toggle');
-    if (toggle) toggle.classList.toggle('active', crieMenuOpen);
+    const toggleRow = document.getElementById('nav-crie-toggle');
+    if (toggleRow) toggleRow.classList.toggle('active', crieMenuOpen);
 }
 
 // ── Settings submenu toggle ──────────────────────────────────
@@ -3226,9 +3227,10 @@ function toggleSettingsMenu() {
     const arrow = document.getElementById('settings-arrow');
     if (wrap) wrap.style.display = settingsMenuOpen ? 'flex' : 'none';
     if (arrow) arrow.style.transform = settingsMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-    const toggle = document.getElementById('nav-settings-toggle');
-    if (toggle) toggle.classList.toggle('active', settingsMenuOpen);
+    const toggleRow = document.getElementById('nav-settings-toggle');
+    if (toggleRow) toggleRow.classList.toggle('active', settingsMenuOpen);
 }
+
 window.toggleSettingsMenu = toggleSettingsMenu;
 
 // ── switchTab patch — handle crie-* tabs ───────────────────

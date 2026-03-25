@@ -130,6 +130,24 @@
         .nav li.disabled { opacity: 0.25; cursor: not-allowed; }
         .nav li.disabled:hover { background: transparent; color: var(--text-dim); }
 
+        /* ── Nav item-row (div toggle for collapsible menus) ── */
+        .nav-item-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+        .nav-item-row:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .nav-item-row.active, .nav li.active .nav-item-row { color: var(--accent); background: rgba(251,191,36,0.08); font-weight: 600; }
+
+
         .nav-section-label {
             font-size: 0.62rem;
             font-weight: 700;
@@ -701,15 +719,15 @@
             <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Ministérios</li>
 
             <!-- 10. CRIE (collapsible) -->
-            <div class="nav-group">
-                <li id="nav-crie-toggle" onclick="toggleCrieMenu()" data-submenu-toggle="true" style="position:relative;">
+            <li class="nav-group" style="display:block;padding:0;background:none;">
+                <div id="nav-crie-toggle" onclick="toggleCrieMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
                     <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
                     <span class="nav-label" style="font-weight:800;">CRIE</span>
                     <span id="crie-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
-                </li>
+                </div>
                 <div class="nav-submenu-wrap" id="crie-submenu-wrap" style="display:none;">
                     <div class="nav-submenu-line"></div>
-                    <ul id="crie-submenu" style="padding:0; margin:0; list-style:none; flex:1;">
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-crie-inscritos" onclick="switchTab('crie-inscritos')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
                             <span class="nav-label">Inscritos</span>
@@ -732,7 +750,7 @@
                         </li>
                     </ul>
                 </div>
-            </div>
+            </li>
 
             <!-- 11. Voluntários (em desenvolvimento) -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
@@ -755,17 +773,17 @@
             <!-- ══ CONFIGURAÇÕES (collapsível) — SEMPRE ÚLTIMO ══ -->
             <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Sistema</li>
 
-            <div class="nav-group">
-                <li id="nav-settings-toggle" onclick="toggleSettingsMenu()" data-submenu-toggle="true" style="position:relative;">
+            <li class="nav-group" style="display:block;padding:0;background:none;">
+                <div id="nav-settings-toggle" onclick="toggleSettingsMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </span>
                     <span class="nav-label">Configurações</span>
                     <span id="settings-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
-                </li>
+                </div>
                 <div class="nav-submenu-wrap" id="settings-submenu-wrap" style="display:none;">
                     <div class="nav-submenu-line"></div>
-                    <ul id="settings-submenu" style="padding:0; margin:0; list-style:none; flex:1;">
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-users" onclick="switchTab('users')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Equipe</span>
@@ -780,7 +798,7 @@
                         </li>
                     </ul>
                 </div>
-            </div>
+            </li>
 
             <!-- Admin-only links (hidden by default, shown by JS) -->
             <li id="nav-regional" onclick="switchTab('regional')" style="display:none;">
