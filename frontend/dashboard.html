@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260325u">
+    <link rel="stylesheet" href="/hub.css?v=20260325v">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -1699,10 +1699,16 @@ REGRAS:
                     <h1><span style="color:#F59E0B;">C*</span> Inscritos</h1>
                     <p>Base de dados de inscritos por evento CRIE</p>
                 </div>
-                <div class="actions">
-                    <button class="btn-sm" onclick="exportCrieCSV()" style="background:rgba(255,255,255,.07); color:#fff;">
+                <div class="actions" style="display:flex;gap:10px;align-items:center;">
+                    <!-- Premium CSV Export Button -->
+                    <button onclick="exportCrieCSV()" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#d1d7db;border-radius:12px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Exportar CSV
+                    </button>
+                    <!-- Email Report Button -->
+                    <button onclick="emailCrieReport()" style="display:flex;align-items:center;gap:7px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:12px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(96,165,250,.2)'" onmouseout="this.style.background='rgba(96,165,250,.1)'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+                        Enviar por Email
                     </button>
                     <button class="hub-btn" onclick="openCrieInviteModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/><polyline points="9 11 12 14 22 4"/></svg>
@@ -1715,7 +1721,6 @@ REGRAS:
                 <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="crie-kpi-total">–</p></div>
                 <div class="kpi-box" style="border-color:rgba(245,158,11,.25);"><p class="kpi-label">Membros</p><p class="kpi-value" id="crie-kpi-membros" style="color:#F59E0B;">–</p></div>
                 <div class="kpi-box" style="border-color:rgba(96,165,250,.25);"><p class="kpi-label">Convidados</p><p class="kpi-value" id="crie-kpi-convidados" style="color:#60a5fa;">–</p></div>
-                <div class="kpi-box" style="border-color:rgba(74,222,128,.25);"><p class="kpi-label">Pagos</p><p class="kpi-value" id="crie-kpi-pagos" style="color:#4ade80;">–</p></div>
             </div>
             <!-- Filters -->
             <div style="padding:20px 40px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
@@ -2195,7 +2200,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260325u"></script>
+    <script src="/hub-dashboard.js?v=20260325v"></script>
 </body>
 </html>
 

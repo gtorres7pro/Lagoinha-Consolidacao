@@ -3290,10 +3290,31 @@ async function loadCrieInscritos() {
         .from('crie_attendees')
         .select('*, crie_events(title, date)')
         .eq('workspace_id', wsId)
-        .order('created_at', { ascending: false });
+        .order('name', { ascending: true }); // ← sorted alphabetically by default
 
     if (error) { console.error('CRIE inscritos:', error); return; }
     crieInscritos = data || [];
+
+    // Also fetch real member count from crie_members table
+    const { data: membData } = await sb
+        .from('crie_members')
+        .select('id')
+        .eq('workspace_id', wsId);
+    window._crieRealMembrosCount = (membData || []).length;
+
+    // Also mark attendees as members if they exist in crie_members
+    // (cross-reference by email or phone for display)
+    const { data: membFull } = await sb
+        .from('crie_members')
+        .select('email, phone')
+        .eq('workspace_id', wsId);
+    const membEmails = new Set((membFull || []).map(m => (m.email || '').toLowerCase()));
+    const membPhones = new Set((membFull || []).map(m => (m.phone || '').replace(/\D/g, '')));
+    crieInscritos.forEach(a => {
+        const emailMatch = membEmails.has((a.email || '').toLowerCase());
+        const phoneMatch = membPhones.has((a.phone || '').replace(/\D/g, ''));
+        a.is_member = emailMatch || phoneMatch;
+    });
 
     // Populate event filter
     const events = [...new Set(crieInscritos.map(a => a.crie_events?.title).filter(Boolean))];
@@ -3309,12 +3330,15 @@ async function loadCrieInscritos() {
 
 function updateCrieInscritosKPIs() {
     const total = crieInscritos.length;
+    // Use real member count from crie_members table (cross-referenced)
     const membros = crieInscritos.filter(a => a.is_member).length;
-    const pagos = crieInscritos.filter(a => a.payment_status === 'Pago').length;
+    const convidados = total - membros;
     document.getElementById('crie-kpi-total').textContent = total;
     document.getElementById('crie-kpi-membros').textContent = membros;
-    document.getElementById('crie-kpi-convidados').textContent = total - membros;
-    document.getElementById('crie-kpi-pagos').textContent = pagos;
+    document.getElementById('crie-kpi-convidados').textContent = convidados;
+    // crie-kpi-pagos removed from HTML; skip if not present
+    const pagosEl = document.getElementById('crie-kpi-pagos');
+    if (pagosEl) pagosEl.textContent = crieInscritos.filter(a => a.payment_status === 'Pago').length;
 }
 
 function filterCrieInscritos() {
@@ -3341,11 +3365,17 @@ function filterCrieInscritos() {
 function renderCrieInscritos(list) {
     const tbody = document.getElementById('crie-inscritos-body');
     if (!tbody) return;
-    if (!list.length) {
+    // Sort alphabetically by name
+    const sorted = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt'));
+    if (!sorted.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Nenhum inscrito encontrado.</td></tr>';
         return;
     }
-    tbody.innerHTML = list.map(a => `
+    tbody.innerHTML = sorted.map(a => {
+        // Clean phone for WhatsApp link (remove all non-digits)
+        const phoneClean = (a.phone || '').replace(/\D/g, '');
+        const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
+        return `
         <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
             <td style="padding:12px 16px;"><input type="checkbox" class="crie-row-check" value="${a.id}"></td>
             <td style="padding:12px 16px;">
@@ -3356,8 +3386,11 @@ function renderCrieInscritos(list) {
                 <div style="font-size:.75rem; color:rgba(255,255,255,.35); margin-top:2px;">${new Date(a.created_at).toLocaleDateString('pt-PT')}</div>
             </td>
             <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">
-                <div>${a.email}</div>
-                <div>${a.phone}</div>
+                <div>${a.email || '—'}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+                    <span>${a.phone || '—'}</span>
+                    ${waLink ? `<a href="${waLink}" target="_blank" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.75rem;" onmouseover="this.style.background='rgba(37,211,102,.3)'" onmouseout="this.style.background='rgba(37,211,102,.15)'">💬</a>` : ''}
+                </div>
             </td>
             <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${a.crie_events?.title || 'N/A'}</td>
             <td style="padding:12px 16px;">
@@ -3378,8 +3411,8 @@ function renderCrieInscritos(list) {
             <td style="padding:12px 16px;">
                 <button onclick="deleteCrieInscrito('${a.id}')" style="background:none; border:none; color:rgba(255,100,100,.5); cursor:pointer; font-size:.8rem; padding:4px;" title="Remover">✕</button>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 }
 
 async function cycleCriePayment(id, current) {
@@ -3407,18 +3440,131 @@ function crieToggleAll(checkbox) {
 
 function exportCrieCSV() {
     const headers = ['Nome','Email','Telefone','Evento','Tipo','Pagamento','Presença','Inscrito em'];
-    const rows = crieInscritos.map(a => [
-        a.name, a.email, a.phone,
+    const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const rows = sorted.map(a => [
+        `"${(a.name||'').replace(/"/g,'""')}"`,
+        a.email || '',
+        a.phone || '',
         a.crie_events?.title || '',
         a.is_member ? 'Membro' : 'Convidado',
-        a.payment_status, a.presence_status,
+        a.payment_status || '', a.presence_status || '',
         new Date(a.created_at).toLocaleDateString('pt-PT')
     ]);
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `crie_inscritos_${Date.now()}.csv`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' }));
+    link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+}
+
+async function emailCrieReport() {
+    const userEmail = window._profileCache?.email;
+    if (!userEmail) { alert('Email do utilizador não disponível. Faça login novamente.'); return; }
+
+    const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
+    const dateStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
+
+    // Build HTML table rows
+    const rowsHtml = sorted.map((a, i) => {
+        const phoneClean = (a.phone || '').replace(/\D/g, '');
+        const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
+        const bgRow = i % 2 === 0 ? '#1a1a2e' : '#16213e';
+        return `
+        <tr style="background:${bgRow};">
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#fff; font-weight:600;">${a.name || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:13px;">${a.email || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:13px;">
+                ${a.phone || '—'}
+                ${waLink ? `&nbsp;<a href="${waLink}" style="display:inline-block;background:#25d366;color:#fff;text-decoration:none;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">WhatsApp</a>` : ''}
+            </td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; font-size:12px;">
+                <span style="background:${a.is_member ? 'rgba(245,158,11,.2)' : 'rgba(255,255,255,.06)'}; color:${a.is_member ? '#F59E0B' : '#9ca3af'}; padding:2px 8px; border-radius:4px; font-weight:700;">${a.is_member ? 'MEMBRO' : 'CONVIDADO'}</span>
+            </td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:${a.presence_status==='Presente'?'#4ade80':a.presence_status==='Faltou'?'#f87171':'#9ca3af'}; font-size:12px; font-weight:700;">${a.presence_status || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:12px;">${a.crie_events?.title || '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const totalMembros = sorted.filter(a => a.is_member).length;
+    const totalPresentes = sorted.filter(a => a.presence_status === 'Presente').length;
+
+    const html = `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#0d0d1a;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:900px;margin:0 auto;padding:32px 16px;">
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#1a1a3e,#0d0d1a);border:1px solid rgba(255,215,0,.2);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🌟</div>
+    <h1 style="color:#FFD700;font-size:26px;margin:0 0 6px;">Lista de Inscritos CRIE</h1>
+    <p style="color:#9ca3af;font-size:14px;margin:0;">${wsName} · ${dateStr}</p>
+  </div>
+  <!-- Stats -->
+  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:16px;text-align:center;">
+      <div style="font-size:28px;font-weight:800;color:#FFD700;">${sorted.length}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Total</div>
+    </div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;text-align:center;">
+      <div style="font-size:28px;font-weight:800;color:#F59E0B;">${totalMembros}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Membros</div>
+    </div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:16px;text-align:center;">
+      <div style="font-size:28px;font-weight:800;color:#60a5fa;">${sorted.length - totalMembros}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Convidados</div>
+    </div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:16px;text-align:center;">
+      <div style="font-size:28px;font-weight:800;color:#4ade80;">${totalPresentes}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Presentes</div>
+    </div>
+  </div>
+  <!-- Table -->
+  <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#252547;">
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">NOME</th>
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EMAIL</th>
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TELEFONE</th>
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TIPO</th>
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">PRESENÇA</th>
+          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EVENTO</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>
+  <p style="text-align:center;color:#4a4a6a;font-size:12px;margin-top:24px;">Gerado pelo Lago HUB · ${dateStr}</p>
+</div>
+</body></html>`;
+
+    // Use mailto with encoded subject; for full send use Supabase edge function or backend
+    // We'll use a data URI to open in email client as fallback
+    const subject = encodeURIComponent(`Lista CRIE ${wsName} — ${dateStr}`);
+    const body = encodeURIComponent(`Confira em anexo a lista de inscritos do CRIE ${wsName}.\n\nTotal: ${sorted.length} | Membros: ${totalMembros} | Presentes: ${totalPresentes}`);
+
+    // Try to use Supabase to send — if no edge function available, download HTML
+    try {
+        const sb = window.supabaseClient;
+        const { data: { session } } = await sb.auth.getSession();
+        const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ to: userEmail, subject: `Lista CRIE ${wsName}`, html })
+        });
+        if (res.ok) {
+            if (typeof hubToast !== 'undefined') hubToast(`Email enviado para ${userEmail}!`, 'success');
+            else alert(`Email enviado para ${userEmail}!`);
+        } else throw new Error('send failed');
+    } catch(e) {
+        // Fallback: download as HTML file
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8;' }));
+        link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.html`;
+        link.click();
+        if (typeof hubToast !== 'undefined') hubToast('HTML baixado (Edge Function não disponível)', 'info');
+    }
 }
 
 function openCrieInviteModal() {
