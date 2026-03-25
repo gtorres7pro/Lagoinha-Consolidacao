@@ -98,6 +98,35 @@
         .nav li .nav-label { flex: 1; }
         .nav li:hover { background: rgba(255,255,255,0.04); color: #ffffff; }
         .nav li.active { color: var(--accent); background: rgba(251,191,36,0.08); font-weight: 600; }
+
+        /* ── Nav Groups (menus with submenus) ──────── */
+        .nav-group { display: flex; flex-direction: column; }
+        .nav-submenu-wrap {
+            display: flex;
+            flex-direction: row;
+            padding-left: 20px;
+            margin: 2px 0 4px;
+            gap: 0;
+        }
+        .nav-submenu-line {
+            width: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 1px;
+            margin-right: 10px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .nav-submenu-line::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 40%;
+            background: linear-gradient(to bottom, rgba(251,191,36,0.25), transparent);
+            border-radius: 1px;
+        }
+        .nav-submenu-wrap ul li {
+            padding-left: 4px;
+        }
         .nav li.disabled { opacity: 0.25; cursor: not-allowed; }
         .nav li.disabled:hover { background: transparent; color: var(--text-dim); }
 
@@ -672,33 +701,38 @@
             <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Ministérios</li>
 
             <!-- 10. CRIE (collapsible) -->
-            <li id="nav-crie-toggle" onclick="toggleCrieMenu()" style="position:relative;">
-                <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
-                <span class="nav-label" style="font-weight:800;">CRIE</span>
-                <span id="crie-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
-            </li>
-            <ul id="crie-submenu" style="display:none; padding-left:8px; margin:0; list-style:none;">
-                <li id="nav-crie-inscritos" onclick="switchTab('crie-inscritos')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-                    <span class="nav-label">Inscritos</span>
+            <div class="nav-group">
+                <li id="nav-crie-toggle" onclick="toggleCrieMenu()" data-submenu-toggle="true" style="position:relative;">
+                    <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
+                    <span class="nav-label" style="font-weight:800;">CRIE</span>
+                    <span id="crie-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
                 </li>
-                <li id="nav-crie-membros" onclick="switchTab('crie-membros')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-                    <span class="nav-label">Membros</span>
-                </li>
-                <li id="nav-crie-eventos" onclick="switchTab('crie-eventos')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-                    <span class="nav-label">Eventos</span>
-                </li>
-                <li id="nav-crie-checkin" onclick="switchTab('crie-checkin')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-                    <span class="nav-label">Check-in</span>
-                </li>
-                <li id="nav-crie-relatorios" onclick="switchTab('crie-relatorios')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                    <span class="nav-label">Relatórios</span>
-                </li>
-            </ul>
+                <div class="nav-submenu-wrap" id="crie-submenu-wrap" style="display:none;">
+                    <div class="nav-submenu-line"></div>
+                    <ul id="crie-submenu" style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-crie-inscritos" onclick="switchTab('crie-inscritos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                            <span class="nav-label">Inscritos</span>
+                        </li>
+                        <li id="nav-crie-membros" onclick="switchTab('crie-membros')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                            <span class="nav-label">Membros</span>
+                        </li>
+                        <li id="nav-crie-eventos" onclick="switchTab('crie-eventos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                            <span class="nav-label">Eventos</span>
+                        </li>
+                        <li id="nav-crie-checkin" onclick="switchTab('crie-checkin')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                            <span class="nav-label">Check-in</span>
+                        </li>
+                        <li id="nav-crie-relatorios" onclick="switchTab('crie-relatorios')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                            <span class="nav-label">Relatórios</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
             <!-- 11. Voluntários (em desenvolvimento) -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
@@ -721,27 +755,32 @@
             <!-- ══ CONFIGURAÇÕES (collapsível) — SEMPRE ÚLTIMO ══ -->
             <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Sistema</li>
 
-            <li id="nav-settings-toggle" onclick="toggleSettingsMenu()" style="position:relative;">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                </span>
-                <span class="nav-label">Configurações</span>
-                <span id="settings-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
-            </li>
-            <ul id="settings-submenu" style="display:none; padding-left:8px; margin:0; list-style:none;">
-                <li id="nav-users" onclick="switchTab('users')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-                    <span class="nav-label">Equipe</span>
+            <div class="nav-group">
+                <li id="nav-settings-toggle" onclick="toggleSettingsMenu()" data-submenu-toggle="true" style="position:relative;">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </span>
+                    <span class="nav-label">Configurações</span>
+                    <span id="settings-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
                 </li>
-                <li id="nav-settings" onclick="switchTab('settings')" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-                    <span class="nav-label">Base de Conhecimento IA</span>
-                </li>
-                <li id="nav-plans" onclick="showUpgradeModal()" style="padding-left:8px;">
-                    <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-                    <span class="nav-label">Planos</span>
-                </li>
-            </ul>
+                <div class="nav-submenu-wrap" id="settings-submenu-wrap" style="display:none;">
+                    <div class="nav-submenu-line"></div>
+                    <ul id="settings-submenu" style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-users" onclick="switchTab('users')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                            <span class="nav-label">Equipe</span>
+                        </li>
+                        <li id="nav-settings" onclick="switchTab('settings')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                            <span class="nav-label">Base de Conhecimento IA</span>
+                        </li>
+                        <li id="nav-plans" onclick="showUpgradeModal()">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                            <span class="nav-label">Planos</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
             <!-- Admin-only links (hidden by default, shown by JS) -->
             <li id="nav-regional" onclick="switchTab('regional')" style="display:none;">
@@ -959,10 +998,10 @@
                 </div>
                 <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <div class="hub-period-tabs" id="period-tabs-dashboard" style="display:flex;align-items:center;gap:4px;">
-                        <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',7,this)">7d</button>
+                        <button class="hub-period-tab active" onclick="setPeriodFilter('dashboard',7,this)">7d</button>
                         <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',30,this)">30d</button>
                         <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',90,this)">90d</button>
-                        <button class="hub-period-tab active" onclick="setPeriodFilter('dashboard',0,this)">Todos</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('dashboard',0,this)">Todos</button>
                         <!-- Custom date range toggle -->
                         <button class="hub-period-tab" id="btn-custom-date" onclick="toggleTopCustomDate(this)" title="Período customizado">📅</button>
                     </div>
@@ -1040,7 +1079,12 @@
             <!-- Hidden selects kept for JS applyFilters compatibility -->
             <select id="filterStatus" style="display:none;"><option value="all">all</option></select>
             <select id="filterCulto" style="display:none;"><option value="all">all</option></select>
-            <select id="filterTimeRange" style="display:none;"><option value="all" selected>all</option></select>
+            <select id="filterTimeRange" style="display:none;">
+                <option value="7" selected>7</option>
+                <option value="30">30</option>
+                <option value="90">90</option>
+                <option value="all">all</option>
+            </select>
             <div id="custom-date-container" style="display:none;">
                 <input type="text" id="customDateStart" placeholder="DD/MM/AAAA">
                 <input type="text" id="customDateEnd" placeholder="DD/MM/AAAA">
@@ -1699,17 +1743,18 @@ REGRAS:
                     <h1><span style="color:#F59E0B;">C*</span> Inscritos</h1>
                     <p>Base de dados de inscritos por evento CRIE</p>
                 </div>
-                <div class="actions" style="display:flex;gap:10px;align-items:center;">
-                    <!-- Premium CSV Export Button -->
-                    <button onclick="exportCrieCSV()" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#d1d7db;border-radius:12px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+                <div class="actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <!-- Download List Button -->
+                    <button onclick="downloadCrieReport()" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#d1d7db;border-radius:12px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Exportar CSV
+                        Baixar Lista
                     </button>
                     <!-- Email Report Button -->
                     <button onclick="emailCrieReport()" style="display:flex;align-items:center;gap:7px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:12px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(96,165,250,.2)'" onmouseout="this.style.background='rgba(96,165,250,.1)'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
                         Enviar por Email
                     </button>
+                    <!-- Invite Button -->
                     <button class="hub-btn" onclick="openCrieInviteModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/><polyline points="9 11 12 14 22 4"/></svg>
                         Convidar
@@ -1757,9 +1802,40 @@ REGRAS:
             </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════════
-             View: CRIE — Membros
-        ═══════════════════════════════════════════════════════════ -->
+        <!-- ═══ CRIE Invite Event Modal ═══ -->
+        <div id="crie-invite-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;">
+            <div style="background:#111827;border:1px solid rgba(255,215,0,.2);border-radius:22px;padding:36px;width:100%;max-width:480px;margin:16px;box-shadow:0 32px 80px rgba(0,0,0,.6);">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+                    <div style="width:42px;height:42px;background:rgba(255,215,0,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD700" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <h3 style="font-size:1.05rem;font-weight:800;color:#fff;margin:0;">Convidar para Evento</h3>
+                        <p style="font-size:.78rem;color:rgba(255,255,255,.4);margin:3px 0 0;">Selecione o próximo evento para os inscritos marcados</p>
+                    </div>
+                    <button onclick="closeCrieInviteModal()" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px;">✕</button>
+                </div>
+                <!-- Selected count -->
+                <div id="crie-invite-count" style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:10px 16px;font-size:.84rem;color:#FFD700;font-weight:700;margin-bottom:20px;text-align:center;"></div>
+                <!-- Event picker -->
+                <label style="font-size:.75rem;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:8px;">Selecionar Evento</label>
+                <select id="crie-invite-event-sel" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;color:#fff;font-size:.88rem;outline:none;margin-bottom:20px;">
+                    <option value="">— Escolha um evento —</option>
+                </select>
+                <!-- Message preview -->
+                <label style="font-size:.75rem;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:8px;">Pré-visualização da Mensagem</label>
+                <textarea id="crie-invite-msg" rows="4" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;color:#d1d7db;font-size:.82rem;outline:none;resize:vertical;font-family:inherit;line-height:1.6;box-sizing:border-box;" placeholder="A mensagem será gerada automaticamente ao selecionar o evento…"></textarea>
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button onclick="confirmCrieInvite()" style="flex:1;background:linear-gradient(135deg,#FFD700,#F59E0B);color:#111;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:.9rem;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                        ✉️ Enviar Convites por WhatsApp
+                    </button>
+                    <button onclick="closeCrieInviteModal()" style="padding:13px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:rgba(255,255,255,.5);font-size:.84rem;cursor:pointer;">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- View: CRIE — Membros -->
         <div id="view-crie-membros" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
@@ -2034,7 +2110,22 @@ REGRAS:
                 <form onsubmit="saveCrieMembro(event)" style="display:flex; flex-direction:column; gap:14px;">
                     <div><label class="hub-field-label">Nome Completo</label><input name="name" required placeholder="Nome" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
                     <div><label class="hub-field-label">Email</label><input name="email" type="email" required placeholder="email@dominio.com" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
-                    <div><label class="hub-field-label">WhatsApp</label><input name="phone" required placeholder="+351 …" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <div><label class="hub-field-label">WhatsApp</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <select name="phone_country" id="membro-phone-country" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 10px;color:#fff;font-size:.85rem;outline:none;flex-shrink:0;max-width:130px;">
+                                <option value="+351">🇵🇹 +351</option>
+                                <option value="+55">🇧🇷 +55</option>
+                                <option value="+1">🇺🇸 +1</option>
+                                <option value="+44">🇬🇧 +44</option>
+                                <option value="+34">🇪🇸 +34</option>
+                                <option value="+33">🇫🇷 +33</option>
+                                <option value="+49">🇩🇪 +49</option>
+                                <option value="+39">🇮🇹 +39</option>
+                                <option value="+351">🇵🇹 PT (+351)</option>
+                            </select>
+                            <input name="phone_number" id="membro-phone-number" required placeholder="912 345 678" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;">
+                        </div>
+                    </div>
                     <div><label class="hub-field-label">Empresa</label><input name="company" placeholder="Empresa (opcional)" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
                     <div><label class="hub-field-label">Área / Indústria</label><input name="industry" placeholder="Ex: Tecnologia" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
                     <button type="submit" class="hub-btn" style="width:100%; padding:14px; margin-top:8px;">Salvar Membro</button>

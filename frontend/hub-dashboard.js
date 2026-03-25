@@ -2698,10 +2698,10 @@
         document.querySelector('.sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('show');
     }
-    // Close sidebar when nav item clicked on mobile
+    // Close sidebar when nav item clicked on mobile — skip submenu toggles
     document.querySelectorAll('.nav li[onclick]').forEach(li => {
         li.addEventListener('click', () => {
-            if (window.innerWidth < 1024) closeSidebar();
+            if (window.innerWidth < 1024 && !li.dataset.submenuToggle) closeSidebar();
         });
     });
 
@@ -3210,13 +3210,10 @@ let crieMenuOpen = false;
 // ── Sidebar toggle ──────────────────────────────────────────
 function toggleCrieMenu() {
     crieMenuOpen = !crieMenuOpen;
-    const sub = document.getElementById('crie-submenu');
+    const wrap = document.getElementById('crie-submenu-wrap');
     const arrow = document.getElementById('crie-arrow');
-    if (sub) sub.style.display = crieMenuOpen ? 'block' : 'none';
-    if (arrow) {
-        arrow.style.transform = crieMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
-    }
-    // Mark nav-crie-toggle as active when open
+    if (wrap) wrap.style.display = crieMenuOpen ? 'flex' : 'none';
+    if (arrow) arrow.style.transform = crieMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
     const toggle = document.getElementById('nav-crie-toggle');
     if (toggle) toggle.classList.toggle('active', crieMenuOpen);
 }
@@ -3225,9 +3222,9 @@ function toggleCrieMenu() {
 let settingsMenuOpen = false;
 function toggleSettingsMenu() {
     settingsMenuOpen = !settingsMenuOpen;
-    const sub = document.getElementById('settings-submenu');
+    const wrap = document.getElementById('settings-submenu-wrap');
     const arrow = document.getElementById('settings-arrow');
-    if (sub) sub.style.display = settingsMenuOpen ? 'block' : 'none';
+    if (wrap) wrap.style.display = settingsMenuOpen ? 'flex' : 'none';
     if (arrow) arrow.style.transform = settingsMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)';
     const toggle = document.getElementById('nav-settings-toggle');
     if (toggle) toggle.classList.toggle('active', settingsMenuOpen);
@@ -3389,7 +3386,7 @@ function renderCrieInscritos(list) {
                 <div>${a.email || '—'}</div>
                 <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
                     <span>${a.phone || '—'}</span>
-                    ${waLink ? `<a href="${waLink}" target="_blank" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.75rem;" onmouseover="this.style.background='rgba(37,211,102,.3)'" onmouseout="this.style.background='rgba(37,211,102,.15)'">💬</a>` : ''}
+                    ${waLink ? `<a href="${waLink}" target="_blank" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;" onmouseover="this.style.background='rgba(37,211,102,.3)'" onmouseout="this.style.background='rgba(37,211,102,.15)'"><svg viewBox='0 0 24 24' width='12' height='12' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>` : ''}
                 </div>
             </td>
             <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${a.crie_events?.title || 'N/A'}</td>
@@ -3438,34 +3435,22 @@ function crieToggleAll(checkbox) {
     document.querySelectorAll('.crie-row-check').forEach(c => c.checked = checkbox.checked);
 }
 
-function exportCrieCSV() {
-    const headers = ['Nome','Email','Telefone','Evento','Tipo','Pagamento','Presença','Inscrito em'];
-    const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
-    const rows = sorted.map(a => [
-        `"${(a.name||'').replace(/"/g,'""')}"`,
-        a.email || '',
-        a.phone || '',
-        a.crie_events?.title || '',
-        a.is_member ? 'Membro' : 'Convidado',
-        a.payment_status || '', a.presence_status || '',
-        new Date(a.created_at).toLocaleDateString('pt-PT')
-    ]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' }));
-    link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-}
-
-async function emailCrieReport() {
-    const userEmail = window._profileCache?.email;
-    if (!userEmail) { alert('Email do utilizador não disponível. Faça login novamente.'); return; }
-
+// ── Download report as HTML ─────────────────────────────────
+async function downloadCrieReport() {
     const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
     const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
     const dateStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
+    const html = _buildCrieReportHtml(sorted, wsName, dateStr);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8;' }));
+    link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.html`;
+    link.click();
+    if (typeof hubToast !== 'undefined') hubToast('Lista baixada com sucesso!', 'success');
+}
 
-    // Build HTML table rows
+
+// ── Shared HTML report builder ──────────────────────────────
+function _buildCrieReportHtml(sorted, wsName, dateStr) {
     const rowsHtml = sorted.map((a, i) => {
         const phoneClean = (a.phone || '').replace(/\D/g, '');
         const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
@@ -3485,66 +3470,44 @@ async function emailCrieReport() {
             <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:12px;">${a.crie_events?.title || '—'}</td>
         </tr>`;
     }).join('');
-
     const totalMembros = sorted.filter(a => a.is_member).length;
     const totalPresentes = sorted.filter(a => a.presence_status === 'Presente').length;
-
-    const html = `
-<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#0d0d1a;font-family:'Segoe UI',Arial,sans-serif;">
 <div style="max-width:900px;margin:0 auto;padding:32px 16px;">
-  <!-- Header -->
   <div style="background:linear-gradient(135deg,#1a1a3e,#0d0d1a);border:1px solid rgba(255,215,0,.2);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;">
     <div style="font-size:36px;margin-bottom:8px;">🌟</div>
     <h1 style="color:#FFD700;font-size:26px;margin:0 0 6px;">Lista de Inscritos CRIE</h1>
     <p style="color:#9ca3af;font-size:14px;margin:0;">${wsName} · ${dateStr}</p>
   </div>
-  <!-- Stats -->
   <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:16px;text-align:center;">
-      <div style="font-size:28px;font-weight:800;color:#FFD700;">${sorted.length}</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Total</div>
-    </div>
-    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;text-align:center;">
-      <div style="font-size:28px;font-weight:800;color:#F59E0B;">${totalMembros}</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Membros</div>
-    </div>
-    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:16px;text-align:center;">
-      <div style="font-size:28px;font-weight:800;color:#60a5fa;">${sorted.length - totalMembros}</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Convidados</div>
-    </div>
-    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:16px;text-align:center;">
-      <div style="font-size:28px;font-weight:800;color:#4ade80;">${totalPresentes}</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;">Presentes</div>
-    </div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#FFD700;">${sorted.length}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Total</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#F59E0B;">${totalMembros}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Membros</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#60a5fa;">${sorted.length-totalMembros}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Convidados</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#4ade80;">${totalPresentes}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Presentes</div></div>
   </div>
-  <!-- Table -->
   <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;">
     <table style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr style="background:#252547;">
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">NOME</th>
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EMAIL</th>
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TELEFONE</th>
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TIPO</th>
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">PRESENÇA</th>
-          <th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EVENTO</th>
-        </tr>
-      </thead>
+      <thead><tr style="background:#252547;"><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">NOME</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EMAIL</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TELEFONE</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TIPO</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">PRESENÇA</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EVENTO</th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
   </div>
   <p style="text-align:center;color:#4a4a6a;font-size:12px;margin-top:24px;">Gerado pelo Lago HUB · ${dateStr}</p>
 </div>
 </body></html>`;
+}
 
-    // Use mailto with encoded subject; for full send use Supabase edge function or backend
-    // We'll use a data URI to open in email client as fallback
-    const subject = encodeURIComponent(`Lista CRIE ${wsName} — ${dateStr}`);
-    const body = encodeURIComponent(`Confira em anexo a lista de inscritos do CRIE ${wsName}.\n\nTotal: ${sorted.length} | Membros: ${totalMembros} | Presentes: ${totalPresentes}`);
-
-    // Try to use Supabase to send — if no edge function available, download HTML
+// ── Email report via Edge Function ──────────────────────────
+async function emailCrieReport() {
+    const userEmail = window._profileCache?.email;
+    if (!userEmail) { if(typeof hubToast!=='undefined') hubToast('Email não disponível. Faça login novamente.','error'); return; }
+    const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
+    const dateStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
+    const html = _buildCrieReportHtml(sorted, wsName, dateStr);
+    const totalMembros = sorted.filter(a => a.is_member).length;
+    const totalPresentes = sorted.filter(a => a.presence_status === 'Presente').length;
     try {
         const sb = window.supabaseClient;
         const { data: { session } } = await sb.auth.getSession();
@@ -3555,21 +3518,78 @@ async function emailCrieReport() {
         });
         if (res.ok) {
             if (typeof hubToast !== 'undefined') hubToast(`Email enviado para ${userEmail}!`, 'success');
-            else alert(`Email enviado para ${userEmail}!`);
         } else throw new Error('send failed');
     } catch(e) {
-        // Fallback: download as HTML file
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8;' }));
-        link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.html`;
-        link.click();
-        if (typeof hubToast !== 'undefined') hubToast('HTML baixado (Edge Function não disponível)', 'info');
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao enviar email. Verifique a Edge Function.', 'error');
     }
 }
 
-function openCrieInviteModal() {
-    alert('Funcionalidade de convite por email: em desenvolvimento.');
-}
+// ── Invite Modal ─────────────────────────────────────────────
+window.openCrieInviteModal = function() {
+    const checked = Array.from(document.querySelectorAll('.crie-row-check:checked'));
+    if (checked.length === 0) {
+        if(typeof hubToast!=='undefined') hubToast('Selecione pelo menos um inscrito.', 'info');
+        return;
+    }
+    // Count display
+    const countEl = document.getElementById('crie-invite-count');
+    if (countEl) countEl.textContent = `${checked.length} inscrito(s) selecionado(s)`;
+
+    // Populate event select from loaded events
+    const sel = document.getElementById('crie-invite-event-sel');
+    if (sel) {
+        sel.innerHTML = '<option value="">— Escolha um evento —</option>';
+        crieEventos.forEach(ev => {
+            const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT') : '';
+            const opt = document.createElement('option');
+            opt.value = ev.id;
+            opt.dataset.title = ev.title;
+            opt.dataset.date = dateStr;
+            opt.textContent = `${ev.title}${dateStr ? ' · ' + dateStr : ''}`;
+            sel.appendChild(opt);
+        });
+        // When event changes, update message preview
+        sel.onchange = function() {
+            const opt = sel.options[sel.selectedIndex];
+            const msgEl = document.getElementById('crie-invite-msg');
+            if (!msgEl) return;
+            if (!opt.value) { msgEl.value = ''; return; }
+            const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
+            msgEl.value = `Olá! 👋\n\nConvidamos você para o próximo evento do CRIE!\n\n✨ *${opt.dataset.title}*\n📅 ${opt.dataset.date}\n\nEsperamos por você! Se tiver dúvidas, entre em contacto.\n\n— Equipa ${wsName} 🙏`;
+        };
+    }
+
+    const modal = document.getElementById('crie-invite-modal-overlay');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeCrieInviteModal = function() {
+    const modal = document.getElementById('crie-invite-modal-overlay');
+    if (modal) modal.style.display = 'none';
+};
+
+window.confirmCrieInvite = function() {
+    const sel = document.getElementById('crie-invite-event-sel');
+    if (!sel || !sel.value) {
+        if(typeof hubToast!=='undefined') hubToast('Selecione um evento primeiro.', 'info');
+        return;
+    }
+    const msg = document.getElementById('crie-invite-msg')?.value || '';
+    const checked = Array.from(document.querySelectorAll('.crie-row-check:checked'));
+    const ids = checked.map(c => c.value);
+    const attendees = crieInscritos.filter(a => ids.includes(String(a.id)));
+    let opened = 0;
+    attendees.forEach((a, idx) => {
+        const phoneClean = (a.phone || '').replace(/\D/g, '');
+        if (!phoneClean) return;
+        setTimeout(() => {
+            window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(msg)}`, '_blank');
+        }, idx * 400); // stagger to avoid popup blockers
+        opened++;
+    });
+    closeCrieInviteModal();
+    if(typeof hubToast!=='undefined') hubToast(`${opened} convite(s) abertos no WhatsApp!`, 'success');
+};
 
 // ═══════════════════════════════════════════════════════════
 // CRIE — MEMBROS
@@ -3895,21 +3915,27 @@ async function saveCrieMembro(e) {
     e.preventDefault();
     const wsId = getCrieWorkspaceId();
     const form = e.target;
+    // Build full international phone number
+    const countryCode = document.getElementById('membro-phone-country')?.value || '+351';
+    const rawNumber = (document.getElementById('membro-phone-number')?.value || '').replace(/\D/g, '');
+    const fullPhone = rawNumber ? `${countryCode}${rawNumber}` : null;
     const data = {
         workspace_id: wsId,
         name: form.name.value,
         email: form.email.value,
-        phone: form.phone.value,
-        company: form.company.value || null,
-        industry: form.industry.value || null,
+        phone: fullPhone,
+        company: form.company?.value || null,
+        industry: form.industry?.value || null,
     };
     const sb = window.supabaseClient;
     const { error } = await sb.from('crie_members').insert(data);
-    if (error) { alert('Erro: ' + error.message); return; }
+    if (error) { if(typeof hubToast!=='undefined') hubToast('Erro: ' + error.message,'error'); return; }
     closeModal('modal-add-membro');
     form.reset();
+    if(typeof hubToast!=='undefined') hubToast('Membro adicionado!','success');
     loadCrieMembros();
 }
+
 
 async function toggleCrieMembroStatus(id, current) {
     const next = current === 'Ativo' ? 'Inativo' : 'Ativo';
