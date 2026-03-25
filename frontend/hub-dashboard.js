@@ -3328,16 +3328,45 @@ async function loadCrieInscritos() {
 }
 
 function updateCrieInscritosKPIs() {
-    const total = crieInscritos.length;
-    // Use real member count from crie_members table (cross-referenced)
-    const membros = crieInscritos.filter(a => a.is_member).length;
-    const convidados = total - membros;
-    document.getElementById('crie-kpi-total').textContent = total;
-    document.getElementById('crie-kpi-membros').textContent = membros;
-    document.getElementById('crie-kpi-convidados').textContent = convidados;
-    // crie-kpi-pagos removed from HTML; skip if not present
+    const eventFilter = document.getElementById('crie-filter-event')?.value || 'all';
+    if (eventFilter === 'all') {
+        // Unique-person mode: count distinct people
+        const unique = _getUniquePersons(crieInscritos);
+        const membros = unique.filter(p => p.is_member).length;
+        document.getElementById('crie-kpi-total').textContent = unique.length;
+        document.getElementById('crie-kpi-membros').textContent = membros;
+        document.getElementById('crie-kpi-convidados').textContent = unique.length - membros;
+    } else {
+        // Per-event mode: count rows for this event
+        const eventRows = crieInscritos.filter(a => a.crie_events?.title === eventFilter);
+        const membros = eventRows.filter(a => a.is_member).length;
+        document.getElementById('crie-kpi-total').textContent = eventRows.length;
+        document.getElementById('crie-kpi-membros').textContent = membros;
+        document.getElementById('crie-kpi-convidados').textContent = eventRows.length - membros;
+    }
     const pagosEl = document.getElementById('crie-kpi-pagos');
     if (pagosEl) pagosEl.textContent = crieInscritos.filter(a => a.payment_status === 'Pago').length;
+}
+
+// Returns unique persons grouped by phone (or name+email fallback)
+function _getUniquePersons(rows) {
+    const map = new Map();
+    rows.forEach(a => {
+        const phoneClean = (a.phone || '').replace(/\D/g, '');
+        const key = phoneClean || ((a.name || '').toLowerCase() + '|' + (a.email || '').toLowerCase());
+        if (!map.has(key)) {
+            map.set(key, { ...a, _allRows: [], _eventCount: 0 });
+        }
+        const p = map.get(key);
+        p._allRows.push(a);
+        p._eventCount = p._allRows.length;
+        // Use latest record's data (most recent event)
+        if (new Date(a.created_at) > new Date(p.created_at)) {
+            const saved = { _allRows: p._allRows, _eventCount: p._eventCount };
+            Object.assign(p, a, saved);
+        }
+    });
+    return [...map.values()];
 }
 
 function filterCrieInscritos() {
@@ -3346,60 +3375,89 @@ function filterCrieInscritos() {
     const payFilter = document.getElementById('crie-filter-payment')?.value || 'all';
     const typeFilter = document.getElementById('crie-filter-type')?.value || 'all';
 
-    const filtered = crieInscritos.filter(a => {
-        const matchSearch = !search ||
-            a.name?.toLowerCase().includes(search) ||
-            a.email?.toLowerCase().includes(search) ||
-            a.industry?.toLowerCase().includes(search);
-        const matchEvent = eventFilter === 'all' || a.crie_events?.title === eventFilter;
-        const matchPay = payFilter === 'all' || a.payment_status === payFilter;
-        const matchType = typeFilter === 'all' ||
-            (typeFilter === 'member' && a.is_member) ||
-            (typeFilter === 'guest' && !a.is_member);
-        return matchSearch && matchEvent && matchPay && matchType;
-    });
-    renderCrieInscritos(filtered);
+    updateCrieInscritosKPIs();
+
+    if (eventFilter === 'all') {
+        // ── Unique-person mode ──────────────────────────────────
+        let unique = _getUniquePersons(crieInscritos);
+        if (search) unique = unique.filter(p =>
+            p.name?.toLowerCase().includes(search) ||
+            p.email?.toLowerCase().includes(search) ||
+            p.phone?.includes(search)
+        );
+        if (typeFilter !== 'all') unique = unique.filter(p =>
+            typeFilter === 'member' ? p.is_member : !p.is_member
+        );
+        renderCrieInscritos(unique, true);
+    } else {
+        // ── Per-event mode ─────────────────────────────────────
+        const filtered = crieInscritos.filter(a => {
+            const matchSearch = !search ||
+                a.name?.toLowerCase().includes(search) ||
+                a.email?.toLowerCase().includes(search) ||
+                a.industry?.toLowerCase().includes(search);
+            const matchEvent = a.crie_events?.title === eventFilter;
+            const matchPay = payFilter === 'all' || a.payment_status === payFilter;
+            const matchType = typeFilter === 'all' ||
+                (typeFilter === 'member' && a.is_member) ||
+                (typeFilter === 'guest' && !a.is_member);
+            return matchSearch && matchEvent && matchPay && matchType;
+        });
+        renderCrieInscritos(filtered, false);
+    }
 }
 
-function renderCrieInscritos(list) {
+function renderCrieInscritos(list, uniqueMode = false) {
     const tbody = document.getElementById('crie-inscritos-body');
     if (!tbody) return;
-    // Sort alphabetically by name
     const sorted = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt'));
     if (!sorted.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Nenhum inscrito encontrado.</td></tr>';
         return;
     }
     tbody.innerHTML = sorted.map(a => {
-        // Clean phone for WhatsApp link (remove all non-digits)
         const phoneClean = (a.phone || '').replace(/\D/g, '');
         const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
+        const waBtn = waLink ? `<a href="${waLink}" target="_blank" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;" onmouseover="this.style.background='rgba(37,211,102,.3)'" onmouseout="this.style.background='rgba(37,211,102,.15)'"><svg viewBox='0 0 24 24' width='12' height='12' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>` : '';
+        // ── Event count badge (unique mode only)
+        const eventBadge = uniqueMode && a._eventCount > 1
+            ? `<span title="${a._eventCount} eventos" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(96,165,250,.25);color:#60a5fa;border-radius:50%;font-size:.6rem;font-weight:800;flex-shrink:0;">${a._eventCount}</span>`
+            : '';
+        // ── Event cell
+        const eventCell = uniqueMode
+            ? (a._eventCount > 1
+                ? `<span style="color:#60a5fa;font-size:.75rem;font-weight:600;">${a._eventCount} eventos</span>`
+                : `<span style="font-size:.75rem;color:rgba(255,255,255,.4);">${a.crie_events?.title || 'N/A'}</span>`)
+            : `${a.crie_events?.title || 'N/A'}`;
+        // ── Click row to open drawer
+        const rowClick = `onclick="openInscritoDrawer(${JSON.stringify(uniqueMode ? a._allRows : [a]).replace(/"/g,'&quot;')})"`;
         return `
-        <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
-            <td style="padding:12px 16px;"><input type="checkbox" class="crie-row-check" value="${a.id}"></td>
-            <td style="padding:12px 16px;">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+            <td style="padding:12px 16px;" onclick="event.stopPropagation();"><input type="checkbox" class="crie-row-check" value="${a.id}"></td>
+            <td style="padding:12px 16px;" ${rowClick}>
                 <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
                     ${a.name}
                     ${a.is_member ? '<span style="color:#F59E0B; font-size:.7rem;">★</span>' : ''}
+                    ${eventBadge}
                 </div>
                 <div style="font-size:.75rem; color:rgba(255,255,255,.35); margin-top:2px;">${new Date(a.created_at).toLocaleDateString('pt-PT')}</div>
             </td>
-            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">
+            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);" ${rowClick}>
                 <div>${a.email || '—'}</div>
                 <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
                     <span>${a.phone || '—'}</span>
-                    ${waLink ? `<a href="${waLink}" target="_blank" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;" onmouseover="this.style.background='rgba(37,211,102,.3)'" onmouseout="this.style.background='rgba(37,211,102,.15)'"><svg viewBox='0 0 24 24' width='12' height='12' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>` : ''}
+                    <span onclick="event.stopPropagation();">${waBtn}</span>
                 </div>
             </td>
-            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${a.crie_events?.title || 'N/A'}</td>
-            <td style="padding:12px 16px;">
+            <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);" ${rowClick}>${eventCell}</td>
+            <td style="padding:12px 16px;" ${rowClick}>
                 ${a.is_member
                     ? '<span style="background:rgba(245,158,11,.15); color:#F59E0B; padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">MEMBRO</span>'
                     : '<span style="background:rgba(255,255,255,.06); color:rgba(255,255,255,.4); padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">CONVIDADO</span>'
                 }
             </td>
-            <td style="padding:12px 16px;" onclick="cycleCriePayment('${a.id}', '${a.payment_status}')" style="cursor:pointer;">${payBadge(a.payment_status)}</td>
-            <td style="padding:12px 16px;">
+            <td style="padding:12px 16px;" onclick="event.stopPropagation(); cycleCriePayment('${a.id}', '${a.payment_status}')" style="cursor:pointer;">${payBadge(a.payment_status)}</td>
+            <td style="padding:12px 16px;" ${rowClick}>
                 ${a.presence_status === 'Presente'
                     ? '<span style="background:rgba(74,222,128,.12); color:#4ade80; padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">PRESENTE</span>'
                     : a.presence_status === 'Faltou'
@@ -3407,12 +3465,81 @@ function renderCrieInscritos(list) {
                     : '<span style="background:rgba(255,255,255,.06); color:rgba(255,255,255,.35); padding:3px 8px; border-radius:6px; font-size:.72rem; font-weight:700;">PENDENTE</span>'
                 }
             </td>
-            <td style="padding:12px 16px;">
+            <td style="padding:12px 16px;" onclick="event.stopPropagation();">
                 <button onclick="deleteCrieInscrito('${a.id}')" style="background:none; border:none; color:rgba(255,100,100,.5); cursor:pointer; font-size:.8rem; padding:4px;" title="Remover">✕</button>
             </td>
         </tr>`;
     }).join('');
 }
+
+// ── Inscrito Person Drawer ────────────────────────────────────
+window.openInscritoDrawer = function(rows) {
+    if (!Array.isArray(rows)) rows = [rows];
+    const person = rows[0];
+    const el = document.getElementById('inscrito-drawer-overlay');
+    if (!el) return;
+
+    // Header
+    document.getElementById('inscrito-drawer-name').textContent = person.name || '—';
+    document.getElementById('inscrito-drawer-badge').textContent = `${rows.length} evento${rows.length !== 1 ? 's' : ''}`;
+
+    // Edit fields
+    document.getElementById('inscrito-drawer-input-name').value = person.name || '';
+    document.getElementById('inscrito-drawer-input-email').value = person.email || '';
+    document.getElementById('inscrito-drawer-input-phone').value = person.phone || '';
+    // Store all ids for save
+    el.dataset.ids = JSON.stringify(rows.map(r => r.id));
+    el.dataset.primaryId = person.id;
+
+    // Event history
+    const hist = document.getElementById('inscrito-drawer-history');
+    const sortedRows = [...rows].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    hist.innerHTML = sortedRows.map(r => {
+        const evTitle = r.crie_events?.title || 'Evento desconhecido';
+        const evDate = r.crie_events?.date ? new Date(r.crie_events.date).toLocaleDateString('pt-PT') : '—';
+        const presColor = r.presence_status === 'Presente' ? '#4ade80' : r.presence_status === 'Faltou' ? '#f87171' : '#9ca3af';
+        const payColor = r.payment_status === 'Pago' ? '#4ade80' : r.payment_status === 'Gratuito' ? '#60a5fa' : '#9ca3af';
+        return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+            <div style="width:36px;height:36px;background:rgba(255,215,0,.08);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;color:#fff;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${evTitle}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-top:2px;">${evDate}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                <span style="font-size:.68rem;font-weight:700;color:${presColor};">${r.presence_status || 'PENDENTE'}</span>
+                <span style="font-size:.68rem;font-weight:600;color:${payColor};">${r.payment_status || '—'}</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    el.style.display = 'flex';
+};
+
+window.closeInscritoDrawer = function() {
+    const el = document.getElementById('inscrito-drawer-overlay');
+    if (el) el.style.display = 'none';
+};
+
+window.saveInscritoDrawer = async function() {
+    const el = document.getElementById('inscrito-drawer-overlay');
+    const ids = JSON.parse(el.dataset.ids || '[]');
+    const name = document.getElementById('inscrito-drawer-input-name').value.trim();
+    const email = document.getElementById('inscrito-drawer-input-email').value.trim();
+    const phone = document.getElementById('inscrito-drawer-input-phone').value.trim();
+    if (!name) { if(typeof hubToast!=='undefined') hubToast('Nome é obrigatório','error'); return; }
+    const sb = window.supabaseClient;
+    // Update all attendee rows for this person AND the crie_members entry if exists
+    const { error } = await sb.from('crie_attendees').update({ name, email, phone }).in('id', ids);
+    if (error) { if(typeof hubToast!=='undefined') hubToast('Erro ao salvar: '+error.message,'error'); return; }
+    // Also update crie_members if phone/email matches
+    await sb.from('crie_members').update({ name, email, phone }).or(`email.eq.${email},phone.eq.${phone}`);
+    if(typeof hubToast!=='undefined') hubToast('Dados guardados!','success');
+    closeInscritoDrawer();
+    loadCrieInscritos();
+};
 
 async function cycleCriePayment(id, current) {
     const cycle = ['Pendente', 'Pago', 'Gratuito'];

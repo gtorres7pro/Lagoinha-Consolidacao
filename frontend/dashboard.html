@@ -1821,6 +1821,47 @@ REGRAS:
         </div>
 
         <!-- ═══ CRIE Invite Event Modal ═══ -->
+        <!-- ═══ Inscrito Profile Drawer ═══ -->
+        <div id="inscrito-drawer-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:9400;align-items:flex-end;justify-content:flex-end;" onclick="if(event.target===this)closeInscritoDrawer()">
+            <div style="background:#0f1117;border-left:1px solid rgba(255,215,0,.15);width:100%;max-width:400px;height:100vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:-24px 0 80px rgba(0,0,0,.6);">
+                <!-- Header -->
+                <div style="padding:28px 28px 20px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:flex-start;gap:14px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <h3 id="inscrito-drawer-name" style="font-size:1rem;font-weight:800;color:#fff;margin:0;"></h3>
+                            <span id="inscrito-drawer-badge" style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);border-radius:20px;padding:2px 10px;font-size:.7rem;font-weight:700;"></span>
+                        </div>
+                        <p style="font-size:.75rem;color:rgba(255,255,255,.35);margin:6px 0 0;">Clique para editar · Histórico abaixo</p>
+                    </div>
+                    <button onclick="closeInscritoDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+                </div>
+                <!-- Edit Fields -->
+                <div style="padding:20px 28px;border-bottom:1px solid rgba(255,255,255,.07);">
+                    <h4 style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin:0 0 14px;">Dados Pessoais</h4>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:4px;">Nome</label>
+                            <input id="inscrito-drawer-input-name" type="text" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:4px;">Email</label>
+                            <input id="inscrito-drawer-input-email" type="email" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:4px;">Telefone / WhatsApp</label>
+                            <input id="inscrito-drawer-input-phone" type="tel" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;box-sizing:border-box;">
+                        </div>
+                        <button onclick="saveInscritoDrawer()" style="background:linear-gradient(135deg,#FFD700,#F59E0B);color:#111;border:none;border-radius:10px;padding:11px;font-weight:800;font-size:.85rem;cursor:pointer;margin-top:4px;transition:opacity .2s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Guardar Alterações</button>
+                    </div>
+                </div>
+                <!-- Event History -->
+                <div style="padding:20px 28px;flex:1;">
+                    <h4 style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin:0 0 14px;">Histórico de Eventos</h4>
+                    <div id="inscrito-drawer-history"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="crie-invite-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;">
             <div style="background:#111827;border:1px solid rgba(255,215,0,.2);border-radius:22px;padding:36px;width:100%;max-width:480px;margin:16px;box-shadow:0 32px 80px rgba(0,0,0,.6);">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
