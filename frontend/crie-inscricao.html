@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrição CRIE — Lagoinha HUB</title>
+    <meta name="description" content="Inscreva-se no próximo evento CRIE da Lagoinha.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <style>
+        :root {
+            --accent: #FFD700;
+            --accent2: #F59E0B;
+            --bg: #080a0e;
+            --card: #0f1117;
+            --border: rgba(255,255,255,0.08);
+            --text: #ffffff;
+            --muted: rgba(255,255,255,0.45);
+            --font: 'Inter', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px 80px;
+        }
+        body::before {
+            content:''; position:fixed; top:-20%; left:50%; transform:translateX(-50%);
+            width:600px; height:600px;
+            background:radial-gradient(circle, rgba(255,215,0,0.07) 0%, transparent 70%);
+            pointer-events:none; z-index:0;
+        }
+
+        .wrap { position:relative; z-index:1; width:100%; max-width:520px; }
+
+        /* ── Header ── */
+        .site-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 40px;
+            animation: fadeUp .5s ease both;
+        }
+        .logo-box {
+            width:44px; height:44px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 13px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.3rem;
+            box-shadow: 0 0 24px rgba(255,215,0,.25);
+        }
+        .logo-text .title { font-size:.95rem; font-weight:800; letter-spacing:-.4px; }
+        .logo-text .sub { font-size:.7rem; color:var(--muted); font-weight:500; letter-spacing:.06em; text-transform:uppercase; margin-top:1px; }
+
+        /* ── Event Card ── */
+        #loading-state, #no-event-state, #form-state, #success-state { display:none; }
+        #loading-state { display:flex; flex-direction:column; align-items:center; gap:16px; padding:60px 0; animation:fadeUp .4s ease both; }
+        .spinner { width:36px; height:36px; border:3px solid rgba(255,215,0,.15); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+
+        .event-hero {
+            background: var(--card);
+            border: 1px solid rgba(255,215,0,.18);
+            border-radius: 22px;
+            padding: 28px;
+            margin-bottom: 24px;
+            animation: fadeUp .5s .05s ease both;
+        }
+        .event-badge {
+            display:inline-flex; align-items:center; gap:6px;
+            background: rgba(255,215,0,.12); color:var(--accent);
+            border: 1px solid rgba(255,215,0,.25);
+            border-radius: 20px; padding: 4px 12px;
+            font-size:.7rem; font-weight:700; letter-spacing:.06em;
+            text-transform:uppercase; margin-bottom:16px;
+        }
+        .event-title { font-size:1.5rem; font-weight:900; letter-spacing:-.04em; line-height:1.2; margin-bottom:14px; }
+        .event-meta { display:flex; flex-wrap:wrap; gap:12px; }
+        .event-meta-item {
+            display:flex; align-items:center; gap:7px;
+            font-size:.82rem; color:var(--muted);
+        }
+        .event-meta-item svg { flex-shrink:0; opacity:.7; }
+        .event-price-tag {
+            display:inline-flex; align-items:center; gap:6px;
+            background: rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.2);
+            color:#4ade80; border-radius:20px; padding:3px 10px; font-size:.75rem; font-weight:700; margin-top:14px;
+        }
+
+        /* ── Form Card ── */
+        .form-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 28px;
+            animation: fadeUp .5s .1s ease both;
+        }
+        .form-card h2 {
+            font-size:.7rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+            color:var(--muted); margin-bottom:20px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .form-card h2::before { content:''; width:3px; height:14px; background:var(--accent); border-radius:2px; flex-shrink:0; }
+
+        .form-row { display:grid; gap:12px; margin-bottom:12px; }
+        .form-row.cols2 { grid-template-columns:1fr 1fr; }
+        @media(max-width:440px) { .form-row.cols2 { grid-template-columns:1fr; } }
+
+        label { display:block; font-size:.75rem; font-weight:600; color:var(--muted); margin-bottom:5px; }
+        input, select {
+            width:100%; padding:11px 14px;
+            background:rgba(255,255,255,.04); border:1px solid var(--border);
+            border-radius:11px; color:var(--text); font-family:var(--font); font-size:.88rem;
+            outline:none; transition:border .15s, box-shadow .15s; -webkit-appearance:none;
+        }
+        input:focus, select:focus {
+            border-color: rgba(255,215,0,.4);
+            box-shadow: 0 0 0 3px rgba(255,215,0,.08);
+        }
+        select option { background:#111; }
+
+        .is-member-row {
+            display:flex; align-items:center; gap:10px;
+            padding:12px 14px;
+            background:rgba(255,255,255,.03); border:1px solid var(--border);
+            border-radius:11px; cursor:pointer; user-select:none;
+            transition:border .15s, background .15s;
+        }
+        .is-member-row:has(input:checked) { border-color:rgba(255,215,0,.35); background:rgba(255,215,0,.05); }
+        .is-member-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--accent); flex-shrink:0; }
+        .is-member-row span { font-size:.85rem; color:var(--muted); }
+        .is-member-row:has(input:checked) span { color:var(--accent); font-weight:600; }
+
+        .btn-submit {
+            width:100%; padding:15px; margin-top:20px;
+            background:linear-gradient(135deg, var(--accent), var(--accent2));
+            color:#0a0a0a; font-family:var(--font); font-size:.95rem; font-weight:900;
+            border:none; border-radius:14px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            transition:transform .15s, box-shadow .2s, opacity .2s;
+            letter-spacing:-.01em;
+        }
+        .btn-submit:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,215,0,.3); }
+        .btn-submit:active { transform:scale(.98); }
+        .btn-submit:disabled { opacity:.5; pointer-events:none; }
+
+        /* ── States ── */
+        #no-event-state {
+            text-align:center; padding:80px 20px;
+            animation:fadeUp .5s ease both;
+        }
+        #no-event-state .icon { font-size:3rem; margin-bottom:16px; }
+        #no-event-state h2 { font-size:1.3rem; font-weight:800; margin-bottom:10px; }
+        #no-event-state p { color:var(--muted); font-size:.9rem; line-height:1.7; }
+
+        #success-state {
+            text-align:center; padding:80px 20px;
+            animation:fadeUp .5s ease both;
+        }
+        .success-icon {
+            width:72px; height:72px; border-radius:50%;
+            background:rgba(255,215,0,.1); border:2px solid rgba(255,215,0,.3);
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 24px; font-size:2rem;
+        }
+        #success-state h2 { font-size:1.5rem; font-weight:900; letter-spacing:-.04em; margin-bottom:10px; }
+        #success-state p { color:var(--muted); font-size:.9rem; line-height:1.7; }
+        #success-state strong { color:var(--accent); }
+
+        .footer-note {
+            margin-top:32px; text-align:center;
+            font-size:.72rem; color:rgba(255,255,255,.2);
+            animation:fadeUp .5s .2s ease both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(14px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+
+        <!-- Header -->
+        <div class="site-header">
+            <div class="logo-box">⛪</div>
+            <div class="logo-text">
+                <div class="title">Lagoinha HUB</div>
+                <div class="sub" id="ws-sub-label">CRIE — Inscrições</div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-state">
+            <div class="spinner"></div>
+            <p style="color:var(--muted); font-size:.85rem;">A carregar evento…</p>
+        </div>
+
+        <!-- No upcoming event -->
+        <div id="no-event-state">
+            <div class="icon">📅</div>
+            <h2>Nenhum evento disponível</h2>
+            <p>De momento não há inscrições abertas para eventos CRIE.<br>
+               Fique atento às nossas redes sociais para as próximas datas!</p>
+        </div>
+
+        <!-- Form state -->
+        <div id="form-state">
+            <!-- Event info -->
+            <div class="event-hero" id="event-hero-card">
+                <div class="event-badge">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#FFD700"/></svg>
+                    Inscrições Abertas
+                </div>
+                <div class="event-title" id="ev-title">—</div>
+                <div class="event-meta">
+                    <div class="event-meta-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span id="ev-date">—</span>
+                    </div>
+                    <div class="event-meta-item" id="ev-location-wrap">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span id="ev-location">—</span>
+                    </div>
+                </div>
+                <div id="ev-price-wrap" style="display:none;">
+                    <span class="event-price-tag" id="ev-price"></span>
+                </div>
+            </div>
+
+            <!-- Registration form -->
+            <div class="form-card">
+                <h2>Dados de Inscrição</h2>
+                <form id="crie-reg-form" onsubmit="submitCrieForm(event)">
+                    <div class="form-row cols2">
+                        <div>
+                            <label>Nome Completo *</label>
+                            <input type="text" id="cr-name" required placeholder="O seu nome">
+                        </div>
+                        <div>
+                            <label>Telefone / WhatsApp *</label>
+                            <input type="tel" id="cr-phone" required placeholder="+351 9xx xxx xxx">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div>
+                            <label>Email</label>
+                            <input type="email" id="cr-email" placeholder="email@exemplo.com">
+                        </div>
+                    </div>
+                    <div class="form-row cols2">
+                        <div>
+                            <label>Cidade</label>
+                            <input type="text" id="cr-city" placeholder="Ex: Braga">
+                        </div>
+                        <div>
+                            <label>Área / Profissão</label>
+                            <input type="text" id="cr-industry" placeholder="Ex: Saúde, TI…">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-top:4px;">
+                        <label class="is-member-row">
+                            <input type="checkbox" id="cr-member">
+                            <span>⭐ Já sou membro da Lagoinha</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-submit" id="cr-submit-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+                        Confirmar Inscrição
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Success -->
+        <div id="success-state">
+            <div class="success-icon">🎉</div>
+            <h2>Inscrição confirmada!</h2>
+            <p>Obrigado, <strong id="success-name">—</strong>!<br>
+               Estamos à tua espera no evento.<br>
+               Até breve! 🙏</p>
+        </div>
+
+        <p class="footer-note">Lagoinha HUB · <span id="footer-ws-name">CRIE</span></p>
+    </div>
+
+    <script src="hub-router.js"></script>
+    <script>
+    const SUPA_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+    let _workspaceId = null;
+    let _eventId     = null;
+
+    function show(id) {
+        ['loading-state','no-event-state','form-state','success-state']
+            .forEach(s => document.getElementById(s).style.display = s === id ? (s === 'loading-state' ? 'flex' : 'block') : 'none');
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        return new Date(iso).toLocaleDateString('pt-PT', {
+            weekday:'long', day:'numeric', month:'long', year:'numeric',
+            hour:'2-digit', minute:'2-digit', timeZone: 'Europe/Lisbon'
+        });
+    }
+
+    async function init() {
+        show('loading-state');
+        try {
+            // 1. Resolve workspace from URL slug via HubRouter
+            _workspaceId = await window.HubRouter.getWorkspaceId();
+            if (!_workspaceId) throw new Error('Workspace não encontrado');
+
+            // 2. Load workspace name for branding
+            const { data: ws } = await sb.from('workspaces').select('name').eq('id', _workspaceId).single();
+            if (ws?.name) {
+                document.getElementById('ws-sub-label').textContent = `CRIE — ${ws.name}`;
+                document.getElementById('footer-ws-name').textContent = `CRIE ${ws.name}`;
+                document.title = `Inscrição CRIE ${ws.name} — Lagoinha HUB`;
+            }
+
+            // 3. Load the NEXT upcoming ACTIVE event (date >= now)
+            const now = new Date().toISOString();
+            const { data: events } = await sb
+                .from('crie_events')
+                .select('id, title, date, location, price, currency, description, status')
+                .eq('workspace_id', _workspaceId)
+                .eq('status', 'ACTIVE')
+                .gte('date', now)              // only future events
+                .order('date', { ascending: true })
+                .limit(1);
+
+            if (!events || events.length === 0) {
+                show('no-event-state');
+                return;
+            }
+
+            const ev = events[0];
+            _eventId = ev.id;
+
+            // 4. Populate event card
+            document.getElementById('ev-title').textContent = ev.title;
+            document.getElementById('ev-date').textContent  = fmtDate(ev.date);
+            if (ev.location) {
+                document.getElementById('ev-location').textContent = ev.location;
+            } else {
+                document.getElementById('ev-location-wrap').style.display = 'none';
+            }
+            if (ev.price > 0) {
+                const priceWrap = document.getElementById('ev-price-wrap');
+                priceWrap.style.display = 'block';
+                document.getElementById('ev-price').innerHTML = `
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    ${ev.currency} ${parseFloat(ev.price).toFixed(2)}
+                `;
+            }
+
+            show('form-state');
+
+        } catch (err) {
+            console.error('[CRIE-FORM] init error:', err);
+            show('no-event-state');
+        }
+    }
+
+    async function submitCrieForm(e) {
+        e.preventDefault();
+        if (!_workspaceId || !_eventId) return;
+
+        const btn  = document.getElementById('cr-submit-btn');
+        const name = document.getElementById('cr-name').value.trim();
+        const phone = document.getElementById('cr-phone').value.trim();
+        const email = document.getElementById('cr-email').value.trim().toLowerCase();
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> A enviar…';
+
+        try {
+            // Normalize phone: add +351 if looks like PT local number (9 digits starting with 9)
+            let phoneFinal = phone.replace(/\s/g, '');
+            if (/^9\d{8}$/.test(phoneFinal)) phoneFinal = '+351' + phoneFinal;
+
+            // Check if member lookup exists in crie_members by phone
+            let isMember = document.getElementById('cr-member').checked;
+            if (!isMember && phoneFinal) {
+                const phoneClean = phoneFinal.replace(/\D/g,'');
+                const { data: mem } = await sb.from('crie_members')
+                    .select('id')
+                    .eq('workspace_id', _workspaceId)
+                    .or(`phone.eq.${phoneFinal},phone.eq.${phoneClean}`)
+                    .maybeSingle();
+                if (mem) isMember = true;
+            }
+
+            const payload = {
+                event_id:          _eventId,
+                workspace_id:      _workspaceId,
+                name:              name,
+                phone:             phoneFinal,
+                email:             email || null,
+                city:              document.getElementById('cr-city').value.trim() || null,
+                industry:          document.getElementById('cr-industry').value.trim() || null,
+                is_member:         isMember,
+                payment_status:    'Pendente',
+                presence_status:   'Pendente',
+            };
+
+            const { error } = await sb.from('crie_attendees').insert(payload);
+            if (error) throw error;
+
+            // Show success
+            document.getElementById('success-name').textContent = name.split(' ')[0];
+            show('success-state');
+
+        } catch (err) {
+            console.error('[CRIE-FORM] submit error:', err);
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Confirmar Inscrição`;
+            alert('Erro ao enviar: ' + (err.message || 'tente novamente'));
+        }
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

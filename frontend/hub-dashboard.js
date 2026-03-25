@@ -4109,7 +4109,6 @@ async function loadCrieEventos() {
     const wsId = getCrieWorkspaceId();
     if (!wsId) return;
     const sb = window.supabaseClient;
-    // Do not fail if relation does not exist; try-catch it
     let data = [];
     try {
         const res = await sb.from('crie_events').select('*').eq('workspace_id', wsId).order('date', { ascending: false });
@@ -4119,10 +4118,33 @@ async function loadCrieEventos() {
         console.error('loadCrieEventos:', e);
     }
     crieEventos = data || [];
+
+    // Auto-expire: move ACTIVE/LIVE events to CONCLUIDO if date has passed
+    const now = new Date();
+    const expired = crieEventos.filter(ev =>
+        (ev.status === 'ACTIVE' || ev.status === 'LIVE') &&
+        ev.date && new Date(ev.date) < now
+    );
+    if (expired.length) {
+        const ids = expired.map(e => e.id);
+        await sb.from('crie_events').update({ status: 'CONCLUIDO' }).in('id', ids);
+        // Update local array too
+        crieEventos.forEach(ev => { if (ids.includes(ev.id)) ev.status = 'CONCLUIDO'; });
+    }
+
     renderCrieEventos(crieEventos);
-    // Also populate checkin event selector
     populateCheckinEventos(crieEventos);
 }
+
+function _getPublicCrieUrl() {
+    // Derive workspace slug from current URL path (/braga/dashboard.html → braga)
+    if (window.location.protocol === 'file:') return window.location.origin + '/crie-inscricao.html';
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const slug = (parts.length >= 2 && !parts[0].endsWith('.html')) ? parts[0] : null;
+    const base = window.location.origin;
+    return slug ? `${base}/${slug}/crie-inscricao.html` : `${base}/crie-inscricao.html`;
+}
+
 
 let _eventoStatusFilter = 'all';
 function filterEventos(status, btn) {
@@ -4142,23 +4164,28 @@ function renderCrieEventos(list) {
     }
 
     const statusMap = {
-        ACTIVE:   { label: 'ATIVO',      color: '#4ade80', bg: 'rgba(74,222,128,.12)'  },
-        DRAFT:    { label: 'RASCUNHO',   color: '#F59E0B', bg: 'rgba(245,158,11,.12)'  },
-        ARCHIVED: { label: 'ARQUIVADO',  color: 'rgba(255,255,255,.3)', bg: 'rgba(255,255,255,.05)' },
+        ACTIVE:    { label: 'ATIVO',      color: '#4ade80', bg: 'rgba(74,222,128,.12)'  },
+        LIVE:      { label: '🔴 AO VIVO', color: '#f87171', bg: 'rgba(248,113,113,.15)' },
+        DRAFT:     { label: 'RASCUNHO',   color: '#F59E0B', bg: 'rgba(245,158,11,.12)'  },
+        CONCLUIDO: { label: 'CONCLUÍDO',  color: 'rgba(255,255,255,.4)', bg: 'rgba(255,255,255,.06)' },
+        ARCHIVED:  { label: 'ARQUIVADO',  color: 'rgba(255,255,255,.3)', bg: 'rgba(255,255,255,.05)' },
     };
+
+    const publicUrl = _getPublicCrieUrl();
 
     grid.innerHTML = list.map(ev => {
         const st = statusMap[ev.status] || statusMap.DRAFT;
         const attendeeCount = ev.crie_attendees?.[0]?.count || 0;
         const occupancy = ev.capacity > 0 ? Math.round((attendeeCount / ev.capacity) * 100) : null;
         const dateStr = new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const isPublic = ev.status === 'ACTIVE';
 
         return `
         <div class="hub-announcement-card" style="cursor:default; display:flex; flex-direction:column; gap:16px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:900; color:#fff; font-size:1.05rem; margin-bottom:4px;">${ev.title}</div>
-                    <div style="font-size:.75rem; color:rgba(255,255,255,.4);">📍 ${ev.location}</div>
+                    <div style="font-size:.75rem; color:rgba(255,255,255,.4);">📍 ${ev.location || '—'}</div>
                 </div>
                 <span style="background:${st.bg}; color:${st.color}; border:1px solid ${st.color}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700; flex-shrink:0; margin-left:10px;">${st.label}</span>
             </div>
@@ -4167,6 +4194,19 @@ function renderCrieEventos(list) {
                 ${ev.price > 0 ? `<span style="font-size:.78rem; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); border-radius:8px; padding:5px 10px; color:#F59E0B; font-weight:700;">${ev.price.toFixed(2)}€</span>` : '<span style="font-size:.78rem; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:8px; padding:5px 10px; color:#4ade80; font-weight:700;">GRATUITO</span>'}
                 <span style="font-size:.78rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 10px; color:rgba(255,255,255,.5);">👥 ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
             </div>
+            ${isPublic ? `
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 12px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span style="flex:1;font-size:.75rem;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${publicUrl}">${publicUrl}</span>
+                <button onclick="navigator.clipboard.writeText('${publicUrl}').then(()=>{ if(typeof hubToast!=='undefined') hubToast('Link copiado!','success'); })" 
+                    style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:4px 8px;color:#60a5fa;font-size:.68rem;font-weight:700;cursor:pointer;flex-shrink:0;">
+                    Copiar
+                </button>
+                <a href="${publicUrl}" target="_blank" 
+                    style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:4px 8px;color:#60a5fa;font-size:.68rem;font-weight:700;text-decoration:none;flex-shrink:0;">
+                    Abrir ↗
+                </a>
+            </div>` : ''}
             ${occupancy !== null ? `
             <div style="background:rgba(255,255,255,.04); border-radius:6px; height:4px; overflow:hidden;">
                 <div style="height:100%; width:${Math.min(occupancy,100)}%; background:${occupancy>=90?'#f87171':occupancy>=70?'#F59E0B':'#4ade80'}; border-radius:6px; transition:width .5s;"></div>
@@ -4184,6 +4224,7 @@ function renderCrieEventos(list) {
         </div>`;
     }).join('');
 }
+
 
 function openCreateEventoModal() {
     const modal = document.getElementById('modal-create-evento');
