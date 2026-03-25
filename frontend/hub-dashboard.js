@@ -3606,34 +3606,289 @@ function renderCrieMembros(list) {
     grid.innerHTML = list.map(m => {
         const initials = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
         const statusColor = m.status === 'Ativo' ? '#4ade80' : '#f87171';
+        const phoneClean = (m.phone || '').replace(/\D/g, '');
+        const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
+        const feeStr = m.monthly_fee > 0 ? `€${Number(m.monthly_fee).toFixed(2)}/mês` : '';
         return `
-        <div class="hub-announcement-card" style="cursor:default;">
+        <div class="hub-announcement-card" style="cursor:pointer; transition:transform .15s,box-shadow .15s;" onclick="openMembroDrawer('${m.id}')"
+             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(245,158,11,.12)'"
+             onmouseout="this.style.transform='';this.style.boxShadow=''">
             <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
                 <div style="width:44px; height:44px; border-radius:50%; background:rgba(245,158,11,.15); border:1px solid rgba(245,158,11,.3); display:flex; align-items:center; justify-content:center; font-weight:900; color:#F59E0B; font-size:1rem; flex-shrink:0;">${initials}</div>
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:800; color:#fff; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}</div>
-                    <div style="font-size:.72rem; color:rgba(255,255,255,.4); margin-top:2px;">${m.company || m.industry || ''}</div>
+                    <div style="font-size:.72rem; color:rgba(255,255,255,.4); margin-top:2px;">${m.company || m.industry || (feeStr ? feeStr : 'Membro')}</div>
                 </div>
                 <span style="background:${m.status==='Ativo'?'rgba(74,222,128,.12)':'rgba(248,113,113,.12)'}; color:${statusColor}; border:1px solid ${statusColor}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700;">${m.status.toUpperCase()}</span>
             </div>
             <div style="font-size:.75rem; color:rgba(255,255,255,.4); display:flex; flex-direction:column; gap:4px;">
-                <span>📧 ${m.email}</span>
-                <span>📞 ${m.phone}</span>
-                ${m.industry ? `<span>💼 ${m.industry}</span>` : ''}
+                <span>📧 ${m.email || '—'}</span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                    📞 ${m.phone || '—'}
+                    ${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}
+                </span>
+                ${feeStr ? `<span>💳 ${feeStr}</span>` : ''}
             </div>
             <div style="margin-top:14px; display:flex; gap:8px;">
-                <button onclick="toggleCrieMembroStatus('${m.id}','${m.status}')" style="flex:1; padding:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; color:rgba(255,255,255,.6); font-size:.72rem; font-weight:700; cursor:pointer;">
-                    ${m.status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                <button onclick="event.stopPropagation();openMembroDrawer('${m.id}')" style="flex:1; padding:8px; background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.2); border-radius:10px; color:#FFD700; font-size:.72rem; font-weight:700; cursor:pointer;">
+                    ✏️ Editar
                 </button>
-                <button onclick="deleteCrieMembro('${m.id}')" style="padding:8px 12px; background:rgba(255,100,100,.08); border:1px solid rgba(255,100,100,.15); border-radius:10px; color:#f87171; font-size:.72rem; cursor:pointer;">✕</button>
+                <button onclick="event.stopPropagation();deleteCrieMembro('${m.id}')" style="padding:8px 12px; background:rgba(255,100,100,.08); border:1px solid rgba(255,100,100,.15); border-radius:10px; color:#f87171; font-size:.72rem; cursor:pointer;">✕</button>
             </div>
         </div>`;
     }).join('');
 }
 
+// ─── Member Drawer State ──────────────────────────────────────
+let _membroDrawerId = null;
+
 function openAddMembroModal() {
     const modal = document.getElementById('modal-add-membro');
     if (modal) { modal.style.display = 'flex'; }
+}
+
+async function openMembroDrawer(memberId) {
+    _membroDrawerId = memberId;
+    const m = crieMembros.find(x => x.id === memberId);
+    if (!m) return;
+
+    // Update header
+    const initials = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    document.getElementById('membro-drawer-avatar').textContent = initials;
+    document.getElementById('membro-drawer-name').textContent = m.name;
+    document.getElementById('membro-drawer-subtitle').textContent = m.email || '';
+    const badge = document.getElementById('membro-drawer-status-badge');
+    badge.textContent = m.status?.toUpperCase() || 'ATIVO';
+    badge.style.cssText = m.status === 'Ativo'
+        ? 'font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:6px;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.3);'
+        : 'font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:6px;background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);';
+
+    // Fill Dados tab
+    document.getElementById('mdr-name').value = m.name || '';
+    document.getElementById('mdr-email').value = m.email || '';
+    document.getElementById('mdr-phone').value = m.phone || '';
+    document.getElementById('mdr-company').value = m.company || m.industry || '';
+    document.getElementById('mdr-fee').value = m.monthly_fee || '';
+    document.getElementById('mdr-status').value = m.status || 'Ativo';
+    document.getElementById('mdr-notes').value = m.notes || '';
+
+    // Populate event selector in Presença tab
+    const attEvtSel = document.getElementById('mdr-att-event');
+    if (attEvtSel) {
+        attEvtSel.innerHTML = '<option value="">Selecionar Evento…</option>' +
+            (crieEventos || []).map(ev => `<option value="${ev.id}" data-title="${ev.title||''}" data-date="${ev.date||''}">${ev.title || 'Evento'}</option>`).join('');
+    }
+
+    // Show drawer
+    document.getElementById('membro-drawer-overlay').style.display = 'block';
+    const drawer = document.getElementById('membro-drawer');
+    drawer.style.display = 'flex';
+
+    // Switch to Dados tab
+    switchMembroTab('dados', drawer.querySelector('[data-tab="dados"]'));
+
+    // Load financial data and attendance
+    await loadMembroTransactions(memberId);
+    await loadMembroAttendance(memberId);
+}
+
+function closeMembroDrawer() {
+    document.getElementById('membro-drawer-overlay').style.display = 'none';
+    document.getElementById('membro-drawer').style.display = 'none';
+    _membroDrawerId = null;
+}
+
+function switchMembroTab(tab, btn) {
+    // Hide all content panes
+    document.querySelectorAll('.membro-tab-content').forEach(el => el.style.display = 'none');
+    // Deactivate all tabs
+    document.querySelectorAll('.membro-tab').forEach(el => el.classList.remove('active'));
+    // Show selected
+    const content = document.getElementById('membro-tab-' + tab);
+    if (content) content.style.display = 'block';
+    if (btn) btn.classList.add('active');
+}
+
+async function saveMembroDrawer() {
+    if (!_membroDrawerId) return;
+    const sb = window.supabaseClient;
+    const upd = {
+        name:        document.getElementById('mdr-name').value.trim(),
+        email:       document.getElementById('mdr-email').value.trim(),
+        phone:       document.getElementById('mdr-phone').value.trim(),
+        company:     document.getElementById('mdr-company').value.trim() || null,
+        industry:    document.getElementById('mdr-company').value.trim() || null,
+        monthly_fee: parseFloat(document.getElementById('mdr-fee').value) || 0,
+        status:      document.getElementById('mdr-status').value,
+    };
+    const { error } = await sb.from('crie_members').update(upd).eq('id', _membroDrawerId);
+    if (error) { if (window.hubToast) hubToast('Erro ao guardar: ' + error.message, 'error'); return; }
+    // Update local cache
+    const idx = crieMembros.findIndex(m => m.id === _membroDrawerId);
+    if (idx !== -1) Object.assign(crieMembros[idx], upd);
+    renderCrieMembros(crieMembros);
+    // Update header
+    document.getElementById('membro-drawer-name').textContent = upd.name;
+    if (window.hubToast) hubToast('Membro atualizado!', 'success');
+}
+
+async function saveMembroNotes() {
+    if (!_membroDrawerId) return;
+    const sb = window.supabaseClient;
+    const notes = document.getElementById('mdr-notes').value;
+    const { error } = await sb.from('crie_members').update({ notes }).eq('id', _membroDrawerId);
+    if (error) { if (window.hubToast) hubToast('Erro ao guardar notas', 'error'); return; }
+    const idx = crieMembros.findIndex(m => m.id === _membroDrawerId);
+    if (idx !== -1) crieMembros[idx].notes = notes;
+    if (window.hubToast) hubToast('Notas guardadas!', 'success');
+}
+
+// ─── Mensalidades (Transactions) ─────────────────────────────
+async function loadMembroTransactions(memberId) {
+    const sb = window.supabaseClient;
+    const { data, error } = await sb
+        .from('crie_member_transactions')
+        .select('*')
+        .eq('member_id', memberId)
+        .order('created_at', { ascending: false });
+    renderMembroTransactions(data || []);
+}
+
+function renderMembroTransactions(txns) {
+    const listEl = document.getElementById('mdr-txn-list');
+    if (!listEl) return;
+    const totalPaid = txns.filter(t => t.type === 'payment').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalExp  = txns.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+    const balance   = totalPaid - totalExp;
+    const fmt = n => `€${Number(n).toFixed(2)}`;
+    document.getElementById('mdr-total-paid').textContent = fmt(totalPaid);
+    document.getElementById('mdr-total-expenses').textContent = fmt(totalExp);
+    const balEl = document.getElementById('mdr-balance');
+    balEl.textContent = fmt(balance);
+    balEl.style.color = balance >= 0 ? '#FFD700' : '#f87171';
+
+    if (!txns.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem transações registadas.</div>';
+        return;
+    }
+    listEl.innerHTML = txns.map(t => {
+        const isPayment = t.type === 'payment';
+        const color = isPayment ? '#4ade80' : '#f87171';
+        const icon  = isPayment ? '💰' : '↩️';
+        const dt = new Date(t.created_at).toLocaleDateString('pt-PT');
+        const refMonth = t.reference_month ? ` · Ref: ${t.reference_month}` : '';
+        return `
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:50%;background:${isPayment ? 'rgba(74,222,128,.1)' : 'rgba(248,113,113,.1)'};display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${icon}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.84rem;color:#fff;font-weight:600;">${t.description || (isPayment ? 'Mensalidade' : 'Estorno/Despesa')}</div>
+                <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:2px;">${dt}${refMonth}</div>
+            </div>
+            <div style="font-size:1rem;font-weight:800;color:${color};">${isPayment ? '+' : '-'}${fmt(t.amount)}</div>
+            <button onclick="deleteMembroTransaction('${t.id}')" style="background:none;border:none;color:rgba(255,80,80,.4);cursor:pointer;font-size:.8rem;padding:4px;" title="Remover">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function addMembroTransaction() {
+    if (!_membroDrawerId) return;
+    const type   = document.getElementById('mdr-txn-type').value;
+    const amount = parseFloat(document.getElementById('mdr-txn-amount').value);
+    const month  = document.getElementById('mdr-txn-month').value || null;
+    const desc   = document.getElementById('mdr-txn-desc').value.trim() || null;
+    if (!amount || amount <= 0) { if (window.hubToast) hubToast('Insira um valor válido', 'error'); return; }
+    const sb = window.supabaseClient;
+    const wsId = getCrieWorkspaceId();
+    const { error } = await sb.from('crie_member_transactions').insert({
+        workspace_id: wsId, member_id: _membroDrawerId,
+        type, amount, reference_month: month, description: desc
+    });
+    if (error) { if (window.hubToast) hubToast('Erro: ' + error.message, 'error'); return; }
+    document.getElementById('mdr-txn-amount').value = '';
+    document.getElementById('mdr-txn-desc').value = '';
+    await loadMembroTransactions(_membroDrawerId);
+    if (window.hubToast) hubToast(type === 'payment' ? '💰 Pagamento registado!' : '↩️ Despesa registada!', 'success');
+}
+
+async function deleteMembroTransaction(txnId) {
+    if (!confirm('Remover esta transação?')) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_member_transactions').delete().eq('id', txnId);
+    await loadMembroTransactions(_membroDrawerId);
+}
+
+// ─── Presenças (Attendance) ───────────────────────────────────
+async function loadMembroAttendance(memberId) {
+    const sb = window.supabaseClient;
+    const { data } = await sb
+        .from('crie_member_attendance')
+        .select('*')
+        .eq('member_id', memberId)
+        .order('event_date', { ascending: false });
+    renderMembroAttendance(data || []);
+}
+
+function renderMembroAttendance(att) {
+    const listEl = document.getElementById('mdr-att-list');
+    const present = att.filter(a => a.status === 'Presente').length;
+    const absent  = att.filter(a => a.status === 'Faltou').length;
+    const total   = att.length;
+    document.getElementById('mdr-att-present').textContent = present;
+    document.getElementById('mdr-att-absent').textContent  = absent;
+    document.getElementById('mdr-att-rate').textContent    = total ? Math.round((present / total) * 100) + '%' : '—';
+
+    if (!listEl) return;
+    if (!att.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem registos de presença.</div>';
+        return;
+    }
+    const statusMap = {
+        'Presente':   { color: '#4ade80', bg: 'rgba(74,222,128,.1)',   icon: '✅' },
+        'Faltou':     { color: '#f87171', bg: 'rgba(248,113,113,.1)',  icon: '❌' },
+        'Justificado':{ color: '#F59E0B', bg: 'rgba(245,158,11,.1)',   icon: '⚠️' },
+    };
+    listEl.innerHTML = att.map(a => {
+        const s = statusMap[a.status] || statusMap['Justificado'];
+        const dt = a.event_date ? new Date(a.event_date + 'T00:00:00').toLocaleDateString('pt-PT') : '—';
+        return `
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:34px;height:34px;border-radius:50%;background:${s.bg};display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${s.icon}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.84rem;color:#fff;font-weight:600;">${a.event_title || 'Evento'}</div>
+                <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:2px;">${dt}</div>
+            </div>
+            <span style="background:${s.bg};color:${s.color};padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">${a.status.toUpperCase()}</span>
+            <button onclick="deleteMembroAttendance('${a.id}')" style="background:none;border:none;color:rgba(255,80,80,.4);cursor:pointer;font-size:.8rem;padding:4px;" title="Remover">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function addMembroAttendance() {
+    if (!_membroDrawerId) return;
+    const evtSel = document.getElementById('mdr-att-event');
+    const opt    = evtSel?.selectedOptions[0];
+    const evtId  = evtSel?.value || null;
+    const evtTitle = opt?.dataset?.title || opt?.textContent || '';
+    const evtDate  = opt?.dataset?.date || null;
+    const status = document.getElementById('mdr-att-status').value;
+    if (!evtId) { if (window.hubToast) hubToast('Selecione um evento', 'error'); return; }
+    const sb  = window.supabaseClient;
+    const wsId = getCrieWorkspaceId();
+    const { error } = await sb.from('crie_member_attendance').insert({
+        workspace_id: wsId, member_id: _membroDrawerId,
+        event_id: evtId, event_title: evtTitle,
+        event_date: evtDate || null, status
+    });
+    if (error) { if (window.hubToast) hubToast('Erro: ' + error.message, 'error'); return; }
+    await loadMembroAttendance(_membroDrawerId);
+    if (window.hubToast) hubToast('Presença registada!', 'success');
+}
+
+async function deleteMembroAttendance(attId) {
+    if (!confirm('Remover este registo?')) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_member_attendance').delete().eq('id', attId);
+    await loadMembroAttendance(_membroDrawerId);
 }
 
 async function saveCrieMembro(e) {
@@ -3671,6 +3926,7 @@ async function deleteCrieMembro(id) {
     await sb.from('crie_members').delete().eq('id', id);
     crieMembros = crieMembros.filter(m => m.id !== id);
     renderCrieMembros(crieMembros);
+    if (_membroDrawerId === id) closeMembroDrawer();
 }
 
 // ═══════════════════════════════════════════════════════════

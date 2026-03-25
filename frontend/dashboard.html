@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HUB - Lagoinha Consolidação</title>
-    <link rel="stylesheet" href="/hub.css?v=20260325v">
+    <link rel="stylesheet" href="/hub.css?v=20260325w">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -1782,6 +1782,157 @@ REGRAS:
         </div>
 
         <!-- ═══════════════════════════════════════════════════════════
+             Member Detail Drawer (slides in from right)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="membro-drawer-overlay" onclick="closeMembroDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;backdrop-filter:blur(2px);"></div>
+        <div id="membro-drawer" style="display:none;position:fixed;top:0;right:0;height:100%;width:min(520px,100vw);background:#111827;border-left:1px solid rgba(255,215,0,.15);z-index:1101;overflow-y:auto;flex-direction:column;">
+            <!-- Drawer Header -->
+            <div style="padding:24px 28px 0;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:20px;">
+                <div id="membro-drawer-avatar" style="width:52px;height:52px;border-radius:50%;background:rgba(245,158,11,.15);border:2px solid rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center;font-weight:900;color:#F59E0B;font-size:1.1rem;flex-shrink:0;"></div>
+                <div style="flex:1;">
+                    <div id="membro-drawer-name" style="font-size:1.1rem;font-weight:800;color:#fff;"></div>
+                    <div id="membro-drawer-subtitle" style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px;"></div>
+                </div>
+                <div id="membro-drawer-status-badge" style="font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:6px;"></div>
+                <button onclick="closeMembroDrawer()" style="background:rgba(255,255,255,.06);border:none;color:rgba(255,255,255,.5);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <!-- Tabs -->
+            <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.06);padding:0 28px;">
+                <button class="membro-tab active" data-tab="dados" onclick="switchMembroTab('dados',this)">Dados</button>
+                <button class="membro-tab" data-tab="mensalidades" onclick="switchMembroTab('mensalidades',this)">💳 Mensalidades</button>
+                <button class="membro-tab" data-tab="presencas" onclick="switchMembroTab('presencas',this)">📅 Presenças</button>
+                <button class="membro-tab" data-tab="notas" onclick="switchMembroTab('notas',this)">📝 Notas</button>
+            </div>
+            <!-- Tab: Dados -->
+            <div id="membro-tab-dados" class="membro-tab-content" style="padding:24px 28px;display:block;">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Nome</label>
+                        <input id="mdr-name" type="text" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Email</label>
+                        <input id="mdr-email" type="email" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Telefone</label>
+                            <input id="mdr-phone" type="text" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Mensalidade (€)</label>
+                            <input id="mdr-fee" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Empresa / Área</label>
+                            <input id="mdr-company" type="text" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Status</label>
+                            <select id="mdr-status" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="saveMembroDrawer()" style="background:linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,180,0,.1));border:1px solid rgba(255,215,0,.35);color:#FFD700;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;font-size:.9rem;">💾 Guardar Alterações</button>
+                </div>
+            </div>
+            <!-- Tab: Mensalidades -->
+            <div id="membro-tab-mensalidades" class="membro-tab-content" style="padding:24px 28px;display:none;">
+                <!-- Summary KPIs -->
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+                    <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-total-paid" style="font-size:1.4rem;font-weight:800;color:#4ade80;">€0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Total Pago</div>
+                    </div>
+                    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-total-expenses" style="font-size:1.4rem;font-weight:800;color:#f87171;">€0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Despesas</div>
+                    </div>
+                    <div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-balance" style="font-size:1.4rem;font-weight:800;color:#FFD700;">€0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Saldo</div>
+                    </div>
+                </div>
+                <!-- Add transaction form -->
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:20px;">
+                    <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;">Lançar Transação</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <select id="mdr-txn-type" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                            <option value="payment">💰 Pagamento</option>
+                            <option value="expense">↩️ Estorno / Despesa</option>
+                        </select>
+                        <input id="mdr-txn-amount" type="number" step="0.01" min="0" placeholder="Valor (€)" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <input id="mdr-txn-month" type="month" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;" title="Mês de referência">
+                        <input id="mdr-txn-desc" type="text" placeholder="Descrição (opcional)" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                    </div>
+                    <button onclick="addMembroTransaction()" style="width:100%;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:.84rem;">+ Lançar</button>
+                </div>
+                <!-- History -->
+                <div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Histórico</div>
+                <div id="mdr-txn-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem transações registadas.</div>
+                </div>
+            </div>
+            <!-- Tab: Presenças -->
+            <div id="membro-tab-presencas" class="membro-tab-content" style="padding:24px 28px;display:none;">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+                    <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-att-present" style="font-size:1.4rem;font-weight:800;color:#4ade80;">0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Presenças</div>
+                    </div>
+                    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-att-absent" style="font-size:1.4rem;font-weight:800;color:#f87171;">0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Faltas</div>
+                    </div>
+                    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-att-rate" style="font-size:1.4rem;font-weight:800;color:#F59E0B;">—</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Taxa</div>
+                    </div>
+                </div>
+                <!-- Log attendance form -->
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:20px;">
+                    <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;">Registar Presença</div>
+                    <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px;">
+                        <select id="mdr-att-event" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                            <option value="">Selecionar Evento…</option>
+                        </select>
+                        <select id="mdr-att-status" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                            <option value="Presente">✅ Presente</option>
+                            <option value="Faltou">❌ Faltou</option>
+                            <option value="Justificado">⚠️ Justificado</option>
+                        </select>
+                    </div>
+                    <button onclick="addMembroAttendance()" style="width:100%;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:#60a5fa;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:.84rem;">+ Registar</button>
+                </div>
+                <!-- Attendance list -->
+                <div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Histórico de Presenças</div>
+                <div id="mdr-att-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem registos.</div>
+                </div>
+            </div>
+            <!-- Tab: Notas -->
+            <div id="membro-tab-notas" class="membro-tab-content" style="padding:24px 28px;display:none;">
+                <div style="font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:10px;">Anotações internas sobre este membro (não visíveis para o membro).</div>
+                <textarea id="mdr-notes" rows="10" placeholder="Escreva aqui observações, follow-up, pedidos especiais…" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;color:#fff;font-size:.88rem;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;line-height:1.6;"></textarea>
+                <button onclick="saveMembroNotes()" style="width:100%;margin-top:12px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.25);color:#FFD700;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;font-size:.88rem;">💾 Guardar Notas</button>
+            </div>
+        </div>
+        <!-- Tab styles injected via JS -->
+        <style>
+        .membro-tab { background:none;border:none;color:rgba(255,255,255,.4);padding:12px 14px;cursor:pointer;font-size:.8rem;font-weight:600;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap; }
+        .membro-tab.active { color:#F59E0B;border-bottom-color:#F59E0B; }
+        .membro-tab:hover { color:rgba(255,255,255,.7); }
+        .membro-tab-content { display:none; }
+        </style>
+
+
+        <!-- ═══════════════════════════════════════════════════════════
              View: CRIE — Eventos
         ═══════════════════════════════════════════════════════════ -->
         <div id="view-crie-eventos" class="view-section">
@@ -2200,7 +2351,7 @@ REGRAS:
      G2 / G3 / G5 — Fase G JavaScript
 ═══════════════════════════════════════════════════════ -->
 
-    <script src="/hub-dashboard.js?v=20260325v"></script>
+    <script src="/hub-dashboard.js?v=20260325w"></script>
 </body>
 </html>
 
