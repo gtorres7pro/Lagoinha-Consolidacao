@@ -3348,25 +3348,42 @@ function updateCrieInscritosKPIs() {
     if (pagosEl) pagosEl.textContent = crieInscritos.filter(a => a.payment_status === 'Pago').length;
 }
 
-// Returns unique persons grouped by phone (or name+email fallback)
+// Returns unique persons grouped by phone OR email (whichever matches first)
 function _getUniquePersons(rows) {
-    const map = new Map();
+    const byPhone = new Map(); // phoneClean -> groupKey
+    const byEmail = new Map(); // email -> groupKey
+    const persons = new Map(); // groupKey -> person obj
+
     rows.forEach(a => {
         const phoneClean = (a.phone || '').replace(/\D/g, '');
-        const key = phoneClean || ((a.name || '').toLowerCase() + '|' + (a.email || '').toLowerCase());
-        if (!map.has(key)) {
-            map.set(key, { ...a, _allRows: [], _eventCount: 0 });
+        const email = (a.email || '').toLowerCase().trim();
+
+        // Try to find an existing group by phone or email
+        let key = null;
+        if (phoneClean && byPhone.has(phoneClean)) key = byPhone.get(phoneClean);
+        if (!key && email && byEmail.has(email)) key = byEmail.get(email);
+
+        if (!key) {
+            // New unique person
+            key = phoneClean || email || (a.name || '').toLowerCase() + '_' + a.id;
+            persons.set(key, { ...a, _allRows: [], _eventCount: 0 });
         }
-        const p = map.get(key);
+
+        // Register phone & email under this key for future lookups
+        if (phoneClean) byPhone.set(phoneClean, key);
+        if (email) byEmail.set(email, key);
+
+        const p = persons.get(key);
         p._allRows.push(a);
         p._eventCount = p._allRows.length;
-        // Use latest record's data (most recent event)
+        // Keep most recent record's data as the "primary" display
         if (new Date(a.created_at) > new Date(p.created_at)) {
             const saved = { _allRows: p._allRows, _eventCount: p._eventCount };
             Object.assign(p, a, saved);
         }
     });
-    return [...map.values()];
+
+    return [...persons.values()];
 }
 
 function filterCrieInscritos() {
