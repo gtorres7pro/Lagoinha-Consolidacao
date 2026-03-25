@@ -314,11 +314,21 @@
 
                 renderWsDropdown();
                 // CRITICAL: Trigger data load for the initial workspace.
-                // (switchWorkspace calls initEngine when user manually switches,
-                //  but the page load path goes through loadWorkspaces — so we must
-                //  call initEngine here too, after currentWorkspaceId is set.)
-                if (initial && typeof initEngine === 'function') {
-                    initEngine();
+                // initEngine() is defined inside DOMContentLoaded (different scope),
+                // so we can't call it directly here. Instead, call window.fetchLiveLeads
+                // directly. It's assigned as a window global in that DOMContentLoaded
+                // block — use a retry loop to wait for it to be registered.
+                if (initial) {
+                    (function waitAndFetch(attempts) {
+                        if (window.fetchLiveLeads) {
+                            window.fetchLiveLeads();
+                            setTimeout(() => { if (window.loadRealKPIs) window.loadRealKPIs(); }, 1500);
+                        } else if (attempts < 40) {
+                            setTimeout(() => waitAndFetch(attempts + 1), 100);
+                        } else {
+                            console.error('[loadWorkspaces] fetchLiveLeads never became available after 4s');
+                        }
+                    })(0);
                 }
             } catch (e) {
                 console.warn('loadWorkspaces error:', e);
@@ -377,7 +387,11 @@
             if (dd) dd.classList.remove('open');
             renderWsDropdown();
             showToast('🏛 ' + ws.name, 2000);
-            if (typeof initEngine === 'function') initEngine();
+            // Call fetchLiveLeads directly (initEngine is in a different scope)
+            if (window.fetchLiveLeads) {
+                window.fetchLiveLeads();
+                setTimeout(() => { if (window.loadRealKPIs) window.loadRealKPIs(); }, 1500);
+            }
         };
 
         // Helper: switch workspace by ID only (for onclick buttons in templates)
