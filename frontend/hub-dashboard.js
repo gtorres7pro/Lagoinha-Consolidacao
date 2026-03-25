@@ -1667,6 +1667,14 @@
                                     
                                     if(pStart && leadDate < pStart) matchTime = false;
                                     if(pEnd && leadDate > pEnd) matchTime = false;
+                                } else if (timeRangeDays === '__top_custom__') {
+                                    const s = window._topCustomStart;
+                                    const e = window._topCustomEnd;
+                                    if (s) {
+                                        const pS = new Date(s + 'T00:00:00');
+                                        const pE = e ? new Date(e + 'T23:59:59') : new Date();
+                                        if (leadDate < pS || leadDate > pE) matchTime = false;
+                                    }
                                 }
                             }
                         }
@@ -2828,22 +2836,55 @@
         const tabs = document.querySelectorAll('#' + tabsId + ' .hub-period-tab');
         tabs.forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
-
-        const cutoff = days === 0 ? null : new Date(Date.now() - days * 86400000).toISOString();
-        const source = view === 'dashboard' ? window._allSaved : window._allVisit;
-        if (!source) return;
-        const filtered = cutoff ? source.filter(l => l.created_at >= cutoff) : source;
-
+        // Hide custom date picker when clicking a period button
+        const topCustom = document.getElementById('top-custom-date');
+        if (topCustom) topCustom.style.display = 'none';
+        // Sync the hidden filterTimeRange select so applyFilters works
+        const frEl = document.getElementById('filterTimeRange');
+        if (frEl) {
+            if (days === 0) frEl.value = 'all';
+            else if (days === 7) frEl.value = '7';
+            else if (days === 30) frEl.value = '30';
+            else if (days === 90) frEl.value = '90';
+        }
+        window._periodCutoff = null;
         if (view === 'dashboard') {
-            if (typeof applyFilters === 'function') {
-                // Store cutoff for applyFilters to use
-                window._periodCutoff = cutoff;
-                applyFilters();
-            }
+            if (window.applyFilters) window.applyFilters();
         } else {
-            window._periodCutoff = cutoff;
             if (typeof applyVisitorFilters === 'function') applyVisitorFilters();
         }
+    };
+
+    // Toggle the custom date picker in the top bar
+    window.toggleTopCustomDate = function(btn) {
+        const topCustom = document.getElementById('top-custom-date');
+        if (!topCustom) return;
+        const isVisible = topCustom.style.display === 'flex';
+        topCustom.style.display = isVisible ? 'none' : 'flex';
+        const tabs = document.querySelectorAll('#period-tabs-dashboard .hub-period-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (!isVisible) btn.classList.add('active');
+    };
+
+    // Apply the custom date range from the top bar date pickers
+    window.applyTopCustomDate = function() {
+        const startEl = document.getElementById('topDateStart');
+        const endEl = document.getElementById('topDateEnd');
+        if (!startEl || !endEl || !startEl.value) return;
+        window._topCustomStart = startEl.value;
+        window._topCustomEnd = endEl.value || new Date().toISOString().split('T')[0];
+        const frEl = document.getElementById('filterTimeRange');
+        if (frEl) {
+            let opt = frEl.querySelector('option[value="__top_custom__"]');
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = '__top_custom__';
+                opt.text = 'Período selecionado';
+                frEl.appendChild(opt);
+            }
+            frEl.value = '__top_custom__';
+        }
+        if (window.applyFilters) window.applyFilters();
     };
 
     // ─── QR Code generators ───────────────────────────────────────────
