@@ -119,22 +119,47 @@ serve(async (req) => {
             to: email,
             subject: `Convite para acesso ao Lago HUB - ${wsData?.name || 'Sua Igreja'}`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
-                <div style="background-color: #FFD700; padding: 20px; text-align: center;">
-                  <h1 style="color: #000; margin: 0;">Bem-vindo ao Lago HUB</h1>
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
+                  <!-- Header -->
+                  <div style="background-color: #FFD700; padding: 32px 20px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; text-shadow: 0px 1px 2px rgba(0,0,0,0.1);">Bem-vindo ao Lago HUB</h1>
+                  </div>
+                  
+                  <!-- Body -->
+                  <div style="padding: 40px 30px;">
+                    <h2 style="color: #1a1a1a; margin-top: 0; margin-bottom: 24px; font-size: 22px; font-weight: 700;">Olá${name ? ' ' + name : ''},</h2>
+                    
+                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+                      Você foi adicionado à equipe de <strong>${wsData?.name || ''}</strong> como <strong>${roleLabel[role] || role}</strong>.
+                    </p>
+                    
+                    <p style="color: #4a4a4a; font-size: 16px; margin-bottom: 16px;">Suas credenciais de acesso:</p>
+                    
+                    <!-- Credentials Box -->
+                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                      <p style="margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
+                        <span style="color: #6b7280;">E-mail:</span> <a href="mailto:${email}" style="color: #3b82f6; text-decoration: underline;">${email}</a>
+                      </p>
+                      <p style="margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
+                        <span style="color: #6b7280;">Senha:</span> <strong>${genPassword}</strong>
+                      </p>
+                    </div>
+                    
+                    <p style="color: #4a4a4a; font-size: 15px; margin-bottom: 32px;">Altere a senha após o primeiro acesso.</p>
+                    
+                    <!-- Button -->
+                    <div style="text-align: center;">
+                      <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
+                        Acessar o Painel
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <div style="padding: 30px;">
-                  <h2>Olá${name ? ' ' + name : ''},</h2>
-                  <p>Você acaba de ser adicionado à equipe da igreja <strong>${wsData?.name || ''}</strong> no Lago HUB como <strong>${roleLabel[role] || role}</strong>.</p>
-                  <p>Abaixo estão suas credenciais para o primeiro acesso:</p>
-                  <div style="background-color: #222; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 16px;">
-                    E-mail: ${email}<br/>
-                    Senha: ${genPassword}
-                  </div>
-                  <p>Por favor, guarde esta senha ou altere-a ao entrar no painel.</p>
-                  <div style="text-align: center; margin-top: 30px;">
-                    <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #000; padding: 14px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Acessar o Painel</a>
-                  </div>
+                
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 24px;">
+                  <p style="color: #666666; font-size: 12px;">Esta é uma mensagem automática. Por favor, não responda.</p>
                 </div>
               </div>
             `
@@ -210,13 +235,48 @@ serve(async (req) => {
             to: email,
             subject: `Redefinição de Acesso - Lago HUB`,
             html: `
-              <div style="font-family: Arial, sans-serif; background-color: #0a0a0a; color: #fff; padding: 20px;">
-                <h2 style="color: #FFD700;">Nova Senha Temporária</h2>
-                <p>O administrador solicitou o reenvio do seu acesso.</p>
-                <div style="background-color: #222; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 16px;">
-                  Nova Senha: ${genPassword}
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
+                  <!-- Header -->
+                  <div style="background-color: #FFD700; padding: 32px 20px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; text-shadow: 0px 1px 2px rgba(0,0,0,0.1);">Nova Senha</h1>
+                  </div>
+                  
+                  <!-- Body -->
+                  <div style="padding: 40px 30px;">
+                    <h2 style="color: #1a1a1a; margin-top: 0; margin-bottom: 24px; font-size: 22px; font-weight: 700;">Acesso redefinido,</h2>
+                    
+                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+                      O administrador solicitou o reenvio do seu acesso para a equipe de <strong>${wsData?.name || ''}</strong>.
+                    </p>
+                    
+                    <p style="color: #4a4a4a; font-size: 16px; margin-bottom: 16px;">Suas novas credenciais:</p>
+                    
+                    <!-- Credentials Box -->
+                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                      <p style="margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
+                        <span style="color: #6b7280;">E-mail:</span> <a href="mailto:${email}" style="color: #3b82f6; text-decoration: underline;">${email}</a>
+                      </p>
+                      <p style="margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
+                        <span style="color: #6b7280;">Nova Senha:</span> <strong>${genPassword}</strong>
+                      </p>
+                    </div>
+                    
+                    <p style="color: #4a4a4a; font-size: 15px; margin-bottom: 32px;">Altere esta senha temporária ao entrar.</p>
+                    
+                    <!-- Button -->
+                    <div style="text-align: center;">
+                      <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
+                        Acessar o Painel Agora
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <a href="https://hub.7pro.tech/${wsData?.slug}/dashboard.html" style="color: #FFD700;">Acessar o Painel Agora</a>
+                
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 24px;">
+                  <p style="color: #666666; font-size: 12px;">Esta é uma mensagem automática. Por favor, não responda.</p>
+                </div>
               </div>
             `
           })
