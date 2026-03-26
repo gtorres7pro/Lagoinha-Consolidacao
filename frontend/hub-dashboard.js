@@ -1637,6 +1637,7 @@
                                 
                                 if (timeRangeDays === '7') matchTime = diffDays <= 7;
                                 else if (timeRangeDays === '30') matchTime = diffDays <= 30;
+                                else if (timeRangeDays === '90') matchTime = diffDays <= 90;
                                 else if (timeRangeDays === 'this_month') {
                                     matchTime = leadDate.getMonth() === now.getMonth() && leadDate.getFullYear() === now.getFullYear();
                                 }
