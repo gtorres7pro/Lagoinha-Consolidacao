@@ -27,11 +27,11 @@
             // Populate user info in sidebar — load name from public.users table
             const user = session.user;
             const userId = user.id;
-            // Fetch name from public.users
+            // Fetch profile + modules from public.users
             (async () => {
                 const { data: uRow } = await window.supabaseClient
                     .from('users')
-                    .select('name, phone, role')
+                    .select('name, phone, role, modules, id')
                     .eq('id', userId)
                     .maybeSingle();
 
@@ -50,8 +50,14 @@
                     roleEl.textContent = roleMap[uRow?.role] || uRow?.role || 'Admin';
                 }
 
-                // Store for profile modal pre-fill
-                window._profileCache = { name, phone: uRow?.phone || '', email: user.email, initial };
+                // Store globally for re-use (team management, profile modal, etc.)
+                window.cachedProfile = { id: userId, name, phone: uRow?.phone || '', email: user.email, initial, role: uRow?.role, modules: uRow?.modules };
+                window._profileCache = window.cachedProfile;
+
+                // ── Apply module-based nav visibility ────────────────────
+                if (uRow?.role !== 'master_admin') {
+                    applyModuleAccess(uRow?.modules || []);
+                }
 
                 // ── Personalized Home Greeting ──────────────────────────
                 const firstName = name.split(' ')[0];
@@ -61,7 +67,33 @@
                 // ── Daily Bible Verse (rotates at 7am each day) ──────────
                 loadDailyVerse();
             })();
+
         })();
+
+        // ── Module Access Control — hide/show nav items ───────────────────
+        function applyModuleAccess(modules) {
+            // Map: module key -> nav element IDs to hide if not in modules
+            const moduleNavMap = {
+                'consolidados':   ['nav-dashboard'],
+                'visitantes':     ['nav-visitors'],
+                'ia_chat':        ['nav-messages'],
+                'relatorios':     ['nav-relatorios'],
+                'aniversariantes':['nav-birthdays'],
+                'crie':           ['nav-crie-toggle'],
+                'logs':           ['nav-logs'],
+                'configuracoes':  ['nav-settings-toggle'],
+            };
+
+            Object.entries(moduleNavMap).forEach(([mod, navIds]) => {
+                if (!modules.includes(mod)) {
+                    navIds.forEach(navId => {
+                        const el = document.getElementById(navId);
+                        if (el) el.style.display = 'none';
+                    });
+                }
+            });
+        }
+        window.applyModuleAccess = applyModuleAccess;
 
         // ─── DAILY VERSE SYSTEM ──────────────────────────────────────────
         function loadDailyVerse() {
@@ -2133,7 +2165,7 @@
 
             const { data: users, error } = await sb
                 .from('users')
-                .select('id, name, email, role, phone, status')
+                .select('id, name, email, role, phone, status, modules')
                 .eq('workspace_id', wsId)
                 .order('role');
 
@@ -2201,6 +2233,32 @@
         masterOpts.forEach(el => el.style.display = (myRank >= 3) ? 'block' : 'none');
     }
 
+    // Definição central dos módulos disponíveis
+    const AVAILABLE_MODULES = [
+        { key: 'consolidados',    label: 'Consolidados',    icon: '👥' },
+        { key: 'visitantes',      label: 'Visitantes',      icon: '🚶' },
+        { key: 'crie',            label: 'CRIE',            icon: '✨' },
+        { key: 'logs',            label: 'Logs / Auditoria',icon: '📋' },
+        { key: 'ia_chat',         label: 'IA Chat',         icon: '🤖' },
+        { key: 'relatorios',      label: 'Relatórios',      icon: '📊' },
+        { key: 'aniversariantes', label: 'Aniversariantes', icon: '🎂' },
+        { key: 'configuracoes',   label: 'Configurações',   icon: '⚙️' },
+    ];
+
+    function renderModuleCheckboxes(selectedModules) {
+        const container = document.getElementById('modules-checkboxes');
+        if (!container) return;
+        container.innerHTML = AVAILABLE_MODULES.map(m => `
+            <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(255,255,255,.1); border-radius:10px; cursor:pointer; transition:background .15s; font-size:.82rem;"
+                   onmouseover="this.style.background='rgba(255,215,0,.06)'" onmouseout="this.style.background='transparent'">
+                <input type="checkbox" name="user-module" value="${m.key}" 
+                       ${(selectedModules || []).includes(m.key) ? 'checked' : ''}
+                       style="accent-color: var(--accent); width:16px; height:16px; cursor:pointer;">
+                <span>${m.icon} ${m.label}</span>
+            </label>
+        `).join('');
+    }
+
     window.openUserModal = function() {
         document.getElementById('user-id-hidden').value = '';
         document.getElementById('user-name').value = '';
@@ -2211,7 +2269,10 @@
         
         document.getElementById('user-modal-title').textContent = 'Adicionar Novo Membro';
         document.getElementById('user-modal-subtitle').style.display = 'block';
-        document.getElementById('user-status-group').style.display = 'none'; // only edit status 
+        document.getElementById('user-status-group').style.display = 'none';
+
+        // Default modules for new user
+        renderModuleCheckboxes(['consolidados', 'visitantes', 'logs']);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
@@ -2230,8 +2291,18 @@
         document.getElementById('user-status').value = u.status || 'Ativo';
         
         document.getElementById('user-status-group').style.display = 'block';
+
+        // Render modules with the user's existing selection
+        renderModuleCheckboxes(u.modules || []);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
+    };
+
+    window.onUserRoleChange = function(role) {
+        // If master_admin, auto-select all modules
+        if (role === 'master_admin') {
+            renderModuleCheckboxes(AVAILABLE_MODULES.map(m => m.key));
+        }
     };
 
     window.closeUserModal = function() {
@@ -2246,7 +2317,10 @@
         const role = document.getElementById('user-role').value;
         const status = document.getElementById('user-status').value;
         
-        // telefone não obrigatório (pode ser preenchido depois)
+        // Collect selected modules from checkboxes
+        const modules = [...document.querySelectorAll('input[name="user-module"]:checked')].map(cb => cb.value);
+        
+        // telefone não obrigatório
         if (!name || !email) return alert('Por favor, preencha Nome e E-mail.');
         
         // Workspace resolution: prefer currentWorkspaceId, fallback to HubRouter
@@ -2269,7 +2343,7 @@
             const payload = {
                 action: id ? 'update' : 'create',
                 id: id || undefined,
-                email, name, phone: phone || null, role, status,
+                email, name, phone: phone || null, role, status, modules,
                 workspace_id: wsId
             };
 
