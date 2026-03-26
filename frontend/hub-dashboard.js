@@ -2344,50 +2344,61 @@
         if (!container) return;
         const sel = selectedModules || [];
 
-        container.innerHTML = AVAILABLE_MODULES.map(m => {
+        // Set grid layout on container
+        container.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:7px;';
+
+        const items = AVAILABLE_MODULES.map(m => {
             const active = sel.includes(m.key);
-            // Check if any submodule is selected (drives CRIE parent state)
             const hasSubActive = m.submodules && m.submodules.some(s => sel.includes(s.key));
             const parentActive = active || hasSubActive;
+            const isCrie = !!m.submodules;
 
             let subHtml = '';
-            if (m.submodules) {
-                subHtml = `<div class="mod-sub-wrap" id="sub-${m.key}" style="display:${parentActive ? 'flex' : 'none'};flex-wrap:wrap;gap:6px;padding:8px 10px 4px 10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-top:6px;">
+            if (isCrie) {
+                subHtml = `<div class="mod-sub-wrap" id="sub-${m.key}" 
+                    style="display:${parentActive ? 'grid' : 'none'};grid-template-columns:1fr 1fr 1fr;gap:5px;
+                           padding:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+                           border-radius:10px;margin-top:6px;">
                     ${m.submodules.map(s => {
                         const sActive = sel.includes(s.key);
                         return `<button type="button" data-module="${s.key}" onclick="window.toggleModulePill(this)"
                             data-active="${sActive ? '1' : '0'}"
-                            style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:.76rem;font-weight:600;
+                            style="display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 8px;
+                                   border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:600;text-align:center;
                                    border:1.5px solid ${sActive ? 'var(--accent)' : 'rgba(255,255,255,.1)'};
                                    background:${sActive ? 'rgba(255,215,0,.12)' : 'rgba(255,255,255,.02)'};
                                    color:${sActive ? 'var(--accent)' : 'rgba(255,255,255,.45)'};
                                    box-shadow:${sActive ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
-                            ${s.label}
-                            ${sActive ? '<span class="mod-badge" style="font-size:.55rem;background:rgba(255,215,0,.2);color:var(--accent);padding:1px 5px;border-radius:5px;">✓</span>' : ''}
+                            ${s.label}${sActive ? ' ✓' : ''}
                         </button>`;
                     }).join('')}
                 </div>`;
             }
 
-            return `<div style="width:100%;">
+            // CRIE spans both columns; its subpanel also spans both
+            const spanStyle = isCrie ? 'grid-column:1/-1;' : '';
+
+            return `<div style="${spanStyle}">
                 <button type="button"
                     data-module="${m.key}"
-                    data-has-sub="${m.submodules ? '1' : '0'}"
+                    data-has-sub="${isCrie ? '1' : '0'}"
                     data-active="${parentActive ? '1' : '0'}"
                     onclick="window.onModulePillClick(this)"
-                    style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;cursor:pointer;font-size:.82rem;font-weight:600;width:100%;
+                    style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:11px;
+                           cursor:pointer;font-size:.8rem;font-weight:600;width:100%;
                            border:1.5px solid ${parentActive ? 'var(--accent)' : 'rgba(255,255,255,.12)'};
                            background:${parentActive ? 'rgba(255,215,0,.14)' : 'rgba(255,255,255,.03)'};
                            color:${parentActive ? 'var(--accent)' : 'rgba(255,255,255,.55)'};
                            box-shadow:${parentActive ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.svg}</svg>
-                    ${m.label}
-                    ${m.submodules ? '<span style="font-size:.7rem;color:rgba(255,255,255,.3);margin-left:4px;">▼</span>' : ''}
-                    ${parentActive ? '<span class="mod-badge" style="margin-left:auto;font-size:.6rem;background:rgba(255,215,0,.2);color:var(--accent);padding:1px 6px;border-radius:6px;">✓</span>' : ''}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">${m.svg}</svg>
+                    <span style="flex:1;text-align:left;">${m.label}</span>
+                    ${isCrie ? '<span style="font-size:.65rem;color:rgba(255,255,255,.3);">▼</span>' : ''}
+                    ${parentActive ? '<span class="mod-badge" style="font-size:.58rem;background:rgba(255,215,0,.2);color:var(--accent);padding:1px 5px;border-radius:5px;flex-shrink:0;">✓</span>' : ''}
                 </button>
                 ${subHtml}
             </div>`;
-        }).join('');
+        });
+        container.innerHTML = items.join('');
     }
 
     window.onModulePillClick = function(btn) {

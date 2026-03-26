@@ -1321,15 +1321,14 @@
                 </div>
             </div>
 
+
             <!-- ── Add/Edit Member Modal ────────────────────────────────── -->
-            <div id="user-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); z-index:9100; align-items:center; justify-content:center;">
-                <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:22px; padding:34px; width:100%; max-width:500px; box-shadow:0 24px 80px rgba(0,0,0,.5);">
-                    <h2 id="user-modal-title" style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Adicionar Novo Membro</h2>
-                    <p id="user-modal-subtitle" style="font-size:.82rem; color:var(--text-dim); margin-bottom:24px;">Um e-mail de acesso será enviado automaticamente.</p>
-
+            <div id="user-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); z-index:9100; align-items:flex-start; justify-content:center; padding:24px; overflow-y:auto;">
+                <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:22px; padding:28px; width:100%; max-width:520px; box-shadow:0 24px 80px rgba(0,0,0,.5); margin:auto; position:relative;">
+                    <h2 id="user-modal-title" style="font-size:1.05rem; font-weight:700; margin-bottom:4px;">Adicionar Novo Membro</h2>
+                    <p id="user-modal-subtitle" style="font-size:.8rem; color:var(--text-dim); margin-bottom:20px;">Um e-mail de acesso será enviado automaticamente.</p>
                     <input type="hidden" id="user-id-hidden">
-
-                    <div style="display:flex; flex-direction:column; gap:16px;">
+                    <div style="display:flex; flex-direction:column; gap:14px;">
                         <div>
                             <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Nome completo *</label>
                             <input id="user-name" type="text" class="hub-input" placeholder="Ex: Juliana Veloso">
