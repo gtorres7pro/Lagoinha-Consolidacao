@@ -1345,9 +1345,11 @@
                         <div>
                             <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Papel na equipe *</label>
                             <select id="user-role" class="hub-input" onchange="window.onUserRoleChange(this.value)">
+                                <option value="pastor_senior" class="master-only" style="display:none;">Pastor Sênior</option>
+                                <option value="admin">Admin</option>
+                                <option value="pastor">Pastor</option>
+                                <option value="lider_ministerio">Líder de Ministério</option>
                                 <option value="user">Voluntário</option>
-                                <option value="church_admin">Admin da Igreja / Liderança</option>
-                                <option value="master_admin" class="master-only" style="display:none;">Master Admin (Acesso Global)</option>
                             </select>
                         </div>
 

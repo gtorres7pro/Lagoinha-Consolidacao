@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Roles with full access (no restrictions)
+const ADMIN_ROLES = ['master_admin', 'pastor_senior', 'church_admin', 'admin']
+// Roles that cannot be assigned by non-master callers
+const PROTECTED_ROLES = ['master_admin', 'pastor_senior']
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -28,7 +33,7 @@ serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    if (!callerProfile || !['master_admin', 'church_admin'].includes(callerProfile.role)) {
+    if (!callerProfile || !ADMIN_ROLES.includes(callerProfile.role)) {
       throw new Error('Permissões insuficientes')
     }
 
@@ -39,15 +44,17 @@ serve(async (req) => {
     )
 
     const payload = await req.json()
-    const { action, id, email, name, phone, role, workspace_id, password } = payload
+    const { action, id, email, name, phone, role, workspace_id, password, status, modules } = payload
 
-    // Prevent church_admin from managing users outside their workspace
-    if (callerProfile.role === 'church_admin') {
+    const callerIsMaster = ['master_admin', 'pastor_senior'].includes(callerProfile.role)
+
+    // Prevent non-master admins from managing users outside their workspace
+    if (!callerIsMaster) {
       if (workspace_id && workspace_id !== callerProfile.workspace_id) {
         throw new Error('Você só pode gerenciar usuários do seu próprio Workspace.')
       }
-      if (['master_admin'].includes(role)) {
-        throw new Error('Você não pode criar Master Admins.')
+      if (role && PROTECTED_ROLES.includes(role)) {
+        throw new Error('Você não pode criar usuários com este papel.')
       }
     }
 
@@ -70,12 +77,26 @@ serve(async (req) => {
       })
       if (createErr) throw createErr;
 
-      // Send Custom Invitaton Email if RESEND_API_KEY is available
+      // Insert into public.users (trigger may also do this, but we need modules)
+      await supabaseAdmin.from('users').upsert({
+        id: newUser.user!.id,
+        email,
+        name: name || '',
+        phone: phone || null,
+        role,
+        workspace_id,
+        status: 'Ativo',
+        modules: modules || null,
+      }, { onConflict: 'id' })
+
+      // Send Invitation Email if RESEND_API_KEY is available
       const resendKey = Deno.env.get('RESEND_API_KEY');
       if (resendKey) {
-        // Fetch workspace name
         const { data: wsData } = await supabaseAdmin.from('workspaces').select('name, slug').eq('id', workspace_id).single()
-        
+        const roleLabel: Record<string,string> = {
+          pastor_senior: 'Pastor Sênior', admin: 'Admin', pastor: 'Pastor',
+          lider_ministerio: 'Líder de Ministério', user: 'Voluntário'
+        }
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -90,7 +111,7 @@ serve(async (req) => {
                 </div>
                 <div style="padding: 30px;">
                   <h2>Olá${name ? ' ' + name : ''},</h2>
-                  <p>Você acaba de ser adicionado à equipe da igreja <strong>${wsData?.name || ''}</strong> no Lago HUB.</p>
+                  <p>Você acaba de ser adicionado à equipe da igreja <strong>${wsData?.name || ''}</strong> no Lago HUB como <strong>${roleLabel[role] || role}</strong>.</p>
                   <p>Abaixo estão suas credenciais para o primeiro acesso:</p>
                   <div style="background-color: #222; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 16px;">
                     E-mail: ${email}<br/>
@@ -98,7 +119,7 @@ serve(async (req) => {
                   </div>
                   <p>Por favor, guarde esta senha ou altere-a ao entrar no painel.</p>
                   <div style="text-align: center; margin-top: 30px;">
-                    <a href="https://app.consolidacao.7pro.tech/${wsData?.slug || ''}/login.html" style="background-color: #FFD700; color: #000; padding: 14px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Acessar o Painel</a>
+                    <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #000; padding: 14px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Acessar o Painel</a>
                   </div>
                 </div>
               </div>
@@ -112,26 +133,33 @@ serve(async (req) => {
 
     if (action === 'update') {
       if (!id) throw new Error('Falta o ID do usuário')
-      const targetUser = await supabaseAdmin.from('users').select('workspace_id, role').eq('id', id).single()
+      const { data: targetUser } = await supabaseAdmin.from('users').select('workspace_id, role').eq('id', id).single()
 
-      if (callerProfile.role === 'church_admin') {
-        if (targetUser.data?.workspace_id !== callerProfile.workspace_id) throw new Error('Acesso negado')
-        if (targetUser.data?.role === 'master_admin' || role === 'master_admin') throw new Error('Bloqueado master')
+      if (!callerIsMaster) {
+        if (targetUser?.workspace_id !== callerProfile.workspace_id) throw new Error('Acesso negado')
+        if (PROTECTED_ROLES.includes(targetUser?.role) || (role && PROTECTED_ROLES.includes(role))) {
+          throw new Error('Bloqueado: papel protegido')
+        }
       }
 
-      // Update auth
+      // Update auth email/password
       const updatePayload: any = {}
       if (email) updatePayload.email = email
       if (password) updatePayload.password = password
-      const { error: authUpdErr } = await supabaseAdmin.auth.admin.updateUserById(id, updatePayload)
-      if (authUpdErr) throw authUpdErr;
+      if (Object.keys(updatePayload).length) {
+        const { error: authUpdErr } = await supabaseAdmin.auth.admin.updateUserById(id, updatePayload)
+        if (authUpdErr) throw authUpdErr;
+      }
 
-      // Update public row (if name, phone, role changed)
-      const { error: pubUpdErr } = await supabaseAdmin.from('users').update({
-        role: role || targetUser.data?.role,
-        name: name,
-        phone: phone
-      }).eq('id', id)
+      // Update public row
+      const publicUpdate: any = {}
+      if (name !== undefined) publicUpdate.name = name
+      if (phone !== undefined) publicUpdate.phone = phone || null
+      if (role) publicUpdate.role = role
+      if (status) publicUpdate.status = status
+      if (modules !== undefined) publicUpdate.modules = modules
+
+      const { error: pubUpdErr } = await supabaseAdmin.from('users').update(publicUpdate).eq('id', id)
       if (pubUpdErr) throw pubUpdErr;
 
       return new Response(JSON.stringify({ message: 'User updated successfully' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -139,13 +167,12 @@ serve(async (req) => {
 
     if (action === 'delete') {
       if (!id) throw new Error('ID missing')
-      const targetUser = await supabaseAdmin.from('users').select('workspace_id, role').eq('id', id).single()
-      if (callerProfile.role === 'church_admin') {
-        if (targetUser.data?.workspace_id !== callerProfile.workspace_id || targetUser.data?.role === 'master_admin') {
+      const { data: targetUser } = await supabaseAdmin.from('users').select('workspace_id, role').eq('id', id).single()
+      if (!callerIsMaster) {
+        if (targetUser?.workspace_id !== callerProfile.workspace_id || PROTECTED_ROLES.includes(targetUser?.role)) {
           throw new Error('Acesso negado para excluir')
         }
       }
-
       await supabaseAdmin.from('users').delete().eq('id', id)
       const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(id)
       if (delErr) throw delErr;
@@ -154,7 +181,6 @@ serve(async (req) => {
     }
 
     if (action === 'resend_invite') {
-      // Just resets the password to a temp and re-emails it
       if (!id || !email) throw new Error('ID or Email missing')
       const genPassword = Math.random().toString(36).slice(-8) + 'A1!'
       await supabaseAdmin.auth.admin.updateUserById(id, { password: genPassword })
@@ -176,13 +202,13 @@ serve(async (req) => {
                 <div style="background-color: #222; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 16px;">
                   Nova Senha: ${genPassword}
                 </div>
-                <a href="https://app.consolidacao.7pro.tech/${wsData?.slug}/login.html" style="color: #FFD700;">Acessar o Painel Agora</a>
+                <a href="https://hub.7pro.tech/${wsData?.slug}/dashboard.html" style="color: #FFD700;">Acessar o Painel Agora</a>
               </div>
             `
           })
         })
       }
-      return new Response(JSON.stringify({ message: 'Invite resent with new temp password', tempPassword: genPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ message: 'Invite resent', tempPassword: genPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     throw new Error('Invalid action')
