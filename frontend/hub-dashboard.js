@@ -4362,7 +4362,7 @@ async function loadCheckinList() {
     const sb = window.supabaseClient;
     const { data } = await sb
         .from('crie_attendees')
-        .select('id, name, email, phone, presence_status, is_member')
+        .select('id, name, email, phone, presence_status, payment_status, is_member')
         .eq('event_id', eventId)
         .order('name');
     crieCheckinData = data || [];
@@ -4380,6 +4380,46 @@ function filterCheckin() {
     renderCheckinList(filtered);
 }
 
+// ── Payment helpers ──────────────────────────────────────────
+const PAYMENT_CYCLE = ['Pendente', 'Pago', 'Gratuito'];
+
+function _checkinPayBadge(status) {
+    if (status === 'Pago')     return '<span style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">PAGO</span>';
+    if (status === 'Gratuito') return '<span style="background:rgba(110,231,183,.1);color:#6ee7b7;border:1px solid rgba(110,231,183,.2);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">GRATUITO</span>';
+    return '<span style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">PENDENTE</span>';
+}
+
+function _checkinCard(a, presente) {
+    const phoneClean = (a.phone || '').replace(/\D/g, '');
+    const waBtn = phoneClean
+        ? `<a href="https://wa.me/${phoneClean}" target="_blank" onclick="event.stopPropagation()" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(37,211,102,.12);border-radius:50%;color:#25d366;text-decoration:none;flex-shrink:0;" onmouseover="this.style.background='rgba(37,211,102,.28)'" onmouseout="this.style.background='rgba(37,211,102,.12)'"><svg viewBox='0 0 24 24' width='13' height='13' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>`
+        : '';
+    const bg     = presente ? 'rgba(74,222,128,.06)' : 'rgba(255,255,255,.03)';
+    const border = presente ? 'rgba(74,222,128,.2)'  : 'rgba(255,255,255,.07)';
+    return `
+    <div onclick="toggleCheckinPresence('${a.id}')" style="display:flex;align-items:center;gap:14px;background:${bg};border:1px solid ${border};border-radius:16px;padding:14px 18px;cursor:pointer;transition:all .2s;user-select:none;">
+        <div style="width:38px;height:38px;border-radius:50%;background:${presente?'rgba(74,222,128,.15)':'rgba(255,255,255,.05)'};border:2px solid ${presente?'rgba(74,222,128,.5)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;transition:all .2s;">
+            ${presente ? '&#10003;' : ''}
+        </div>
+        <div style="flex:1;min-width:0;overflow:hidden;">
+            <div style="font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                ${a.name}
+                ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.6rem;flex-shrink:0;box-shadow:0 0 5px rgba(245,158,11,.2);">&#9733;</span>' : ''}
+            </div>
+            <div style="font-size:.74rem;color:rgba(255,255,255,.38);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span>${a.email || '&mdash;'}</span>
+                <span style="opacity:.4;">&middot;</span>
+                <span>${a.phone || '&mdash;'}</span>
+                ${waBtn}
+            </div>
+        </div>
+        <div onclick="event.stopPropagation(); cycleCheckinPayment('${a.id}','${a.payment_status || 'Pendente'}')" title="Clique para alterar pagamento" style="flex-shrink:0;">
+            ${_checkinPayBadge(a.payment_status)}
+        </div>
+        <div style="font-size:.75rem;font-weight:700;color:${presente?'#4ade80':'rgba(255,255,255,.2)'};min-width:90px;text-align:right;flex-shrink:0;">${presente ? 'PRESENTE' : 'CONFIRMAR'}</div>
+    </div>`;
+}
+
 function renderCheckinList(list) {
     const container = document.getElementById('checkin-list');
     if (!container) return;
@@ -4387,23 +4427,24 @@ function renderCheckinList(list) {
         container.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">Nenhum inscrito encontrado.</div>';
         return;
     }
-    container.innerHTML = list.map(a => {
-        const isPresente = a.presence_status === 'Presente';
-        return `
-        <div onclick="toggleCheckinPresence('${a.id}')" style="display:flex; align-items:center; gap:16px; background:${isPresente?'rgba(74,222,128,.07)':'rgba(255,255,255,.03)'}; border:1px solid ${isPresente?'rgba(74,222,128,.25)':'rgba(255,255,255,.07)'}; border-radius:16px; padding:16px 20px; cursor:pointer; transition:all .2s; user-select:none;">
-            <div style="width:40px; height:40px; border-radius:50%; background:${isPresente?'rgba(74,222,128,.15)':'rgba(255,255,255,.06)'}; border:2px solid ${isPresente?'rgba(74,222,128,.5)':'rgba(255,255,255,.1)'}; display:flex; align-items:center; justify-content:center; font-size:1.1rem; transition:all .2s; flex-shrink:0;">
-                ${isPresente ? '✓' : ''}
-            </div>
-            <div style="flex:1; min-width:0;">
-                <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
-                    ${a.name}
-                    ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.65rem;flex-shrink:0;box-shadow:0 0 6px rgba(245,158,11,.2);">★</span>' : ''}
-                </div>
-                <div style="font-size:.75rem; color:rgba(255,255,255,.4);">${a.email} · ${a.phone}</div>
-            </div>
-            <div style="font-size:.8rem; font-weight:700; color:${isPresente?'#4ade80':'rgba(255,255,255,.25)'};">${isPresente?'PRESENTE':'TAP PARA CONFIRMAR'}</div>
-        </div>`;
-    }).join('');
+    const pending = [...list].filter(a => a.presence_status !== 'Presente').sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const present = [...list].filter(a => a.presence_status === 'Presente').sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+
+    let html = '';
+    if (pending.length) {
+        html += `<div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px;padding:0 2px;">A confirmar &middot; ${pending.length}</div>`;
+        html += pending.map(a => _checkinCard(a, false)).join('');
+    }
+    if (present.length) {
+        html += `<div style="margin-top:${pending.length ? 24 : 0}px;">`;
+        html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">`;
+        html += `<div style="flex:1;height:1px;background:rgba(74,222,128,.15);"></div>`;
+        html += `<span style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4ade80;">&#10003; PRESENTES &middot; ${present.length}</span>`;
+        html += `<div style="flex:1;height:1px;background:rgba(74,222,128,.15);"></div></div>`;
+        html += present.map(a => _checkinCard(a, true)).join('');
+        html += '</div>';
+    }
+    container.innerHTML = html;
 }
 
 async function toggleCheckinPresence(id) {
@@ -4417,10 +4458,33 @@ async function toggleCheckinPresence(id) {
     updateCheckinCounter();
 }
 
+async function cycleCheckinPayment(id, currentStatus) {
+    const idx  = PAYMENT_CYCLE.indexOf(currentStatus);
+    const next = PAYMENT_CYCLE[(idx + 1) % PAYMENT_CYCLE.length];
+    const sb   = window.supabaseClient;
+    await sb.from('crie_attendees').update({ payment_status: next }).eq('id', id);
+    const attendee = crieCheckinData.find(a => a.id === id);
+    if (attendee) attendee.payment_status = next;
+    filterCheckin();
+    updateCheckinCounter();
+}
+
 function updateCheckinCounter() {
-    const count = crieCheckinData.filter(a => a.presence_status === 'Presente').length;
-    const el = document.getElementById('checkin-counter');
-    if (el) el.textContent = `${count} presente${count !== 1 ? 's' : ''}`;
+    const total     = crieCheckinData.length;
+    const presentes = crieCheckinData.filter(a => a.presence_status === 'Presente').length;
+    const pagos     = crieCheckinData.filter(a => a.payment_status === 'Pago').length;
+    const pendentes = crieCheckinData.filter(a => (a.payment_status || 'Pendente') === 'Pendente').length;
+    const gratuitos = crieCheckinData.filter(a => a.payment_status === 'Gratuito').length;
+
+    const elC  = document.getElementById('checkin-counter');
+    const elPg = document.getElementById('checkin-pagos');
+    const elPd = document.getElementById('checkin-pendentes');
+    const elGr = document.getElementById('checkin-gratuitos');
+
+    if (elC)  elC.textContent  = `${presentes} de ${total} presentes`;
+    if (elPg) elPg.textContent = `${pagos} pagos`;
+    if (elPd) elPd.textContent = `${pendentes} pendentes`;
+    if (elGr) elGr.textContent = `${gratuitos} gratuitos`;
 }
 
 // ═══════════════════════════════════════════════════════════
