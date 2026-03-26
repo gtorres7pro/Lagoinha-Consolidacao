@@ -58,6 +58,18 @@ serve(async (req) => {
       }
     }
 
+    if (action === 'list') {
+      // Use admin client to bypass RLS — master_admin needs to see any workspace
+      if (!workspace_id) throw new Error('workspace_id missing')
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email, role, phone, status, modules')
+        .eq('workspace_id', workspace_id)
+        .order('role')
+      if (error) throw error
+      return new Response(JSON.stringify({ users: data || [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     if (action === 'create') {
       if (!email || !role || !workspace_id) throw new Error('Dados faltando (email, role, workspace_id)')
       

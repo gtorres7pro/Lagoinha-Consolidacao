@@ -2202,19 +2202,21 @@
             }
             if (!wsId) throw new Error('Workspace não encontrado');
 
-            const { data: users, error } = await sb
-                .from('users')
-                .select('id, name, email, role, phone, status, modules')
-                .eq('workspace_id', wsId)
-                .order('role');
+            // Use edge function with service role (bypasses RLS) so master_admin can see any workspace
+            const { data: resp, error: fnErr } = await sb.functions.invoke('manage-users', {
+                body: { action: 'list', workspace_id: wsId }
+            });
 
-            if (error) throw error;
-            renderTeam(users || [], wsId);
+            if (fnErr) throw fnErr;
+            if (resp?.error) throw new Error(resp.error);
+
+            renderTeam(resp?.users || [], wsId);
         } catch (err) {
             console.error('[loadTeam] Erro:', err.message);
             if (table) table.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#f87171;">Erro ao carregar: ${err.message}</td></tr>`;
         }
     }
+
 
     function renderTeam(users, workspaceId) {
         window.currentTeamData = users; // cache
