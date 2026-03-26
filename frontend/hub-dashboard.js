@@ -2528,7 +2528,7 @@
         btn.disabled = true;
 
         try {
-            // Use Supabase SDK invoke() — auto-attaches auth token correctly
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
             const payload = {
                 action: id ? 'update' : 'create',
                 id: id || undefined,
@@ -2536,11 +2536,13 @@
                 workspace_id: wsId
             };
 
-            const { data: fnData, error: fnErr } = await window.supabaseClient.functions.invoke('manage-users', {
-                body: payload
+            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify(payload)
             });
+            const fnData = await res.json();
 
-            if (fnErr) throw new Error(fnErr.message || JSON.stringify(fnErr));
             if (fnData?.error) throw new Error(fnData.error);
             
             window.closeUserModal();
