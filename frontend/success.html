@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sucesso — Lagoinha HUB</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --bg-page: #050505;
+            --bg-card: rgba(22, 22, 22, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #F8F9FA;
+            --accent: #FFD700;
+            --font: 'Outfit', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+
+        body {
+            background: var(--bg-page);
+            color: var(--text);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Glow based on Yellow/Gold */
+        .ambient-glow {
+            position: fixed; width: 60vw; height: 60vw;
+            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 0; pointer-events: none;
+        }
+
+        .container {
+            background: var(--bg-card);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            width: 100%; max-width: 600px;
+            border-radius: 32px;
+            border: 1px solid var(--border);
+            padding: 48px 36px;
+            text-align: center;
+            position: relative; z-index: 1;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .icon-success {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.05));
+            border: 2px solid rgba(255,215,0,0.4);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 0 40px rgba(255,215,0,0.2);
+        }
+        .icon-success svg {
+            width: 40px; height: 40px;
+            stroke: var(--accent); fill: none; stroke-width: 2.5;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.04em; color: var(--accent); }
+        .subtitle { font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-bottom: 32px; font-weight: 400; line-height: 1.5; }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            margin-bottom: 32px;
+            background: #000;
+        }
+        .video-wrapper iframe {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+        }
+
+        .daily-word {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 28px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .daily-word::before {
+            content: '"';
+            position: absolute; top: -10px; left: 16px;
+            font-size: 6rem; font-weight: 900;
+            color: rgba(255,215,0,0.1);
+            font-family: serif;
+            line-height: 1;
+        }
+
+        .verse-text {
+            font-size: 1.15rem; font-weight: 500;
+            line-height: 1.6; color: #fff;
+            margin-bottom: 12px; position: relative; z-index: 1;
+        }
+        .verse-ref {
+            font-size: 0.9rem; font-weight: 800; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 0.05em;
+            margin-bottom: 16px; position: relative; z-index: 1;
+        }
+        .encouragement {
+            font-size: 0.95rem; color: rgba(255,255,255,0.65);
+            line-height: 1.5; position: relative; z-index: 1;
+        }
+        
+        .btn-home {
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); color: #fff;
+            text-decoration: none; font-weight: 600; font-size: 0.95rem;
+            padding: 14px 32px; border-radius: 100px;
+            margin-top: 32px; border: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn-home:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
+        @media (max-width: 500px) {
+            .container { padding: 36px 24px; }
+            h1 { font-size: 2rem; }
+            .verse-text { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <div class="container">
+        <div class="icon-success">
+            <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+
+        <h1>Recebemos os seus dados!</h1>
+        <p class="subtitle">Estamos muito felizes em celebrar este momento com você. Sua nova jornada começa hoje.</p>
+
+        <!-- Welcome Worship Video -->
+        <div class="video-wrapper">
+            <iframe src="https://www.youtube.com/embed/D-7phkmEGGg?autoplay=1&mute=0&controls=1&rel=0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        </div>
+
+        <!-- Dynamic Daily Word -->
+        <div class="daily-word">
+            <div class="verse-text" id="verseText">Carregando a palavra do seu dia...</div>
+            <div class="verse-ref" id="verseRef">---</div>
+            <div class="encouragement" id="encouragementText">---</div>
+        </div>
+
+        <a href="https://www.lagoinhaorlandochurch.com" class="btn-home">Ir para a Página Inicial</a>
+    </div>
+
+    <!-- Script to Generate Daily Verse (1-31 Days of the Month) -->
+    <script>
+        const words = [
+            // List of 31 daily encouragements (Baptist / Charismatic focus)
+            { verse: "Eu é que sei que pensamentos tenho a vosso respeito, diz o Senhor; pensamentos de paz e não de mal, para vos dar o fim que desejais.", ref: "Jeremias 29:11", msg: "Deus tem um plano perfeito e detalhado para a sua vida. Acredite nas promessas d'Ele, pois o melhor ainda está por vir!" },
+            { verse: "Portanto, se alguém está em Cristo, é nova criação. As coisas antigas já passaram; eis que surgiram coisas novas!", ref: "2 Coríntios 5:17", msg: "Hoje é um novo dia. O Seu passado não define o seu destino; em Jesus você tem uma página em branco e uma vida cheia de propósito." },
+            { verse: "Deixo-vos a paz, a minha paz vos dou; não vo-la dou como o mundo a dá. Não se turbe o vosso coração, nem se atemorize.", ref: "João 14:27", msg: "A paz que Jesus Cristo coloca dentro do seu coração é real e inabalável. Descanse nEle hoje." },
+            { verse: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13", msg: "Não importa os desafios que você enfrenta, o Espírito Santo vive em si e capacita-o para vencer qualquer obstáculo." },
+            { verse: "Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento.", ref: "Provérbios 3:5", msg: "Passamos a ver a vida de uma perspectiva superior quando deixamos de confiar apenas em nós e passamos a depender de Deus." },
+            { verse: "O Senhor é o meu pastor; de nada terei falta.", ref: "Salmos 23:1", msg: "A provisão e o cuidado vêm dEle. Seja a nível físico, emocional ou espiritual, Jesus suprirá todas as suas necessidades." },
+            { verse: "Sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus, daqueles que são chamados segundo o seu propósito.", ref: "Romanos 8:28", msg: "Deus vê o quadro completo. Até os momentos mais caóticos estão a ser usados para tecer o teu propósito de vida." },
+            { verse: "Mas os que esperam no Senhor, renovarão as suas forças.", ref: "Isaías 40:31", msg: "Se estiver cansado, tire um momento. A presença de Deus é o lugar onde você pode recarregar as suas baterias." },
+            { verse: "O choro pode durar uma noite, mas a alegria vem pela manhã.", ref: "Salmos 30:5", msg: "Nenhuma dor é definitiva para quem anda com Cristo. Uma nova temporada de alegria está para amanhecer." },
+            { verse: "Não fui eu que ordenei a você? Seja forte e corajoso! Não se apavore nem desanime, pois o Senhor, o seu Deus, estará com você por onde você andar.", ref: "Josué 1:9", msg: "Você nunca está sozinho. O Senhor caminha consigo nos vales e no topo das montanhas. Siga em frente!" },
+            { verse: "Buscai, pois, em primeiro lugar, o seu reino e a sua justiça, e todas estas coisas vos serão acrescentadas.", ref: "Mateus 6:33", msg: "Alinhe o seu coração com os propósitos de Cristo, e veja como Ele organizará tudo ao seu redor." },
+            { verse: "A alegria do Senhor é a vossa força.", ref: "Neemias 8:10", msg: "O Espírito Santo coloca uma esperança dentro de nós que a circunstância nenhuma pode retirar. Aproveite essa alegria hoje." },
+            { verse: "Lembrem-se: aquele que começou a boa obra em vocês, vai completá-la até o dia de Cristo Jesus.", ref: "Filipenses 1:6", msg: "Deus não deixa nada pela metade. A obra maravilhosa que Ele iniciou em ti será glorificada." },
+            { verse: "Entregue o seu caminho ao Senhor; confie nele, e ele agirá.", ref: "Salmos 37:5", msg: "Solte as rédeas e coloque os seus planos nas mãos do Pai. Ele surpreende sempre os que nEle confiam." },
+            { verse: "Eis que estou à porta e bato; se alguém ouvir a minha voz e abrir a porta, entrarei em sua casa e cearei com ele.", ref: "Apocalipse 3:20", msg: "A intimidade com Jesus é um convite diário. Abra seu coração, a comunhão com Ele transforma tudo." },
+            { verse: "Mas o fruto do Espírito é: amor, alegria, paz, paciência, amabilidade, bondade, fidelidade, mansidão e domínio próprio.", ref: "Gálatas 5:22", msg: "Permita que o Espírito transforme o seu interior; essas qualidades farão de si uma bênção por onde passar." },
+            { verse: "Ele cura os de coração quebrantado e cuida das suas feridas.", ref: "Salmos 147:3", msg: "Em Jesus, os corações despedaçados encontram um oleiro amoroso pronto para juntar cada peça." },
+            { verse: "Porque dele e por ele, e para ele, são todas as coisas.", ref: "Romanos 11:36", msg: "Quando entendemos que a nossa vida gira em torno da glória de Cristo, passamos a viver cheios de paz e libertos da pressão." },
+            { verse: "Clama a mim, e responder-te-ei, e anunciar-te-ei coisas grandes e ocultas, que não sabes.", ref: "Jeremias 33:3", msg: "Deus tem o desejo e o prazer de responder às orações do Seu povo. Fale com Ele hoje!" },
+            { verse: "Nisto consiste o amor: não em que nós tenhamos amado a Deus, mas em que ele nos amou.", ref: "1 João 4:10", msg: "Nada pode mudar o quanto Deus te ama. Esse amor é o alicerce absoluto de nossa fé." },
+            { verse: "Levanta-te, resplandece, porque vem a tua luz, e a glória do Senhor vai nascendo sobre ti.", ref: "Isaías 60:1", msg: "A luz de Cristo está sobre ti. És chamado a fazer a diferença, mostrando a glória do Senhor neste mundo." },
+            { verse: "Em paz me deito e logo adormeço, pois só tu, Senhor, me fazes viver em segurança.", ref: "Salmos 4:8", msg: "Até mesmo no descanso, ser protegido por Deus traz toda a paz de que a mente e a alma necessitam." },
+            { verse: "A tua palavra é lâmpada que ilumina os meus passos e luz que clareia o meu caminho.", ref: "Salmos 119:105", msg: "Sempre que precisar de direção, busque a palavra de Deus. Ela nunca falha em apontar para a verdade." },
+            { verse: "Como é bom e agradável quando os irmãos convivem em união!", ref: "Salmos 133:1", msg: "Você agora pertence a uma família espiritual. Em Cristo, a comunhão e o relacionamento fortalece a nossa fé." },
+            { verse: "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei.", ref: "Mateus 11:28", msg: "Sempre que os dias forem difíceis, lance o peso do seu fardo em Cristo. O jugo d'Ele é suave." },
+            { verse: "Se Deus é por nós, quem será contra nós?", ref: "Romanos 8:31", msg: "Com o Senhor do seu lado, as lutas podem até vir, mas você já está na posição do vencedor." },
+            { verse: "Mil poderão cair ao teu lado; dez mil, à tua direita, mas nada o atingirá.", ref: "Salmos 91:7", msg: "Deus guardará o seu dia e lhe concederá o livramento que necessita." },
+            { verse: "Deem graças em todas as circunstâncias, pois esta é a vontade de Deus para vocês em Cristo Jesus.", ref: "1 Tessalonicenses 5:18", msg: "O ser grato muda o nosso olhar sobre a vida, transformando problemas pequenos em oportunidades para louvar." },
+            { verse: "Deus é o nosso refúgio e a nossa fortaleza, auxílio sempre presente na adversidade.", ref: "Salmos 46:1", msg: "Nunca estará desamparado. Em qualquer problema momentâneo, Ele te escudará." },
+            { verse: "Ensina-nos a contar os nossos dias para que o nosso coração alcance sabedoria.", ref: "Salmos 90:12", msg: "Cada dia que vivemos com Deus é um presente valioso a ser cultivado com amor e atenção." },
+            { verse: "Ora, àquele que é poderoso para fazer infinitamente mais do que tudo quanto pedimos ou pensamos...", ref: "Efésios 3:20", msg: "Prepare-se! O que Deus preparou para si nesta nova temporada irá além dos seus melhores pensamentos!" }
+        ];
+
+        // Ensure 1 to 31 mapping
+        const dayOfMonth = new Date().getDate(); // Returns 1-31
+        const todaysWord = words[(dayOfMonth - 1) % words.length];
+
+        document.getElementById('verseText').innerText = todaysWord.verse;
+        document.getElementById('verseRef').innerText = todaysWord.ref;
+        document.getElementById('encouragementText').innerText = todaysWord.msg;
+    </script>
+</body>
+</html>
