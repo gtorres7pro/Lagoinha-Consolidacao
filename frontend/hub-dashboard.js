@@ -2116,23 +2116,32 @@
     // ====================================================================
 
     window.loadTeam = async function() {
+        const table = document.getElementById('team-tbody');
         try {
-            const table = document.getElementById('team-tbody');
             if (table) table.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Carregando membros...</td></tr>';
             
-            const ws = await window.HubRouter?.getWorkspace();
-            if (!ws) return;
+            const sb = window.supabaseClient;
+            if (!sb) throw new Error('Supabase client não disponível');
 
-            const { data: users, error } = await supabaseClient
+            // Get workspace from currentWorkspaceId (already resolved) or HubRouter
+            let wsId = window.currentWorkspaceId;
+            if (!wsId) {
+                const ws = await window.HubRouter?.getWorkspace();
+                wsId = ws?.id;
+            }
+            if (!wsId) throw new Error('Workspace não encontrado');
+
+            const { data: users, error } = await sb
                 .from('users')
                 .select('id, name, email, role, phone, status')
-                .eq('workspace_id', ws.id)
+                .eq('workspace_id', wsId)
                 .order('role');
 
             if (error) throw error;
-            renderTeam(users, ws.id);
+            renderTeam(users || [], wsId);
         } catch (err) {
-            console.error(err);
+            console.error('[loadTeam] Erro:', err.message);
+            if (table) table.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#f87171;">Erro ao carregar: ${err.message}</td></tr>`;
         }
     }
 
@@ -2156,7 +2165,10 @@
         const myRank = (window.cachedProfile?.role === 'master_admin') ? 3 : (window.cachedProfile?.role === 'church_admin') ? 2 : 1;
 
         users.forEach(u => {
-            const statusColor = (u.status === 'Ativo') ? '#4ade80' : '#f87171';
+            // Case-insensitive comparison for status
+            const statusNorm = (u.status || 'ativo').toLowerCase();
+            const statusColor = (statusNorm === 'ativo') ? '#4ade80' : '#f87171';
+            const statusLabel = (statusNorm === 'ativo') ? 'Ativo' : 'Inativo';
             const uRank = (u.role === 'master_admin') ? 3 : (u.role === 'church_admin') ? 2 : 1;
             
             let actions = '';
@@ -2177,7 +2189,7 @@
                     </td>
                     <td style="padding:14px 18px; color:#ccc; font-size:0.85rem;">${u.phone || '-'}</td>
                     <td style="padding:14px 18px;">${roleMap[u.role] || u.role}</td>
-                    <td style="padding:14px 18px; color:${statusColor}; font-weight:600; font-size:0.85rem;">${u.status || 'Ativo'}</td>
+                    <td style="padding:14px 18px; color:${statusColor}; font-weight:600; font-size:0.85rem;">${statusLabel}</td>
                     <td style="padding:14px 18px; text-align:right;">${actions}</td>
                 </tr>
             `;
@@ -2234,10 +2246,16 @@
         const role = document.getElementById('user-role').value;
         const status = document.getElementById('user-status').value;
         
-        if (!name || !email || !phone) return alert('Por favor, preencha todos os campos obrigatórios.');
+        // telefone não obrigatório (pode ser preenchido depois)
+        if (!name || !email) return alert('Por favor, preencha Nome e E-mail.');
         
-        const ws = await window.HubRouter?.getWorkspace();
-        if (!ws) return alert('Workspace não carregado.');
+        // Workspace resolution: prefer currentWorkspaceId, fallback to HubRouter
+        let wsId = window.currentWorkspaceId;
+        if (!wsId) {
+            const ws = await window.HubRouter?.getWorkspace();
+            wsId = ws?.id;
+        }
+        if (!wsId) return alert('Workspace não carregado. Tente recarregar a página.');
 
         const btn = document.getElementById('save-user-btn');
         const oldText = btn.textContent;
@@ -2245,12 +2263,14 @@
         btn.disabled = true;
 
         try {
-            const { data: session } = await supabaseClient.auth.getSession();
+            const { data: session } = await window.supabaseClient.auth.getSession();
             const token = session?.session?.access_token;
 
             const payload = {
                 action: id ? 'update' : 'create',
-                id, email, name, phone, role, status, workspace_id: ws.id
+                id: id || undefined,
+                email, name, phone: phone || null, role, status,
+                workspace_id: wsId
             };
 
             const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
@@ -2260,12 +2280,12 @@
             });
 
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Erro na API.');
+                const errData = await res.json();
+                throw new Error(errData.error || 'Erro na API.');
             }
             
-            closeUserModal();
-            loadTeam(); // refresh view
+            window.closeUserModal();
+            window.loadTeam(); // refresh view
         } catch (e) {
             alert('Erro: ' + e.message);
         } finally {
