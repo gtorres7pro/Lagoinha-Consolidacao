@@ -4106,8 +4106,16 @@ async function deleteCrieMembro(id) {
 // CRIE — EVENTOS
 // ═══════════════════════════════════════════════════════════
 async function loadCrieEventos() {
-    const wsId = getCrieWorkspaceId();
-    if (!wsId) return;
+    let wsId = getCrieWorkspaceId();
+    // Retry up to 6×500ms if workspace not yet resolved
+    if (!wsId) {
+        for (let i = 0; i < 6; i++) {
+            await new Promise(r => setTimeout(r, 500));
+            wsId = getCrieWorkspaceId();
+            if (wsId) break;
+        }
+    }
+    if (!wsId) { console.warn('loadCrieEventos: workspace still null after retries'); return; }
     const sb = window.supabaseClient;
     let data = [];
     try {
@@ -4135,6 +4143,7 @@ async function loadCrieEventos() {
     renderCrieEventos(crieEventos);
     populateCheckinEventos(crieEventos);
 }
+
 
 function _getPublicCrieUrl() {
     // Derive workspace slug from current URL path (/braga/dashboard.html → braga)
