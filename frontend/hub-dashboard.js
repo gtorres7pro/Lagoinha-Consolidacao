@@ -27,15 +27,22 @@
             // Populate user info in sidebar — load name from public.users table
             const user = session.user;
             const userId = user.id;
-            // Fetch profile + modules from public.users
+            // ── Safety: read role from JWT metadata first (no DB needed) ──
+            const jwtRole = user.user_metadata?.role || user.app_metadata?.role || null;
+
+            // Fetch full profile (name, phone, role, modules) from public.users
             (async () => {
-                const { data: uRow } = await window.supabaseClient
+                const { data: uRow, error: profileErr } = await window.supabaseClient
                     .from('users')
                     .select('name, phone, role, modules, id')
                     .eq('id', userId)
                     .maybeSingle();
 
-                const name = uRow?.name || user.user_metadata?.full_name || user.email || 'Usuário';
+                if (profileErr) console.warn('[profile] RLS or query error:', profileErr.message);
+
+                // Resolve role: prefer DB row, fallback to JWT metadata
+                const resolvedRole = uRow?.role || jwtRole || 'user';
+                const name = uRow?.name || user.user_metadata?.name || user.user_metadata?.full_name || user.email || 'Usuário';
                 const initial = name.substring(0, 1).toUpperCase();
 
                 const avatarEl = document.getElementById('user-avatar-initials');
@@ -46,17 +53,22 @@
 
                 const roleEl = document.getElementById('user-role-label');
                 if (roleEl) {
-                    const roleMap = { master_admin: 'Master Admin', church_admin: 'Admin', user: 'Líder' };
-                    roleEl.textContent = roleMap[uRow?.role] || uRow?.role || 'Admin';
+                    const roleMap = { master_admin: 'Master Admin', church_admin: 'Admin da Igreja', user: 'Líder' };
+                    roleEl.textContent = roleMap[resolvedRole] || resolvedRole || 'Líder';
                 }
 
-                // Store globally for re-use (team management, profile modal, etc.)
-                window.cachedProfile = { id: userId, name, phone: uRow?.phone || '', email: user.email, initial, role: uRow?.role, modules: uRow?.modules };
+                // Store globally for re-use
+                window.cachedProfile = { id: userId, name, phone: uRow?.phone || '', email: user.email, initial, role: resolvedRole, modules: uRow?.modules };
                 window._profileCache = window.cachedProfile;
 
                 // ── Apply module-based nav visibility ────────────────────
-                if (uRow?.role !== 'master_admin') {
-                    applyModuleAccess(uRow?.modules || []);
+                // CRITICAL: ONLY restrict if we are 100% sure the user is NOT master_admin
+                if (resolvedRole !== 'master_admin') {
+                    const userModules = uRow?.modules;
+                    // Only restrict if modules array is explicitly set; otherwise show all
+                    if (Array.isArray(userModules)) {
+                        applyModuleAccess(userModules);
+                    }
                 }
 
                 // ── Personalized Home Greeting ──────────────────────────
@@ -64,7 +76,7 @@
                 const greetingTitle = document.getElementById('home-greeting-title');
                 if (greetingTitle) greetingTitle.textContent = `Bem-vindo, ${firstName}!`;
 
-                // ── Daily Bible Verse (rotates at 7am each day) ──────────
+                // ── Daily Bible Verse ──────────────────────────────────
                 loadDailyVerse();
             })();
 
