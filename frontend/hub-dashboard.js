@@ -1486,10 +1486,10 @@
                     window._allVisit = allLeads.filter(l => (l.type || '').toLowerCase() === 'visitor');
                     const leads = allLeads;
 
-                    const mock_decisions = ["Aceitei Jesus", "Reconciliação", "Quero ser membro", "Mudei de Igreja"];
-                    const mock_cultos = ["Hope", "Fé", "Legacy", "Rocket", "Domingo Manhã", "Domingo Noite"];
-                    const mock_paises = ["Brasil", "EUA", "EUA", "EUA", "Portugal", "Reino Unido", "Japão"];
-                    const mock_gcs = ["Sim", "Quero Participar", "Não"];
+                    const mock_decisions = ["Aceitei Jesus pela primeira vez", "Eu voltei para Jesus, reconciliação", "Quero ser membro"];
+                    const mock_cultos = ["Domingo 1", "Domingo 2", "Domingo 3", "Hope", "Fé", "Legacy", "Rocket", "Shine", "Hero", "Outro"];
+                    const mock_paises = ["BR", "US", "PT", "CA"];
+                    const mock_gcs = ["Sim", "Quero participar", "Não"];
 
                     // Tag Mapping
                     const mappedByPhone = {};
