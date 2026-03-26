@@ -41,12 +41,12 @@ async function resolveWorkspace(slug) {
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data, error } = await sb
     .from('workspaces')
-    .select('id, name, slug, status, plan, settings, regional_id, global_id')
+    .select('id, name, slug, status, credentials, knowledge_base')
     .eq('slug', slug)
     .single();
 
   if (error || !data) {
-    console.warn(`[Router] Workspace not found for slug: "${slug}"`);
+    console.warn(`[Router] Workspace not found for slug: "${slug}"`, error);
     return null;
   }
 
@@ -54,6 +54,7 @@ async function resolveWorkspace(slug) {
   sessionStorage.setItem(`workspace:${slug}`, JSON.stringify(data));
   return data;
 }
+
 
 /**
  * Gets the current workspace context.
