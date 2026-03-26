@@ -1263,10 +1263,10 @@
 
                 if (error) throw error;
 
-                // 🔔 Fire & Forget: Notify webhook (n8n)
-                fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/form-webhook', {
+                // 🔔 Fire & Forget: Notify webhook (Make.com)
+                fetch('https://hook.us2.make.com/gqedp63gulp626c83rtztdm7yexk94dk', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ form_type: 'consolidacao', workspace_id: workspaceId, name: leadData.name, phone: leadData.phone, email: leadData.email })
                 }).catch(() => {});
 

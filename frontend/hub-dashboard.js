@@ -2563,11 +2563,14 @@
     window.deleteUser = async function(id) {
         if (!confirm('ATENÇÃO: Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.')) return;
         try {
-            const { data: fnDelData, error: fnDelErr } = await window.supabaseClient.functions.invoke('manage-users', {
-                body: { action: 'delete', id }
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'delete', id })
             });
-            if (fnDelErr) throw new Error(fnDelErr.message || JSON.stringify(fnDelErr));
-            if (fnDelData?.error) throw new Error(fnDelData.error);
+            const fnData = await res.json();
+            if (fnData?.error) throw new Error(fnData.error);
             loadTeam();
         } catch (e) {
             alert("Erro ao excluir: " + e.message);
@@ -2579,10 +2582,13 @@
     window.resendInvite = async function(id, email) {
         if (!confirm(`Deseja reenviar o convite para ${email}?\n\nIsso gerará uma nova senha temporária.`)) return;
         try {
-            const { data: fnData, error: fnErr } = await window.supabaseClient.functions.invoke('manage-users', {
-                body: { action: 'resend_invite', id, email }
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'resend_invite', id, email })
             });
-            if (fnErr) throw new Error(fnErr.message || JSON.stringify(fnErr));
+            const fnData = await res.json();
             if (fnData?.error) throw new Error(fnData.error);
             alert(`Convite reenviado! Nova senha provisória:\n${fnData.tempPassword}`);
         } catch (e) {
