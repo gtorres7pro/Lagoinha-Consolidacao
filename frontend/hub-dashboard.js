@@ -2289,13 +2289,14 @@
             'user':             '<span style="background:rgba(100,220,150,.15);color:#64dc96;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Voluntário</span>'
         };
 
-        const myRank = (window.cachedProfile?.role === 'master_admin') ? 3 : (window.cachedProfile?.role === 'church_admin') ? 2 : 1;
+        const RANK = { master_admin: 4, pastor_senior: 3, church_admin: 2, admin: 2, pastor: 1, lider_ministerio: 1, user: 0 };
+        const myRank = RANK[window.cachedProfile?.role] ?? 0;
         let html = '';
 
         users.forEach(u => {
             const statusNorm = (u.status || 'ativo').toLowerCase();
             const statusColor = statusNorm === 'ativo' ? '#4ade80' : '#f87171';
-            const uRank = (u.role === 'master_admin') ? 3 : (u.role === 'church_admin') ? 2 : 1;
+            const uRank = RANK[u.role] ?? 0;
 
             // Password status cell
             let pwdCell = '';
@@ -2344,7 +2345,7 @@
         });
         tbody.innerHTML = html;
         const masterOpts = document.querySelectorAll('.master-only');
-        masterOpts.forEach(el => el.style.display = (myRank >= 3) ? 'block' : 'none');
+        masterOpts.forEach(el => el.style.display = (myRank >= 4) ? 'block' : 'none');
     }
 
 
