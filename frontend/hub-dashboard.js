@@ -2356,15 +2356,17 @@
             let subHtml = '';
             if (isCrie) {
                 subHtml = `<div class="mod-sub-wrap" id="sub-${m.key}" 
-                    style="display:${parentActive ? 'grid' : 'none'};grid-template-columns:1fr 1fr 1fr;gap:5px;
+                    style="display:${parentActive ? 'flex' : 'none'};flex-wrap:wrap;gap:5px;
                            padding:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-                           border-radius:10px;margin-top:6px;">
+                           border-radius:10px;margin-top:6px;box-sizing:border-box;width:100%;">
                     ${m.submodules.map(s => {
                         const sActive = sel.includes(s.key);
                         return `<button type="button" data-module="${s.key}" onclick="window.toggleModulePill(this)"
                             data-active="${sActive ? '1' : '0'}"
-                            style="display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 8px;
-                                   border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:600;text-align:center;
+                            style="display:flex;align-items:center;gap:5px;padding:5px 10px;
+                                   border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:600;
+                                   flex:1;min-width:80px;max-width:calc(33% - 5px);
+                                   justify-content:center;
                                    border:1.5px solid ${sActive ? 'var(--accent)' : 'rgba(255,255,255,.1)'};
                                    background:${sActive ? 'rgba(255,215,0,.12)' : 'rgba(255,255,255,.02)'};
                                    color:${sActive ? 'var(--accent)' : 'rgba(255,255,255,.45)'};
@@ -2448,6 +2450,7 @@
         document.getElementById('user-role').value = 'user';
         document.getElementById('user-status').value = 'Ativo';
         
+        const errBox = document.getElementById('user-modal-error'); if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
         document.getElementById('user-modal-title').textContent = 'Adicionar Novo Membro';
         document.getElementById('user-modal-subtitle').style.display = 'block';
         document.getElementById('user-status-group').style.display = 'none';
@@ -2520,13 +2523,7 @@
         btn.disabled = true;
 
         try {
-            // Refresh session to ensure we have a valid token
-            const { data: refreshData } = await window.supabaseClient.auth.refreshSession();
-            const token = refreshData?.session?.access_token
-                       || (await window.supabaseClient.auth.getSession()).data?.session?.access_token;
-
-            if (!token) throw new Error('Sessão expirada. Por favor, faça login novamente.');
-
+            // Use Supabase SDK invoke() — auto-attaches auth token correctly
             const payload = {
                 action: id ? 'update' : 'create',
                 id: id || undefined,
@@ -2534,25 +2531,24 @@
                 workspace_id: wsId
             };
 
-            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token,
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI'
-                },
-                body: JSON.stringify(payload)
+            const { data: fnData, error: fnErr } = await window.supabaseClient.functions.invoke('manage-users', {
+                body: payload
             });
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({ error: res.statusText }));
-                throw new Error(errData.error || 'Erro na API: ' + res.status);
-            }
+            if (fnErr) throw new Error(fnErr.message || JSON.stringify(fnErr));
+            if (fnData?.error) throw new Error(fnData.error);
             
             window.closeUserModal();
             window.loadTeam(); // refresh view
         } catch (e) {
-            alert('Erro: ' + e.message);
+            // Show persistent inline error instead of alert
+            const errBox = document.getElementById('user-modal-error');
+            if (errBox) {
+                errBox.textContent = '⚠️ ' + e.message;
+                errBox.style.display = 'block';
+            } else {
+                alert('Erro: ' + e.message);
+            }
         } finally {
             btn.innerHTML = oldText;
             btn.disabled = false;
@@ -2562,39 +2558,34 @@
     window.deleteUser = async function(id) {
         if (!confirm('ATENÇÃO: Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.')) return;
         try {
-            const { data: refreshDel } = await window.supabaseClient.auth.refreshSession();
-            const tokenDel = refreshDel?.session?.access_token || (await window.supabaseClient.auth.getSession()).data?.session?.access_token;
-            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
-                 method: 'POST', 
-                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenDel, 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI' },
-                 body: JSON.stringify({ action: 'delete', id })
+            const { data: fnDelData, error: fnDelErr } = await window.supabaseClient.functions.invoke('manage-users', {
+                body: { action: 'delete', id }
             });
-            if (!res.ok) throw new Error(await res.text());
+            if (fnDelErr) throw new Error(fnDelErr.message || JSON.stringify(fnDelErr));
+            if (fnDelData?.error) throw new Error(fnDelData.error);
             loadTeam();
         } catch (e) {
             alert("Erro ao excluir: " + e.message);
         }
     };
 
+
+
     window.resendInvite = async function(id, email) {
-        if (!confirm(`Deseja reenviar o convite de acesso para ${email}?\n\nIsso gerará uma NOVA senha temporária, que será enviada por e-mail.`)) return;
+        if (!confirm(`Deseja reenviar o convite para ${email}?\n\nIsso gerará uma nova senha temporária.`)) return;
         try {
-            const { data: session } = await window.supabaseClient.auth.getSession();
-            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
-                 method: 'POST', 
-                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.session?.access_token },
-                 body: JSON.stringify({ action: 'resend_invite', id, email })
+            const { data: fnData, error: fnErr } = await window.supabaseClient.functions.invoke('manage-users', {
+                body: { action: 'resend_invite', id, email }
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            alert(`Acesso refeito! Se o envio de e-mail falhar, aqui está a nova senha provisória: ${data.tempPassword}`);
+            if (fnErr) throw new Error(fnErr.message || JSON.stringify(fnErr));
+            if (fnData?.error) throw new Error(fnData.error);
+            alert(`Convite reenviado! Nova senha provisória:\n${fnData.tempPassword}`);
         } catch (e) {
             alert("Erro: " + e.message);
         }
     };
 
-    // Native App Modals Container
-    document.body.insertAdjacentHTML('beforeend', `
+        document.body.insertAdjacentHTML('beforeend', `
         <div id="custom-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
             <div style="background:var(--bg-color); border:1px solid var(--card-border); padding:30px; border-radius:12px; max-width:500px; width:90%; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
                 <h3 id="custom-modal-title" style="margin-top:0; color:var(--accent);">Aviso</h3>
