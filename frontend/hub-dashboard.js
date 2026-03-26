@@ -4146,84 +4146,448 @@ function _getPublicCrieUrl() {
 }
 
 
-let _eventoStatusFilter = 'all';
-function filterEventos(status, btn) {
-    _eventoStatusFilter = status;
-    document.querySelectorAll('#view-crie-eventos .hub-scope-tab').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const filtered = status === 'all' ? crieEventos : crieEventos.filter(e => e.status === status);
-    renderCrieEventos(filtered);
+// filterEventos kept as no-op for backwards compatibility (groups replace filters now)
+function filterEventos() {}
+
+let _finalizadosCollapsed = false;
+function toggleFinalizadosGroup() {
+    const grid = document.getElementById('crie-grupo-finalizados');
+    const chev = document.getElementById('finalizados-chevron');
+    if (!grid) return;
+    _finalizadosCollapsed = !_finalizadosCollapsed;
+    grid.style.display = _finalizadosCollapsed ? 'none' : 'grid';
+    if (chev) chev.style.transform = _finalizadosCollapsed ? 'rotate(-90deg)' : '';
 }
 
 function renderCrieEventos(list) {
-    const grid = document.getElementById('crie-eventos-grid');
-    if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">Nenhum evento encontrado.</div>';
-        return;
-    }
+    // Use all crieEventos if called without param
+    const eventos = list || crieEventos;
 
     const statusMap = {
         ACTIVE:    { label: 'ATIVO',      color: '#4ade80', bg: 'rgba(74,222,128,.12)'  },
-        LIVE:      { label: '🔴 AO VIVO', color: '#f87171', bg: 'rgba(248,113,113,.15)' },
+        LIVE:      { label: 'AO VIVO',    color: '#f87171', bg: 'rgba(248,113,113,.15)' },
         DRAFT:     { label: 'RASCUNHO',   color: '#F59E0B', bg: 'rgba(245,158,11,.12)'  },
-        CONCLUIDO: { label: 'CONCLUÍDO',  color: 'rgba(255,255,255,.4)', bg: 'rgba(255,255,255,.06)' },
+        CONCLUIDO: { label: 'CONCLUIDO',  color: 'rgba(255,255,255,.4)', bg: 'rgba(255,255,255,.06)' },
         ARCHIVED:  { label: 'ARQUIVADO',  color: 'rgba(255,255,255,.3)', bg: 'rgba(255,255,255,.05)' },
     };
 
     const publicUrl = _getPublicCrieUrl();
+    const currency  = ev => ev.currency || '€';
 
-    grid.innerHTML = list.map(ev => {
+    function renderCard(ev) {
         const st = statusMap[ev.status] || statusMap.DRAFT;
         const attendeeCount = ev.crie_attendees?.[0]?.count || 0;
         const occupancy = ev.capacity > 0 ? Math.round((attendeeCount / ev.capacity) * 100) : null;
-        const dateStr = new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        const isPublic = ev.status === 'ACTIVE';
+        const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+        const isPublic = ev.status === 'ACTIVE' || ev.status === 'LIVE';
+        const isFinalizado = ev.status === 'CONCLUIDO' || ev.locked;
+        const hasReport = !!ev.report_sent_at;
+
+        // Border style for finalizados
+        let cardBorderStyle = '';
+        if (isFinalizado) {
+            cardBorderStyle = hasReport
+                ? 'border:2px solid rgba(74,222,128,.5);'
+                : 'border:2.5px solid rgba(248,113,113,.55);';
+        }
 
         return `
-        <div class="hub-announcement-card" style="cursor:default; display:flex; flex-direction:column; gap:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:900; color:#fff; font-size:1.05rem; margin-bottom:4px;">${ev.title}</div>
-                    <div style="font-size:.75rem; color:rgba(255,255,255,.4);">📍 ${ev.location || '—'}</div>
+        <div onclick="openEventoDrawer('${ev.id}')" class="hub-announcement-card" style="cursor:pointer;display:flex;flex-direction:column;gap:14px;${cardBorderStyle}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:900;color:#fff;font-size:1.02rem;margin-bottom:4px;">${ev.title}</div>
+                    <div style="font-size:.74rem;color:rgba(255,255,255,.4);">&#128205; ${ev.location || '&mdash;'}</div>
                 </div>
-                <span style="background:${st.bg}; color:${st.color}; border:1px solid ${st.color}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700; flex-shrink:0; margin-left:10px;">${st.label}</span>
+                <span style="background:${st.bg};color:${st.color};border:1px solid ${st.color}44;padding:3px 8px;border-radius:6px;font-size:.67rem;font-weight:700;flex-shrink:0;margin-left:10px;">${st.label}</span>
             </div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                <span style="font-size:.78rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 10px; color:rgba(255,255,255,.6);">📅 ${dateStr}</span>
-                ${ev.price > 0 ? `<span style="font-size:.78rem; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); border-radius:8px; padding:5px 10px; color:#F59E0B; font-weight:700;">${ev.price.toFixed(2)}€</span>` : '<span style="font-size:.78rem; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:8px; padding:5px 10px; color:#4ade80; font-weight:700;">GRATUITO</span>'}
-                <span style="font-size:.78rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:5px 10px; color:rgba(255,255,255,.5);">👥 ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:.76rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.55);">&#128197; ${dateStr}</span>
+                ${ev.price > 0
+                    ? `<span style="font-size:.76rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:4px 9px;color:#F59E0B;font-weight:700;">${ev.price.toFixed(2)}${currency(ev)}</span>`
+                    : '<span style="font-size:.76rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">GRATUITO</span>'}
+                <span style="font-size:.76rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.5);">&#128101; ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
+                ${hasReport ? '<span style="font-size:.76rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">&#10003; Relatório enviado</span>' :
+                              (isFinalizado ? '<span style="font-size:.76rem;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:4px 9px;color:#f87171;font-weight:700;">&#9888; Relatório pendente</span>' : '')}
             </div>
             ${isPublic ? `
-            <div style="display:flex;align-items:center;gap:8px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 12px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <span style="flex:1;font-size:.75rem;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${publicUrl}">${publicUrl}</span>
-                <button onclick="navigator.clipboard.writeText('${publicUrl}').then(()=>{ if(typeof hubToast!=='undefined') hubToast('Link copiado!','success'); })" 
-                    style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:4px 8px;color:#60a5fa;font-size:.68rem;font-weight:700;cursor:pointer;flex-shrink:0;">
-                    Copiar
-                </button>
-                <a href="${publicUrl}" target="_blank" 
-                    style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:7px;padding:4px 8px;color:#60a5fa;font-size:.68rem;font-weight:700;text-decoration:none;flex-shrink:0;">
-                    Abrir ↗
-                </a>
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:8px 12px;" onclick="event.stopPropagation()">
+                <span style="flex:1;font-size:.73rem;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${publicUrl}</span>
+                <button onclick="navigator.clipboard.writeText('${publicUrl}').then(()=>{ if(typeof hubToast!=='undefined') hubToast('Link copiado!','success'); })" style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:6px;padding:3px 7px;color:#60a5fa;font-size:.66rem;font-weight:700;cursor:pointer;">Copiar</button>
+                <a href="${publicUrl}" target="_blank" style="background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);border-radius:6px;padding:3px 7px;color:#60a5fa;font-size:.66rem;font-weight:700;text-decoration:none;">Abrir &#8599;</a>
             </div>` : ''}
             ${occupancy !== null ? `
-            <div style="background:rgba(255,255,255,.04); border-radius:6px; height:4px; overflow:hidden;">
-                <div style="height:100%; width:${Math.min(occupancy,100)}%; background:${occupancy>=90?'#f87171':occupancy>=70?'#F59E0B':'#4ade80'}; border-radius:6px; transition:width .5s;"></div>
+            <div style="background:rgba(255,255,255,.04);border-radius:6px;height:4px;overflow:hidden;">
+                <div style="height:100%;width:${Math.min(occupancy,100)}%;background:${occupancy>=90?'#f87171':occupancy>=70?'#F59E0B':'#4ade80'};border-radius:6px;transition:width .5s;"></div>
             </div>` : ''}
-            <div style="display:flex; gap:8px; margin-top:auto;">
-                <button onclick="switchTab('crie-checkin'); setTimeout(()=>{const s=document.getElementById('checkin-event-select'); if(s){s.value='${ev.id}'; loadCheckinList();}},200)" 
-                    style="flex:1; padding:9px; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); border-radius:10px; color:#F59E0B; font-size:.75rem; font-weight:700; cursor:pointer;">
-                    ✓ Check-in
-                </button>
-                <button onclick="archiveCrieEvento('${ev.id}','${ev.status}')"
-                    style="padding:9px 12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px; color:rgba(255,255,255,.5); font-size:.75rem; cursor:pointer;">
-                    ${ev.status === 'ARCHIVED' ? '↩ Restaurar' : '📦 Arquivar'}
-                </button>
+        </div>`;
+    }
+
+    const ativos     = eventos.filter(e => e.status === 'ACTIVE' || e.status === 'LIVE');
+    const rascunhos  = eventos.filter(e => e.status === 'DRAFT');
+    const finalizados = eventos.filter(e => e.status === 'CONCLUIDO' || e.status === 'ARCHIVED');
+
+    const gA = document.getElementById('crie-grupo-ativos');
+    const gR = document.getElementById('crie-grupo-rascunhos');
+    const gF = document.getElementById('crie-grupo-finalizados');
+
+    if (gA) gA.innerHTML = ativos.length ? ativos.map(renderCard).join('') : '<div style="text-align:center;padding:22px;color:rgba(255,255,255,.25);grid-column:1/-1;font-size:.82rem;">Nenhum evento ativo</div>';
+    if (gR) gR.innerHTML = rascunhos.length ? rascunhos.map(renderCard).join('') : '<div style="text-align:center;padding:18px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhum rascunho</div>';
+    if (gF) gF.innerHTML = finalizados.length ? finalizados.map(renderCard).join('') : '<div style="text-align:center;padding:18px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhum evento finalizado</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENTO DRAWER
+// ═══════════════════════════════════════════════════════════
+window._drawerEventoId     = null;
+window._drawerEventoStatus = null;
+window._drawerEventoData   = null;
+let   _finLancamentoType   = 'Receita';
+
+function openEventoDrawer(id) {
+    const ev = crieEventos.find(e => e.id === id);
+    if (!ev) return;
+    window._drawerEventoId     = id;
+    window._drawerEventoStatus = ev.status;
+    window._drawerEventoData   = ev;
+
+    // Populate header
+    document.getElementById('drawer-ev-title').textContent = ev.title || '—';
+    document.getElementById('drawer-ev-date').textContent  = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+
+    const statusMap = { ACTIVE:'ATIVO', LIVE:'AO VIVO', DRAFT:'RASCUNHO', CONCLUIDO:'CONCLUIDO', ARCHIVED:'ARQUIVADO' };
+    const statusColors = { ACTIVE:'#4ade80', LIVE:'#f87171', DRAFT:'#F59E0B', CONCLUIDO:'rgba(255,255,255,.4)', ARCHIVED:'rgba(255,255,255,.3)' };
+    const sc = statusColors[ev.status] || '#F59E0B';
+    document.getElementById('drawer-ev-status-badge').innerHTML = `<span style="background:${sc}22;color:${sc};border:1px solid ${sc}44;padding:4px 10px;border-radius:7px;font-size:.7rem;font-weight:800;">${statusMap[ev.status]||ev.status}</span>`;
+
+    // Populate edit fields
+    document.getElementById('dedit-title').value    = ev.title || '';
+    document.getElementById('dedit-desc').value     = ev.description || '';
+    document.getElementById('dedit-date').value     = ev.date ? ev.date.slice(0,16) : '';
+    document.getElementById('dedit-capacity').value = ev.capacity || '';
+    document.getElementById('dedit-location').value = ev.location || '';
+    document.getElementById('dedit-price').value    = ev.price ?? '';
+    document.getElementById('dedit-currency').value = ev.currency || '€';
+    document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
+
+    // Handle locked state
+    const isLocked   = !!ev.locked;
+    const hasReport  = !!ev.report_sent_at;
+    const saveBtn    = document.getElementById('drawer-save-btn');
+    const fecharBtn  = document.getElementById('btn-fechar-evento');
+    const reopenWrap = document.getElementById('drawer-reopen-wrap');
+
+    if (saveBtn)    saveBtn.disabled = isLocked;
+    if (fecharBtn)  { fecharBtn.disabled = isLocked; fecharBtn.textContent = isLocked ? (hasReport ? '&#128274; Relatório Enviado' : '&#128274; Evento Fechado') : '&#128274; GERAR RELATÓRIO & FECHAR EVENTO'; }
+    if (reopenWrap) reopenWrap.style.display = isLocked ? 'block' : 'none';
+
+    // Pre-fill email with logged-in user email if available
+    const emailField = document.getElementById('dedit-report-email');
+    if (emailField && !emailField.value) {
+        const userEmail = window.supabaseClient?.auth?.getUser ? '' : '';
+        window.supabaseClient?.auth?.getUser().then(({data}) => { if (data?.user?.email && emailField) emailField.value = data.user.email; });
+    }
+
+    switchDrawerTab('info');
+
+    const overlay = document.getElementById('evento-drawer-overlay');
+    const drawer  = document.getElementById('evento-drawer');
+    if (overlay) { overlay.style.display = 'block'; }
+    if (drawer)  { drawer.style.display  = 'flex'; }
+}
+
+function closeEventoDrawer() {
+    document.getElementById('evento-drawer-overlay').style.display = 'none';
+    document.getElementById('evento-drawer').style.display         = 'none';
+}
+
+function switchDrawerTab(tab) {
+    ['info','inscritos','financeiro'].forEach(t => {
+        const panel = document.getElementById(`drawer-panel-${t}`);
+        const btn   = document.getElementById(`dtab-${t}`);
+        if (panel) panel.style.display = t === tab ? 'flex' : 'none';
+        if (btn) {
+            btn.style.color       = t === tab ? '#F59E0B' : 'rgba(255,255,255,.4)';
+            btn.style.borderBottom = t === tab ? '2px solid #F59E0B' : '2px solid transparent';
+        }
+    });
+    if (tab === 'info') document.getElementById('drawer-panel-info').style.flexDirection = 'column';
+    if (tab === 'inscritos')  loadDrawerInscritos();
+    if (tab === 'financeiro') loadDrawerFinanceiro();
+}
+
+async function saveEventoDrawer() {
+    const id = window._drawerEventoId;
+    if (!id) return;
+    const sb  = window.supabaseClient;
+    const btn = document.getElementById('drawer-save-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A guardar…'; }
+
+    const payload = {
+        title:       document.getElementById('dedit-title').value.trim(),
+        description: document.getElementById('dedit-desc').value.trim() || null,
+        date:        document.getElementById('dedit-date').value || null,
+        capacity:    parseInt(document.getElementById('dedit-capacity').value) || 0,
+        location:    document.getElementById('dedit-location').value.trim(),
+        price:       parseFloat(document.getElementById('dedit-price').value) || 0,
+        currency:    document.getElementById('dedit-currency').value || '€',
+        status:      document.getElementById('dedit-status').value,
+    };
+    const { error } = await sb.from('crie_events').update(payload).eq('id', id);
+    if (error) { hubToast('Erro ao guardar: ' + error.message, 'error'); }
+    else        { hubToast('Evento actualizado!', 'success'); }
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar Alterações'; }
+    await loadCrieEventos();
+    window._drawerEventoData = crieEventos.find(e => e.id === id);
+}
+
+// ── Drawer: Inscritos ─────────────────────────────────────────
+async function loadDrawerInscritos() {
+    const id = window._drawerEventoId;
+    if (!id) return;
+    const container = document.getElementById('drawer-inscritos-list');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);">A carregar…</div>';
+    const sb = window.supabaseClient;
+    const { data } = await sb.from('crie_attendees')
+        .select('id, name, phone, email, presence_status, payment_status, industry, is_member')
+        .eq('event_id', id)
+        .order('name');
+    if (!data || !data.length) {
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);">Nenhum inscrito.</div>';
+        return;
+    }
+    container.innerHTML = data.map(a => {
+        const pres = a.presence_status === 'Presente';
+        const payCl = a.payment_status === 'Pago' ? '#60a5fa' : a.payment_status === 'Gratuito' ? '#6ee7b7' : '#fbbf24';
+        return `<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:${pres?'rgba(74,222,128,.15)':'rgba(255,255,255,.06)'};border:1.5px solid ${pres?'rgba(74,222,128,.4)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;">${pres?'&#10003;':''}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;color:#fff;font-size:.85rem;">${a.name}${a.is_member?'<span style="color:#F59E0B;font-size:.6rem;margin-left:5px;">&#9733; membro</span>':''}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.35);">${a.phone||''} ${a.email?'&middot; '+a.email:''}</div>
             </div>
+            <span style="color:${payCl};font-size:.68rem;font-weight:800;flex-shrink:0;">${a.payment_status||'PENDENTE'}</span>
         </div>`;
     }).join('');
 }
+
+// ── Drawer: Financeiro ────────────────────────────────────────
+async function loadDrawerFinanceiro() {
+    const id = window._drawerEventoId;
+    const ev = window._drawerEventoData;
+    if (!id || !ev) return;
+    const sb = window.supabaseClient;
+
+    // Get attendees payment info
+    const { data: att } = await sb.from('crie_attendees')
+        .select('payment_status')
+        .eq('event_id', id);
+
+    const pagos    = (att || []).filter(a => a.payment_status === 'Pago').length;
+    const price    = ev.price || 0;
+    const currency = ev.currency || '€';
+    const recInscricoes = pagos * price;
+    document.getElementById('fin-inscricoes-info').textContent = `${pagos} pagos x ${price.toFixed(2)}${currency} = ${recInscricoes.toFixed(2)}${currency}`;
+
+    // Get manual lancamentos
+    const { data: lans } = await sb.from('crie_finances')
+        .select('*')
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+
+    const lancamentos = lans || [];
+    const manualIncome  = lancamentos.filter(l => l.type === 'Receita').reduce((s,l) => s + (l.amount || 0), 0);
+    const manualExpense = lancamentos.filter(l => l.type === 'Despesa').reduce((s,l) => s + (l.amount || 0), 0);
+
+    const totalReceita  = recInscricoes + manualIncome;
+    const totalDespesas = manualExpense;
+    const saldo         = totalReceita - totalDespesas;
+
+    document.getElementById('fin-receita').textContent  = totalReceita.toFixed(2)  + currency;
+    document.getElementById('fin-despesas').textContent = totalDespesas.toFixed(2) + currency;
+    const elSaldo = document.getElementById('fin-saldo');
+    if (elSaldo) { elSaldo.textContent = saldo.toFixed(2) + currency; elSaldo.style.color = saldo >= 0 ? '#60a5fa' : '#f87171'; }
+
+    // Render lancamentos list
+    const list = document.getElementById('fin-lancamentos-list');
+    if (!list) return;
+    if (!lancamentos.length) {
+        list.innerHTML = '<div style="text-align:center;padding:16px;color:rgba(255,255,255,.3);font-size:.8rem;">Nenhum lançamento manual.</div>';
+        return;
+    }
+    list.innerHTML = lancamentos.map(l => {
+        const isInc = l.type === 'Receita';
+        return `<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px 14px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.82rem;font-weight:600;color:#fff;">${l.description||'—'}</div>
+                <div style="font-size:.7rem;color:rgba(255,255,255,.35);">${new Date(l.created_at).toLocaleDateString('pt-PT')}</div>
+            </div>
+            <span style="font-size:.9rem;font-weight:800;color:${isInc?'#4ade80':'#f87171'};">${isInc?'+':'-'}${(l.amount||0).toFixed(2)}${currency}</span>
+            <button onclick="deleteFinLancamento('${l.id}')" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:7px;padding:4px 8px;color:#f87171;cursor:pointer;font-size:.7rem;">&#10005;</button>
+        </div>`;
+    }).join('');
+}
+
+function openFinLancamento(type) {
+    _finLancamentoType = type;
+    document.getElementById('fin-form-label').textContent = type === 'Receita' ? 'Nova Receita' : 'Nova Despesa';
+    document.getElementById('fin-form-desc').value   = '';
+    document.getElementById('fin-form-amount').value = '';
+    document.getElementById('fin-lancamento-form').style.display = 'block';
+    document.getElementById('fin-form-desc').focus();
+}
+
+async function saveFinLancamento() {
+    const id     = window._drawerEventoId;
+    const wsId   = getCrieWorkspaceId();
+    const desc   = document.getElementById('fin-form-desc').value.trim();
+    const amount = parseFloat(document.getElementById('fin-form-amount').value);
+    if (!id || !desc || isNaN(amount) || amount <= 0) { hubToast('Preenche descrição e valor!', 'error'); return; }
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('crie_finances').insert({ event_id: id, workspace_id: wsId, type: _finLancamentoType, description: desc, amount });
+    if (error) { hubToast('Erro: ' + error.message, 'error'); return; }
+    hubToast(`${_finLancamentoType} lançada!`, 'success');
+    document.getElementById('fin-lancamento-form').style.display = 'none';
+    loadDrawerFinanceiro();
+}
+
+async function deleteFinLancamento(lancId) {
+    const sb = window.supabaseClient;
+    await sb.from('crie_finances').delete().eq('id', lancId);
+    loadDrawerFinanceiro();
+}
+
+// ── Fechar Evento & Relatório ─────────────────────────────────
+async function fecharEvento() {
+    const id  = window._drawerEventoId;
+    const ev  = window._drawerEventoData;
+    const email = document.getElementById('dedit-report-email')?.value?.trim();
+    if (!id || !ev) return;
+
+    const sb = window.supabaseClient;
+
+    // 1. Gather all data for the report
+    const wsId = getCrieWorkspaceId();
+
+    const [attRes, finRes] = await Promise.all([
+        sb.from('crie_attendees').select('*').eq('event_id', id),
+        sb.from('crie_finances').select('*').eq('event_id', id)
+    ]);
+    const attendees  = attRes.data || [];
+    const lancamentos = finRes.data || [];
+
+    const total     = attendees.length;
+    const presentes = attendees.filter(a => a.presence_status === 'Presente').length;
+    const ausentes  = total - presentes;
+    const pagos     = attendees.filter(a => a.payment_status === 'Pago').length;
+    const price     = ev.price || 0;
+    const currency  = ev.currency || '€';
+    const recInsc   = pagos * price;
+    const manRec    = lancamentos.filter(l => l.type === 'Receita').reduce((s,l) => s + l.amount, 0);
+    const manDesp   = lancamentos.filter(l => l.type === 'Despesa').reduce((s,l) => s + l.amount, 0);
+    const totalRec  = recInsc + manRec;
+    const saldo     = totalRec - manDesp;
+
+    // Check recurring attendees (attendees in >1 CRIE event)
+    const phones = attendees.map(a => a.phone).filter(Boolean);
+    let recorrentes = 0;
+    if (phones.length) {
+        const { data: prevAtt } = await sb.from('crie_attendees')
+            .select('phone, event_id')
+            .in('phone', phones)
+            .eq('workspace_id', wsId)
+            .neq('event_id', id);
+        const prevPhones = new Set((prevAtt || []).map(a => a.phone));
+        recorrentes = attendees.filter(a => prevPhones.has(a.phone)).length;
+    }
+
+    // 2. Generate elegant HTML report
+    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const reportHtml = `<!DOCTYPE html>
+<html lang="pt"><head><meta charset="UTF-8"><title>Relatório CRIE — ${ev.title}</title>
+<style>
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0c14;color:#e2e8f0;margin:0;padding:40px 24px;max-width:680px;margin:0 auto;}
+h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
+.sub{font-size:.9rem;color:rgba(255,255,255,.4);margin-bottom:32px;}
+.badge{display:inline-block;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#F59E0B;padding:4px 12px;border-radius:8px;font-size:.75rem;font-weight:800;}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px 0;}
+.kpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;text-align:center;}
+.kpi .val{font-size:2rem;font-weight:900;color:#fff;}
+.kpi .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.35);margin-top:4px;}
+.section{margin:28px 0;}
+.section h2{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);margin-bottom:12px;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:6px;font-size:.9rem;}
+.green{color:#4ade80;font-weight:800;} .red{color:#f87171;font-weight:800;} .blue{color:#60a5fa;font-weight:800;}
+.analysis{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:16px;padding:20px 22px;font-size:.9rem;line-height:1.7;color:rgba(255,255,255,.7);}
+.footer{margin-top:40px;font-size:.75rem;color:rgba(255,255,255,.25);text-align:center;border-top:1px solid rgba(255,255,255,.06);padding-top:16px;}
+</style></head><body>
+<div class="badge">CRIE BRAGA</div>
+<h1 style="margin-top:12px;">&#128197; ${ev.title}</h1>
+<div class="sub">${dateStr} &nbsp;|&nbsp; ${ev.location || '&mdash;'}</div>
+
+<div class="kpi-grid">
+    <div class="kpi"><div class="val">${total}</div><div class="lbl">Inscritos</div></div>
+    <div class="kpi"><div class="val green">${presentes}</div><div class="lbl">Presentes</div></div>
+    <div class="kpi"><div class="val red">${ausentes}</div><div class="lbl">Ausentes</div></div>
+    <div class="kpi"><div class="val">${((total>0?presentes/total:0)*100).toFixed(0)}%</div><div class="lbl">Taxa Presença</div></div>
+    <div class="kpi"><div class="val">${recorrentes}</div><div class="lbl">Recorrentes</div></div>
+    <div class="kpi"><div class="val">${pagos}</div><div class="lbl">Pagamentos</div></div>
+</div>
+
+<div class="section">
+    <h2>&#128176; Resumo Financeiro</h2>
+    <div class="row"><span>Inscrições pagas (${pagos} x ${price.toFixed(2)}${currency})</span><span class="green">+${recInsc.toFixed(2)}${currency}</span></div>
+    ${lancamentos.filter(l=>l.type==='Receita').map(l=>`<div class="row"><span>${l.description}</span><span class="green">+${l.amount.toFixed(2)}${currency}</span></div>`).join('')}
+    ${lancamentos.filter(l=>l.type==='Despesa').map(l=>`<div class="row"><span>${l.description}</span><span class="red">-${l.amount.toFixed(2)}${currency}</span></div>`).join('')}
+    <div class="row" style="margin-top:8px;background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.15);"><strong>Saldo Final</strong><span class="${saldo>=0?'blue':'red'}">${saldo>=0?'+':''}${saldo.toFixed(2)}${currency}</span></div>
+</div>
+
+<div class="analysis">
+    <strong style="color:#F59E0B;">&#128161; Análise do Evento</strong><br><br>
+    O evento <strong>${ev.title}</strong> registou <strong>${total} inscri${total!==1?'tos':'to'}</strong>, com uma taxa de presença de <strong>${total>0?((presentes/total)*100).toFixed(0):0}%</strong>.
+    ${recorrentes>0?`<br><br>Dos presentes, <strong>${recorrentes}</strong> j&aacute; tinham participado em eventos anteriores do CRIE Braga — sinal positivo de fideliza&ccedil;&atilde;o da comunidade.`:''}
+    ${saldo>0?`<br><br>O evento gerou um saldo positivo de <strong>${saldo.toFixed(2)}${currency}</strong>, contribuindo para a sustentabilidade do ministério.`:saldo<0?`<br><br>O evento registou um saldo negativo de <strong>${Math.abs(saldo).toFixed(2)}${currency}</strong>. Considerar ajustar o valor da inscrição ou reduzir custos nos próximos eventos.`:'<br><br>O evento equilibrou receitas e despesas.'}
+    <br><br>Continue a registar os inscritos no CRIE para construir um historial preciso da comunidade e personalizar as próximas experiências!
+</div>
+
+<div class="footer">Gerado automaticamente pelo Lagoinha HUB &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
+</body></html>`;
+
+    // 3. Open report in new window
+    const reportWin = window.open('', '_blank', 'width=720,height=850');
+    if (reportWin) {
+        reportWin.document.write(reportHtml);
+        reportWin.document.close();
+    }
+
+    // 4. Prepare mailto with summary
+    if (email) {
+        const subject = encodeURIComponent(`Relatório CRIE — ${ev.title}`);
+        const body    = encodeURIComponent(
+            `Relatório do evento: ${ev.title}\nData: ${dateStr}\nLocal: ${ev.location||'—'}\n\nInscritos: ${total}\nPresentes: ${presentes}\nAusentes: ${ausentes}\nTaxa presença: ${total>0?((presentes/total)*100).toFixed(0):0}%\nRecorrentes: ${recorrentes}\n\nReceita Total: ${totalRec.toFixed(2)}${currency}\nDespesas Total: ${manDesp.toFixed(2)}${currency}\nSaldo Final: ${saldo.toFixed(2)}${currency}\n\nO relatório completo foi aberto numa nova janela.`
+        );
+        window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+    }
+
+    // 5. Lock the event
+    await sb.from('crie_events').update({ locked: true, report_sent_at: new Date().toISOString(), status: 'CONCLUIDO' }).eq('id', id);
+    hubToast('Evento fechado! Relatório gerado.', 'success');
+    await loadCrieEventos();
+    closeEventoDrawer();
+}
+
+async function reabrirEvento() {
+    const id = window._drawerEventoId;
+    if (!id) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_events').update({ locked: false }).eq('id', id);
+    hubToast('Evento reaberto!', 'success');
+    await loadCrieEventos();
+    window._drawerEventoData = crieEventos.find(e => e.id === id);
+    openEventoDrawer(id);
+}
+
+
 
 
 function openCreateEventoModal() {
