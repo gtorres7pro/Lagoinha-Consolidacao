@@ -2194,7 +2194,6 @@
             const sb = window.supabaseClient;
             if (!sb) throw new Error('Supabase client não disponível');
 
-            // Get workspace from currentWorkspaceId (already resolved) or HubRouter
             let wsId = window.currentWorkspaceId;
             if (!wsId) {
                 const ws = await window.HubRouter?.getWorkspace();
@@ -2202,15 +2201,15 @@
             }
             if (!wsId) throw new Error('Workspace não encontrado');
 
-            // Use edge function with service role (bypasses RLS) so master_admin can see any workspace
-            const { data: resp, error: fnErr } = await sb.functions.invoke('manage-users', {
-                body: { action: 'list', workspace_id: wsId }
-            });
+            // Direct query — RLS allows master_admin via get_my_role() policy (no recursion)
+            const { data: users, error } = await sb
+                .from('users')
+                .select('id, name, email, role, phone, status, modules')
+                .eq('workspace_id', wsId)
+                .order('role');
 
-            if (fnErr) throw fnErr;
-            if (resp?.error) throw new Error(resp.error);
-
-            renderTeam(resp?.users || [], wsId);
+            if (error) throw error;
+            renderTeam(users || [], wsId);
         } catch (err) {
             console.error('[loadTeam] Erro:', err.message);
             if (table) table.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#f87171;">Erro ao carregar: ${err.message}</td></tr>`;
