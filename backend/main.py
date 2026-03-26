@@ -400,10 +400,11 @@ class EmailReport(BaseModel):
     total_count: int
     csv_link: str
     leads: list = []
+    kpis: dict = {}
 
 @app.post("/api/email/send-report")
 def api_send_report(data: EmailReport):
-    return send_report_email(data.user_email, data.report_type, data.total_count, data.csv_link, data.leads)
+    return send_report_email(data.user_email, data.report_type, data.total_count, data.csv_link, data.leads, data.kpis)
 
 
 # --- 3. Business Logic Orchestrators ---

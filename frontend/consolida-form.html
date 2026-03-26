@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,12 @@
     <!-- Intl-Tel-Input CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font);
+        }
 
         body {
             background: var(--bg-page);
@@ -24,23 +30,31 @@
             width: 100%;
             max-width: 650px;
             border-radius: 28px;
-            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
+            box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
             position: relative;
             overflow: hidden;
             border: 1px solid var(--border);
             padding-bottom: 48px;
-            animation: fadeInUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
+            animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         /* Gradient header strip */
         .banner {
             width: 100%;
             height: 8px;
-            background: linear-gradient(90deg, #FBBF24 0%, #F59E0B 50%, rgba(251,191,36,0.3) 100%);
+            background: linear-gradient(90deg, #FBBF24 0%, #F59E0B 50%, rgba(251, 191, 36, 0.3) 100%);
         }
 
-        .form-content { padding: 0 36px; margin-top: 32px; }
-        @media (max-width: 500px) { .form-content { padding: 0 20px; } }
+        .form-content {
+            padding: 0 36px;
+            margin-top: 32px;
+        }
+
+        @media (max-width: 500px) {
+            .form-content {
+                padding: 0 20px;
+            }
+        }
 
         .header {
             display: flex;
@@ -52,18 +66,29 @@
         }
 
         .logo-placeholder {
-            font-weight: 700; font-size: 1rem;
-            display: flex; align-items: center; gap: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             color: var(--text);
         }
+
         .logo-placeholder .logo-icon {
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             background: linear-gradient(135deg, #FBBF24, #F59E0B);
             border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
         }
-        .logo-placeholder .logo-icon svg { width: 16px; height: 16px; }
+
+        .logo-placeholder .logo-icon svg {
+            width: 16px;
+            height: 16px;
+        }
 
         .lang-select {
             padding: 7px 12px;
@@ -72,11 +97,15 @@
             background: var(--bg-input);
             color: var(--text);
             font-size: 0.82rem;
-            cursor: pointer; outline: none;
+            cursor: pointer;
+            outline: none;
             font-family: var(--font);
             transition: border 0.2s;
         }
-        .lang-select:focus { border-color: var(--accent); }
+
+        .lang-select:focus {
+            border-color: var(--accent);
+        }
 
         h2 {
             font-size: 1.15rem;
@@ -84,18 +113,24 @@
             font-weight: 700;
             color: var(--text);
             letter-spacing: -0.02em;
-            display: flex; align-items: center; gap: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+
         h2::before {
             content: '';
-            width: 3px; height: 18px;
+            width: 3px;
+            height: 18px;
             background: var(--accent);
             border-radius: 2px;
             display: inline-block;
             flex-shrink: 0;
         }
 
-        .form-group { margin-bottom: 18px; }
+        .form-group {
+            margin-bottom: 18px;
+        }
 
         label {
             display: block;
@@ -106,8 +141,11 @@
             letter-spacing: 0.01em;
         }
 
-        input[type="text"], input[type="email"],
-        input[type="number"], input[type="tel"], select {
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        input[type="tel"],
+        select {
             width: 100%;
             padding: 13px 16px;
             border-radius: 12px;
@@ -121,22 +159,52 @@
             -webkit-appearance: none;
             appearance: none;
         }
-        input:focus, select:focus {
+
+        input:focus,
+        select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(251,191,36,0.12);
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.12);
         }
-        select option { background: #111; color: #fff; }
+
+        select option {
+            background: #111;
+            color: #fff;
+        }
 
         /* Intl-tel-input dark mode */
-        .iti { width: 100%; display: block; }
-        .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png");}
-        @media (min-resolution: 2x) {
-            .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png");}
+        .iti {
+            width: 100%;
+            display: block;
         }
-        .iti__country-list { background: #111; border: 1px solid var(--border); color: var(--text); }
-        .iti__country:hover { background: rgba(255,255,255,0.06); }
-        .iti__selected-flag { background: var(--bg-input) !important; border-right: 1px solid var(--border); }
-        .iti__arrow { border-top-color: var(--text-muted); }
+
+        .iti__flag {
+            background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png");
+        }
+
+        @media (min-resolution: 2x) {
+            .iti__flag {
+                background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png");
+            }
+        }
+
+        .iti__country-list {
+            background: #111;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .iti__country:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .iti__selected-flag {
+            background: var(--bg-input) !important;
+            border-right: 1px solid var(--border);
+        }
+
+        .iti__arrow {
+            border-top-color: var(--text-muted);
+        }
 
         .radio-group {
             display: grid;
@@ -144,10 +212,17 @@
             gap: 10px;
             margin-top: 10px;
         }
-        @media (max-width: 500px) { .radio-group { grid-template-columns: 1fr; } }
+
+        @media (max-width: 500px) {
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
+        }
 
         .radio-option {
-            display: flex; align-items: center; gap: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -158,9 +233,25 @@
             font-size: 0.85rem;
             color: var(--text);
         }
-        .radio-option:hover { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.04); }
-        .radio-option:has(input:checked) { border-color: var(--accent); background: rgba(251,191,36,0.08); color: var(--accent); font-weight: 600; }
-        input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+
+        .radio-option:hover {
+            border-color: rgba(251, 191, 36, 0.35);
+            background: rgba(251, 191, 36, 0.04);
+        }
+
+        .radio-option:has(input:checked) {
+            border-color: var(--accent);
+            background: rgba(251, 191, 36, 0.08);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        input[type="radio"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
 
         .btn-submit {
             position: relative;
@@ -176,43 +267,108 @@
             cursor: pointer;
             margin-top: 28px;
             overflow: hidden;
-            display: flex; justify-content: center; align-items: center; gap: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
             transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
             letter-spacing: 0.02em;
         }
+
         .btn-submit::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
-            background-size: 200% 100%; background-position: 200% center;
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
+            background-size: 200% 100%;
+            background-position: 200% center;
             transition: background-position 0.5s;
         }
-        .btn-submit:hover::after { background-position: -200% center; }
-        .btn-submit:hover { background: #F59E0B; box-shadow: 0 4px 24px rgba(251,191,36,0.3); transform: translateY(-1px); }
-        .btn-submit:active { transform: scale(0.98); }
-        .btn-submit svg { width: 16px; height: 16px; transition: transform 0.2s; }
-        .btn-submit:hover svg { transform: translateX(3px); }
+
+        .btn-submit:hover::after {
+            background-position: -200% center;
+        }
+
+        .btn-submit:hover {
+            background: #F59E0B;
+            box-shadow: 0 4px 24px rgba(251, 191, 36, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        .btn-submit svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+        }
+
+        .btn-submit:hover svg {
+            transform: translateX(3px);
+        }
 
         /* Dark success overlay */
         .success-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5,5,5,0.96);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(5, 5, 5, 0.96);
             backdrop-filter: blur(12px);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            text-align: center; padding: 40px;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease; z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10000;
         }
-        .success-overlay.active { opacity: 1; pointer-events: auto; }
-        .success-overlay h3 { font-size: 1.8rem; margin-bottom: 10px; color: var(--accent); font-weight: 900; letter-spacing: -0.03em; }
-        .success-overlay p { color: var(--text-muted); margin-bottom: 8px; font-size: 0.95rem; }
 
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        @media (max-width: 500px) { .grid-2 { grid-template-columns: 1fr; } .container { max-width: 100%; } }
+        .success-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .success-overlay h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+        }
+
+        .success-overlay p {
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 500px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
-<body>
 
+<body>
+    a
     <div class="container">
         <!-- Banner Added -->
         <div class="banner"></div>
@@ -220,16 +376,31 @@
         <!-- Form Content Area -->
         <div class="form-content">
             <!-- G1: Email Duplicate Popup (blocking) -->
-            <div id="email-duplicate-popup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(12px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-                <div style="background:#1a1a1a; border:1px solid rgba(255,215,0,.3); border-radius:20px; padding:32px; max-width:420px; width:100%; text-align:center; animation: fadeInUp .3s ease;">
-                    <div style="width:52px; height:52px; border-radius:50%; background:rgba(255,215,0,.1); border:1.5px solid rgba(255,215,0,.3); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
-                        <svg viewBox="0 0 24 24" width="22" height="22" style="stroke:#FFD700;fill:none;stroke-width:1.8;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div id="email-duplicate-popup"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(12px); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+                <div
+                    style="background:#1a1a1a; border:1px solid rgba(255,215,0,.3); border-radius:20px; padding:32px; max-width:420px; width:100%; text-align:center; animation: fadeInUp .3s ease;">
+                    <div
+                        style="width:52px; height:52px; border-radius:50%; background:rgba(255,215,0,.1); border:1.5px solid rgba(255,215,0,.3); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+                        <svg viewBox="0 0 24 24" width="22" height="22"
+                            style="stroke:#FFD700;fill:none;stroke-width:1.8;">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
                     </div>
-                    <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:10px; color:#fff;">Este email já está registrado</h3>
-                    <p style="font-size:.85rem; color:#999; margin-bottom:6px;">Parece que você já faz parte da nossa família!</p>
-                    <p style="font-size:.82rem; color:#666; margin-bottom:24px;">Usamos o email como identificador único em toda a sua jornada.<br>Fale com nossa equipe para qualquer ajuda.</p>
-                    <a href="https://wa.me/14078165596?text=Olá,%20quero%20atualizar%20meu%20cadastro" target="_blank" style="display:block; background:rgba(37,211,102,.1); border:1px solid rgba(37,211,102,.3); color:#25D366; padding:10px; border-radius:10px; font-size:.82rem; font-weight:600; text-decoration:none; margin-bottom:10px;">Falar com a Equipe no WhatsApp</a>
-                    <button onclick="document.getElementById('email-duplicate-popup').style.display='none'" style="width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:#aaa; padding:10px; border-radius:10px; font-size:.82rem; cursor:pointer;">Fechar e usar outro email</button>
+                    <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:10px; color:#fff;">Este email já está
+                        registrado</h3>
+                    <p style="font-size:.85rem; color:#999; margin-bottom:6px;">Parece que você já faz parte da nossa
+                        família!</p>
+                    <p style="font-size:.82rem; color:#666; margin-bottom:24px;">Usamos o email como identificador único
+                        em toda a sua jornada.<br>Fale com nossa equipe para qualquer ajuda.</p>
+                    <a href="https://wa.me/14078165596?text=Olá,%20quero%20atualizar%20meu%20cadastro" target="_blank"
+                        style="display:block; background:rgba(37,211,102,.1); border:1px solid rgba(37,211,102,.3); color:#25D366; padding:10px; border-radius:10px; font-size:.82rem; font-weight:600; text-decoration:none; margin-bottom:10px;">Falar
+                        com a Equipe no WhatsApp</a>
+                    <button onclick="document.getElementById('email-duplicate-popup').style.display='none'"
+                        style="width:100%; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:#aaa; padding:10px; border-radius:10px; font-size:.82rem; cursor:pointer;">Fechar
+                        e usar outro email</button>
                 </div>
             </div>
 
@@ -238,200 +409,510 @@
                 <h3 data-i18n="success_title" style="color: var(--accent); font-size: 2rem;">Obrigado!</h3>
                 <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
                 <div style="margin-top: 24px;">
-                    <button type="button" class="btn-submit" onclick="window.location.reload()" style="padding: 12px 24px; font-size: 0.9rem; font-weight:800; border-radius:100px;">Preencher Nova Ficha</button>
+                    <button type="button" class="btn-submit" onclick="window.location.reload()"
+                        style="padding: 12px 24px; font-size: 0.9rem; font-weight:800; border-radius:100px;">Preencher
+                        Nova Ficha</button>
                 </div>
             </div>
 
             <div class="header">
-        <div class="logo-placeholder">
-                <div class="logo-icon">
-                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                        <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                        <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                        <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
-                    </svg>
+                <div class="logo-placeholder">
+                    <div class="logo-icon">
+                        <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                            <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000" />
+                            <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000" />
+                            <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000" />
+                        </svg>
+                    </div>
+                    <div data-i18n="church_name">Lagoinha Orlando</div>
                 </div>
-                <div data-i18n="church_name">Lagoinha Orlando</div>
-            </div>
-            <select class="lang-select" id="languageSelector" onchange="changeLanguage()">
-                <option value="pt" selected>Português</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-            </select>
-        </div>
-
-        <h2 data-i18n="decision_info">Decisão Espiritual</h2>
-        
-        <form id="visitorForm" onsubmit="handleFormSubmit(event)">
-            
-            <div class="form-group">
-                <label data-i18n="decision">Qual a sua decisão hoje? *</label>
-                <select id="decision" required>
-                    <option value="" disabled selected data-i18n="decision_select">Selecione...</option>
-                    <option value="Aceitei Jesus pela primeira vez" data-i18n="dec_first" data-val-i18n="dec_first">Aceitei Jesus pela primeira vez</option>
-                    <option value="Eu voltei para Jesus, reconciliação" data-i18n="dec_return" data-val-i18n="dec_return">Eu voltei para Jesus, reconciliação</option>
-                    <option value="Quero ser membro" data-i18n="dec_member" data-val-i18n="dec_member">Quero ser membro</option>
+                <select class="lang-select" id="languageSelector" onchange="changeLanguage()">
+                    <option value="pt" selected>Português</option>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
                 </select>
             </div>
 
-            <div class="form-group">
-                <label data-i18n="service">Qual culto você está participando? *</label>
-                <select id="service" required>
-                    <option value="" disabled selected data-i18n="service_select">Selecione o Culto...</option>
-                    <option value="Domingo 1" data-i18n="domingo_1">Domingo 1</option>
-                    <option value="Domingo 2" data-i18n="domingo_2">Domingo 2</option>
-                    <option value="Domingo 3" data-i18n="domingo_3">Domingo 3</option>
-                    <option value="Hope">Hope</option>
-                    <option value="Fé">Fé</option>
-                    <option value="Legacy">Legacy</option>
-                    <option value="Rocket">Rocket</option>
-                    <option value="Shine">Shine</option>
-                    <option value="Hero">Hero</option>
-                    <option value="Outro" data-i18n="outro">Outro</option>
-                </select>
-            </div>
+            <h2 data-i18n="decision_info">Decisão Espiritual</h2>
 
-            <h2 data-i18n="personal_info" style="margin-top: 20px;">Informações Pessoais</h2>
-            
-            <div class="grid-2">
-                <div class="form-group">
-                    <label data-i18n="first_name">Primeiro Nome *</label>
-                    <input type="text" id="firstName" required>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="last_name">Sobrenome *</label>
-                    <input type="text" id="lastName" required>
-                </div>
-            </div>
+            <form id="visitorForm" onsubmit="handleFormSubmit(event)">
 
-            <div class="grid-2">
                 <div class="form-group">
-                    <label data-i18n="age">Idade *</label>
-                    <input type="number" id="age" required min="0">
-                </div>
-                <div class="form-group">
-                    <label data-i18n="gender">Sexo *</label>
-                    <select id="gender" required>
-                        <option value="" disabled selected data-i18n="gender_select">Selecione...</option>
-                        <option value="Masculino" data-i18n="gender_m" data-val-i18n="gender_m">Masculino</option>
-                        <option value="Feminino" data-i18n="gender_f" data-val-i18n="gender_f">Feminino</option>
+                    <label data-i18n="decision">Qual a sua decisão hoje? *</label>
+                    <select id="decision" required>
+                        <option value="" disabled selected data-i18n="decision_select">Selecione...</option>
+                        <option value="Aceitei Jesus pela primeira vez" data-i18n="dec_first" data-val-i18n="dec_first">
+                            Aceitei Jesus pela primeira vez</option>
+                        <option value="Eu voltei para Jesus, reconciliação" data-i18n="dec_return"
+                            data-val-i18n="dec_return">Eu voltei para Jesus, reconciliação</option>
+                        <option value="Quero ser membro" data-i18n="dec_member" data-val-i18n="dec_member">Quero ser
+                            membro</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label data-i18n="marital">Estado Civil *</label>
-                <select id="maritalStatus" required>
-                    <option value="" disabled selected data-i18n="marital_select">Selecione...</option>
-                    <option value="Solteiro(a)" data-i18n="single" data-val-i18n="single">Solteiro(a)</option>
-                    <option value="Casado(a)" data-i18n="married" data-val-i18n="married">Casado(a)</option>
-                    <option value="Divorciado(a)" data-i18n="divorced" data-val-i18n="divorced">Divorciado(a)</option>
-                    <option value="Viúvo(a)" data-i18n="widowed" data-val-i18n="widowed">Viúvo(a)</option>
-                </select>
-            </div>
-
-            <h2 data-i18n="contact_info" style="margin-top: 20px;">Contato e Residência</h2>
-
-            <div class="grid-2">
                 <div class="form-group">
-                    <label data-i18n="phone">Telefone (WhatsApp) *</label>
-                    <input type="tel" id="phone" required>
+                    <label data-i18n="service">Qual culto você está participando? *</label>
+                    <select id="service" required>
+                        <option value="" disabled selected data-i18n="service_select">Selecione o Culto...</option>
+                        <option value="Domingo 1" data-i18n="domingo_1">Domingo 1</option>
+                        <option value="Domingo 2" data-i18n="domingo_2">Domingo 2</option>
+                        <option value="Domingo 3" data-i18n="domingo_3">Domingo 3</option>
+                        <option value="Hope">Hope</option>
+                        <option value="Fé">Fé</option>
+                        <option value="Legacy">Legacy</option>
+                        <option value="Rocket">Rocket</option>
+                        <option value="Shine">Shine</option>
+                        <option value="Hero">Hero</option>
+                        <option value="Outro" data-i18n="outro">Outro</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label data-i18n="email">E-mail *</label>
-                    <input type="email" id="email" required>
-                </div>
-            </div>
 
-            <div class="form-group">
-                <label data-i18n="country">País de Residência *</label>
-                <select id="country" required onchange="handleCountryChange()">
-                    <option value="" disabled selected data-i18n="country_select">Selecione o País...</option>
-                    <option value="US" data-i18n="country_us">Estados Unidos</option>
-                    <option value="BR" data-i18n="country_br">Brasil</option>
-                    <option value="PT" data-i18n="country_pt">Portugal</option>
-                    <option value="CA" data-i18n="country_ca">Canadá</option>
-                    <option value="" disabled>──────────</option>
-                    <!-- Exhaustive Standard Country List -->
-                    <option value="AF">Afghanistan</option><option value="AL">Albania</option><option value="DZ">Algeria</option><option value="AD">Andorra</option><option value="AO">Angola</option><option value="AR">Argentina</option><option value="AM">Armenia</option><option value="AU">Australia</option><option value="AT">Austria</option><option value="AZ">Azerbaijan</option><option value="BS">Bahamas</option><option value="BH">Bahrain</option><option value="BD">Bangladesh</option><option value="BB">Barbados</option><option value="BY">Belarus</option><option value="BE">Belgium</option><option value="BZ">Belize</option><option value="BJ">Benin</option><option value="BT">Bhutan</option><option value="BO">Bolivia</option><option value="BA">Bosnia and Herzegovina</option><option value="BW">Botswana</option><option value="BN">Brunei</option><option value="BG">Bulgaria</option><option value="BF">Burkina Faso</option><option value="BI">Burundi</option><option value="CV">Cabo Verde</option><option value="KH">Cambodia</option><option value="CM">Cameroon</option><option value="CA">Canada</option><option value="CF">Central African Republic</option><option value="TD">Chad</option><option value="CL">Chile</option><option value="CN">China</option><option value="CO">Colombia</option><option value="KM">Comoros</option><option value="CG">Congo</option><option value="CR">Costa Rica</option><option value="HR">Croatia</option><option value="CU">Cuba</option><option value="CY">Cyprus</option><option value="CZ">Czechia</option><option value="DK">Denmark</option><option value="DJ">Djibouti</option><option value="DM">Dominica</option><option value="DO">Dominican Republic</option><option value="EC">Ecuador</option><option value="EG">Egypt</option><option value="SV">El Salvador</option><option value="GQ">Equatorial Guinea</option><option value="ER">Eritrea</option><option value="EE">Estonia</option><option value="SZ">Eswatini</option><option value="ET">Ethiopia</option><option value="FJ">Fiji</option><option value="FI">Finland</option><option value="FR">France</option><option value="GA">Gabon</option><option value="GM">Gambia</option><option value="GE">Georgia</option><option value="DE">Germany</option><option value="GH">Ghana</option><option value="GR">Greece</option><option value="GD">Grenada</option><option value="GT">Guatemala</option><option value="GN">Guinea</option><option value="GW">Guinea-Bissau</option><option value="GY">Guyana</option><option value="HT">Haiti</option><option value="HN">Honduras</option><option value="HU">Hungary</option><option value="IS">Iceland</option><option value="IN">India</option><option value="ID">Indonesia</option><option value="IR">Iran</option><option value="IQ">Iraq</option><option value="IE">Ireland</option><option value="IL">Israel</option><option value="IT">Italy</option><option value="JM">Jamaica</option><option value="JP">Japan</option><option value="JO">Jordan</option><option value="KZ">Kazakhstan</option><option value="KE">Kenya</option><option value="KI">Kiribati</option><option value="KP">North Korea</option><option value="KR">South Korea</option><option value="KW">Kuwait</option><option value="KG">Kyrgyzstan</option><option value="LA">Laos</option><option value="LV">Latvia</option><option value="LB">Lebanon</option><option value="LS">Lesotho</option><option value="LR">Liberia</option><option value="LY">Libya</option><option value="LI">Liechtenstein</option><option value="LT">Lithuania</option><option value="LU">Luxembourg</option><option value="MG">Madagascar</option><option value="MW">Malawi</option><option value="MY">Malaysia</option><option value="MV">Maldives</option><option value="ML">Mali</option><option value="MT">Malta</option><option value="MH">Marshall Islands</option><option value="MR">Mauritania</option><option value="MU">Mauritius</option><option value="MX">Mexico</option><option value="FM">Micronesia</option><option value="MD">Moldova</option><option value="MC">Monaco</option><option value="MN">Mongolia</option><option value="ME">Montenegro</option><option value="MA">Morocco</option><option value="MZ">Mozambique</option><option value="MM">Myanmar</option><option value="NA">Namibia</option><option value="NR">Nauru</option><option value="NP">Nepal</option><option value="NL">Netherlands</option><option value="NZ">New Zealand</option><option value="NI">Nicaragua</option><option value="NE">Niger</option><option value="NG">Nigeria</option><option value="MK">North Macedonia</option><option value="NO">Norway</option><option value="OM">Oman</option><option value="PK">Pakistan</option><option value="PW">Palau</option><option value="PS">Palestine</option><option value="PA">Panama</option><option value="PG">Papua New Guinea</option><option value="PY">Paraguay</option><option value="PE">Peru</option><option value="PH">Philippines</option><option value="PL">Poland</option><option value="PT">Portugal</option><option value="QA">Qatar</option><option value="RO">Romania</option><option value="RU">Russia</option><option value="RW">Rwanda</option><option value="WS">Samoa</option><option value="SM">San Marino</option><option value="ST">Sao Tome and Principe</option><option value="SA">Saudi Arabia</option><option value="SN">Senegal</option><option value="RS">Serbia</option><option value="SC">Seychelles</option><option value="SL">Sierra Leone</option><option value="SG">Singapore</option><option value="SK">Slovakia</option><option value="SI">Slovenia</option><option value="SB">Solomon Islands</option><option value="SO">Somalia</option><option value="ZA">South Africa</option><option value="ES">Spain</option><option value="LK">Sri Lanka</option><option value="SD">Sudan</option><option value="SR">Suriname</option><option value="SE">Sweden</option><option value="CH">Switzerland</option><option value="SY">Syria</option><option value="TW">Taiwan</option><option value="TJ">Tajikistan</option><option value="TZ">Tanzania</option><option value="TH">Thailand</option><option value="TL">Timor-Leste</option><option value="TG">Togo</option><option value="TO">Tonga</option><option value="TT">Trinidad and Tobago</option><option value="TN">Tunisia</option><option value="TR">Turkey</option><option value="TM">Turkmenistan</option><option value="TV">Tuvalu</option><option value="UG">Uganda</option><option value="UA">Ukraine</option><option value="AE">United Arab Emirates</option><option value="GB">United Kingdom</option><option value="UY">Uruguay</option><option value="UZ">Uzbekistan</option><option value="VU">Vanuatu</option><option value="VE">Venezuela</option><option value="VN">Vietnam</option><option value="YE">Yemen</option><option value="ZM">Zambia</option><option value="ZW">Zimbabwe</option>
-                </select>
-            </div>
+                <h2 data-i18n="personal_info" style="margin-top: 20px;">Informações Pessoais</h2>
 
-            <!-- Enhanced Address Area -->
-            <div class="form-group">
-                <label data-i18n="address">Endereço (Rua, Número) *</label>
-                <input type="text" id="address" required>
-            </div>
-
-            <div class="grid-2">
-                <div class="form-group">
-                    <label data-i18n="zip">CEP / Zip Code *</label>
-                    <input type="text" id="zip" required>
-                </div>
-                <div class="form-group">
-                    <label data-i18n="apt">Apto / Casa / Compl. (Opcional)</label>
-                    <input type="text" id="apt">
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="form-group">
-                    <label data-i18n="city">Cidade *</label>
-                    <input type="text" id="city" required>
-                </div>
-                <!-- Dynamic State Selects Hardcoded for stability -->
-                <div class="form-group">
-                    <label data-i18n="state">Estado / Província *</label>
-                    <div id="state-wrapper">
-                        <!-- US States -->
-                        <select id="state-us" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
-                            <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
-                        </select>
-                        <!-- Brazil States -->
-                        <select id="state-br" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione o Estado...</option>
-                            <option value="AC">Acre</option><option value="AL">Alagoas</option><option value="AP">Amapá</option><option value="AM">Amazonas</option><option value="BA">Bahia</option><option value="CE">Ceará</option><option value="DF">Distrito Federal</option><option value="ES">Espírito Santo</option><option value="GO">Goiás</option><option value="MA">Maranhão</option><option value="MT">Mato Grosso</option><option value="MS">Mato Grosso do Sul</option><option value="MG">Minas Gerais</option><option value="PA">Pará</option><option value="PB">Paraíba</option><option value="PR">Paraná</option><option value="PE">Pernambuco</option><option value="PI">Piauí</option><option value="RJ">Rio de Janeiro</option><option value="RN">Rio Grande do Norte</option><option value="RS">Rio Grande do Sul</option><option value="RO">Rondônia</option><option value="RR">Roraima</option><option value="SC">Santa Catarina</option><option value="SP">São Paulo</option><option value="SE">Sergipe</option><option value="TO">Tocantins</option>
-                        </select>
-                        <!-- Portugal States -->
-                        <select id="state-pt" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione o Distrito...</option>
-                            <option value="Açores">Açores</option><option value="Aveiro">Aveiro</option><option value="Beja">Beja</option><option value="Braga">Braga</option><option value="Bragança">Bragança</option><option value="Castelo Branco">Castelo Branco</option><option value="Coimbra">Coimbra</option><option value="Évora">Évora</option><option value="Faro">Faro</option><option value="Guarda">Guarda</option><option value="Leiria">Leiria</option><option value="Lisboa">Lisboa</option><option value="Madeira">Madeira</option><option value="Portalegre">Portalegre</option><option value="Porto">Porto</option><option value="Santarém">Santarém</option><option value="Setúbal">Setúbal</option><option value="Viana do Castelo">Viana do Castelo</option><option value="Vila Real">Vila Real</option><option value="Viseu">Viseu</option>
-                        </select>
-                        <!-- Canada States -->
-                        <select id="state-ca" style="display: none;">
-                            <option value="" disabled selected data-i18n="state_select">Selecione a Província...</option>
-                            <option value="AB">Alberta</option><option value="BC">British Columbia</option><option value="MB">Manitoba</option><option value="NB">New Brunswick</option><option value="NL">Newfoundland and Labrador</option><option value="NS">Nova Scotia</option><option value="NT">Northwest Territories</option><option value="NU">Nunavut</option><option value="ON">Ontario</option><option value="PE">Prince Edward Island</option><option value="QC">Quebec</option><option value="SK">Saskatchewan</option><option value="YT">Yukon</option>
-                        </select>
-                        <!-- Other State Text Input -->
-                        <input type="text" id="state-text" style="display: none;" placeholder="Digite o Estado">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label data-i18n="first_name">Primeiro Nome *</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="last_name">Sobrenome *</label>
+                        <input type="text" id="lastName" required>
                     </div>
                 </div>
-            </div>
 
-            <h2 data-i18n="additional_info" style="margin-top: 20px;">Informação Adicional</h2>
-
-            <div class="form-group">
-                <label data-i18n="baptized">Você é Batizado? *</label>
-                <div class="radio-group" id="radio-baptized">
-                    <label class="radio-option"><input type="radio" name="baptized" value="Católico" data-val-i18n="bap_catholic" required> <span data-i18n="bap_catholic">Católico</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Evangélico" data-val-i18n="bap_christian"> <span data-i18n="bap_christian">Evangélico</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Quero me batizar" data-val-i18n="bap_want"> <span data-i18n="bap_want">Quero me Batizar</span></label>
-                    <label class="radio-option"><input type="radio" name="baptized" value="Não" data-val-i18n="bap_no"> <span data-i18n="bap_no">Não</span></label>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label data-i18n="age">Idade *</label>
+                        <input type="number" id="age" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="gender">Sexo *</label>
+                        <select id="gender" required>
+                            <option value="" disabled selected data-i18n="gender_select">Selecione...</option>
+                            <option value="Masculino" data-i18n="gender_m" data-val-i18n="gender_m">Masculino</option>
+                            <option value="Feminino" data-i18n="gender_f" data-val-i18n="gender_f">Feminino</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group" style="margin-top: 24px;">
-                <label data-i18n="gc">Você participa de um GC (Small Group)? *</label>
-                <div class="radio-group" id="radio-gc">
-                    <label class="radio-option"><input type="radio" name="gc" value="Sim" data-val-i18n="gc_yes" required> <span data-i18n="gc_yes">Sim</span></label>
-                    <label class="radio-option"><input type="radio" name="gc" value="Quero participar" data-val-i18n="gc_want"> <span data-i18n="gc_want">Quero participar</span></label>
-                    <label class="radio-option"><input type="radio" name="gc" value="Não" data-val-i18n="gc_no"> <span data-i18n="gc_no">Não</span></label>
+                <div class="form-group">
+                    <label data-i18n="marital">Estado Civil *</label>
+                    <select id="maritalStatus" required>
+                        <option value="" disabled selected data-i18n="marital_select">Selecione...</option>
+                        <option value="Solteiro(a)" data-i18n="single" data-val-i18n="single">Solteiro(a)</option>
+                        <option value="Casado(a)" data-i18n="married" data-val-i18n="married">Casado(a)</option>
+                        <option value="Divorciado(a)" data-i18n="divorced" data-val-i18n="divorced">Divorciado(a)
+                        </option>
+                        <option value="Viúvo(a)" data-i18n="widowed" data-val-i18n="widowed">Viúvo(a)</option>
+                    </select>
                 </div>
-            </div>
 
-            <button type="submit" class="btn-submit" id="btnSubmit"><span data-i18n="submit">Enviar Formulário</span> <span>→</span></button>
-        </form>
+                <h2 data-i18n="contact_info" style="margin-top: 20px;">Contato e Residência</h2>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label data-i18n="phone">Telefone (WhatsApp) *</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="email">E-mail *</label>
+                        <input type="email" id="email" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="country">País de Residência *</label>
+                    <select id="country" required onchange="handleCountryChange()">
+                        <option value="" disabled selected data-i18n="country_select">Selecione o País...</option>
+                        <option value="US" data-i18n="country_us">Estados Unidos</option>
+                        <option value="BR" data-i18n="country_br">Brasil</option>
+                        <option value="PT" data-i18n="country_pt">Portugal</option>
+                        <option value="CA" data-i18n="country_ca">Canadá</option>
+                        <option value="" disabled>──────────</option>
+                        <!-- Exhaustive Standard Country List -->
+                        <option value="AF">Afghanistan</option>
+                        <option value="AL">Albania</option>
+                        <option value="DZ">Algeria</option>
+                        <option value="AD">Andorra</option>
+                        <option value="AO">Angola</option>
+                        <option value="AR">Argentina</option>
+                        <option value="AM">Armenia</option>
+                        <option value="AU">Australia</option>
+                        <option value="AT">Austria</option>
+                        <option value="AZ">Azerbaijan</option>
+                        <option value="BS">Bahamas</option>
+                        <option value="BH">Bahrain</option>
+                        <option value="BD">Bangladesh</option>
+                        <option value="BB">Barbados</option>
+                        <option value="BY">Belarus</option>
+                        <option value="BE">Belgium</option>
+                        <option value="BZ">Belize</option>
+                        <option value="BJ">Benin</option>
+                        <option value="BT">Bhutan</option>
+                        <option value="BO">Bolivia</option>
+                        <option value="BA">Bosnia and Herzegovina</option>
+                        <option value="BW">Botswana</option>
+                        <option value="BN">Brunei</option>
+                        <option value="BG">Bulgaria</option>
+                        <option value="BF">Burkina Faso</option>
+                        <option value="BI">Burundi</option>
+                        <option value="CV">Cabo Verde</option>
+                        <option value="KH">Cambodia</option>
+                        <option value="CM">Cameroon</option>
+                        <option value="CA">Canada</option>
+                        <option value="CF">Central African Republic</option>
+                        <option value="TD">Chad</option>
+                        <option value="CL">Chile</option>
+                        <option value="CN">China</option>
+                        <option value="CO">Colombia</option>
+                        <option value="KM">Comoros</option>
+                        <option value="CG">Congo</option>
+                        <option value="CR">Costa Rica</option>
+                        <option value="HR">Croatia</option>
+                        <option value="CU">Cuba</option>
+                        <option value="CY">Cyprus</option>
+                        <option value="CZ">Czechia</option>
+                        <option value="DK">Denmark</option>
+                        <option value="DJ">Djibouti</option>
+                        <option value="DM">Dominica</option>
+                        <option value="DO">Dominican Republic</option>
+                        <option value="EC">Ecuador</option>
+                        <option value="EG">Egypt</option>
+                        <option value="SV">El Salvador</option>
+                        <option value="GQ">Equatorial Guinea</option>
+                        <option value="ER">Eritrea</option>
+                        <option value="EE">Estonia</option>
+                        <option value="SZ">Eswatini</option>
+                        <option value="ET">Ethiopia</option>
+                        <option value="FJ">Fiji</option>
+                        <option value="FI">Finland</option>
+                        <option value="FR">France</option>
+                        <option value="GA">Gabon</option>
+                        <option value="GM">Gambia</option>
+                        <option value="GE">Georgia</option>
+                        <option value="DE">Germany</option>
+                        <option value="GH">Ghana</option>
+                        <option value="GR">Greece</option>
+                        <option value="GD">Grenada</option>
+                        <option value="GT">Guatemala</option>
+                        <option value="GN">Guinea</option>
+                        <option value="GW">Guinea-Bissau</option>
+                        <option value="GY">Guyana</option>
+                        <option value="HT">Haiti</option>
+                        <option value="HN">Honduras</option>
+                        <option value="HU">Hungary</option>
+                        <option value="IS">Iceland</option>
+                        <option value="IN">India</option>
+                        <option value="ID">Indonesia</option>
+                        <option value="IR">Iran</option>
+                        <option value="IQ">Iraq</option>
+                        <option value="IE">Ireland</option>
+                        <option value="IL">Israel</option>
+                        <option value="IT">Italy</option>
+                        <option value="JM">Jamaica</option>
+                        <option value="JP">Japan</option>
+                        <option value="JO">Jordan</option>
+                        <option value="KZ">Kazakhstan</option>
+                        <option value="KE">Kenya</option>
+                        <option value="KI">Kiribati</option>
+                        <option value="KP">North Korea</option>
+                        <option value="KR">South Korea</option>
+                        <option value="KW">Kuwait</option>
+                        <option value="KG">Kyrgyzstan</option>
+                        <option value="LA">Laos</option>
+                        <option value="LV">Latvia</option>
+                        <option value="LB">Lebanon</option>
+                        <option value="LS">Lesotho</option>
+                        <option value="LR">Liberia</option>
+                        <option value="LY">Libya</option>
+                        <option value="LI">Liechtenstein</option>
+                        <option value="LT">Lithuania</option>
+                        <option value="LU">Luxembourg</option>
+                        <option value="MG">Madagascar</option>
+                        <option value="MW">Malawi</option>
+                        <option value="MY">Malaysia</option>
+                        <option value="MV">Maldives</option>
+                        <option value="ML">Mali</option>
+                        <option value="MT">Malta</option>
+                        <option value="MH">Marshall Islands</option>
+                        <option value="MR">Mauritania</option>
+                        <option value="MU">Mauritius</option>
+                        <option value="MX">Mexico</option>
+                        <option value="FM">Micronesia</option>
+                        <option value="MD">Moldova</option>
+                        <option value="MC">Monaco</option>
+                        <option value="MN">Mongolia</option>
+                        <option value="ME">Montenegro</option>
+                        <option value="MA">Morocco</option>
+                        <option value="MZ">Mozambique</option>
+                        <option value="MM">Myanmar</option>
+                        <option value="NA">Namibia</option>
+                        <option value="NR">Nauru</option>
+                        <option value="NP">Nepal</option>
+                        <option value="NL">Netherlands</option>
+                        <option value="NZ">New Zealand</option>
+                        <option value="NI">Nicaragua</option>
+                        <option value="NE">Niger</option>
+                        <option value="NG">Nigeria</option>
+                        <option value="MK">North Macedonia</option>
+                        <option value="NO">Norway</option>
+                        <option value="OM">Oman</option>
+                        <option value="PK">Pakistan</option>
+                        <option value="PW">Palau</option>
+                        <option value="PS">Palestine</option>
+                        <option value="PA">Panama</option>
+                        <option value="PG">Papua New Guinea</option>
+                        <option value="PY">Paraguay</option>
+                        <option value="PE">Peru</option>
+                        <option value="PH">Philippines</option>
+                        <option value="PL">Poland</option>
+                        <option value="PT">Portugal</option>
+                        <option value="QA">Qatar</option>
+                        <option value="RO">Romania</option>
+                        <option value="RU">Russia</option>
+                        <option value="RW">Rwanda</option>
+                        <option value="WS">Samoa</option>
+                        <option value="SM">San Marino</option>
+                        <option value="ST">Sao Tome and Principe</option>
+                        <option value="SA">Saudi Arabia</option>
+                        <option value="SN">Senegal</option>
+                        <option value="RS">Serbia</option>
+                        <option value="SC">Seychelles</option>
+                        <option value="SL">Sierra Leone</option>
+                        <option value="SG">Singapore</option>
+                        <option value="SK">Slovakia</option>
+                        <option value="SI">Slovenia</option>
+                        <option value="SB">Solomon Islands</option>
+                        <option value="SO">Somalia</option>
+                        <option value="ZA">South Africa</option>
+                        <option value="ES">Spain</option>
+                        <option value="LK">Sri Lanka</option>
+                        <option value="SD">Sudan</option>
+                        <option value="SR">Suriname</option>
+                        <option value="SE">Sweden</option>
+                        <option value="CH">Switzerland</option>
+                        <option value="SY">Syria</option>
+                        <option value="TW">Taiwan</option>
+                        <option value="TJ">Tajikistan</option>
+                        <option value="TZ">Tanzania</option>
+                        <option value="TH">Thailand</option>
+                        <option value="TL">Timor-Leste</option>
+                        <option value="TG">Togo</option>
+                        <option value="TO">Tonga</option>
+                        <option value="TT">Trinidad and Tobago</option>
+                        <option value="TN">Tunisia</option>
+                        <option value="TR">Turkey</option>
+                        <option value="TM">Turkmenistan</option>
+                        <option value="TV">Tuvalu</option>
+                        <option value="UG">Uganda</option>
+                        <option value="UA">Ukraine</option>
+                        <option value="AE">United Arab Emirates</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="UY">Uruguay</option>
+                        <option value="UZ">Uzbekistan</option>
+                        <option value="VU">Vanuatu</option>
+                        <option value="VE">Venezuela</option>
+                        <option value="VN">Vietnam</option>
+                        <option value="YE">Yemen</option>
+                        <option value="ZM">Zambia</option>
+                        <option value="ZW">Zimbabwe</option>
+                    </select>
+                </div>
+
+                <!-- Enhanced Address Area -->
+                <div class="form-group">
+                    <label data-i18n="address">Endereço (Rua, Número) *</label>
+                    <input type="text" id="address" required>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label data-i18n="zip">CEP / Zip Code *</label>
+                        <input type="text" id="zip" required>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="apt">Apto / Casa / Compl. (Opcional)</label>
+                        <input type="text" id="apt">
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label data-i18n="city">Cidade *</label>
+                        <input type="text" id="city" required>
+                    </div>
+                    <!-- Dynamic State Selects Hardcoded for stability -->
+                    <div class="form-group">
+                        <label data-i18n="state">Estado / Província *</label>
+                        <div id="state-wrapper">
+                            <!-- US States -->
+                            <select id="state-us" style="display: none;">
+                                <option value="" disabled selected data-i18n="state_select">Selecione o Estado...
+                                </option>
+                                <option value="AL">Alabama</option>
+                                <option value="AK">Alaska</option>
+                                <option value="AZ">Arizona</option>
+                                <option value="AR">Arkansas</option>
+                                <option value="CA">California</option>
+                                <option value="CO">Colorado</option>
+                                <option value="CT">Connecticut</option>
+                                <option value="DE">Delaware</option>
+                                <option value="FL">Florida</option>
+                                <option value="GA">Georgia</option>
+                                <option value="HI">Hawaii</option>
+                                <option value="ID">Idaho</option>
+                                <option value="IL">Illinois</option>
+                                <option value="IN">Indiana</option>
+                                <option value="IA">Iowa</option>
+                                <option value="KS">Kansas</option>
+                                <option value="KY">Kentucky</option>
+                                <option value="LA">Louisiana</option>
+                                <option value="ME">Maine</option>
+                                <option value="MD">Maryland</option>
+                                <option value="MA">Massachusetts</option>
+                                <option value="MI">Michigan</option>
+                                <option value="MN">Minnesota</option>
+                                <option value="MS">Mississippi</option>
+                                <option value="MO">Missouri</option>
+                                <option value="MT">Montana</option>
+                                <option value="NE">Nebraska</option>
+                                <option value="NV">Nevada</option>
+                                <option value="NH">New Hampshire</option>
+                                <option value="NJ">New Jersey</option>
+                                <option value="NM">New Mexico</option>
+                                <option value="NY">New York</option>
+                                <option value="NC">North Carolina</option>
+                                <option value="ND">North Dakota</option>
+                                <option value="OH">Ohio</option>
+                                <option value="OK">Oklahoma</option>
+                                <option value="OR">Oregon</option>
+                                <option value="PA">Pennsylvania</option>
+                                <option value="RI">Rhode Island</option>
+                                <option value="SC">South Carolina</option>
+                                <option value="SD">South Dakota</option>
+                                <option value="TN">Tennessee</option>
+                                <option value="TX">Texas</option>
+                                <option value="UT">Utah</option>
+                                <option value="VT">Vermont</option>
+                                <option value="VA">Virginia</option>
+                                <option value="WA">Washington</option>
+                                <option value="WV">West Virginia</option>
+                                <option value="WI">Wisconsin</option>
+                                <option value="WY">Wyoming</option>
+                            </select>
+                            <!-- Brazil States -->
+                            <select id="state-br" style="display: none;">
+                                <option value="" disabled selected data-i18n="state_select">Selecione o Estado...
+                                </option>
+                                <option value="AC">Acre</option>
+                                <option value="AL">Alagoas</option>
+                                <option value="AP">Amapá</option>
+                                <option value="AM">Amazonas</option>
+                                <option value="BA">Bahia</option>
+                                <option value="CE">Ceará</option>
+                                <option value="DF">Distrito Federal</option>
+                                <option value="ES">Espírito Santo</option>
+                                <option value="GO">Goiás</option>
+                                <option value="MA">Maranhão</option>
+                                <option value="MT">Mato Grosso</option>
+                                <option value="MS">Mato Grosso do Sul</option>
+                                <option value="MG">Minas Gerais</option>
+                                <option value="PA">Pará</option>
+                                <option value="PB">Paraíba</option>
+                                <option value="PR">Paraná</option>
+                                <option value="PE">Pernambuco</option>
+                                <option value="PI">Piauí</option>
+                                <option value="RJ">Rio de Janeiro</option>
+                                <option value="RN">Rio Grande do Norte</option>
+                                <option value="RS">Rio Grande do Sul</option>
+                                <option value="RO">Rondônia</option>
+                                <option value="RR">Roraima</option>
+                                <option value="SC">Santa Catarina</option>
+                                <option value="SP">São Paulo</option>
+                                <option value="SE">Sergipe</option>
+                                <option value="TO">Tocantins</option>
+                            </select>
+                            <!-- Portugal States -->
+                            <select id="state-pt" style="display: none;">
+                                <option value="" disabled selected data-i18n="state_select">Selecione o Distrito...
+                                </option>
+                                <option value="Açores">Açores</option>
+                                <option value="Aveiro">Aveiro</option>
+                                <option value="Beja">Beja</option>
+                                <option value="Braga">Braga</option>
+                                <option value="Bragança">Bragança</option>
+                                <option value="Castelo Branco">Castelo Branco</option>
+                                <option value="Coimbra">Coimbra</option>
+                                <option value="Évora">Évora</option>
+                                <option value="Faro">Faro</option>
+                                <option value="Guarda">Guarda</option>
+                                <option value="Leiria">Leiria</option>
+                                <option value="Lisboa">Lisboa</option>
+                                <option value="Madeira">Madeira</option>
+                                <option value="Portalegre">Portalegre</option>
+                                <option value="Porto">Porto</option>
+                                <option value="Santarém">Santarém</option>
+                                <option value="Setúbal">Setúbal</option>
+                                <option value="Viana do Castelo">Viana do Castelo</option>
+                                <option value="Vila Real">Vila Real</option>
+                                <option value="Viseu">Viseu</option>
+                            </select>
+                            <!-- Canada States -->
+                            <select id="state-ca" style="display: none;">
+                                <option value="" disabled selected data-i18n="state_select">Selecione a Província...
+                                </option>
+                                <option value="AB">Alberta</option>
+                                <option value="BC">British Columbia</option>
+                                <option value="MB">Manitoba</option>
+                                <option value="NB">New Brunswick</option>
+                                <option value="NL">Newfoundland and Labrador</option>
+                                <option value="NS">Nova Scotia</option>
+                                <option value="NT">Northwest Territories</option>
+                                <option value="NU">Nunavut</option>
+                                <option value="ON">Ontario</option>
+                                <option value="PE">Prince Edward Island</option>
+                                <option value="QC">Quebec</option>
+                                <option value="SK">Saskatchewan</option>
+                                <option value="YT">Yukon</option>
+                            </select>
+                            <!-- Other State Text Input -->
+                            <input type="text" id="state-text" style="display: none;" placeholder="Digite o Estado">
+                        </div>
+                    </div>
+                </div>
+
+                <h2 data-i18n="additional_info" style="margin-top: 20px;">Informação Adicional</h2>
+
+                <div class="form-group">
+                    <label data-i18n="baptized">Você é Batizado? *</label>
+                    <div class="radio-group" id="radio-baptized">
+                        <label class="radio-option"><input type="radio" name="baptized" value="Católico"
+                                data-val-i18n="bap_catholic" required> <span
+                                data-i18n="bap_catholic">Católico</span></label>
+                        <label class="radio-option"><input type="radio" name="baptized" value="Evangélico"
+                                data-val-i18n="bap_christian"> <span data-i18n="bap_christian">Evangélico</span></label>
+                        <label class="radio-option"><input type="radio" name="baptized" value="Quero me batizar"
+                                data-val-i18n="bap_want"> <span data-i18n="bap_want">Quero me Batizar</span></label>
+                        <label class="radio-option"><input type="radio" name="baptized" value="Não"
+                                data-val-i18n="bap_no"> <span data-i18n="bap_no">Não</span></label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 24px;">
+                    <label data-i18n="gc">Você participa de um GC (Small Group)? *</label>
+                    <div class="radio-group" id="radio-gc">
+                        <label class="radio-option"><input type="radio" name="gc" value="Sim" data-val-i18n="gc_yes"
+                                required> <span data-i18n="gc_yes">Sim</span></label>
+                        <label class="radio-option"><input type="radio" name="gc" value="Quero participar"
+                                data-val-i18n="gc_want"> <span data-i18n="gc_want">Quero participar</span></label>
+                        <label class="radio-option"><input type="radio" name="gc" value="Não" data-val-i18n="gc_no">
+                            <span data-i18n="gc_no">Não</span></label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btnSubmit"><span data-i18n="submit">Enviar
+                        Formulário</span> <span>→</span></button>
+            </form>
         </div>
     </div>
 
@@ -439,7 +920,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
     <script src="hub-router.js"></script>
-    
+
     <script>
         // -- Advanced Realtime Translations --
         const translations = {
@@ -647,16 +1128,16 @@
                         el.value = t[key];
                     }
                 });
-                
+
                 // 3. Placeholders
                 const stateText = document.getElementById('state-text');
-                if(stateText) stateText.placeholder = t.state_text_ph;
-                
-            } catch(e) {
+                if (stateText) stateText.placeholder = t.state_text_ph;
+
+            } catch (e) {
                 console.error("Translation Engine Warning: ", e);
             }
         }
-        
+
         // -- Country Logic --
         function handleCountryChange() {
             try {
@@ -669,7 +1150,7 @@
 
                 // Hide all
                 [stateText, stateUS, stateBR, statePT, stateCA].forEach(el => {
-                    if(el) { el.style.display = 'none'; el.required = false; el.value = ""; }
+                    if (el) { el.style.display = 'none'; el.required = false; el.value = ""; }
                 });
 
                 if (country === 'US') { stateUS.style.display = 'block'; stateUS.required = true; }
@@ -683,14 +1164,14 @@
 
         // Apply on Start
         window.addEventListener('DOMContentLoaded', () => {
-            handleCountryChange(); 
+            handleCountryChange();
             changeLanguage();
-            
+
             // Get slug for initial country detection (extract from paths like /braga/consolida-form.html)
             const parts = window.location.pathname.split('/').filter(Boolean);
             const sys = ['login.html', 'dashboard.html', 'consolida-form.html', 'crie-inscricao.html'];
             const slug = parts.find(p => !sys.includes(p))?.toLowerCase() || '';
-            
+
             let initialCountry = "us"; // USA default
             if (['braga', 'almada', 'lisboa', 'porto', 'coimbra', 'algarve'].includes(slug)) initialCountry = "pt";
             else if (['rio-de-janeiro', 'brasil', 'niteroi', 'saopaulo', 'sp', 'rj'].includes(slug)) initialCountry = "br";
@@ -708,7 +1189,7 @@
         // -- Submit Logic --
         async function handleFormSubmit(event) {
             event.preventDefault();
-            
+
             const btn = document.getElementById('btnSubmit');
             const lang = document.getElementById('languageSelector').value;
             const originalText = btn.innerHTML;
@@ -719,7 +1200,7 @@
             try {
                 // Initialize Supabase
                 const supabase = window.supabase.createClient(
-                    'https://uyseheucqikgcorrygzc.supabase.co', 
+                    'https://uyseheucqikgcorrygzc.supabase.co',
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI'
                 );
 
@@ -728,12 +1209,12 @@
                 if (!workspaceId) throw new Error('Workspace não encontrado. Verifique o link do formulário.');
 
                 // Fetch the full international phone number mapped by the plugin
-                const fullPhoneStr = window.phoneInput.getNumber(); 
+                const fullPhoneStr = window.phoneInput.getNumber();
 
                 // Resolve which State input was used
                 let finalState = "";
                 const country = document.getElementById('country').value;
-                if(country === 'US') finalState = document.getElementById('state-us').value;
+                if (country === 'US') finalState = document.getElementById('state-us').value;
                 else if (country === 'BR') finalState = document.getElementById('state-br').value;
                 else if (country === 'PT') finalState = document.getElementById('state-pt').value;
                 else if (country === 'CA') finalState = document.getElementById('state-ca').value;
@@ -753,7 +1234,7 @@
                     culto: document.getElementById('service').value,
                     pais: country,
                     gc_status: Array.from(document.getElementsByName('gc')).find(r => r.checked)?.value || "Não Informado",
-                    tasks: [{"task_name": "Boas Vindas", "status": "pending", "assigned_to": "ai"}]
+                    tasks: [{ "task_name": "Boas Vindas", "status": "pending", "assigned_to": "ai" }]
                 };
 
                 // ── G1: Email Duplicate Check (Consolidação blocks duplicates) ──
@@ -781,17 +1262,17 @@
                 const { data, error } = await supabase.from('leads').insert([leadData]).select();
 
                 if (error) throw error;
-                
+
                 document.getElementById('successScreen').classList.add('active');
-                
+
                 // Show personalized name message
                 const firstName = document.getElementById('firstName').value.trim();
                 const titleEl = document.querySelector('#successScreen h3');
                 if (titleEl && firstName) titleEl.innerText = `Obrigado, ${firstName}!`;
-                
+
                 // Clear the form fields silently after message shows up
                 setTimeout(() => document.getElementById('visitorForm').reset(), 800);
-                
+
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 btn.style.opacity = '1';
@@ -805,4 +1286,5 @@
         }
     </script>
 </body>
+
 </html>

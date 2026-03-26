@@ -1705,7 +1705,13 @@
                         const matchC = (vCountry === 'all') || (String(lead.pais||'').toLowerCase() === vCountry);
                         
                         let matchTime = true;
-                        if (vTimeRangeDays !== 'all') {
+                        if (vTimeRangeDays === '__top_custom__' && window._vTopCustomStart && window._vTopCustomEnd) {
+                            const ld = new Date(lead.created_at);
+                            const st = new Date(window._vTopCustomStart);
+                            const en = new Date(window._vTopCustomEnd);
+                            en.setHours(23,59,59,999);
+                            if (ld < st || ld > en) matchTime = false;
+                        } else if (vTimeRangeDays !== 'all') {
                             const leadDate = new Date(lead.created_at);
                             if (isNaN(leadDate.valueOf())) { matchTime = false; }
                             else {
@@ -1715,6 +1721,7 @@
                                 
                                 if (vTimeRangeDays === '7') matchTime = diffDays <= 7;
                                 else if (vTimeRangeDays === '30') matchTime = diffDays <= 30;
+                                else if (vTimeRangeDays === '90') matchTime = diffDays <= 90;
                                 else if (vTimeRangeDays === 'today') matchTime = diffDays <= 1;
                             }
                         }
@@ -2037,6 +2044,22 @@
             "Pais": l.pais || 'BR'
         }));
 
+        let kpis = {};
+        if (type === 'consolidados') {
+            kpis = {
+                "Celebração Aut. (IA)": document.getElementById('kpi-t1')?.innerText || "0",
+                "Convidar p/ Start": document.getElementById('kpi-t2')?.innerText || "0",
+                "Convidar p/ GC": document.getElementById('kpi-tgc')?.innerText || "0",
+                "Convite de Batismo": document.getElementById('kpi-t3')?.innerText || "0"
+            };
+        } else {
+            kpis = {
+                "Welcome Message (IA)": document.getElementById('vkpi-t1')?.innerText || "0",
+                "Convite para GC": document.getElementById('vkpi-t2')?.innerText || "0",
+                "Follow-up Humano": document.getElementById('vkpi-t3')?.innerText || "0"
+            };
+        }
+
         try {
             const res = await fetch(`${API_BASE}/api/email/send-report`, {
                 method: 'POST',
@@ -2046,7 +2069,8 @@
                     report_type: type, 
                     total_count: count, 
                     csv_link: "https://hub.lagoinha.com/download/relatorio.csv",
-                    leads: formatados
+                    leads: formatados,
+                    kpis: kpis
                 })
             });
             if (res.ok) {
@@ -2838,26 +2862,29 @@
         const tabs = document.querySelectorAll('#' + tabsId + ' .hub-period-tab');
         tabs.forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
-        // Hide custom date picker when clicking a period button
-        const topCustom = document.getElementById('top-custom-date');
+        
+        const topCustomId = view === 'dashboard' ? 'top-custom-date' : 'top-custom-date-v';
+        const topCustom = document.getElementById(topCustomId);
         if (topCustom) topCustom.style.display = 'none';
-        // Sync the hidden filterTimeRange select so applyFilters works
-        const frEl = document.getElementById('filterTimeRange');
+        
+        const frElId = view === 'dashboard' ? 'filterTimeRange' : 'vFilterTimeRange';
+        const frEl = document.getElementById(frElId);
         if (frEl) {
             if (days === 0) frEl.value = 'all';
             else if (days === 7) frEl.value = '7';
             else if (days === 30) frEl.value = '30';
             else if (days === 90) frEl.value = '90';
         }
-        window._periodCutoff = null;
+        
         if (view === 'dashboard') {
+            window._periodCutoff = null;
             if (window.applyFilters) window.applyFilters();
         } else {
-            if (typeof applyVisitorFilters === 'function') applyVisitorFilters();
+            window._vPeriodCutoff = null;
+            if (window.applyFilters) window.applyFilters();
         }
     };
 
-    // Toggle the custom date picker in the top bar
     window.toggleTopCustomDate = function(btn) {
         const topCustom = document.getElementById('top-custom-date');
         if (!topCustom) return;
@@ -2868,7 +2895,16 @@
         if (!isVisible) btn.classList.add('active');
     };
 
-    // Apply the custom date range from the top bar date pickers
+    window.toggleTopCustomDateV = function(btn) {
+        const topCustom = document.getElementById('top-custom-date-v');
+        if (!topCustom) return;
+        const isVisible = topCustom.style.display === 'flex';
+        topCustom.style.display = isVisible ? 'none' : 'flex';
+        const tabs = document.querySelectorAll('#period-tabs-visitors .hub-period-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (!isVisible) btn.classList.add('active');
+    };
+
     window.applyTopCustomDate = function() {
         const startEl = document.getElementById('topDateStart');
         const endEl = document.getElementById('topDateEnd');
@@ -2876,6 +2912,26 @@
         window._topCustomStart = startEl.value;
         window._topCustomEnd = endEl.value || new Date().toISOString().split('T')[0];
         const frEl = document.getElementById('filterTimeRange');
+        if (frEl) {
+            let opt = frEl.querySelector('option[value="__top_custom__"]');
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = '__top_custom__';
+                opt.text = 'Período selecionado';
+                frEl.appendChild(opt);
+            }
+            frEl.value = '__top_custom__';
+        }
+        if (window.applyFilters) window.applyFilters();
+    };
+
+    window.applyTopCustomDateV = function() {
+        const startEl = document.getElementById('vTopDateStart');
+        const endEl = document.getElementById('vTopDateEnd');
+        if (!startEl || !endEl || !startEl.value) return;
+        window._vTopCustomStart = startEl.value;
+        window._vTopCustomEnd = endEl.value || new Date().toISOString().split('T')[0];
+        const frEl = document.getElementById('vFilterTimeRange');
         if (frEl) {
             let opt = frEl.querySelector('option[value="__top_custom__"]');
             if (!opt) {

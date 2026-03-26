@@ -1144,8 +1144,20 @@
                     <h1>Mapeamento de Visitantes</h1>
                     <p>Controle das primeiras visitas e roteamento de conexão.</p>
                 </div>
-                <div class="actions">
-                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('visitantes', 95)">📤 Enviar Relatório (CSV)</button>
+                <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div class="hub-period-tabs" id="period-tabs-visitors" style="display:flex;align-items:center;gap:4px;">
+                        <button class="hub-period-tab active" onclick="setPeriodFilter('visitors',7,this)">7d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('visitors',30,this)">30d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('visitors',90,this)">90d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('visitors',0,this)">Todos</button>
+                        <button class="hub-period-tab" id="btn-custom-date-v" onclick="toggleTopCustomDateV(this)" title="Período customizado">📅</button>
+                    </div>
+                    <div id="top-custom-date-v" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.25);border-radius:10px;padding:4px 10px;">
+                        <input type="date" id="vTopDateStart" class="select-filter" style="padding:4px 8px;width:140px;background:transparent;border:none;color:#d1d7db;font-size:0.8rem;" onchange="applyFilters()">
+                        <span style="color:var(--text-dim);font-size:0.8rem;">→</span>
+                        <input type="date" id="vTopDateEnd" class="select-filter" style="padding:4px 8px;width:140px;background:transparent;border:none;color:#d1d7db;font-size:0.8rem;" onchange="applyFilters()">
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('visitantes', window._allVisit ? window._allVisit.length : 0)">📤 Enviar Relatório</button>
                     <button type="button" class="btn btn-outline" style="background: var(--text-main); color: var(--bg-color);" onclick="window.open('./visitor-form.html', '_blank')">+ Novo Visitante</button>
                     <button type="button" class="btn btn-outline" onclick="fetchLiveLeads()">Sincronizar DB</button>
                 </div>
@@ -1204,16 +1216,11 @@
                     <option value="all">Todos os Países...</option>
                 </select>
 
-                <select class="select-filter" id="vFilterTimeRange" onchange="applyFilters()">
+                <select class="select-filter" id="vFilterTimeRange" onchange="applyFilters()" style="display:none;">
                     <option value="all">Todo o Período</option>
-                    <option value="today">Hoje</option>
                     <option value="7" selected>Últimos 7 Dias</option>
                     <option value="30">Últimos 30 Dias</option>
-                    <option value="this_month">Este Mês</option>
-                    <option value="last_month">Mês Passado</option>
-                    <option value="this_year">Este Ano</option>
-                    <option value="last_year">Ano Passado</option>
-                    <option value="custom">Data Específica...</option>
+                    <option value="90">Últimos 90 Dias</option>
                 </select>
             </div>
 

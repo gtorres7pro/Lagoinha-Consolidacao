@@ -67,39 +67,51 @@ def send_reset_password_email(user_email: str, reset_link: str):
         print(f"Erro ao enviar email de reset para {user_email}: {e}")
         return {"error": str(e)}
 
-def send_report_email(user_email: str, report_type: str, total_count: int, csv_link: str = "", leads: list = []):
+def send_report_email(user_email: str, report_type: str, total_count: int, csv_link: str = "", leads: list = [], kpis: dict = {}):
     resend.api_key = get_resend_key()
     
     titles = {
         "consolidados": "Relatório de Consolidação",
         "visitantes": "Relatório de Novos Visitantes"
     }
-    
     title = titles.get(report_type.lower(), "Relatório de Dados")
     
+    # Montar o bloco de KPIs caso exista
+    kpi_html = ""
+    if kpis:
+        kpi_html = '<div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px;">'
+        for k, v in kpis.items():
+            kpi_html += f"""
+            <div style="flex: 1; min-width: 120px; background: #ffffff; padding: 15px; border-radius: 10px; border-left: 4px solid #FFD700; box-shadow: 0 2px 4px rgba(0,0,0,0.04);">
+                <p style="margin: 0; font-size: 11px; text-transform: uppercase; color: #888; font-weight: bold; letter-spacing: 0.5px;">{k}</p>
+                <p style="margin: 5px 0 0; font-size: 24px; color: #111; font-weight: 800;">{v}</p>
+            </div>
+            """
+        kpi_html += '</div>'
+
     # Build HTML table for leads
     leads_html = ""
     if leads:
         leads_html += """
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; text-align: left;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <thead>
-                <tr style="background-color: #f1f5f9; border-bottom: 2px solid #ddd;">
-                    <th style="padding: 12px 10px; color: #333;">Nome</th>
-                    <th style="padding: 12px 10px; color: #333;">Telefone</th>
-                    <th style="padding: 12px 10px; color: #333;">Data Criação</th>
-                    <th style="padding: 12px 10px; color: #333;">País</th>
+                <tr style="background-color: #111; color: #FFD700;">
+                    <th style="padding: 14px; font-weight: 600;">Nome</th>
+                    <th style="padding: 14px; font-weight: 600;">Telefone</th>
+                    <th style="padding: 14px; font-weight: 600;">Data Criação</th>
+                    <th style="padding: 14px; font-weight: 600;">País</th>
                 </tr>
             </thead>
             <tbody>
         """
         for i, row in enumerate(leads):
-            bg_color = "#ffffff" if i % 2 == 0 else "#f9fafb"
+            bg_color = "#ffffff" if i % 2 == 0 else "#fcfcfc"
             leads_html += f"""
-                <tr style="background-color: {bg_color}; border-bottom: 1px solid #ebebeb;">
-                    <td style="padding: 10px; color: #444;">{row.get("Nome", "N/A")}</td>
-                    <td style="padding: 10px; color: #444;">{row.get("Telefone", "N/A")}</td>
-                    <td style="padding: 10px; color: #444;">{row.get("Criado_Em", "N/A")}</td>
-                    <td style="padding: 10px; color: #444;">{row.get("Pais", "N/A")}</td>
+                <tr style="background-color: {bg_color}; border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 14px; color: #333; font-weight: 500;">{row.get("Nome", "N/A")}</td>
+                    <td style="padding: 12px 14px; color: #555;">{row.get("Telefone", "N/A")}</td>
+                    <td style="padding: 12px 14px; color: #666;">{row.get("Criado_Em", "N/A")}</td>
+                    <td style="padding: 12px 14px; color: #555; text-align: center;"><span style="background: #eee; padding: 3px 8px; border-radius: 12px; font-size: 11px;">{row.get("Pais", "N/A")}</span></td>
                 </tr>
             """
         leads_html += """
@@ -107,35 +119,56 @@ def send_report_email(user_email: str, report_type: str, total_count: int, csv_l
         </table>
         """
         if total_count > len(leads):
-            leads_html += f"<p style='text-align: center; color: #888; font-size: 13px; margin-top: 15px;'>Exibindo os últimos {len(leads)} de {total_count} leads. Acesse o sistema para visualizar todos.</p>"
+            leads_html += f"<p style='text-align: center; color: #888; font-size: 12px; margin-top: 15px;'>Listando um excerto de {len(leads)} de {total_count} leads recentes.</p>"
     else:
-        leads_html = "<p style='color: #666; font-style: italic;'>Nenhum registro retornado para os critérios atuais ou pacote vazio.</p>"
+        leads_html = "<div style='padding: 20px; background: #fdfdfd; border: 1px dashed #ddd; border-radius: 8px; text-align: center;'><p style='color: #666; font-style: italic; margin: 0;'>Nenhum registro para o período atual.</p></div>"
         
     html_content = f"""
-    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 700px; margin: auto; padding: 30px; border: 1px solid #eaeaea; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-        <h2 style="color: #1a1a1a; border-bottom: 2px solid #FFD700; padding-bottom: 12px; margin-top: 0;">📊 {title}</h2>
-        <p style="color: #555; font-size: 15px; line-height: 1.5;">Aqui está o pacote de dados limpos recém processados do <b>Hub Lagoinha Consolidação</b> (sem histórico de tarefas, focado em contatos).</p>
-        
-        <div style="background-color: #f8fafc; padding: 15px 20px; border-radius: 8px; border-left: 4px solid #FFD700; margin: 25px 0;">
-            <p style="margin: 0; font-size: 16px; color: #222;"><strong>✅ Vidas Listadas Encontradas:</strong> {total_count}</p>
-        </div>
-        
-        <h3 style="color: #111; margin-top: 35px; margin-bottom: 10px; font-size: 18px;">Lista de Contatos Dinâmica</h3>
-        {leads_html}
-        
-        <div style="margin-top: 45px; text-align: center;">
-            <a href="https://hub.lagoinha.com" style="background-color: #111; color: #FFD700; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px; display: inline-block;">Acessar Dashboard Completo</a>
-        </div>
-        <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #f0f0f0; text-align: center;">
-            <p style="font-size: 12px; color: #a1a1aa; margin: 0;">E-mail automático gerado em tempo pelo Motor de Relatórios.</p>
-            <p style="font-size: 12px; color: #a1a1aa; margin: 4px 0 0 0;">Lagoinha Orlando Church.</p>
+    <div style="font-family: 'Helvetica Neue', 'Inter', Arial, sans-serif; background-color: #fafafa; padding: 40px 15px;">
+        <div style="max-width: 650px; margin: auto; background: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.04);">
+            
+            <!-- HEADER -->
+            <div style="text-align: center; margin-bottom: 35px;">
+                <div style="background-color: #111; color: #FFD700; width: 48px; height: 48px; line-height: 48px; font-size: 22px; font-weight: bold; border-radius: 50%; margin: 0 auto 15px;">L</div>
+                <h1 style="color: #111; font-size: 26px; font-weight: 800; margin: 0;">{title}</h1>
+                <p style="color: #777; font-size: 14px; margin-top: 8px; max-width: 80%; margin-left: auto; margin-right: auto;">Resumo consolidado do painel da Lagoinha. Este relatório contém o desempenho atual e os leads captados.</p>
+            </div>
+            
+            <!-- KPI ROW -->
+            {kpi_html}
+
+            <!-- MAIN STAT -->
+            <div style="background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%); padding: 20px 25px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; font-size: 13px; color: #FFD700; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Total Computado</p>
+                    <p style="margin: 5px 0 0; font-size: 32px; color: #ffffff; font-weight: 900;">{total_count} <span style="font-size: 16px; color: #aaa; font-weight: 400;">vidas</span></p>
+                </div>
+                <div style="background: rgba(255, 215, 0, 0.15); color: #FFD700; border-radius: 50%; padding: 12px;">📊</div>
+            </div>
+            
+            <h3 style="color: #222; font-size: 16px; font-weight: 700; border-left: 4px solid #FFD700; padding-left: 10px; margin-bottom: 20px;">Levantamento Recente</h3>
+            
+            <!-- DATATABLE -->
+            <div style="margin-bottom: 40px;">
+                {leads_html}
+            </div>
+            
+            <!-- ACTION -->
+            <div style="text-align: center; margin-top: 45px; margin-bottom: 20px;">
+                <a href="https://hub.lagoinha.com" style="background-color: #111; color: #FFD700; padding: 16px 36px; text-decoration: none; border-radius: 30px; font-weight: 700; font-size: 14px; display: inline-block; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.2s;">ACESSAR MESA DE OPERAÇÕES</a>
+            </div>
+            
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #f1f5f9; text-align: center;">
+                <p style="font-size: 12px; color: #a1a1aa; margin: 0;">Relatório Automático do <b>Sistema A.N.T.</b></p>
+                <p style="font-size: 12px; color: #a1a1aa; margin: 5px 0 0 0;">Lagoinha Orlando Church.</p>
+            </div>
         </div>
     </div>
     """
     
     try:
         response = resend.Emails.send({
-            "from": "Equipe Lagoinha <onboarding@resend.dev>",
+            "from": "Mesa de Operações <onboarding@resend.dev>",
             "to": user_email,
             "subject": f"{title} - Lagoinha Orlando",
             "html": html_content
