@@ -499,7 +499,7 @@
 
             // Phase 3: Lazy-load data for specific views
             if (tabName === 'logs' && window.loadAuditLogs) window.loadAuditLogs();
-            if (tabName === 'team' && window.loadTeamList) window.loadTeamList();
+            if (tabName === 'users' && window.loadTeam) window.loadTeam();
             if (tabName === 'home' && typeof generateQRCodes === 'function') setTimeout(generateQRCodes, 50);
             if (tabName === 'regional' && window.loadRegionalView) window.loadRegionalView();
             if (tabName === 'global'   && window.loadGlobalView)   window.loadGlobalView();
@@ -2111,19 +2111,201 @@
         }
     }
 
-    function openAddUserModal() {
-        const name = prompt("Nome completo do novo Membro:");
-        if (!name) return;
-        const email = prompt(`Email de acesso para ${name}:`);
-        if (!email) return;
-        const tempPass = Math.random().toString(36).slice(-8); // Gerar senha aleatoria 8 chars
-        
-        // Simular fluxo: Cria User no Supabase -> Envia Email via Resend
-        if (confirm(`Confirmar criação de usuário?\n\nNome: ${name}\nEmail: ${email}\nNível: User\n\nIsso disparará um e-mail com a senha provisória: ${tempPass}`)) {
-            sendUserCredentials(email, name, tempPass);
-            // Aqui pode injetar o HTML do User na tabela.
+    // ====================================================================
+    // USER / TEAM MANAGEMENT
+    // ====================================================================
+
+    window.loadTeam = async function() {
+        try {
+            const table = document.getElementById('team-tbody');
+            if (table) table.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Carregando membros...</td></tr>';
+            
+            const ws = await window.HubRouter?.getWorkspace();
+            if (!ws) return;
+
+            const { data: users, error } = await supabaseClient
+                .from('users')
+                .select('id, name, email, role, phone, status')
+                .eq('workspace_id', ws.id)
+                .order('role');
+
+            if (error) throw error;
+            renderTeam(users, ws.id);
+        } catch (err) {
+            console.error(err);
         }
     }
+
+    function renderTeam(users, workspaceId) {
+        window.currentTeamData = users; // cache
+        const tbody = document.getElementById('team-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Nenhum membro encontrado.</td></tr>';
+            return;
+        }
+
+        const roleMap = {
+            'master_admin': '<span style="background:rgba(255,215,0,.15); color:var(--accent); padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Master Admin</span>',
+            'church_admin': '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin da Igreja</span>',
+            'user':         '<span style="background:rgba(100,220,150,.15); color:#64dc96; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Voluntário</span>'
+        };
+
+        let html = '';
+        const myRank = (window.cachedProfile?.role === 'master_admin') ? 3 : (window.cachedProfile?.role === 'church_admin') ? 2 : 1;
+
+        users.forEach(u => {
+            const statusColor = (u.status === 'Ativo') ? '#4ade80' : '#f87171';
+            const uRank = (u.role === 'master_admin') ? 3 : (u.role === 'church_admin') ? 2 : 1;
+            
+            let actions = '';
+            // Only allow edit/delete if caller has HIGHER OR EQUAL rank, and isn't blocking themselves from deletion (optional)
+            if (myRank > uRank || (myRank === uRank && window.cachedProfile?.id !== u.id && myRank >= 2) || (myRank===3)) {
+                actions = `
+                    <button onclick="window.editUserModal('${u.id}')" title="Editar" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                    ${myRank >= 2 ? `<button onclick="window.resendInvite('${u.id}', '${u.email}')" title="Reenviar Convite ou Trocar Senha" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 2v6h6"/></svg></button>` : ''}
+                    <button onclick="window.deleteUser('${u.id}')" title="Excluir" style="background:none;border:none;color:#f87171;cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+                `;
+            }
+
+            html += `
+                <tr style="border-bottom:1px solid rgba(255,255,255,.05); transition:background 0.2s;">
+                    <td style="padding:14px 18px;">
+                        <div style="font-weight:600; color:#fff;">${u.name || 'Sem nome'}</div>
+                        <div style="font-size:0.75rem; color:#888;">${u.email}</div>
+                    </td>
+                    <td style="padding:14px 18px; color:#ccc; font-size:0.85rem;">${u.phone || '-'}</td>
+                    <td style="padding:14px 18px;">${roleMap[u.role] || u.role}</td>
+                    <td style="padding:14px 18px; color:${statusColor}; font-weight:600; font-size:0.85rem;">${u.status || 'Ativo'}</td>
+                    <td style="padding:14px 18px; text-align:right;">${actions}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        
+        // Populate role dropdown option visibility depending on rank
+        const masterOpts = document.querySelectorAll('.master-only');
+        masterOpts.forEach(el => el.style.display = (myRank >= 3) ? 'block' : 'none');
+    }
+
+    window.openUserModal = function() {
+        document.getElementById('user-id-hidden').value = '';
+        document.getElementById('user-name').value = '';
+        document.getElementById('user-email').value = '';
+        document.getElementById('user-phone').value = '';
+        document.getElementById('user-role').value = 'user';
+        document.getElementById('user-status').value = 'Ativo';
+        
+        document.getElementById('user-modal-title').textContent = 'Adicionar Novo Membro';
+        document.getElementById('user-modal-subtitle').style.display = 'block';
+        document.getElementById('user-status-group').style.display = 'none'; // only edit status 
+        
+        document.getElementById('user-modal-overlay').style.display = 'flex';
+    };
+
+    window.editUserModal = function(id) {
+        const u = window.currentTeamData.find(x => x.id === id);
+        if (!u) return;
+        document.getElementById('user-modal-title').textContent = 'Editar Membro';
+        document.getElementById('user-modal-subtitle').style.display = 'none';
+        
+        document.getElementById('user-id-hidden').value = u.id;
+        document.getElementById('user-name').value = u.name || '';
+        document.getElementById('user-email').value = u.email;
+        document.getElementById('user-phone').value = u.phone || '';
+        document.getElementById('user-role').value = u.role;
+        document.getElementById('user-status').value = u.status || 'Ativo';
+        
+        document.getElementById('user-status-group').style.display = 'block';
+        
+        document.getElementById('user-modal-overlay').style.display = 'flex';
+    };
+
+    window.closeUserModal = function() {
+        document.getElementById('user-modal-overlay').style.display = 'none';
+    };
+
+    window.saveUserSubmit = async function() {
+        const id = document.getElementById('user-id-hidden').value;
+        const name = document.getElementById('user-name').value.trim();
+        const email = document.getElementById('user-email').value.trim();
+        const phone = document.getElementById('user-phone').value.trim();
+        const role = document.getElementById('user-role').value;
+        const status = document.getElementById('user-status').value;
+        
+        if (!name || !email || !phone) return alert('Por favor, preencha todos os campos obrigatórios.');
+        
+        const ws = await window.HubRouter?.getWorkspace();
+        if (!ws) return alert('Workspace não carregado.');
+
+        const btn = document.getElementById('save-user-btn');
+        const oldText = btn.textContent;
+        btn.innerHTML = '⏳ Salvando...';
+        btn.disabled = true;
+
+        try {
+            const { data: session } = await supabaseClient.auth.getSession();
+            const token = session?.session?.access_token;
+
+            const payload = {
+                action: id ? 'update' : 'create',
+                id, email, name, phone, role, status, workspace_id: ws.id
+            };
+
+            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erro na API.');
+            }
+            
+            closeUserModal();
+            loadTeam(); // refresh view
+        } catch (e) {
+            alert('Erro: ' + e.message);
+        } finally {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    };
+
+    window.deleteUser = async function(id) {
+        if (!confirm('ATENÇÃO: Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.')) return;
+        try {
+            const { data: session } = await window.supabaseClient.auth.getSession();
+            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
+                 method: 'POST', 
+                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.session?.access_token },
+                 body: JSON.stringify({ action: 'delete', id })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            loadTeam();
+        } catch (e) {
+            alert("Erro ao excluir: " + e.message);
+        }
+    };
+
+    window.resendInvite = async function(id, email) {
+        if (!confirm(`Deseja reenviar o convite de acesso para ${email}?\n\nIsso gerará uma NOVA senha temporária, que será enviada por e-mail.`)) return;
+        try {
+            const { data: session } = await window.supabaseClient.auth.getSession();
+            const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
+                 method: 'POST', 
+                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.session?.access_token },
+                 body: JSON.stringify({ action: 'resend_invite', id, email })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            alert(`Acesso refeito! Se o envio de e-mail falhar, aqui está a nova senha provisória: ${data.tempPassword}`);
+        } catch (e) {
+            alert("Erro: " + e.message);
+        }
+    };
 
     // Native App Modals Container
     document.body.insertAdjacentHTML('beforeend', `

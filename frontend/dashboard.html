@@ -1280,10 +1280,10 @@
             <header class="top-bar">
                 <div class="page-title">
                     <h1>Membros da Equipe</h1>
-                    <p>Gerencie permissões, módulos e acesso por membro.</p>
+                    <p>Gerencie permissões, papéis e acessos da equipe.</p>
                 </div>
                 <div class="actions">
-                    <button type="button" class="hub-btn-primary" onclick="openAddUserModal()" style="padding:9px 20px;">+ Convidar Membro</button>
+                    <button type="button" class="hub-btn-primary" onclick="window.openUserModal()" style="padding:9px 20px;">+ Membro</button>
                 </div>
             </header>
 
@@ -1303,11 +1303,10 @@
                     <table id="team-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:.88rem;">
                         <thead>
                             <tr style="background:var(--bg-color); border-bottom:1px solid rgba(255,255,255,.05);">
-                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Membro</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Membro / Contato</th>
                                 <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Papel</th>
-                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Módulos</th>
                                 <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Status</th>
-                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Ações</th>
+                                <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; text-align:right;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="team-tbody">
@@ -1322,40 +1321,47 @@
                 </div>
             </div>
 
-            <!-- ── Invite Member Modal ────────────────────────────────── -->
-            <div id="invite-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); z-index:9100; align-items:center; justify-content:center;">
+            <!-- ── Add/Edit Member Modal ────────────────────────────────── -->
+            <div id="user-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(8px); z-index:9100; align-items:center; justify-content:center;">
                 <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:22px; padding:34px; width:100%; max-width:500px; box-shadow:0 24px 80px rgba(0,0,0,.5);">
-                    <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Convidar Novo Membro</h2>
-                    <p style="font-size:.82rem; color:var(--text-dim); margin-bottom:24px;">Um e-mail de acesso será enviado automaticamente.</p>
+                    <h2 id="user-modal-title" style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Adicionar Novo Membro</h2>
+                    <p id="user-modal-subtitle" style="font-size:.82rem; color:var(--text-dim); margin-bottom:24px;">Um e-mail de acesso será enviado automaticamente.</p>
+
+                    <input type="hidden" id="user-id-hidden">
 
                     <div style="display:flex; flex-direction:column; gap:16px;">
                         <div>
-                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Nome completo</label>
-                            <input id="invite-name" type="text" class="hub-input" placeholder="Ex: Juliana Veloso">
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Nome completo *</label>
+                            <input id="user-name" type="text" class="hub-input" placeholder="Ex: Juliana Veloso">
                         </div>
                         <div>
-                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">E-mail</label>
-                            <input id="invite-email" type="email" class="hub-input" placeholder="pastor@lagoinha.com">
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">E-mail *</label>
+                            <input id="user-email" type="email" class="hub-input" placeholder="pastor@lagoinha.com">
                         </div>
                         <div>
-                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Papel na equipe</label>
-                            <select id="invite-role" class="hub-input">
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Telefone c/ DDI (+1, +55) *</label>
+                            <input id="user-phone" type="text" class="hub-input" placeholder="+14079999999">
+                        </div>
+                        <div>
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Papel na equipe *</label>
+                            <select id="user-role" class="hub-input">
                                 <option value="user">Voluntário</option>
-                                <option value="church_admin">Líder de Ministério</option>
-                                <option value="church_admin">Admin da Igreja</option>
+                                <option value="church_admin">Admin da Igreja / Liderança</option>
+                                <option value="master_admin" class="master-only" style="display:none;">Master Admin (Acesso Global)</option>
                             </select>
                         </div>
-                        <div>
-                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:10px;">Módulos com acesso</label>
-                            <div id="invite-modules-grid" style="display:flex; flex-wrap:wrap; gap:8px;">
-                                <!-- populated by openAddUserModal() -->
-                            </div>
+                        <div id="user-status-group" style="display:none;">
+                            <label style="font-size:.78rem; color:var(--text-dim); display:block; margin-bottom:5px;">Status</label>
+                            <select id="user-status" class="hub-input">
+                                <option value="Ativo">Ativo</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
                         </div>
                     </div>
 
                     <div style="display:flex; gap:12px; margin-top:28px;">
-                        <button onclick="inviteTeamMember()" class="hub-btn-primary" style="flex:1;">Enviar Convite</button>
-                        <button onclick="closeInviteModal()" class="btn-outline" style="flex:1; border-radius:10px; padding:10px 20px;">Cancelar</button>
+                        <button onclick="window.saveUserSubmit()" id="save-user-btn" class="hub-btn-primary" style="flex:1;">Enviar Convite</button>
+                        <button onclick="window.closeUserModal()" class="btn-outline" style="flex:1; border-radius:10px; padding:10px 20px;">Cancelar</button>
                     </div>
                 </div>
             </div>
