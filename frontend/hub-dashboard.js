@@ -2245,31 +2245,66 @@
         masterOpts.forEach(el => el.style.display = (myRank >= 3) ? 'block' : 'none');
     }
 
-    // Definição central dos módulos disponíveis
+    // ─── Module definitions matching the actual sidebar menus ───────────────
     const AVAILABLE_MODULES = [
-        { key: 'consolidados',    label: 'Consolidados',    icon: '👥' },
-        { key: 'visitantes',      label: 'Visitantes',      icon: '🚶' },
-        { key: 'crie',            label: 'CRIE',            icon: '✨' },
-        { key: 'logs',            label: 'Logs / Auditoria',icon: '📋' },
-        { key: 'ia_chat',         label: 'IA Chat',         icon: '🤖' },
-        { key: 'relatorios',      label: 'Relatórios',      icon: '📊' },
-        { key: 'aniversariantes', label: 'Aniversariantes', icon: '🎂' },
-        { key: 'configuracoes',   label: 'Configurações',   icon: '⚙️' },
+        { key: 'mural',           label: 'Mural',           svg: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>' },
+        { key: 'consolidados',    label: 'Consolidados',    svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+        { key: 'visitantes',      label: 'Visitantes',      svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>' },
+        { key: 'aniversariantes', label: 'Aniversariantes', svg: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v-4"/><path d="M9 17h6"/>' },
+        { key: 'ia_chat',         label: 'IA Chat',         svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+        { key: 'relatorios',      label: 'Relatórios',      svg: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+        { key: 'logs',            label: 'Logs',            svg: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+        { key: 'crie',            label: 'CRIE',            svg: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+        { key: 'configuracoes',   label: 'Configurações',   svg: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
     ];
 
-    function renderModuleCheckboxes(selectedModules) {
+    // Renders elegant pill toggles (click to select/deselect)
+    function renderModuleToggles(selectedModules) {
         const container = document.getElementById('modules-checkboxes');
         if (!container) return;
-        container.innerHTML = AVAILABLE_MODULES.map(m => `
-            <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid rgba(255,255,255,.1); border-radius:10px; cursor:pointer; transition:background .15s; font-size:.82rem;"
-                   onmouseover="this.style.background='rgba(255,215,0,.06)'" onmouseout="this.style.background='transparent'">
-                <input type="checkbox" name="user-module" value="${m.key}" 
-                       ${(selectedModules || []).includes(m.key) ? 'checked' : ''}
-                       style="accent-color: var(--accent); width:16px; height:16px; cursor:pointer;">
-                <span>${m.icon} ${m.label}</span>
-            </label>
-        `).join('');
+        const sel = selectedModules || [];
+        container.innerHTML = AVAILABLE_MODULES.map(m => {
+            const active = sel.includes(m.key);
+            return `
+            <button type="button"
+                data-module="${m.key}"
+                onclick="window.toggleModulePill(this)"
+                style="
+                    display:flex; align-items:center; gap:8px; padding:9px 14px;
+                    border-radius:12px; cursor:pointer; font-size:.82rem; font-weight:600;
+                    border: 1.5px solid ${active ? 'var(--accent)' : 'rgba(255,255,255,.12)'};
+                    background: ${active ? 'rgba(255,215,0,.14)' : 'rgba(255,255,255,.03)'};
+                    color: ${active ? 'var(--accent)' : 'rgba(255,255,255,.55)'};
+                    transition: all .18s ease; user-select:none;
+                    ${active ? 'box-shadow: 0 0 0 1px rgba(255,215,0,.25);' : ''}
+                ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.svg}</svg>
+                ${m.label}
+                ${active ? '<span style="margin-left:auto; font-size:.65rem; background:rgba(255,215,0,.2); color:var(--accent); padding:1px 6px; border-radius:6px;">✓</span>' : ''}
+            </button>`;
+        }).join('');
     }
+
+    window.toggleModulePill = function(btn) {
+        const key = btn.getAttribute('data-module');
+        const isActive = btn.style.borderColor.includes('var(--accent)') || btn.getAttribute('data-active') === '1';
+        const nowActive = !isActive;
+        btn.setAttribute('data-active', nowActive ? '1' : '0');
+        btn.style.border = `1.5px solid ${nowActive ? 'var(--accent)' : 'rgba(255,255,255,.12)'}`;
+        btn.style.background = nowActive ? 'rgba(255,215,0,.14)' : 'rgba(255,255,255,.03)';
+        btn.style.color = nowActive ? 'var(--accent)' : 'rgba(255,255,255,.55)';
+        btn.style.boxShadow = nowActive ? '0 0 0 1px rgba(255,215,0,.25)' : 'none';
+        // Update the checkmark
+        const existing = btn.querySelector('span');
+        if (nowActive && !existing) {
+            const span = document.createElement('span');
+            span.style.cssText = 'margin-left:auto; font-size:.65rem; background:rgba(255,215,0,.2); color:var(--accent); padding:1px 6px; border-radius:6px;';
+            span.textContent = '✓';
+            btn.appendChild(span);
+        } else if (!nowActive && existing) {
+            existing.remove();
+        }
+    };
 
     window.openUserModal = function() {
         document.getElementById('user-id-hidden').value = '';
@@ -2284,7 +2319,7 @@
         document.getElementById('user-status-group').style.display = 'none';
 
         // Default modules for new user
-        renderModuleCheckboxes(['consolidados', 'visitantes', 'logs']);
+        renderModuleToggles(['consolidados', 'visitantes', 'logs']);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
@@ -2305,7 +2340,7 @@
         document.getElementById('user-status-group').style.display = 'block';
 
         // Render modules with the user's existing selection
-        renderModuleCheckboxes(u.modules || []);
+        renderModuleToggles(u.modules || []);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
@@ -2313,7 +2348,7 @@
     window.onUserRoleChange = function(role) {
         // If master_admin, auto-select all modules
         if (role === 'master_admin') {
-            renderModuleCheckboxes(AVAILABLE_MODULES.map(m => m.key));
+            renderModuleToggles(AVAILABLE_MODULES.map(m => m.key));
         }
     };
 
@@ -2329,8 +2364,10 @@
         const role = document.getElementById('user-role').value;
         const status = document.getElementById('user-status').value;
         
-        // Collect selected modules from checkboxes
-        const modules = [...document.querySelectorAll('input[name="user-module"]:checked')].map(cb => cb.value);
+        // Collect selected modules from pill toggles
+        const modules = [...document.querySelectorAll('#modules-checkboxes button[data-module]')]
+            .filter(btn => btn.getAttribute('data-active') === '1' || btn.style.borderColor.includes('var(--accent)'))
+            .map(btn => btn.getAttribute('data-module'));
         
         // telefone não obrigatório
         if (!name || !email) return alert('Por favor, preencha Nome e E-mail.');
