@@ -85,8 +85,7 @@
 
         // ── Module Access Control — hide/show nav items ────────────────────
         function applyModuleAccess(modules) {
-            if (!modules) return;
-            // Modules defined here match AVAILABLE_MODULES in renderModuleToggles
+            if (!modules || !Array.isArray(modules)) return;
             const moduleNavMap = {
                 mural:           ['nav-mural'],
                 consolidados:    ['nav-dashboard'],
@@ -98,7 +97,6 @@
                 crie:            ['nav-crie-toggle'],
                 configuracoes:   ['nav-settings-toggle'],
             };
-            // Submenu nav map (CRIE)
             const subNavMap = {
                 crie_inscritos:  'nav-crie-inscritos',
                 crie_membros:    'nav-crie-membros',
@@ -107,9 +105,15 @@
                 crie_relatorios: 'nav-crie-relatorios',
             };
 
+            // Build effective module set: if any crie_* present, auto-include 'crie'
+            const effectiveModules = [...modules];
+            if (effectiveModules.some(m => m.startsWith('crie_')) && !effectiveModules.includes('crie')) {
+                effectiveModules.push('crie');
+            }
+
             // Hide top-level menus not in modules
             Object.entries(moduleNavMap).forEach(([mod, navIds]) => {
-                if (!modules.includes(mod)) {
+                if (!effectiveModules.includes(mod)) {
                     navIds.forEach(navId => {
                         const el = document.getElementById(navId);
                         if (el) el.style.display = 'none';
@@ -117,18 +121,17 @@
                 }
             });
 
-            // If crie is visible, hide/show individual submenus
-            if (modules.includes('crie')) {
-                const hasCrieSub = Object.keys(subNavMap).some(k => modules.includes(k));
+            // CRIE submenus: hide those not explicitly granted
+            if (effectiveModules.includes('crie')) {
+                const hasCrieSub = Object.keys(subNavMap).some(k => effectiveModules.includes(k));
                 if (hasCrieSub) {
                     Object.entries(subNavMap).forEach(([subMod, navId]) => {
-                        if (!modules.includes(subMod)) {
+                        if (!effectiveModules.includes(subMod)) {
                             const el = document.getElementById(navId);
                             if (el) el.style.display = 'none';
                         }
                     });
                 }
-                // If none of the individual submodule keys are listed at all, keep all visible (legacy)
             }
         }
         window.applyModuleAccess = applyModuleAccess;
@@ -2510,9 +2513,13 @@
     };
 
     function _getCurrentModules() {
-        return [...document.querySelectorAll('#modules-checkboxes button[data-module]')]
+        const mods = [...document.querySelectorAll('#modules-checkboxes button[data-module]')]
             .filter(b => b.getAttribute('data-active') === '1')
             .map(b => b.getAttribute('data-module'));
+        // Auto-include 'crie' parent if any crie_* submodule is selected
+        const hasCrieSub = mods.some(m => m.startsWith('crie_'));
+        if (hasCrieSub && !mods.includes('crie')) mods.unshift('crie');
+        return mods;
     }
 
     window.openUserModal = function() {
