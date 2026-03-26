@@ -2239,10 +2239,30 @@ REGRAS:
                             <option value="ACTIVE">Ativo</option>
                         </select>
                     </div>
+
+                    <!-- Banner Image Upload -->
+                    <div>
+                        <label class="hub-field-label">Imagem de Divulgação (opcional)</label>
+                        <div id="banner-upload-area" onclick="document.getElementById('banner-file-input').click()" style="border:2px dashed rgba(255,215,0,.2); border-radius:14px; padding:24px; text-align:center; cursor:pointer; transition:border .2s, background .2s; background:rgba(255,255,255,.02);" onmouseover="this.style.borderColor='rgba(255,215,0,.5)'; this.style.background='rgba(255,215,0,.03)'" onmouseout="this.style.borderColor='rgba(255,215,0,.2)'; this.style.background='rgba(255,255,255,.02)'">
+                            <div id="banner-placeholder">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,215,0,.4)" stroke-width="1.5" style="margin-bottom:8px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                <div style="font-size:.78rem; color:rgba(255,255,255,.3); font-weight:500;">Clique para carregar imagem</div>
+                                <div style="font-size:.7rem; color:rgba(255,255,255,.2); margin-top:4px;">JPG, PNG, WEBP · máx 5MB</div>
+                            </div>
+                            <div id="banner-preview-wrap" style="display:none;">
+                                <img id="banner-preview-img" src="" alt="preview" style="width:100%; max-height:160px; object-fit:cover; border-radius:10px; display:block;">
+                                <button type="button" onclick="event.stopPropagation(); clearEventBanner()" style="margin-top:10px; background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.2); color:#f87171; padding:5px 12px; border-radius:8px; font-size:.75rem; font-weight:700; cursor:pointer; letter-spacing:.03em;">✕ Remover imagem</button>
+                            </div>
+                        </div>
+                        <input type="file" id="banner-file-input" accept="image/*" style="display:none;" onchange="previewEventBanner(this)">
+                        <input type="hidden" name="banner_url" id="banner-url-field">
+                    </div>
+
                     <button type="submit" class="hub-btn" style="width:100%; padding:14px; margin-top:8px;">Criar Evento</button>
                 </form>
             </div>
         </div>
+
 
         <!-- ═══════════════════════════════════════════════════════════
              View: Dev Menu — Master Admin (G5)

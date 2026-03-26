@@ -3455,7 +3455,7 @@ function renderCrieInscritos(list, uniqueMode = false) {
             <td style="padding:12px 16px;" ${rowClick}>
                 <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
                     ${a.name}
-                    ${a.is_member ? '<span style="color:#F59E0B; font-size:.7rem;">★</span>' : ''}
+                    ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.65rem;flex-shrink:0;box-shadow:0 0 6px rgba(245,158,11,.2);">★</span>' : ''}
                     ${eventBadge}
                 </div>
                 <div style="font-size:.75rem; color:rgba(255,255,255,.35); margin-top:2px;">${new Date(a.created_at).toLocaleDateString('pt-PT')}</div>
@@ -4228,8 +4228,48 @@ function renderCrieEventos(list) {
 
 function openCreateEventoModal() {
     const modal = document.getElementById('modal-create-evento');
+    clearEventBanner();
     if (modal) modal.style.display = 'flex';
 }
+
+// ── Banner image preview/clear helpers ────────────────────────
+let _bannerFile = null;
+
+function previewEventBanner(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        if (typeof hubToast !== 'undefined') hubToast('Imagem demasiado grande (máx 5MB)', 'error');
+        input.value = '';
+        return;
+    }
+    _bannerFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const pi = document.getElementById('banner-preview-img');
+        const ph = document.getElementById('banner-placeholder');
+        const pw = document.getElementById('banner-preview-wrap');
+        if (pi) pi.src = ev.target.result;
+        if (ph) ph.style.display = 'none';
+        if (pw) pw.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearEventBanner() {
+    _bannerFile = null;
+    const fi = document.getElementById('banner-file-input');
+    const uf = document.getElementById('banner-url-field');
+    const ph = document.getElementById('banner-placeholder');
+    const pw = document.getElementById('banner-preview-wrap');
+    const pi = document.getElementById('banner-preview-img');
+    if (fi) fi.value = '';
+    if (uf) uf.value = '';
+    if (ph) ph.style.display = 'block';
+    if (pw) pw.style.display = 'none';
+    if (pi) pi.src = '';
+}
+
 
 async function saveCrieEvento(e) {
     e.preventDefault();
@@ -4238,14 +4278,15 @@ async function saveCrieEvento(e) {
     // ⚠️ form.title resolves to document.title in DOM — use elements[] instead
     const payload = {
         workspace_id: wsId,
-        title: form.elements['title'].value.trim(),
+        title:       form.elements['title'].value.trim(),
         description: form.elements['description'].value.trim() || null,
-        date: form.elements['date'].value,
-        capacity: parseInt(form.elements['capacity'].value) || 0,
-        location: form.elements['location'].value.trim(),
-        price: parseFloat(form.elements['price'].value) || 0,
-        currency: form.elements['currency'] ? form.elements['currency'].value : '€',
-        status: form.elements['status'].value,
+        date:        form.elements['date'].value,
+        capacity:    parseInt(form.elements['capacity'].value) || 0,
+        location:    form.elements['location'].value.trim(),
+        price:       parseFloat(form.elements['price'].value) || 0,
+        currency:    form.elements['currency'] ? form.elements['currency'].value : '€',
+        status:      form.elements['status'].value,
+        banner_url:  null,
     };
     if (!payload.title) {
         if (typeof hubToast !== 'undefined') hubToast('Título é obrigatório', 'error');
@@ -4254,6 +4295,26 @@ async function saveCrieEvento(e) {
     const sb = window.supabaseClient;
     const btn = form.querySelector('button[type="submit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'A criar…'; }
+
+    // Upload banner if a file was selected
+    if (_bannerFile) {
+        try {
+            const ext = _bannerFile.name.split('.').pop().toLowerCase();
+            const path = `crie-banners/${wsId}/${Date.now()}.${ext}`;
+            const { data: upData, error: upErr } = await sb.storage
+                .from('event-banners')
+                .upload(path, _bannerFile, { upsert: true, contentType: _bannerFile.type });
+            if (!upErr) {
+                const { data: { publicUrl } } = sb.storage.from('event-banners').getPublicUrl(path);
+                payload.banner_url = publicUrl;
+            } else {
+                console.warn('[CRIE] Banner upload warning:', upErr.message);
+            }
+        } catch(err) {
+            console.warn('[CRIE] Banner upload error:', err);
+        }
+    }
+
     const { error } = await sb.from('crie_events').insert(payload);
     if (btn) { btn.disabled = false; btn.textContent = 'Criar Evento'; }
     if (error) {
@@ -4262,8 +4323,9 @@ async function saveCrieEvento(e) {
         return;
     }
     form.reset();
+    clearEventBanner();
     closeModal('modal-create-evento');
-    if (typeof hubToast !== 'undefined') hubToast('Evento criado com sucesso!', 'success');
+    if (typeof hubToast !== 'undefined') hubToast('Evento criado com sucesso! 🎉', 'success');
     loadCrieEventos();
 }
 
@@ -4335,7 +4397,7 @@ function renderCheckinList(list) {
             <div style="flex:1; min-width:0;">
                 <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
                     ${a.name}
-                    ${a.is_member ? '<span style="color:#F59E0B; font-size:.7rem;">★</span>' : ''}
+                    ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.65rem;flex-shrink:0;box-shadow:0 0 6px rgba(245,158,11,.2);">★</span>' : ''}
                 </div>
                 <div style="font-size:.75rem; color:rgba(255,255,255,.4);">${a.email} · ${a.phone}</div>
             </div>

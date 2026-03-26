@@ -56,17 +56,18 @@
         .logo-text .title { font-size:.95rem; font-weight:800; letter-spacing:-.4px; }
         .logo-text .sub { font-size:.7rem; color:var(--muted); font-weight:500; letter-spacing:.06em; text-transform:uppercase; margin-top:1px; }
 
-        /* ── Event Card ── */
+        /* ── States ── */
         #loading-state, #no-event-state, #form-state, #success-state { display:none; }
         #loading-state { display:flex; flex-direction:column; align-items:center; gap:16px; padding:60px 0; animation:fadeUp .4s ease both; }
         .spinner { width:36px; height:36px; border:3px solid rgba(255,215,0,.15); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
 
+        /* ── Event Hero Card ── */
         .event-hero {
             background: var(--card);
             border: 1px solid rgba(255,215,0,.18);
             border-radius: 22px;
             padding: 28px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             animation: fadeUp .5s .05s ease both;
         }
         .event-badge {
@@ -77,17 +78,31 @@
             font-size:.7rem; font-weight:700; letter-spacing:.06em;
             text-transform:uppercase; margin-bottom:16px;
         }
-        .event-title { font-size:1.5rem; font-weight:900; letter-spacing:-.04em; line-height:1.2; margin-bottom:14px; }
-        .event-meta { display:flex; flex-wrap:wrap; gap:12px; }
+        .event-title { font-size:1.5rem; font-weight:900; letter-spacing:-.04em; line-height:1.2; margin-bottom:10px; }
+        .event-description { font-size:.88rem; color:var(--muted); line-height:1.6; margin-bottom:16px; }
+        .event-meta { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
         .event-meta-item {
             display:flex; align-items:center; gap:7px;
             font-size:.82rem; color:var(--muted);
         }
         .event-meta-item svg { flex-shrink:0; opacity:.7; }
-        .event-price-tag {
+        .price-pill {
             display:inline-flex; align-items:center; gap:6px;
-            background: rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.2);
-            color:#4ade80; border-radius:20px; padding:3px 10px; font-size:.75rem; font-weight:700; margin-top:14px;
+            font-size:.8rem; font-weight:800; border-radius:20px; padding:5px 12px;
+        }
+        .price-pill.free { background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.25); color:#4ade80; }
+        .price-pill.paid { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); color:#F59E0B; }
+
+        /* ── Banner Image ── */
+        .event-banner {
+            margin-bottom: 16px;
+            border-radius: 18px;
+            overflow: hidden;
+            animation: fadeUp .5s .08s ease both;
+        }
+        .event-banner img {
+            width:100%; display:block;
+            max-height: 260px; object-fit: cover;
         }
 
         /* ── Form Card ── */
@@ -114,25 +129,21 @@
             width:100%; padding:11px 14px;
             background:rgba(255,255,255,.04); border:1px solid var(--border);
             border-radius:11px; color:var(--text); font-family:var(--font); font-size:.88rem;
-            outline:none; transition:border .15s, box-shadow .15s; -webkit-appearance:none;
+            outline:none; transition:border .15s, box-shadow .15s;
+            -webkit-appearance:none; appearance:none;
         }
         input:focus, select:focus {
             border-color: rgba(255,215,0,.4);
             box-shadow: 0 0 0 3px rgba(255,215,0,.08);
         }
         select option { background:#111; }
-
-        .is-member-row {
-            display:flex; align-items:center; gap:10px;
-            padding:12px 14px;
-            background:rgba(255,255,255,.03); border:1px solid var(--border);
-            border-radius:11px; cursor:pointer; user-select:none;
-            transition:border .15s, background .15s;
+        /* Fix select arrow */
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
         }
-        .is-member-row:has(input:checked) { border-color:rgba(255,215,0,.35); background:rgba(255,215,0,.05); }
-        .is-member-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--accent); flex-shrink:0; }
-        .is-member-row span { font-size:.85rem; color:var(--muted); }
-        .is-member-row:has(input:checked) span { color:var(--accent); font-weight:600; }
 
         .btn-submit {
             width:100%; padding:15px; margin-top:20px;
@@ -147,7 +158,7 @@
         .btn-submit:active { transform:scale(.98); }
         .btn-submit:disabled { opacity:.5; pointer-events:none; }
 
-        /* ── States ── */
+        /* ── No event state ── */
         #no-event-state {
             text-align:center; padding:80px 20px;
             animation:fadeUp .5s ease both;
@@ -156,6 +167,7 @@
         #no-event-state h2 { font-size:1.3rem; font-weight:800; margin-bottom:10px; }
         #no-event-state p { color:var(--muted); font-size:.9rem; line-height:1.7; }
 
+        /* ── Success state ── */
         #success-state {
             text-align:center; padding:80px 20px;
             animation:fadeUp .5s ease both;
@@ -211,13 +223,15 @@
 
         <!-- Form state -->
         <div id="form-state">
-            <!-- Event info -->
-            <div class="event-hero" id="event-hero-card">
+
+            <!-- 1. Event info card -->
+            <div class="event-hero">
                 <div class="event-badge">
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><circle cx="4" cy="4" r="4" fill="#FFD700"/></svg>
                     Inscrições Abertas
                 </div>
                 <div class="event-title" id="ev-title">—</div>
+                <div class="event-description" id="ev-description" style="display:none;"></div>
                 <div class="event-meta">
                     <div class="event-meta-item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -228,12 +242,15 @@
                         <span id="ev-location">—</span>
                     </div>
                 </div>
-                <div id="ev-price-wrap" style="display:none;">
-                    <span class="event-price-tag" id="ev-price"></span>
-                </div>
+                <div id="ev-price-wrap"></div>
             </div>
 
-            <!-- Registration form -->
+            <!-- 2. Optional banner image (hidden when no banner) -->
+            <div class="event-banner" id="ev-banner-wrap" style="display:none;">
+                <img id="ev-banner-img" src="" alt="Banner do evento">
+            </div>
+
+            <!-- 3. Registration form -->
             <div class="form-card">
                 <h2>Dados de Inscrição</h2>
                 <form id="crie-reg-form" onsubmit="submitCrieForm(event)">
@@ -253,21 +270,30 @@
                             <input type="email" id="cr-email" placeholder="email@exemplo.com">
                         </div>
                     </div>
-                    <div class="form-row cols2">
-                        <div>
-                            <label>Cidade</label>
-                            <input type="text" id="cr-city" placeholder="Ex: Braga">
-                        </div>
+                    <div class="form-row">
                         <div>
                             <label>Área / Profissão</label>
-                            <input type="text" id="cr-industry" placeholder="Ex: Saúde, TI…">
+                            <select id="cr-industry">
+                                <option value="">Selecione a sua área…</option>
+                                <option value="Saúde">🏥 Saúde</option>
+                                <option value="Educação">📚 Educação</option>
+                                <option value="Tecnologia">💻 Tecnologia</option>
+                                <option value="Negócios & Gestão">💼 Negócios & Gestão</option>
+                                <option value="Direito">⚖️ Direito</option>
+                                <option value="Engenharia">🔧 Engenharia</option>
+                                <option value="Artes & Design">🎨 Artes & Design</option>
+                                <option value="Comunicação & Marketing">📣 Comunicação & Marketing</option>
+                                <option value="Finanças & Contabilidade">📊 Finanças & Contabilidade</option>
+                                <option value="Construção & Arquitetura">🏗️ Construção & Arquitetura</option>
+                                <option value="Comércio & Vendas">🛍️ Comércio & Vendas</option>
+                                <option value="Serviços & Hotelaria">🏨 Serviços & Hotelaria</option>
+                                <option value="Agricultura & Ambiente">🌱 Agricultura & Ambiente</option>
+                                <option value="Produção & Indústria">🏭 Produção & Indústria</option>
+                                <option value="Desporto & Fitness">🏋️ Desporto & Fitness</option>
+                                <option value="Estudante">🎓 Estudante</option>
+                                <option value="Outro">Outro</option>
+                            </select>
                         </div>
-                    </div>
-                    <div class="form-row" style="margin-top:4px;">
-                        <label class="is-member-row">
-                            <input type="checkbox" id="cr-member">
-                            <span>⭐ Já sou membro da Lagoinha</span>
-                        </label>
                     </div>
                     <button type="submit" class="btn-submit" id="cr-submit-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
@@ -291,16 +317,23 @@
 
     <script src="hub-router.js"></script>
     <script>
-    const SUPA_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
-    const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    const SUPA_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
     const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-    let _workspaceId = null;
-    let _eventId     = null;
+    let _workspaceId   = null;
+    let _workspaceName = null;
+    let _eventId       = null;
 
     function show(id) {
         ['loading-state','no-event-state','form-state','success-state']
-            .forEach(s => document.getElementById(s).style.display = s === id ? (s === 'loading-state' ? 'flex' : 'block') : 'none');
+            .forEach(s => {
+                const el = document.getElementById(s);
+                if (!el) return;
+                el.style.display = s === id
+                    ? (s === 'loading-state' ? 'flex' : 'block')
+                    : 'none';
+            });
     }
 
     function fmtDate(iso) {
@@ -314,33 +347,32 @@
     async function init() {
         show('loading-state');
         try {
-            // 1. Resolve workspace from URL slug via HubRouter
+            // 1. Resolve workspace from URL slug
             _workspaceId = await window.HubRouter.getWorkspaceId();
             if (!_workspaceId) throw new Error('Workspace não encontrado');
 
-            // 2. Load workspace name for branding
+            // 2. Workspace branding
             const { data: ws } = await sb.from('workspaces').select('name').eq('id', _workspaceId).single();
+            _workspaceName = ws?.name || 'CRIE';
             if (ws?.name) {
                 document.getElementById('ws-sub-label').textContent = `CRIE — ${ws.name}`;
                 document.getElementById('footer-ws-name').textContent = `CRIE ${ws.name}`;
                 document.title = `Inscrição CRIE ${ws.name} — Lagoinha HUB`;
             }
 
-            // 3. Load the NEXT upcoming ACTIVE event (date >= now)
+            // 3. Load next ACTIVE future event
             const now = new Date().toISOString();
-            const { data: events } = await sb
+            const { data: events, error: evErr } = await sb
                 .from('crie_events')
-                .select('id, title, date, location, price, currency, description, status')
+                .select('id, title, date, location, price, currency, description, status, banner_url')
                 .eq('workspace_id', _workspaceId)
                 .eq('status', 'ACTIVE')
-                .gte('date', now)              // only future events
+                .gte('date', now)
                 .order('date', { ascending: true })
                 .limit(1);
 
-            if (!events || events.length === 0) {
-                show('no-event-state');
-                return;
-            }
+            if (evErr) throw evErr;
+            if (!events || events.length === 0) { show('no-event-state'); return; }
 
             const ev = events[0];
             _eventId = ev.id;
@@ -348,18 +380,37 @@
             // 4. Populate event card
             document.getElementById('ev-title').textContent = ev.title;
             document.getElementById('ev-date').textContent  = fmtDate(ev.date);
+
+            if (ev.description) {
+                const desc = document.getElementById('ev-description');
+                desc.textContent = ev.description;
+                desc.style.display = 'block';
+            }
+
             if (ev.location) {
                 document.getElementById('ev-location').textContent = ev.location;
             } else {
                 document.getElementById('ev-location-wrap').style.display = 'none';
             }
+
+            // Price pill
+            const priceWrap = document.getElementById('ev-price-wrap');
             if (ev.price > 0) {
-                const priceWrap = document.getElementById('ev-price-wrap');
-                priceWrap.style.display = 'block';
-                document.getElementById('ev-price').innerHTML = `
+                priceWrap.innerHTML = `<span class="price-pill paid">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    ${ev.currency} ${parseFloat(ev.price).toFixed(2)}
-                `;
+                    ${ev.currency || '€'} ${parseFloat(ev.price).toFixed(2)}
+                </span>`;
+            } else {
+                priceWrap.innerHTML = `<span class="price-pill free">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    Gratuito
+                </span>`;
+            }
+
+            // 5. Optional banner
+            if (ev.banner_url) {
+                document.getElementById('ev-banner-img').src = ev.banner_url;
+                document.getElementById('ev-banner-wrap').style.display = 'block';
             }
 
             show('form-state');
@@ -374,8 +425,8 @@
         e.preventDefault();
         if (!_workspaceId || !_eventId) return;
 
-        const btn  = document.getElementById('cr-submit-btn');
-        const name = document.getElementById('cr-name').value.trim();
+        const btn   = document.getElementById('cr-submit-btn');
+        const name  = document.getElementById('cr-name').value.trim();
         const phone = document.getElementById('cr-phone').value.trim();
         const email = document.getElementById('cr-email').value.trim().toLowerCase();
 
@@ -383,39 +434,48 @@
         btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> A enviar…';
 
         try {
-            // Normalize phone: add +351 if looks like PT local number (9 digits starting with 9)
+            // Normalize PT phone
             let phoneFinal = phone.replace(/\s/g, '');
             if (/^9\d{8}$/.test(phoneFinal)) phoneFinal = '+351' + phoneFinal;
 
-            // Check if member lookup exists in crie_members by phone
-            let isMember = document.getElementById('cr-member').checked;
-            if (!isMember && phoneFinal) {
-                const phoneClean = phoneFinal.replace(/\D/g,'');
+            // Auto-detect member via phone/email match in crie_members
+            let isMember = false;
+            const phoneClean = phoneFinal.replace(/\D/g,'');
+            const orFilters = [];
+            if (phoneFinal) orFilters.push(`phone.eq.${phoneFinal}`);
+            if (phoneClean && phoneClean !== phoneFinal) orFilters.push(`phone.eq.${phoneClean}`);
+            if (email) orFilters.push(`email.eq.${email}`);
+
+            if (orFilters.length) {
                 const { data: mem } = await sb.from('crie_members')
                     .select('id')
                     .eq('workspace_id', _workspaceId)
-                    .or(`phone.eq.${phoneFinal},phone.eq.${phoneClean}`)
+                    .or(orFilters.join(','))
                     .maybeSingle();
                 if (mem) isMember = true;
             }
 
+            // City auto-set from workspace name
+            const city = _workspaceName || null;
+
+            const industry = document.getElementById('cr-industry').value || null;
+
             const payload = {
-                event_id:          _eventId,
-                workspace_id:      _workspaceId,
-                name:              name,
-                phone:             phoneFinal,
-                email:             email || null,
-                city:              document.getElementById('cr-city').value.trim() || null,
-                industry:          document.getElementById('cr-industry').value.trim() || null,
-                is_member:         isMember,
-                payment_status:    'Pendente',
-                presence_status:   'Pendente',
+                event_id:        _eventId,
+                workspace_id:    _workspaceId,
+                name:            name,
+                phone:           phoneFinal,
+                email:           email || null,
+                city:            city,
+                industry:        industry,
+                is_member:       isMember,
+                payment_status:  'Pendente',
+                presence_status: 'Pendente',
             };
 
             const { error } = await sb.from('crie_attendees').insert(payload);
             if (error) throw error;
 
-            // Show success
             document.getElementById('success-name').textContent = name.split(' ')[0];
             show('success-state');
 
@@ -427,7 +487,6 @@
         }
     }
 
-    // Boot
     window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
