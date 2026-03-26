@@ -301,6 +301,23 @@
             <h2 data-i18n="additional_info" style="margin-top: 20px;">Informação Adicional</h2>
 
             <div class="form-group">
+                <label data-i18n="service">Qual culto você visitou hoje? *</label>
+                <select id="culto" required>
+                    <option value="" disabled selected data-i18n="service_select">Selecione o Culto...</option>
+                    <option value="Domingo 1" data-i18n="domingo_1">Domingo 1</option>
+                    <option value="Domingo 2" data-i18n="domingo_2">Domingo 2</option>
+                    <option value="Domingo 3" data-i18n="domingo_3">Domingo 3</option>
+                    <option value="Hope">Hope</option>
+                    <option value="Fé">Fé</option>
+                    <option value="Legacy">Legacy</option>
+                    <option value="Rocket">Rocket</option>
+                    <option value="Shine">Shine</option>
+                    <option value="Hero">Hero</option>
+                    <option value="Outro" data-i18n="outro">Outro</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px;">
                 <label data-i18n="baptized">Você é Batizado? *</label>
                 <div class="radio-group" id="radio-baptized">
                     <label class="radio-option"><input type="radio" name="baptized" value="Católico" data-val-i18n="bap_catholic" required> <span data-i18n="bap_catholic">Católico</span></label>
@@ -367,6 +384,12 @@
                 state_text_ph: "Digite sua Região",
                 city: "Cidade *",
                 additional_info: "Informação Adicional",
+                service: "Qual culto você visitou hoje? *",
+                service_select: "Selecione o Culto...",
+                domingo_1: "Domingo 1",
+                domingo_2: "Domingo 2",
+                domingo_3: "Domingo 3",
+                outro: "Outro",
                 baptized: "Você é Batizado? *",
                 bap_catholic: "Católico",
                 bap_christian: "Evangélico",
@@ -416,6 +439,12 @@
                 state_text_ph: "Enter your state",
                 city: "City *",
                 additional_info: "Additional Information",
+                service: "Which service did you attend today? *",
+                service_select: "Select Service...",
+                domingo_1: "Sunday 1",
+                domingo_2: "Sunday 2",
+                domingo_3: "Sunday 3",
+                outro: "Other",
                 baptized: "Are you Baptized? *",
                 bap_catholic: "Catholic",
                 bap_christian: "Christian (Evangelical)",
@@ -465,6 +494,12 @@
                 state_text_ph: "Ingrese su estado",
                 city: "Ciudad *",
                 additional_info: "Información Adicional",
+                service: "¿A qué culto asististe hoy? *",
+                service_select: "Seleccionar Culto...",
+                domingo_1: "Domingo 1",
+                domingo_2: "Domingo 2",
+                domingo_3: "Domingo 3",
+                outro: "Otro",
                 baptized: "¿Estás Bautizado? *",
                 bap_catholic: "Católico",
                 bap_christian: "Cristiano Evangélico",
@@ -608,6 +643,7 @@
                     estado_civil: document.getElementById('maritalStatus').value,
                     sexo: document.getElementById('gender').value,
                     batizado: batizadoVal ? batizadoVal.value : 'Não Informado',
+                    culto: document.getElementById('culto') ? document.getElementById('culto').value : 'Não Informado',
                     gc_status: gcVal ? gcVal.value : 'Não Informado',
                     preferred_language: lang,
                     type: "visitor",

@@ -1189,6 +1189,10 @@
             
             <div class="charts-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 20px; gap: 20px;">
                 <div class="chart-box">
+                    <div class="chart-title" style="margin-bottom: 5px;">CULTO RECEPTOR</div>
+                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartCulto"></canvas></div>
+                </div>
+                <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">PAÍS DE RESIDÊNCIA</div>
                     <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartPais"></canvas></div>
                 </div>
@@ -1214,6 +1218,10 @@
                 
                 <select class="select-filter" id="vFilterCountry" onchange="applyFilters()">
                     <option value="all">Todos os Países...</option>
+                </select>
+
+                <select class="select-filter" id="vFilterCulto" style="margin-left: 10px;" onchange="applyFilters()">
+                    <option value="all">Qualquer Culto</option>
                 </select>
 
                 <select class="select-filter" id="vFilterTimeRange" onchange="applyFilters()" style="display:none;">

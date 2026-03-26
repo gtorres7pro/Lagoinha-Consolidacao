@@ -1290,7 +1290,7 @@
                     }
                 };
 
-                ['Idade', 'Pais', 'Batizado', 'GC'].forEach(type => {
+                ['Idade', 'Pais', 'Batizado', 'GC', 'Culto'].forEach(type => {
                     const canvasEl = document.getElementById('vChart'+type);
                     if(canvasEl) {
                         chartInstances['v'+type] = new Chart(canvasEl.getContext('2d'), {
@@ -1343,6 +1343,7 @@
                 const paisFreq = getFrequencies(visitorsArray.map(l => String(l.pais)));
                 const batizadoFreq = getFrequencies(visitorsArray.map(l => String(l.batizado)));
                 const gcFreq = getFrequencies(visitorsArray.map(l => String(l.gc_status)));
+                const cultoFreq = getFrequencies(visitorsArray.map(l => String(l.culto)));
                 
                 // Group Idade
                 const idades = {'18 a 25': 0, '26 a 35': 0, '36 a 45': 0, 'Acima de 45': 0, 'Não Informado': 0};
@@ -1370,6 +1371,7 @@
                 setChartData(chartInstances['vPais'], paisFreq);
                 setChartData(chartInstances['vBatizado'], batizadoFreq);
                 setChartData(chartInstances['vGC'], gcFreq);
+                setChartData(chartInstances['vCulto'], cultoFreq);
             };
 
             function updateCharts(leadsArray) {
@@ -1502,6 +1504,7 @@
                     let setDecisao = new Set();
                     let setCultos = new Set();
                     let setPaises = new Set();
+                    let setVCultos = new Set();
 
                     globalLeads = window.globalLeads = leads.map(lead => {
                         if (!lead.decisao) lead.decisao = "Não Informado";
@@ -1548,6 +1551,7 @@
                             setCultos.add(String(lead.culto));
                         } else {
                             setPaises.add(String(lead.pais));
+                            setVCultos.add(String(lead.culto));
                         }
                         return lead;
                     });
@@ -1558,6 +1562,7 @@
                     populateSelect('filterStatus', setDecisao, 'Todas as Decisões');
                     populateSelect('filterCulto', setCultos, 'Qualquer Culto');
                     populateSelect('vFilterCountry', setPaises, 'Todos os Países...');
+                    populateSelect('vFilterCulto', setVCultos, 'Qualquer Culto');
 
                     if(Object.keys(chartInstances).length === 0) {
                         initCharts();
@@ -1696,6 +1701,8 @@
                     // Visitors Filter
                     const vSearch = String(document.getElementById('vSearchInput').value || '').toLowerCase();
                     const vCountry = document.getElementById('vFilterCountry').value;
+                    const vCultoObj = document.getElementById('vFilterCulto');
+                    const vCulto = vCultoObj ? vCultoObj.value : 'all';
                     const vSortOrder = document.getElementById('vFilterDate') ? document.getElementById('vFilterDate').value : 'newest';
                     const vTimeRangeDays = document.getElementById('vFilterTimeRange').value;
                     
@@ -1704,6 +1711,7 @@
                         const phoneStr = String(lead.phone || '').toLowerCase();
                         const matchName = nameStr.includes(vSearch) || phoneStr.includes(vSearch);
                         const matchC = (vCountry === 'all') || (String(lead.pais||'').toLowerCase() === vCountry);
+                        const matchCu = (vCulto === 'all') || (String(lead.culto||'').toLowerCase() === vCulto);
                         
                         let matchTime = true;
                         if (vTimeRangeDays === '__top_custom__' && window._vTopCustomStart && window._vTopCustomEnd) {
@@ -1726,7 +1734,7 @@
                                 else if (vTimeRangeDays === 'today') matchTime = diffDays <= 1;
                             }
                         }
-                        return matchName && matchC && matchTime;
+                        return matchName && matchC && matchCu && matchTime;
                     });
                     
                     if(vSortOrder === 'oldest') {
