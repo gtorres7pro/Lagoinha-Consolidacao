@@ -212,9 +212,9 @@ serve(async (req) => {
           throw new Error('Acesso negado para excluir')
         }
       }
-      await supabaseAdmin.from('users').delete().eq('id', id)
-      const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(id)
-      if (delErr) throw delErr;
+      // Use a SECURITY DEFINER RPC to atomically delete from both public.users and auth.users
+      const { error: rpcErr } = await supabaseAdmin.rpc('delete_user_by_id', { user_id: id })
+      if (rpcErr) throw new Error(`Falha ao excluir: ${rpcErr.message}`)
 
       return new Response(JSON.stringify({ message: 'User deleted' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
