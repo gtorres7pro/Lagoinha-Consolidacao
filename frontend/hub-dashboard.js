@@ -1860,6 +1860,7 @@
                                     <svg style="width: 16px; fill: white;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
                                 </a>` : ''}
                                 <div class="icon-btn tooltip-container" aria-label="Histórico de IA" style="background: rgba(255,215,0,0.1); color: var(--accent);">💬</div>
+                                <button onclick="deleteLead('${lead.id}')" class="icon-btn tooltip-container" aria-label="Excluir Definitivamente" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border:none; cursor:pointer;" title="Excluir Ficha">🗑️</button>
                             </div>
                         </div>
                         
@@ -4916,5 +4917,33 @@ if (!window.closeModal) {
     window.closeModal = function(id) {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
+    };
+}
+
+// ── deleteLead global capability ─────────────
+if (!window.deleteLead) {
+    window.deleteLead = async function(leadId) {
+        if (!confirm("⚠️ Tem certeza que deseja exluir esta Ficha permanentemente? Não será possível recuperar.")){
+            return;
+        }
+        
+        try {
+            if (window.showToast) window.showToast('Excluindo...', 9999);
+            
+            const sb = window.supabaseClient;
+            const { error } = await sb.from('leads').delete().eq('id', leadId);
+            
+            if (error) throw error;
+            
+            if (window.showToast) window.showToast('✅ Ficha Excluída.', 2000);
+            
+            // Re-fetch everything immediately
+            if (typeof window.fetchLiveLeads === 'function') {
+                window.fetchLiveLeads();
+            }
+        } catch (e) {
+            console.error("Erro ao excluir lead: ", e);
+            alert("Erro ao excluir: " + e.message);
+        }
     };
 }
