@@ -194,14 +194,14 @@
 
         /* Dark success overlay */
         .success-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(5,5,5,0.96);
             backdrop-filter: blur(12px);
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; padding: 40px;
             opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease; z-index: 10;
+            transition: opacity 0.3s ease; z-index: 10000;
         }
         .success-overlay.active { opacity: 1; pointer-events: auto; }
         .success-overlay h3 { font-size: 1.8rem; margin-bottom: 10px; color: var(--accent); font-weight: 900; letter-spacing: -0.03em; }
@@ -239,7 +239,6 @@
                 <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
                 <div style="margin-top: 24px;">
                     <button type="button" class="btn-submit" onclick="window.location.reload()" style="padding: 12px 24px; font-size: 0.9rem; font-weight:800; border-radius:100px;">Preencher Nova Ficha</button>
-                    <a href="https://www.lagoinhaorlandochurch.com" style="display:block; margin-top:20px; color:var(--text-muted); font-size:0.85rem; text-decoration:none;">Ou ir para a página inicial</a>
                 </div>
             </div>
 
