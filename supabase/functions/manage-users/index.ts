@@ -86,6 +86,7 @@ serve(async (req) => {
         role,
         workspace_id,
         status: 'Ativo',
+        level: 'workspace',
         modules: modules || null,
       }, { onConflict: 'id' })
 
@@ -211,8 +212,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'Invite resent', tempPassword: genPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    throw new Error('Invalid action')
+    throw new Error('Ação inválida')
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    // ALWAYS RETURN 200 IN ORDER FOR THE FRONTEND'S JS SDK TO PROPERLY PARSE THE CUSTOM JSON ERROR MESSAGE! 
+    // IF WE RETURN 40X, THE JS SDK OBFUSCATES IT BEHIND "FunctionsHttpError: Edge Function returned a non-2xx status code"
+    return new Response(JSON.stringify({ error: err.message || JSON.stringify(err) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
