@@ -72,7 +72,8 @@ serve(async (req) => {
           phone: phone || '',
           role,
           workspace_id,
-          status: 'Ativo'
+          status: 'Ativo',
+          level: 'workspace'
         }
       })
       if (createErr) throw createErr;

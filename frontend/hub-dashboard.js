@@ -2227,9 +2227,13 @@
         }
 
         const roleMap = {
-            'master_admin': '<span style="background:rgba(255,215,0,.15); color:var(--accent); padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Master Admin</span>',
-            'church_admin': '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin da Igreja</span>',
-            'user':         '<span style="background:rgba(100,220,150,.15); color:#64dc96; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Voluntário</span>'
+            'master_admin':     '<span style="background:rgba(255,215,0,.15); color:var(--accent); padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Master Admin</span>',
+            'pastor_senior':    '<span style="background:rgba(255,180,0,.15); color:#ffb400; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Pastor Sênior</span>',
+            'admin':            '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin</span>',
+            'church_admin':     '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin da Igreja</span>',
+            'pastor':           '<span style="background:rgba(180,150,255,.15); color:#b496ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Pastor</span>',
+            'lider_ministerio': '<span style="background:rgba(255,140,80,.15); color:#ff8c50; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Líder de Ministério</span>',
+            'user':             '<span style="background:rgba(100,220,150,.15); color:#64dc96; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Voluntário</span>'
         };
 
         let html = '';

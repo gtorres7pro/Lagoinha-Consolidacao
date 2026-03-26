@@ -483,6 +483,13 @@
             const { error } = await sb.from('crie_attendees').insert(payload);
             if (error) throw error;
 
+            // 🔔 Fire & Forget: Notify webhook (n8n)
+            fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/form-webhook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI' },
+                body: JSON.stringify({ form_type: 'crie', workspace_id: _workspaceId, name, phone: phoneFinal, email: email || null })
+            }).catch(() => {});
+
             document.getElementById('success-name').textContent = name.split(' ')[0];
             show('success-state');
 
