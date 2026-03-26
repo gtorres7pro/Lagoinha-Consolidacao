@@ -2520,8 +2520,12 @@
         btn.disabled = true;
 
         try {
-            const { data: session } = await window.supabaseClient.auth.getSession();
-            const token = session?.session?.access_token;
+            // Refresh session to ensure we have a valid token
+            const { data: refreshData } = await window.supabaseClient.auth.refreshSession();
+            const token = refreshData?.session?.access_token
+                       || (await window.supabaseClient.auth.getSession()).data?.session?.access_token;
+
+            if (!token) throw new Error('Sessão expirada. Por favor, faça login novamente.');
 
             const payload = {
                 action: id ? 'update' : 'create',
@@ -2532,13 +2536,17 @@
 
             const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI'
+                },
                 body: JSON.stringify(payload)
             });
 
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || 'Erro na API.');
+                const errData = await res.json().catch(() => ({ error: res.statusText }));
+                throw new Error(errData.error || 'Erro na API: ' + res.status);
             }
             
             window.closeUserModal();
@@ -2554,10 +2562,11 @@
     window.deleteUser = async function(id) {
         if (!confirm('ATENÇÃO: Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.')) return;
         try {
-            const { data: session } = await window.supabaseClient.auth.getSession();
+            const { data: refreshDel } = await window.supabaseClient.auth.refreshSession();
+            const tokenDel = refreshDel?.session?.access_token || (await window.supabaseClient.auth.getSession()).data?.session?.access_token;
             const res = await fetch("https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users", {
                  method: 'POST', 
-                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.session?.access_token },
+                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenDel, 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI' },
                  body: JSON.stringify({ action: 'delete', id })
             });
             if (!res.ok) throw new Error(await res.text());
