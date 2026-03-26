@@ -2230,25 +2230,32 @@
     // USER / TEAM MANAGEMENT
     // ====================================================================
 
+    const MANAGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users';
+
+    async function callManageUsers(payload) {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) throw new Error('Sessão expirada. Recarregue a página.');
+        const res = await fetch(MANAGE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data?.error) throw new Error(data.error);
+        return data;
+    }
+
     window.loadTeam = async function() {
         const table = document.getElementById('team-tbody');
         try {
-            if (table) table.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Carregando membros...</td></tr>';
-            
-            const sb = window.supabaseClient;
-            if (!sb) throw new Error('Supabase client não disponível');
-
+            if (table) table.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">Carregando membros...</td></tr>';
             let wsId = window.currentWorkspaceId;
-            if (!wsId) {
-                const ws = await window.HubRouter?.getWorkspace();
-                wsId = ws?.id;
-            }
+            if (!wsId) { const ws = await window.HubRouter?.getWorkspace(); wsId = ws?.id; }
             if (!wsId) throw new Error('Workspace não encontrado');
 
-            // Direct query — RLS allows master_admin via get_my_role() policy (no recursion)
-            const { data: users, error } = await sb
+            const { data: users, error } = await window.supabaseClient
                 .from('users')
-                .select('id, name, email, role, phone, status, modules')
+                .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
                 .eq('workspace_id', wsId)
                 .order('role');
 
@@ -2256,70 +2263,88 @@
             renderTeam(users || [], wsId);
         } catch (err) {
             console.error('[loadTeam] Erro:', err.message);
-            if (table) table.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#f87171;">Erro ao carregar: ${err.message}</td></tr>`;
+            if (table) table.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#f87171;">Erro: ${err.message}</td></tr>`;
         }
-    }
-
+    };
 
     function renderTeam(users, workspaceId) {
-        window.currentTeamData = users; // cache
+        window.currentTeamData = users;
         const tbody = document.getElementById('team-tbody');
         if (!tbody) return;
-        tbody.innerHTML = '';
         if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Nenhum membro encontrado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888;">Nenhum membro encontrado.</td></tr>';
             return;
         }
 
         const roleMap = {
-            'master_admin':     '<span style="background:rgba(255,215,0,.15); color:var(--accent); padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Master Admin</span>',
-            'pastor_senior':    '<span style="background:rgba(255,180,0,.15); color:#ffb400; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Pastor Sênior</span>',
-            'admin':            '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin</span>',
-            'church_admin':     '<span style="background:rgba(100,180,255,.15); color:#64b4ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Admin da Igreja</span>',
-            'pastor':           '<span style="background:rgba(180,150,255,.15); color:#b496ff; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Pastor</span>',
-            'lider_ministerio': '<span style="background:rgba(255,140,80,.15); color:#ff8c50; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Líder de Ministério</span>',
-            'user':             '<span style="background:rgba(100,220,150,.15); color:#64dc96; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:11px;">Voluntário</span>'
+            'master_admin':     '<span style="background:rgba(255,215,0,.15);color:var(--accent);padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Master Admin</span>',
+            'pastor_senior':    '<span style="background:rgba(255,180,0,.15);color:#ffb400;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Pastor Sênior</span>',
+            'admin':            '<span style="background:rgba(100,180,255,.15);color:#64b4ff;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Admin</span>',
+            'church_admin':     '<span style="background:rgba(100,180,255,.15);color:#64b4ff;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Admin da Igreja</span>',
+            'pastor':           '<span style="background:rgba(180,150,255,.15);color:#b496ff;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Pastor</span>',
+            'lider_ministerio': '<span style="background:rgba(255,140,80,.15);color:#ff8c50;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Líder de Ministério</span>',
+            'user':             '<span style="background:rgba(100,220,150,.15);color:#64dc96;padding:4px 8px;border-radius:6px;font-weight:bold;font-size:11px;">Voluntário</span>'
         };
 
-        let html = '';
         const myRank = (window.cachedProfile?.role === 'master_admin') ? 3 : (window.cachedProfile?.role === 'church_admin') ? 2 : 1;
+        let html = '';
 
         users.forEach(u => {
-            // Case-insensitive comparison for status
             const statusNorm = (u.status || 'ativo').toLowerCase();
-            const statusColor = (statusNorm === 'ativo') ? '#4ade80' : '#f87171';
-            const statusLabel = (statusNorm === 'ativo') ? 'Ativo' : 'Inativo';
+            const statusColor = statusNorm === 'ativo' ? '#4ade80' : '#f87171';
             const uRank = (u.role === 'master_admin') ? 3 : (u.role === 'church_admin') ? 2 : 1;
-            
+
+            // Password status cell
+            let pwdCell = '';
+            if (u.password_changed) {
+                pwdCell = '<span title="Usuário trocou a senha" style="font-size:11px;color:#4ade80;">🔒 Senha própria</span>';
+            } else if (u.temp_password) {
+                const safe = u.temp_password.replace(/'/g, "\\'");
+                pwdCell = `<span style="display:flex;align-items:center;gap:4px;">
+                    <span id="pwd-${u.id}" style="font-family:monospace;font-size:11px;background:#222;padding:2px 6px;border-radius:4px;color:#FFD700;display:none;">${safe}</span>
+                    <button onclick="document.getElementById('pwd-${u.id}').style.display=document.getElementById('pwd-${u.id}').style.display==='none'?'inline':'none'" 
+                        style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;" title="Ver senha temporária">
+                        👁️
+                    </button>
+                    <span style="font-size:10px;color:#f59e0b;">Aguardando</span>
+                </span>`;
+            } else {
+                pwdCell = '<span style="font-size:11px;color:#555;">-</span>';
+            }
+
             let actions = '';
-            // Only allow edit/delete if caller has HIGHER OR EQUAL rank, and isn't blocking themselves from deletion (optional)
-            if (myRank > uRank || (myRank === uRank && window.cachedProfile?.id !== u.id && myRank >= 2) || (myRank===3)) {
+            if (myRank > uRank || (myRank === uRank && window.cachedProfile?.id !== u.id && myRank >= 2) || myRank === 3) {
                 actions = `
-                    <button onclick="window.editUserModal('${u.id}')" title="Editar" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-                    ${myRank >= 2 ? `<button onclick="window.resendInvite('${u.id}', '${u.email}')" title="Reenviar Convite ou Trocar Senha" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 2v6h6"/></svg></button>` : ''}
-                    <button onclick="window.deleteUser('${u.id}')" title="Excluir" style="background:none;border:none;color:#f87171;cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
-                `;
+                    <button onclick="window.editUserModal('${u.id}')" title="Editar" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>
+                    ${myRank >= 2 ? `<button onclick="window.resendInvite('${u.id}', '${u.email}')" title="Gerar nova senha" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 2v6h6"/></svg>
+                    </button>` : ''}
+                    <button onclick="window.deleteUser('${u.id}')" title="Excluir" style="background:none;border:none;color:#f87171;cursor:pointer;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </button>`;
             }
 
             html += `
-                <tr style="border-bottom:1px solid rgba(255,255,255,.05); transition:background 0.2s;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,.05);">
                     <td style="padding:14px 18px;">
-                        <div style="font-weight:600; color:#fff;">${u.name || 'Sem nome'}</div>
-                        <div style="font-size:0.75rem; color:#888;">${u.email}</div>
+                        <div style="font-weight:600;color:#fff;">${u.name || 'Sem nome'}</div>
+                        <div style="font-size:0.75rem;color:#888;">${u.email}</div>
                     </td>
-                    <td style="padding:14px 18px; color:#ccc; font-size:0.85rem;">${u.phone || '-'}</td>
+                    <td style="padding:14px 18px;color:#ccc;font-size:0.85rem;">${u.phone || '-'}</td>
                     <td style="padding:14px 18px;">${roleMap[u.role] || u.role}</td>
-                    <td style="padding:14px 18px; color:${statusColor}; font-weight:600; font-size:0.85rem;">${statusLabel}</td>
-                    <td style="padding:14px 18px; text-align:right;">${actions}</td>
-                </tr>
-            `;
+                    <td style="padding:14px 18px;color:${statusColor};font-weight:600;font-size:0.85rem;">${statusNorm === 'ativo' ? 'Ativo' : 'Inativo'}</td>
+                    <td style="padding:14px 18px;">${pwdCell}</td>
+                    <td style="padding:14px 18px;text-align:right;">${actions}</td>
+                </tr>`;
         });
         tbody.innerHTML = html;
-        
-        // Populate role dropdown option visibility depending on rank
         const masterOpts = document.querySelectorAll('.master-only');
         masterOpts.forEach(el => el.style.display = (myRank >= 3) ? 'block' : 'none');
     }
+
+
 
     // ─── Module + Submenu definitions matching actual sidebar ──────────────
     const AVAILABLE_MODULES = [
@@ -2572,33 +2597,45 @@
         btn.disabled = true;
 
         try {
-            const { data: { session } } = await window.supabaseClient.auth.getSession();
-            const payload = {
+            const fnData = await callManageUsers({
                 action: id ? 'update' : 'create',
                 id: id || undefined,
                 email, name, phone: phone || null, role, status, modules,
                 workspace_id: wsId
-            };
-
-            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify(payload)
             });
-            const fnData = await res.json();
 
-            if (fnData?.error) throw new Error(fnData.error);
-            
             window.closeUserModal();
-            window.loadTeam(); // refresh view
+            window.loadTeam();
+
+            // If creating a new user, show credentials popup
+            if (!id && fnData.tempPassword) {
+                showConfirmModal(
+                    '✅ Membro adicionado!',
+                    `<div style="text-align:left;">
+                        <p style="margin:0 0 12px;color:#ccc;">Guarde estas credenciais e envie ao membro:</p>
+                        <div style="background:#111;border:1px solid #333;border-radius:8px;padding:14px;font-family:monospace;font-size:14px;line-height:2;">
+                            <div>📧 <b>Email:</b> ${email}</div>
+                            <div>🔑 <b>Senha:</b> <span style="color:#FFD700;font-size:16px;">${fnData.tempPassword}</span></div>
+                        </div>
+                        <p style="margin:12px 0 0;font-size:11px;color:#888;">A senha estará visível na lista até o membro fazer login e alterá-la.</p>
+                    </div>`,
+                    () => {}
+                );
+                // Change Confirmar button to just "OK" for this case
+                setTimeout(() => {
+                    const cancelBtn = document.getElementById('_cm-cancel');
+                    if (cancelBtn) cancelBtn.style.display = 'none';
+                    const confirmBtn = document.getElementById('_cm-confirm');
+                    if (confirmBtn) confirmBtn.textContent = 'OK, entendido!';
+                }, 50);
+            }
         } catch (e) {
-            // Show persistent inline error instead of alert
             const errBox = document.getElementById('user-modal-error');
             if (errBox) {
                 errBox.textContent = '⚠️ ' + e.message;
                 errBox.style.display = 'block';
             } else {
-                alert('Erro: ' + e.message);
+                showToast('Erro: ' + e.message, 'error');
             }
         } finally {
             btn.innerHTML = oldText;
@@ -2612,15 +2649,8 @@
             'Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.',
             async () => {
                 try {
-                    const { data: { session } } = await window.supabaseClient.auth.getSession();
-                    const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                        body: JSON.stringify({ action: 'delete', id })
-                    });
-                    const fnData = await res.json();
-                    if (fnData?.error) throw new Error(fnData.error);
-                    loadTeam();
+                    await callManageUsers({ action: 'delete', id });
+                    window.loadTeam();
                     showToast('Membro excluído com sucesso.', 'success');
                 } catch (e) {
                     showToast('Erro ao excluir: ' + e.message, 'error');
@@ -2629,29 +2659,36 @@
         );
     };
 
-
-
     window.resendInvite = async function(id, email) {
         showConfirmModal(
-            '📧 Reenviar Convite',
-            `Deseja reenviar o convite para <strong>${email}</strong>?<br><br>Uma nova senha temporária será gerada e enviada por email.`,
+            '🔑 Gerar Nova Senha',
+            `Deseja gerar uma nova senha temporária para <strong>${email}</strong>?<br><br>A senha atual será invalidada e o membro receberá um email com as novas credenciais.`,
             async () => {
                 try {
-                    const { data: { session } } = await window.supabaseClient.auth.getSession();
-                    const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                        body: JSON.stringify({ action: 'resend_invite', id, email })
-                    });
-                    const fnData = await res.json();
-                    if (fnData?.error) throw new Error(fnData.error);
-                    showToast(`✅ Convite reenviado! Senha provisória: ${fnData.tempPassword}`, 'success', 8000);
+                    const fnData = await callManageUsers({ action: 'resend_invite', id, email });
+                    window.loadTeam();
+                    showConfirmModal(
+                        '✅ Nova senha gerada!',
+                        `<div style="background:#111;border:1px solid #333;border-radius:8px;padding:14px;font-family:monospace;font-size:14px;line-height:2;">
+                            <div>📧 <b>Email:</b> ${email}</div>
+                            <div>🔑 <b>Nova Senha:</b> <span style="color:#FFD700;font-size:16px;">${fnData.tempPassword}</span></div>
+                        </div>`,
+                        () => {}
+                    );
+                    setTimeout(() => {
+                        const cancelBtn = document.getElementById('_cm-cancel');
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                        const confirmBtn = document.getElementById('_cm-confirm');
+                        if (confirmBtn) confirmBtn.textContent = 'OK';
+                    }, 50);
                 } catch (e) {
                     showToast('Erro: ' + e.message, 'error');
                 }
             }
         );
     };
+
+
 
         document.body.insertAdjacentHTML('beforeend', `
         <div id="custom-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
