@@ -2183,6 +2183,50 @@
     }
 
     // ====================================================================
+    // UI HELPERS — Custom Modal & Toast (replaces window.confirm/alert)
+    // ====================================================================
+
+    function showConfirmModal(title, message, onConfirm) {
+        let overlay = document.getElementById('_confirm-modal-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = '_confirm-modal-overlay';
+            overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            overlay.innerHTML = `
+              <div style="background:#111;border:1px solid #333;border-radius:16px;padding:32px;max-width:460px;width:90%;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,0.7);">
+                <h3 id="_cm-title" style="margin:0 0 12px;color:#FFD700;font-size:1.1rem;"></h3>
+                <p id="_cm-message" style="margin:0 0 24px;font-size:0.9rem;line-height:1.6;color:#ccc;"></p>
+                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                  <button id="_cm-cancel" style="background:#222;border:1px solid #444;color:#aaa;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+                  <button id="_cm-confirm" style="background:#FFD700;border:none;color:#000;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">Confirmar</button>
+                </div>
+              </div>`;
+            document.body.appendChild(overlay);
+        }
+        document.getElementById('_cm-title').textContent = title;
+        document.getElementById('_cm-message').innerHTML = message;
+        overlay.style.display = 'flex';
+        const close = () => { overlay.style.display = 'none'; };
+        document.getElementById('_cm-cancel').onclick = close;
+        document.getElementById('_cm-confirm').onclick = () => { close(); onConfirm(); };
+    }
+
+    function showToast(message, type = 'success', duration = 4000) {
+        const toast = document.createElement('div');
+        const bg = type === 'error' ? '#ef4444' : '#22c55e';
+        toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:99999;background:${bg};color:#fff;padding:14px 20px;border-radius:10px;font-size:0.9rem;max-width:380px;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease;`;
+        toast.textContent = message;
+        if (!document.getElementById('_toast-style')) {
+            const s = document.createElement('style');
+            s.id = '_toast-style';
+            s.textContent = '@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}';
+            document.head.appendChild(s);
+        }
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    }
+
+    // ====================================================================
     // USER / TEAM MANAGEMENT
     // ====================================================================
 
@@ -2563,39 +2607,50 @@
     };
 
     window.deleteUser = async function(id) {
-        if (!confirm('ATENÇÃO: Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.')) return;
-        try {
-            const { data: { session } } = await window.supabaseClient.auth.getSession();
-            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({ action: 'delete', id })
-            });
-            const fnData = await res.json();
-            if (fnData?.error) throw new Error(fnData.error);
-            loadTeam();
-        } catch (e) {
-            alert("Erro ao excluir: " + e.message);
-        }
+        showConfirmModal(
+            '⚠️ Excluir Membro',
+            'Deseja realmente excluir este membro? O acesso dele será bloqueado imediatamente. Esta ação não tem retorno.',
+            async () => {
+                try {
+                    const { data: { session } } = await window.supabaseClient.auth.getSession();
+                    const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ action: 'delete', id })
+                    });
+                    const fnData = await res.json();
+                    if (fnData?.error) throw new Error(fnData.error);
+                    loadTeam();
+                    showToast('Membro excluído com sucesso.', 'success');
+                } catch (e) {
+                    showToast('Erro ao excluir: ' + e.message, 'error');
+                }
+            }
+        );
     };
 
 
 
     window.resendInvite = async function(id, email) {
-        if (!confirm(`Deseja reenviar o convite para ${email}?\n\nIsso gerará uma nova senha temporária.`)) return;
-        try {
-            const { data: { session } } = await window.supabaseClient.auth.getSession();
-            const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({ action: 'resend_invite', id, email })
-            });
-            const fnData = await res.json();
-            if (fnData?.error) throw new Error(fnData.error);
-            alert(`Convite reenviado! Nova senha provisória:\n${fnData.tempPassword}`);
-        } catch (e) {
-            alert("Erro: " + e.message);
-        }
+        showConfirmModal(
+            '📧 Reenviar Convite',
+            `Deseja reenviar o convite para <strong>${email}</strong>?<br><br>Uma nova senha temporária será gerada e enviada por email.`,
+            async () => {
+                try {
+                    const { data: { session } } = await window.supabaseClient.auth.getSession();
+                    const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ action: 'resend_invite', id, email })
+                    });
+                    const fnData = await res.json();
+                    if (fnData?.error) throw new Error(fnData.error);
+                    showToast(`✅ Convite reenviado! Senha provisória: ${fnData.tempPassword}`, 'success', 8000);
+                } catch (e) {
+                    showToast('Erro: ' + e.message, 'error');
+                }
+            }
+        );
     };
 
         document.body.insertAdjacentHTML('beforeend', `
