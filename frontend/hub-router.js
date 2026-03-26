@@ -38,7 +38,9 @@ async function resolveWorkspace(slug) {
   const cached = sessionStorage.getItem(`workspace:${slug}`);
   if (cached) return JSON.parse(cached);
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, detectSessionInUrl: false, autoRefreshToken: false }
+  });
   const { data, error } = await sb
     .from('workspaces')
     .select('id, name, slug, status, credentials, knowledge_base')

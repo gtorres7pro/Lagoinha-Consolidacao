@@ -319,7 +319,14 @@
     <script>
     const SUPA_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
     const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-    const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+    // Isolated client — never inherits admin JWT from localStorage (Safari shared-storage fix)
+    const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+        auth: {
+            persistSession: false,
+            detectSessionInUrl: false,
+            autoRefreshToken: false,
+        }
+    });
 
     let _workspaceId   = null;
     let _workspaceName = null;
