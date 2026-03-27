@@ -4220,111 +4220,72 @@ function crieToggleAll(checkbox) {
     document.querySelectorAll('.crie-row-check').forEach(c => c.checked = checkbox.checked);
 }
 
-// ── Download report as HTML (respects active event filter) ──
+// ── Download report as HTML ─────────────────────────────────
 async function downloadCrieReport() {
-    const eventFilter = document.getElementById('crie-filter-event')?.value || 'all';
-    const payFilter   = document.getElementById('crie-filter-payment')?.value || 'all';
-    const typeFilter  = document.getElementById('crie-filter-type')?.value || 'all';
-    const search      = document.getElementById('crie-search')?.value.toLowerCase() || '';
-
-    let listToExport;
-    if (eventFilter === 'all') {
-        listToExport = _getUniquePersons(crieInscritos);
-    } else {
-        listToExport = crieInscritos.filter(a => {
-            const matchEvent = a.crie_events?.title === eventFilter;
-            const matchPay   = payFilter === 'all' || a.payment_status === payFilter;
-            const matchType  = typeFilter === 'all' ||
-                (typeFilter === 'member' && a.is_member) ||
-                (typeFilter === 'guest' && !a.is_member);
-            const matchSearch = !search ||
-                a.name?.toLowerCase().includes(search) ||
-                a.email?.toLowerCase().includes(search) ||
-                a.phone?.includes(search);
-            return matchEvent && matchPay && matchType && matchSearch;
-        });
-    }
-
-    const sorted = [...listToExport].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const sorted = [...crieInscritos].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
     const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
-    const eventLabel = eventFilter !== 'all' ? eventFilter : 'Todos os Eventos';
     const dateStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
-    const html = _buildCrieReportHtml(sorted, wsName, dateStr, eventLabel);
+    const html = _buildCrieReportHtml(sorted, wsName, dateStr);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8;' }));
-    const eventSlug = eventFilter !== 'all' ? '_' + eventFilter.replace(/\s+/g,'_').toLowerCase() : '';
-    link.download = `crie_inscritos${eventSlug}_${new Date().toISOString().slice(0,10)}.html`;
+    link.download = `crie_inscritos_${new Date().toISOString().slice(0,10)}.html`;
     link.click();
-    if (typeof hubToast !== 'undefined') hubToast(`Lista baixada: ${sorted.length} inscrito(s)`, 'success');
+    if (typeof hubToast !== 'undefined') hubToast('Lista baixada com sucesso!', 'success');
 }
 
 
-// ── Shared HTML report builder (mobile-first card layout) ───
-function _buildCrieReportHtml(sorted, wsName, dateStr, eventLabel) {
-    const eventTitle = eventLabel || 'Todos os Eventos';
-    const cardsHtml = sorted.map((a) => {
+// ── Shared HTML report builder ──────────────────────────────
+function _buildCrieReportHtml(sorted, wsName, dateStr) {
+    const rowsHtml = sorted.map((a, i) => {
         const phoneClean = (a.phone || '').replace(/\D/g, '');
         const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
-        const presColor = a.presence_status === 'Presente' ? '#4ade80' : a.presence_status === 'Faltou' ? '#f87171' : '#9ca3af';
-        const presLabel = a.presence_status || 'Pendente';
-        const typeColor = a.is_member ? '#F59E0B' : '#60a5fa';
-        const typeLabel = a.is_member ? 'MEMBRO' : 'CONVIDADO';
+        const bgRow = i % 2 === 0 ? '#1a1a2e' : '#16213e';
         return `
-<div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:12px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-    <div style="font-weight:700;color:#fff;font-size:16px;">${a.name || '—'}</div>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <span style="background:rgba(${a.is_member?'245,158,11':'96,165,250'},.15);color:${typeColor};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">${typeLabel}</span>
-      <span style="background:rgba(74,222,128,.1);color:${presColor};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">${presLabel}</span>
-    </div>
-  </div>
-  ${a.email ? `<div style="color:#9ca3af;font-size:13px;margin-bottom:6px;">✉️ ${a.email}</div>` : ''}
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <div style="color:#9ca3af;font-size:13px;">${a.phone || '—'}</div>
-    ${waLink ? `<a href="${waLink}" style="display:inline-flex;align-items:center;gap:6px;background:#25d366;color:#fff;text-decoration:none;padding:7px 14px;border-radius:24px;font-size:13px;font-weight:700;">💬 WhatsApp</a>` : ''}
-  </div>
-  ${a.crie_events?.title ? `<div style="margin-top:8px;font-size:11px;color:#6b7280;">📅 ${a.crie_events.title}</div>` : ''}
-</div>`;
+        <tr style="background:${bgRow};">
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#fff; font-weight:600;">${a.name || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:13px;">${a.email || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:13px;">
+                ${a.phone || '—'}
+                ${waLink ? `&nbsp;<a href="${waLink}" style="display:inline-block;background:#25d366;color:#fff;text-decoration:none;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">WhatsApp</a>` : ''}
+            </td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; font-size:12px;">
+                <span style="background:${a.is_member ? 'rgba(245,158,11,.2)' : 'rgba(255,255,255,.06)'}; color:${a.is_member ? '#F59E0B' : '#9ca3af'}; padding:2px 8px; border-radius:4px; font-weight:700;">${a.is_member ? 'MEMBRO' : 'CONVIDADO'}</span>
+            </td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:${a.presence_status==='Presente'?'#4ade80':a.presence_status==='Faltou'?'#f87171':'#9ca3af'}; font-size:12px; font-weight:700;">${a.presence_status || '—'}</td>
+            <td style="padding:10px 14px; border-bottom:1px solid #2a2a4a; color:#9ca3af; font-size:12px;">${a.crie_events?.title || '—'}</td>
+        </tr>`;
     }).join('');
-    const totalMembros   = sorted.filter(a => a.is_member).length;
+    const totalMembros = sorted.filter(a => a.is_member).length;
     const totalPresentes = sorted.filter(a => a.presence_status === 'Presente').length;
     return `<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lista CRIE — ${wsName}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin:0; padding:0; background:#0d0d1a; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
-    .container { max-width:640px; margin:0 auto; padding:20px 14px 40px; }
-    .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:20px; }
-    @media(min-width:480px) { .kpi-grid { grid-template-columns:repeat(4,1fr); } }
-  </style>
-</head>
-<body>
-<div class="container">
-  <div style="background:linear-gradient(135deg,#1a1a3e,#0d0d1a);border:1px solid rgba(255,215,0,.25);border-radius:18px;padding:28px 20px;margin-bottom:20px;text-align:center;">
-    <div style="font-size:40px;margin-bottom:8px;">🌟</div>
-    <h1 style="color:#FFD700;font-size:22px;margin:0 0 4px;font-weight:800;">Lista de Inscritos CRIE</h1>
-    <p style="color:#9ca3af;font-size:13px;margin:0 0 4px;">${wsName} · ${dateStr}</p>
-    <p style="color:rgba(255,215,0,.6);font-size:12px;margin:0;">📅 ${eventTitle}</p>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#0d0d1a;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:900px;margin:0 auto;padding:32px 16px;">
+  <div style="background:linear-gradient(135deg,#1a1a3e,#0d0d1a);border:1px solid rgba(255,215,0,.2);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🌟</div>
+    <h1 style="color:#FFD700;font-size:26px;margin:0 0 6px;">Lista de Inscritos CRIE</h1>
+    <p style="color:#9ca3af;font-size:14px;margin:0;">${wsName} · ${dateStr}</p>
   </div>
-  <div class="kpi-grid">
-    <div style="background:#1a1a2e;border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:14px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#FFD700;">${sorted.length}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px;">Total</div></div>
-    <div style="background:#1a1a2e;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#F59E0B;">${totalMembros}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px;">Membros</div></div>
-    <div style="background:#1a1a2e;border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:14px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#60a5fa;">${sorted.length - totalMembros}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px;">Convidados</div></div>
-    <div style="background:#1a1a2e;border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:14px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#4ade80;">${totalPresentes}</div><div style="font-size:11px;color:#9ca3af;margin-top:3px;">Presentes</div></div>
+  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#FFD700;">${sorted.length}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Total</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#F59E0B;">${totalMembros}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Membros</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#60a5fa;">${sorted.length-totalMembros}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Convidados</div></div>
+    <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:16px;text-align:center;"><div style="font-size:28px;font-weight:800;color:#4ade80;">${totalPresentes}</div><div style="font-size:12px;color:#9ca3af;margin-top:4px;">Presentes</div></div>
   </div>
-  ${cardsHtml}
-  <p style="text-align:center;color:#4a4a6a;font-size:11px;margin-top:20px;">Gerado pelo Lago HUB · ${dateStr}</p>
+  <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="background:#252547;"><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">NOME</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EMAIL</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TELEFONE</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">TIPO</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">PRESENÇA</th><th style="padding:12px 14px;text-align:left;color:#FFD700;font-size:12px;font-weight:700;">EVENTO</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  </div>
+  <p style="text-align:center;color:#4a4a6a;font-size:12px;margin-top:24px;">Gerado pelo Lago HUB · ${dateStr}</p>
 </div>
 </body></html>`;
 }
 
-// ── Email report — gera o arquivo e abre cliente de email ───
+// ── Email report via Resend (Edge Function send-email) ──────
 async function emailCrieReport() {
-    // 1. Determinar quais registos mostrar (respeita filtros actuais)
+    // 1. Respeitar filtros activos
     const eventFilter = document.getElementById('crie-filter-event')?.value || 'all';
     const payFilter   = document.getElementById('crie-filter-payment')?.value || 'all';
     const typeFilter  = document.getElementById('crie-filter-type')?.value || 'all';
@@ -4335,9 +4296,9 @@ async function emailCrieReport() {
         listToExport = _getUniquePersons(crieInscritos);
     } else {
         listToExport = crieInscritos.filter(a => {
-            const matchEvent = a.crie_events?.title === eventFilter;
-            const matchPay   = payFilter === 'all' || a.payment_status === payFilter;
-            const matchType  = typeFilter === 'all' ||
+            const matchEvent  = a.crie_events?.title === eventFilter;
+            const matchPay    = payFilter === 'all' || a.payment_status === payFilter;
+            const matchType   = typeFilter === 'all' ||
                 (typeFilter === 'member' && a.is_member) ||
                 (typeFilter === 'guest' && !a.is_member);
             const matchSearch = !search ||
@@ -4348,37 +4309,53 @@ async function emailCrieReport() {
         });
     }
 
-    const sorted = [...listToExport].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
-    const wsName = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
+    const sorted     = [...listToExport].sort((a,b) => (a.name||'').localeCompare(b.name||'','pt'));
+    const wsName     = document.getElementById('sidebar-workspace-name')?.textContent || 'CRIE';
     const eventLabel = eventFilter !== 'all' ? eventFilter : 'Todos os Eventos';
-    const dateStr = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
+    const dateStr    = new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'});
 
-    // 2. Gerar o HTML e fazer download automático
-    const html = _buildCrieReportHtml(sorted, wsName, dateStr, eventLabel);
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-    const blobUrl = URL.createObjectURL(blob);
-    const eventSlug = eventFilter !== 'all' ? '_' + eventFilter.replace(/\s+/g,'_').toLowerCase() : '';
-    const fileName = `crie_inscritos${eventSlug}_${new Date().toISOString().slice(0,10)}.html`;
+    if (sorted.length === 0) {
+        if (typeof hubToast !== 'undefined') hubToast('Nenhum inscrito para enviar.', 'info');
+        return;
+    }
 
-    const dl = document.createElement('a');
-    dl.href = blobUrl;
-    dl.download = fileName;
-    dl.click();
+    if (typeof hubToast !== 'undefined') hubToast('Preparando email... ✉️', 'info');
 
-    // 3. Abrir cliente de email (mailto) com corpo pré-preenchido
-    const subject = encodeURIComponent(`Lista CRIE ${wsName} — ${eventLabel} · ${dateStr}`);
-    const body = encodeURIComponent(
-        `Olá,\n\nSegue em anexo a lista de inscritos do CRIE.\n\n` +
-        `📍 Workspace: ${wsName}\n` +
-        `📅 Evento: ${eventLabel}\n` +
-        `👥 Total: ${sorted.length} inscrito(s)\n` +
-        `🗓 Gerado em: ${dateStr}\n\n` +
-        `O arquivo HTML foi baixado automaticamente ("${fileName}").\n` +
-        `Por favor, anexe-o a este email antes de enviar.\n\n` +
-        `— Lago HUB`
-    );
-    setTimeout(() => { window.location.href = `mailto:?subject=${subject}&body=${body}`; }, 600);
-    if (typeof hubToast !== 'undefined') hubToast(`Arquivo baixado. Abrindo email para ${sorted.length} inscrito(s)...`, 'success');
+    try {
+        const sb = window.supabaseClient;
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+        const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/send-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+                wsName,
+                eventLabel,
+                dateStr,
+                attendees: sorted.map(a => ({
+                    name:            a.name,
+                    email:           a.email,
+                    phone:           a.phone,
+                    is_member:       a.is_member,
+                    presence_status: a.presence_status,
+                    payment_status:  a.payment_status,
+                    crie_events:     a.crie_events,
+                }))
+            })
+        });
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        if (typeof hubToast !== 'undefined') hubToast(`✅ Email enviado com ${sorted.length} inscrito(s)!`, 'success');
+    } catch(e) {
+        console.error('[emailCrieReport]', e);
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao enviar email: ' + e.message, 'error');
+    }
 }
 
 // ── Invite Modal ─────────────────────────────────────────────
