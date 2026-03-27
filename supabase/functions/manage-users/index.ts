@@ -222,8 +222,21 @@ serve(async (req) => {
     if (action === 'resend_invite') {
       if (!id || !email) throw new Error('ID or Email missing')
       const genPassword = Math.random().toString(36).slice(-8) + 'A1!'
-      await supabaseAdmin.auth.admin.updateUserById(id, { password: genPassword })
       
+      // Update password in auth.users
+      const { error: pwdErr } = await supabaseAdmin.auth.admin.updateUserById(id, { password: genPassword })
+      if (pwdErr) throw new Error(`Falha ao redefinir senha: ${pwdErr.message}`)
+      
+      // Persist temp password in public.users so the admin can see it in the dashboard
+      const { error: dbErr } = await supabaseAdmin.from('users').update({ 
+        temp_password: genPassword, 
+        password_changed: false 
+      }).eq('id', id)
+      if (dbErr) {
+        // Non-fatal: log but don't throw if column doesn't exist yet
+        console.error('[resend_invite] Failed to update temp_password:', dbErr.message)
+      }
+
       const resendKey = Deno.env.get('RESEND_API_KEY');
       if (resendKey) {
         const { data: wsData } = await supabaseAdmin.from('workspaces').select('name, slug').eq('id', workspace_id || callerProfile.workspace_id).single()
