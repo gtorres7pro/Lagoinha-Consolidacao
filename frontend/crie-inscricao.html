@@ -491,7 +491,8 @@
                 body: JSON.stringify({
                     formUsed: 'CRIE Inscrição',
                     date: new Date().toISOString(),
-                    workspace: _workspaceId,
+                    workspace: _workspaceName,
+                    workspaceId: _workspaceId,
                     name: name,
                     whatsapp: phoneFinal,
                     email: email || "N/A"

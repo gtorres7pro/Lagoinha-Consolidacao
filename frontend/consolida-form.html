@@ -1205,7 +1205,9 @@
                 );
 
                 // Resolve workspace_id from URL slug (hub.7pro.tech/[slug]/form-consolidacao)
-                const workspaceId = await window.HubRouter.getWorkspaceId();
+                const workspaceObj = await window.HubRouter.getWorkspace();
+                const workspaceId = workspaceObj ? workspaceObj.id : null;
+                const workspaceName = workspaceObj ? workspaceObj.name : 'Unknown';
                 if (!workspaceId) throw new Error('Workspace não encontrado. Verifique o link do formulário.');
 
                 // Fetch the full international phone number mapped by the plugin
@@ -1271,7 +1273,8 @@
                     body: JSON.stringify({
                         formUsed: 'Consolidação',
                         date: new Date().toISOString(),
-                        workspace: workspaceId,
+                        workspace: workspaceName,
+                        workspaceId: workspaceId,
                         name: leadData.name,
                         whatsapp: leadData.phone,
                         email: leadData.email
