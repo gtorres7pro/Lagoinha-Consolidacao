@@ -611,16 +611,21 @@
             .actions button { font-size: 0.75rem; padding: 7px 12px; }
 
             /* KPI + Charts */
-            .kpi-row { grid-template-columns: 1fr 1fr; padding: 16px; gap: 10px; }
-            .kpi-box { padding: 14px 16px; }
-            .kpi-number { font-size: 1.8rem; }
-            .charts-row { grid-template-columns: repeat(2, 1fr); padding: 0 16px; gap: 8px; }
+            .kpi-row { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); padding: 16px; gap: 8px; }
+            .kpi-box { padding: 12px 14px; }
+            .kpi-title { font-size: 0.65rem; line-height: 1.2; word-break: break-word; letter-spacing: 0; }
+            .kpi-number { font-size: 1.6rem; }
+            .kpi-total { font-size: 0.8rem; }
+            .charts-row { grid-template-columns: 1fr !important; padding: 0 16px; gap: 12px; }
+            .crie-dashboard-row { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
+            .crie-kpi-card { padding: 16px 20px; }
 
-            /* Lead cards grid */
+            /* Lead cards grid & Filters */
             .grid-container { grid-template-columns: 1fr !important; padding: 12px 16px 40px !important; gap: 12px; }
-            .toolbar { padding: 10px 16px; flex-direction: column; align-items: stretch; gap: 8px; }
-            .search-bar { min-width: 100%; }
-            .select-filter { flex: 1; }
+            .toolbar { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .search-bar { grid-column: 1 / -1; min-width: unset; width: 100%; box-sizing: border-box; }
+            .filters { padding: 16px !important; flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+            .filters .select-filter { width: 100% !important; margin: 0 !important; box-sizing: border-box; }
 
             /* WA Chat */
             #view-ia .wa-container,
