@@ -3956,11 +3956,27 @@ async function loadCrieInscritos() {
     });
 
     // Populate event filter
-    const events = [...new Set(crieInscritos.map(a => a.crie_events?.title).filter(Boolean))];
+    const eventMap = new Map();
+    crieInscritos.forEach(a => {
+        if (a.crie_events?.title) {
+            eventMap.set(a.crie_events.title, a.crie_events.date);
+        }
+    });
+
     const sel = document.getElementById('crie-filter-event');
     if (sel) {
+        const eventsSorted = Array.from(eventMap.entries()).sort((a,b) => {
+            const d1 = a[1] ? new Date(a[1]) : new Date(0);
+            const d2 = b[1] ? new Date(b[1]) : new Date(0);
+            return d2 - d1;
+        });
+
         sel.innerHTML = '<option value="all">Todos os Eventos</option>' +
-            events.map(e => `<option value="${e}">${e}</option>`).join('');
+            eventsSorted.map(([title, dateStr]) => {
+                const parts = dateStr ? dateStr.split('T')[0].split('-') : [];
+                const dForm = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : '';
+                return `<option value="${title}">${title}${dForm ? ' — ' + dForm : ''}</option>`;
+            }).join('');
     }
 
     updateCrieInscritosKPIs();
@@ -5436,8 +5452,19 @@ function populateCheckinEventos(eventos) {
     const sel = document.getElementById('checkin-event-select');
     if (!sel) return;
     const active = eventos.filter(e => e.status !== 'ARCHIVED');
+    
+    // sort by date descending
+    active.sort((a,b) => {
+        const d1 = a.date ? new Date(a.date) : new Date(0);
+        const d2 = b.date ? new Date(b.date) : new Date(0);
+        return d2 - d1;
+    });
+
     sel.innerHTML = '<option value="">Selecionar Evento…</option>' +
-        active.map(e => `<option value="${e.id}">${e.title} — ${new Date(e.date).toLocaleDateString('pt-PT')}</option>`).join('');
+        active.map(e => {
+            const dateStr = e.date ? new Date(e.date).toLocaleDateString('pt-PT') : '';
+            return `<option value="${e.id}">${e.title}${dateStr ? ' — ' + dateStr : ''}</option>`;
+        }).join('');
 }
 
 function loadCrieCheckinEventos() {
@@ -5489,11 +5516,11 @@ function _checkinCard(a, presente) {
     const bg     = presente ? 'rgba(74,222,128,.06)' : 'rgba(255,255,255,.03)';
     const border = presente ? 'rgba(74,222,128,.2)'  : 'rgba(255,255,255,.07)';
     return `
-    <div onclick="toggleCheckinPresence('${a.id}')" style="display:flex;align-items:center;gap:14px;background:${bg};border:1px solid ${border};border-radius:16px;padding:14px 18px;cursor:pointer;transition:all .2s;user-select:none;">
+    <div class="crie-checkin-card" onclick="toggleCheckinPresence('${a.id}')" style="display:flex;align-items:center;gap:14px;background:${bg};border:1px solid ${border};border-radius:16px;padding:14px 18px;cursor:pointer;transition:all .2s;user-select:none;">
         <div style="width:38px;height:38px;border-radius:50%;background:${presente?'rgba(74,222,128,.15)':'rgba(255,255,255,.05)'};border:2px solid ${presente?'rgba(74,222,128,.5)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;transition:all .2s;">
             ${presente ? '&#10003;' : ''}
         </div>
-        <div style="flex:1;min-width:0;overflow:hidden;">
+        <div class="checkin-info-container" style="flex:1;min-width:0;overflow:hidden;">
             <div style="font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 ${a.name}
                 ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.6rem;flex-shrink:0;box-shadow:0 0 5px rgba(245,158,11,.2);">&#9733;</span>' : ''}
@@ -5505,10 +5532,12 @@ function _checkinCard(a, presente) {
                 ${waBtn}
             </div>
         </div>
-        <div onclick="event.stopPropagation(); cycleCheckinPayment('${a.id}','${a.payment_status || 'Pendente'}')" title="Clique para alterar pagamento" style="flex-shrink:0;">
-            ${_checkinPayBadge(a.payment_status)}
+        <div class="crie-checkin-controls" style="display:flex;align-items:center;gap:14px;">
+            <div onclick="event.stopPropagation(); cycleCheckinPayment('${a.id}','${a.payment_status || 'Pendente'}')" title="Clique para alterar pagamento" style="flex-shrink:0;">
+                ${_checkinPayBadge(a.payment_status)}
+            </div>
+            <div style="font-size:.75rem;font-weight:700;color:${presente?'#4ade80':'rgba(255,255,255,.2)'};min-width:90px;text-align:right;flex-shrink:0;">${presente ? 'PRESENTE' : 'CONFIRMAR'}</div>
         </div>
-        <div style="font-size:.75rem;font-weight:700;color:${presente?'#4ade80':'rgba(255,255,255,.2)'};min-width:90px;text-align:right;flex-shrink:0;">${presente ? 'PRESENTE' : 'CONFIRMAR'}</div>
     </div>`;
 }
 
