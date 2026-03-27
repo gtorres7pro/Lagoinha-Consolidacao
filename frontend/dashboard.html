@@ -372,11 +372,11 @@
         .kpi-number span.kpi-total { font-size: 0.9rem; color: var(--text-dim); font-weight: 400; margin-left: 6px; }
 
         /* ===== CHARTS ===== */
-        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 20px 32px 0; }
+        .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 20px 32px 0; }
         .chart-box { background: var(--bg-card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px 20px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 210px; cursor: pointer; transition: 0.2s; }
         .chart-box:hover { border-color: rgba(255,215,0,0.2); }
         .chart-title { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; align-self: flex-start; width: 100%; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; margin-bottom: 8px; }
-        .canvas-wrapper { width: 100%; height: 130px; position: relative; }
+        .canvas-wrapper { width: 100%; height: 110px; position: relative; }
 
         /* ===== TOOLBAR ===== */
         .toolbar { padding: 16px 32px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -590,7 +590,7 @@
             .kpi-row { grid-template-columns: 1fr 1fr; padding: 16px; gap: 10px; }
             .kpi-box { padding: 14px 16px; }
             .kpi-number { font-size: 1.8rem; }
-            .charts-row { grid-template-columns: 1fr; padding: 0 16px; }
+            .charts-row { grid-template-columns: repeat(2, 1fr); padding: 0 16px; gap: 8px; }
 
             /* Lead cards grid */
             .grid-container { grid-template-columns: 1fr !important; padding: 12px 16px 40px !important; gap: 12px; }
@@ -1203,26 +1203,26 @@
                 </div>
             </div>
             
-            <div class="charts-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 20px; gap: 20px;">
+            <div class="charts-row" style="margin-top: 20px; gap: 20px;">
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">CULTO RECEPTOR</div>
-                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartCulto"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="vChartCulto"></canvas></div>
                 </div>
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">PAÍS DE RESIDÊNCIA</div>
-                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartPais"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="vChartPais"></canvas></div>
                 </div>
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">FAIXA ETÁRIA</div>
-                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartIdade"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="vChartIdade"></canvas></div>
                 </div>
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">STATUS DE BATISMO</div>
-                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartBatizado"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="vChartBatizado"></canvas></div>
                 </div>
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">ADOÇÃO DE GC</div>
-                    <div class="canvas-wrapper" style="height: 160px; width: 100%;"><canvas id="vChartGC"></canvas></div>
+                    <div class="canvas-wrapper"><canvas id="vChartGC"></canvas></div>
                 </div>
             </div>
             
@@ -2646,8 +2646,8 @@ REGRAS:
                     <!-- BASIC -->
                     <div class="hub-plan-card hub-plan-card-basic">
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">BASIC</span>
-                            <div class="hub-plan-price">$ 97<span style="font-size:.75rem;">/mês</span></div>
+                            <span class="hub-plan-tier">START</span>
+                            <div class="hub-plan-price">$ 27<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
@@ -2665,8 +2665,8 @@ REGRAS:
                     <!-- MEDIUM -->
                     <div class="hub-plan-card hub-plan-card-medium">
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">MEDIUM</span>
-                            <div class="hub-plan-price">$ 197<span style="font-size:.75rem;">/mês</span></div>
+                            <span class="hub-plan-tier">PRO</span>
+                            <div class="hub-plan-price">$ 47<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
@@ -2686,7 +2686,7 @@ REGRAS:
                         <div class="hub-plan-card-badge">Mais Popular</div>
                         <div class="hub-plan-card-header">
                             <span class="hub-plan-tier">PREMIUM</span>
-                            <div class="hub-plan-price">$ 397<span style="font-size:.75rem;">/mês</span></div>
+                            <div class="hub-plan-price">$ 97<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
