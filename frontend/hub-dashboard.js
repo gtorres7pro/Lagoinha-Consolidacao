@@ -4743,6 +4743,30 @@ async function deleteCrieMembro(id) {
 // ═══════════════════════════════════════════════════════════
 // CRIE — EVENTOS
 // ═══════════════════════════════════════════════════════════
+
+/**
+ * Converts a datetime-local string (interpreted as Europe/Lisbon local time)
+ * to a UTC ISO string. Accounts for DST.
+ */
+function localLisbonToUTC(datetimeLocalValue) {
+    if (!datetimeLocalValue) return null;
+    // datetimeLocalValue is like '2026-03-30T19:30'
+    // We need to find the UTC equivalent for that instant in Lisbon
+    const naive = new Date(datetimeLocalValue); // JS interprets as LOCAL browser time
+    // Get Lisbon offset at that moment using Intl
+    const lisbonTz = 'Europe/Lisbon';
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: lisbonTz,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).formatToParts(naive);
+    const get = type => parts.find(p => p.type === type)?.value;
+    const lisbonDate = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`);
+    const diffMs = naive - lisbonDate; // difference between UTC-naive and Lisbon-naive
+    const utcDate = new Date(naive.getTime() + diffMs);
+    return utcDate.toISOString();
+}
+
 async function loadCrieEventos() {
     let wsId = getCrieWorkspaceId();
     // Retry up to 6×500ms if workspace not yet resolved
@@ -4757,7 +4781,7 @@ async function loadCrieEventos() {
     const sb = window.supabaseClient;
     let data = [];
     try {
-        const res = await sb.from('crie_events').select('*').eq('workspace_id', wsId).order('date', { ascending: false });
+        const res = await sb.from('crie_events').select('*, crie_attendees(count)').eq('workspace_id', wsId).order('date', { ascending: false });
         if (res.error) throw res.error;
         data = res.data || [];
     } catch(e) {
@@ -4825,7 +4849,7 @@ function renderCrieEventos(list) {
         const st = statusMap[ev.status] || statusMap.DRAFT;
         const attendeeCount = ev.crie_attendees?.[0]?.count || 0;
         const occupancy = ev.capacity > 0 ? Math.round((attendeeCount / ev.capacity) * 100) : null;
-        const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+        const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }) : '—';
         const isPublic = ev.status === 'ACTIVE' || ev.status === 'LIVE';
         const isFinalizado = ev.status === 'CONCLUIDO' || ev.locked;
         const hasReport = !!ev.report_sent_at;
@@ -4899,7 +4923,7 @@ function openEventoDrawer(id) {
 
     // Populate header
     document.getElementById('drawer-ev-title').textContent = ev.title || '—';
-    document.getElementById('drawer-ev-date').textContent  = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    document.getElementById('drawer-ev-date').textContent  = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }) : '—';
 
     const statusMap = { ACTIVE:'ATIVO', LIVE:'AO VIVO', DRAFT:'RASCUNHO', CONCLUIDO:'CONCLUIDO', ARCHIVED:'ARQUIVADO' };
     const statusColors = { ACTIVE:'#4ade80', LIVE:'#f87171', DRAFT:'#F59E0B', CONCLUIDO:'rgba(255,255,255,.4)', ARCHIVED:'rgba(255,255,255,.3)' };
@@ -4909,7 +4933,13 @@ function openEventoDrawer(id) {
     // Populate edit fields
     document.getElementById('dedit-title').value    = ev.title || '';
     document.getElementById('dedit-desc').value     = ev.description || '';
-    document.getElementById('dedit-date').value     = ev.date ? ev.date.slice(0,16) : '';
+    document.getElementById('dedit-date').value     = ev.date ? (() => {
+        // Show Lisbon local time in the datetime-local input (not raw UTC)
+        const d = new Date(ev.date);
+        const lp = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Lisbon', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d);
+        const g = t => lp.find(p => p.type === t)?.value;
+        return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}`;
+    })() : '';
     document.getElementById('dedit-capacity').value = ev.capacity || '';
     document.getElementById('dedit-location').value = ev.location || '';
     document.getElementById('dedit-price').value    = ev.price ?? '';
@@ -4972,7 +5002,7 @@ async function saveEventoDrawer() {
     const payload = {
         title:       document.getElementById('dedit-title').value.trim(),
         description: document.getElementById('dedit-desc').value.trim() || null,
-        date:        document.getElementById('dedit-date').value || null,
+        date:        localLisbonToUTC(document.getElementById('dedit-date').value) || null,
         capacity:    parseInt(document.getElementById('dedit-capacity').value) || 0,
         location:    document.getElementById('dedit-location').value.trim(),
         price:       parseFloat(document.getElementById('dedit-price').value) || 0,
@@ -5149,7 +5179,7 @@ async function fecharEvento() {
     }
 
     // 2. Generate elegant HTML report
-    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }) : '—';
     const reportHtml = `<!DOCTYPE html>
 <html lang="pt"><head><meta charset="UTF-8"><title>Relatório CRIE — ${ev.title}</title>
 <style>
@@ -5291,7 +5321,7 @@ async function saveCrieEvento(e) {
         workspace_id: wsId,
         title:       form.elements['title'].value.trim(),
         description: form.elements['description'].value.trim() || null,
-        date:        form.elements['date'].value,
+        date:        localLisbonToUTC(form.elements['date'].value),
         capacity:    parseInt(form.elements['capacity'].value) || 0,
         location:    form.elements['location'].value.trim(),
         price:       parseFloat(form.elements['price'].value) || 0,
