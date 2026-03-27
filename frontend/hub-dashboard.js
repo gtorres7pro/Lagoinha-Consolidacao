@@ -1339,13 +1339,15 @@
                 const commonOpts = { 
                     responsive: true, 
                     maintainAspectRatio: false, 
-                    cutout: '70%', 
+                    indexAxis: 'y',
                     plugins: { 
-                        legend: { position: 'right', labels: { color: '#CCC', font: {family: 'Outfit', size: 10}, usePointStyle: true, boxWidth: 6, padding: 10 } },
+                        legend: { display: false },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: {family: 'Outfit'}, bodyFont: {family: 'Outfit'} }
                     },
-                    borderWidth: 0,
-                    hoverOffset: 4,
+                    scales: {
+                        x: { display: false, grid: { display: false } },
+                        y: { border: { display: false }, grid: { display: false }, ticks: { color: '#CCC', font: {family: 'Outfit', size: 10} } }
+                    },
                     onClick: (evt, activeEls, chart) => {
                         if (activeEls.length > 0) {
                             const index = activeEls[0].index;
@@ -1353,10 +1355,10 @@
                             
                             // Auto trigger filters based on chart type!
                             const chartId = chart.canvas.id;
-                            if (chartId === 'chartCulto') {
+                            if (chartId === 'chartCulto' || chartId === 'vChartCulto') {
                                 document.getElementById('filterCulto').value = String(labelClicked).toLowerCase();
                                 if(window.applyFilters) applyFilters();
-                            } else if (chartId === 'chartDecisao') {
+                            } else if (chartId === 'chartDecisao' || chartId === 'filterStatus') {
                                 document.getElementById('filterStatus').value = String(labelClicked).toLowerCase();
                                 if(window.applyFilters) applyFilters();
                             }
@@ -1368,8 +1370,8 @@
                     const canvasEl = document.getElementById('vChart'+type);
                     if(canvasEl) {
                         chartInstances['v'+type] = new Chart(canvasEl.getContext('2d'), {
-                            type: 'doughnut',
-                            data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: 'transparent' }] },
+                            type: 'bar',
+                            data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 4 }] },
                             options: commonOpts
                         });
                     }
@@ -1380,8 +1382,8 @@
                     if(canvasEl) {
                         const ctx = canvasEl.getContext('2d');
                         chartInstances[type] = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
+                            type: 'bar',
+                            data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 4 }] },
                             options: commonOpts
                         });
                     }
