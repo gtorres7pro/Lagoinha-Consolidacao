@@ -687,11 +687,19 @@
 
                 if (error) throw error;
 
-                // 🔔 Fire & Forget: Notify webhook (Make.com)
-                fetch('https://hook.us2.make.com/gqedp63gulp626c83rtztdm7yexk94dk', {
+                // 🔔 Fire & Forget: Notify webhook (Google Sheets)
+                fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ form_type: 'visitantes', workspace_id: workspaceId, name: leadData.name, phone: leadData.phone, email: leadData.email })
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        formUsed: 'Visitantes',
+                        date: new Date().toISOString(),
+                        workspace: workspaceId,
+                        name: leadData.name,
+                        whatsapp: leadData.phone,
+                        email: leadData.email
+                    })
                 }).catch(() => {});
 
                 window.scrollTo({ top: 0, behavior: "smooth" });
