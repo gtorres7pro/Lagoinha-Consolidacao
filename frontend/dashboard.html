@@ -1315,8 +1315,8 @@
                 </div>
 
                 <!-- Dynamic team table -->
-                <div class="kpi-box" style="padding:0; overflow:hidden; border:1px solid rgba(255,255,255,.06);">
-                    <table id="team-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:.88rem;">
+                <div class="kpi-box" style="padding:0; overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid rgba(255,255,255,.06);">
+                    <table id="team-table" style="width:100%; min-width:600px; border-collapse:collapse; text-align:left; font-size:.88rem;">
                         <thead>
                             <tr style="background:var(--bg-color); border-bottom:1px solid rgba(255,255,255,.05);">
                                 <th style="padding:14px 18px; font-weight:600; color:var(--text-dim); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em;">Membro / Contato</th>
@@ -2622,7 +2622,7 @@ REGRAS:
                     <button onclick="closeUpgradeModal()" style="background:rgba(255,255,255,.07); border:none; color:#fff; width:36px; height:36px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">×</button>
                 </div>
 
-                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+                <div class="hub-plan-grid">
 
                     <!-- FREE -->
                     <div class="hub-plan-card hub-plan-card-free">
@@ -2647,7 +2647,7 @@ REGRAS:
                     <div class="hub-plan-card hub-plan-card-basic">
                         <div class="hub-plan-card-header">
                             <span class="hub-plan-tier">BASIC</span>
-                            <div class="hub-plan-price">R$ 97<span style="font-size:.75rem;">/mês</span></div>
+                            <div class="hub-plan-price">$ 97<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
@@ -2666,7 +2666,7 @@ REGRAS:
                     <div class="hub-plan-card hub-plan-card-medium">
                         <div class="hub-plan-card-header">
                             <span class="hub-plan-tier">MEDIUM</span>
-                            <div class="hub-plan-price">R$ 197<span style="font-size:.75rem;">/mês</span></div>
+                            <div class="hub-plan-price">$ 197<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
@@ -2686,7 +2686,7 @@ REGRAS:
                         <div class="hub-plan-card-badge">Mais Popular</div>
                         <div class="hub-plan-card-header">
                             <span class="hub-plan-tier">PREMIUM</span>
-                            <div class="hub-plan-price">R$ 397<span style="font-size:.75rem;">/mês</span></div>
+                            <div class="hub-plan-price">$ 397<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
@@ -2702,7 +2702,7 @@ REGRAS:
                     </div>
 
                 </div>
-                <p style="text-align:center; color:var(--text-dim); font-size:.75rem; margin-top:20px;">Preços em BRL. Parcelamento e planos anuais disponíveis. Fale conosco para personalizar.</p>
+                <p style="text-align:center; color:var(--text-dim); font-size:.75rem; margin-top:20px;">Preços em USD ($). Planos anuais disponíveis. Fale conosco para personalizar.</p>
             </div>
         </div>
 

@@ -1024,6 +1024,12 @@ body {
 }
 .plan-lock-icon { display: inline-flex; align-items: center; margin-left: auto; }
 
+.hub-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
 .hub-plan-card {
   position: relative; background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 18px; padding: 22px 18px 18px;
