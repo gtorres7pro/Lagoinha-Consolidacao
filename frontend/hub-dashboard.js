@@ -3720,7 +3720,7 @@ async function saveOverrideModules() {
     const _origSwitchTab = window.switchTab;
     window.switchTab = function(tab) {
         // Handle new G views
-        ['dev', 'start'].forEach(v => {
+        ['dev', 'start', 'journey'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.style.display = (tab === v) ? '' : 'none';
         });
@@ -3730,6 +3730,9 @@ async function saveOverrideModules() {
         if (tab === 'dev')   loadDevView();
         if (tab === 'start') {
             if (typeof loadStartModule === 'function') loadStartModule();
+        }
+        if (tab === 'journey') {
+            if (typeof loadJourneyModule === 'function') loadJourneyModule();
         }
         if (tab === 'settings') {
             loadWorkspaceSettings();
@@ -3751,6 +3754,43 @@ window.initFaseG = function(user) {
     if (user && user.role === 'master_admin') {
         const navDev = document.getElementById('nav-dev');
         if (navDev) navDev.style.display = '';
+    }
+};
+
+// ═══════════════════════════════════════════════════════════
+// JOURNEY MODULE
+// ═══════════════════════════════════════════════════════════
+window.loadJourneyModule = async function() {
+    if (!window.supabaseClient || !window.HubRouter || !window.HubRouter.currentWorkspaceId) return;
+    const wsId = window.HubRouter.currentWorkspaceId;
+    const sb = window.supabaseClient;
+
+    try {
+        // 1. Visitantes
+        const { count: visitantesCount } = await sb.from('leads')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', wsId)
+            .eq('type', 'visitor');
+            
+        document.getElementById('journey-kpi-visitantes').innerText = visitantesCount || '0';
+
+        // 2. Consolidação
+        const { count: consolidadosCount } = await sb.from('leads')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', wsId)
+            .eq('type', 'saved');
+            
+        document.getElementById('journey-kpi-consolidacao').innerText = consolidadosCount || '0';
+
+        // 3. Start Participantes
+        const { count: startCount } = await sb.from('start_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', wsId);
+            
+        document.getElementById('journey-kpi-start').innerText = startCount || '0';
+
+    } catch (e) {
+        console.error("Erro ao carregar KPIs da Journey", e);
     }
 };
 
