@@ -30,6 +30,7 @@
         }
 
         * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
         
         body {
             font-family: var(--font);
@@ -52,6 +53,8 @@
         .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #ff9500); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#000; font-weight:900;}
         .nav-links { display: flex; gap: 24px; align-items: center; }
         .nav-links a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a.hide-mobile { display: block; }
+        @media (max-width: 768px) { .nav-links a.hide-mobile { display:none; } }
         .nav-links a:hover { color: var(--accent); }
         .btn-login { padding: 8px 18px; background: rgba(255,255,255,0.1); border-radius: 100px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); transition:all .2s;}
         .btn-login:hover { background: rgba(255,255,255,0.2); }
@@ -59,6 +62,12 @@
         /* Globals */
         .container { max-width: 1200px; margin: 0 auto; padding: 0 5%; }
         .text-accent { color: var(--accent); }
+        .text-gradient { background: linear-gradient(135deg, #fff, rgba(255,255,255,0.5)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+        
+        .badge { display:inline-block; padding: 6px 16px; border-radius: 100px; font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; text-transform:uppercase; margin-bottom: 20px; border: 1px solid;}
+        .badge.yellow { background: var(--accent-dim); color: var(--accent); border-color: rgba(255,215,0,0.3); }
+        .badge.green { background: rgba(74,222,128,0.15); color: #4ade80; border-color: rgba(74,222,128,0.3); }
+
         .btn-primary {
             display: inline-block; padding: 16px 32px;
             background: var(--accent); color: #000;
@@ -73,120 +82,135 @@
         .hero::before {
             content: ''; position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
             width: 80vh; height: 80vh; border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%);
             z-index: -1; pointer-events: none;
         }
         .hero h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; letter-spacing: -2px; line-height: 1.1; margin-bottom: 24px; }
         .hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--dim); max-width: 650px; margin: 0 auto 40px; }
+        .hero-actions { display:flex; justify-content:center; gap:20px; margin-bottom: 60px; }
+        @media (max-width: 500px) { .hero-actions { flex-direction:column; padding:0 20px;} .hero-actions a {width:100%;} }
 
-        /* Animated Dashboard Mockup */
-        .mockup-container {
-            position: relative; margin: 60px auto 0;
-            width: 90%; max-width: 1000px; height: 500px;
-            background: #0d1117; border-radius: 20px;
-            border: 1px solid var(--card-border);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 100px rgba(255,215,0,0.05);
-            overflow: hidden; display: flex;
-            transform: perspective(1000px) rotateX(5deg);
+        /* Real Platform Video Container */
+        .platform-window {
+            position: relative; margin: 0 auto;
+            width: 100%; max-width: 1100px; 
+            border-radius: 16px; border: 1px solid var(--card-border);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 120px rgba(255,215,0,0.08);
+            overflow: hidden; background: #06090e;
+            transform: perspective(1000px) rotateX(2deg);
+            transition: transform 0.4s ease;
         }
-        .mockup-sidebar { width: 220px; background: #06090e; border-right: 1px solid var(--card-border); padding: 20px; display:flex; flex-direction:column; gap:16px;}
-        .mockup-item { height: 28px; background: rgba(255,255,255,0.05); border-radius: 6px; width:100%; animation: pulse 2s infinite ease-in-out; }
-        .mockup-item.active { background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3); }
-        .mockup-main { flex: 1; padding: 30px; display:flex; flex-direction:column; gap:20px; }
-        .mockup-header { height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; width:40%; animation: pulse 2s infinite ease-in-out .2s;}
-        .mockup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .mockup-card { height: 120px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--card-border); padding:20px; display:flex; flex-direction:column; justify-content:flex-end;}
-        .mockup-line { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 8px; }
-        .mockup-list { flex:1; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px;}
-        .mockup-list-item { height: 40px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 10px; display:flex; align-items:center; padding:0 15px;}
-        .mockup-circle { width:24px; height:24px; border-radius:50%; background:rgba(255,215,0,0.2); }
+        .platform-window:hover { transform: perspective(1000px) rotateX(0deg) translateY(-10px); }
+        .window-header {
+            height: 40px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--card-border);
+            display: flex; align-items: center; padding: 0 16px; gap: 8px;
+        }
+        .window-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .window-dot.r { background: #ff5f56; } .window-dot.y { background: #ffbd2e; } .window-dot.g { background: #27c93f; }
+        .platform-video img { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        /* Logo Cloud (Trust) */
+        .trust-section { padding: 40px 0; border-bottom: 1px solid var(--card-border); background:rgba(255,255,255,0.01); text-align:center;}
+        .trust-section p { font-size:0.85rem; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:2px; margin-bottom:20px;}
+        .logo-cloud { display:flex; justify-content:center; align-items:center; gap:40px; opacity:0.6; flex-wrap:wrap;}
+        .logo-cloud b { font-size: 1.2rem; filter: grayscale(1); transition:0.3s;}
+        .logo-cloud b:hover { filter: grayscale(0); color: var(--accent); opacity:1;}
 
-        /* Features */
-        .features { padding: 120px 0; }
-        .feature-row { display: flex; align-items: center; gap: 80px; margin-bottom: 120px; }
+        /* Features Long-Form */
+        .features { padding: 120px 0 60px; }
+        .feature-row { display: flex; align-items: center; gap: 80px; margin-bottom: 140px; }
         .feature-row:nth-child(even) { flex-direction: row-reverse; }
-        @media (max-width: 900px) { .feature-row, .feature-row:nth-child(even) { flex-direction: column; gap:40px; } }
+        @media (max-width: 900px) { .feature-row, .feature-row:nth-child(even) { flex-direction: column; gap:40px; margin-bottom:80px; text-align:center; } .feature-text { order: 2; } .feature-visual { order: 1; } }
         .feature-text { flex: 1; }
         .feature-text h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
         .feature-text p { color: var(--dim); font-size: 1.1rem; margin-bottom: 24px; }
-        .feature-visual { flex: 1; position: relative; }
+        .feature-list { list-style:none; color:var(--dim); font-size:0.95rem; text-align:left;}
+        .feature-list li { margin-bottom:12px; display:flex; align-items:flex-start; gap:10px; }
+        .feature-list li span { font-size:1.2rem; line-height:1; margin-top:2px;}
+        .feature-visual { flex: 1; position: relative; width:100%;}
         
-        /* Interactive CSS Modules (Replacing GIFs) */
-        .css-mockup {
-            width: 100%; aspect-ratio: 4/3;
-            background: #0d1117; border-radius: 20px;
-            border: 1px solid var(--card-border);
-            padding: 24px; position:relative; overflow:hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        .video-box {
+            border-radius: 20px; overflow:hidden; border: 1px solid var(--card-border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); background:#0d1117;
+            position:relative;
         }
-        /* Chat Mockup */
-        .chat-bubble { padding:14px 18px; border-radius:18px; max-width:80%; font-size:0.85rem; margin-bottom:12px; animation: slideUp 0.5s ease backwards;}
+        .video-box img, .video-box video { width:100%; display:block; }
+        .video-label { position:absolute; bottom:20px; left:20px; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); color:#fff; padding:8px 16px; border-radius:100px; font-size:0.8rem; font-weight:700; border:1px solid var(--card-border);}
+
+        /* Stats Section */
+        .stats-section { padding: 80px 0; background: linear-gradient(0deg, rgba(255,215,0,0.05) 0%, transparent 100%); }
+        .stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; text-align:center; }
+        .stat-card { padding: 40px 20px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:24px; }
+        .stat-value { font-size: 3.5rem; font-weight:900; color:var(--accent); line-height:1;}
+        .stat-label { font-size: 0.9rem; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-top:10px;}
+
+        /* IA Chat Element */
+        .chat-container { display:flex; flex-direction:column; padding:30px; justify-content:center; background:#0d1117;}
+        .chat-bubble { padding:14px 18px; border-radius:18px; max-width:80%; font-size:0.85rem; margin-bottom:12px;}
         .chat-ai { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.2); color:#fff; border-bottom-left-radius: 4px; align-self:flex-start; }
         .chat-user { background: #2b5278; border: 1px solid #3b72a8; color:#fff; border-bottom-right-radius: 4px; align-self:flex-end; margin-left:auto;}
-        
-        @keyframes slideUp { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+        /* Plans */
+        .plans-section { padding: 120px 0; text-align:center; position:relative; }
+        .plans-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top:50px;}
+        .plan-card {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            border-radius: 20px; padding: 40px 32px; text-align: left;
+            transition: all 0.3s; display:flex; flex-direction:column;
+        }
+        .plan-card:hover { border-color: rgba(255,215,0,0.3); transform:translateY(-5px);}
+        .plan-card.premium { background: rgba(255,215,0,0.03); border-color: rgba(255,215,0,0.4); position:relative;}
+        .plan-badge { position:absolute; top:-12px; right:24px; background:var(--accent); color:#000; font-size:0.75rem; font-weight:900; padding:4px 16px; border-radius:100px; text-transform:uppercase;}
+        .plan-name { font-size: 1rem; font-weight: 800; color: var(--dim); text-transform:uppercase; letter-spacing:1px;}
+        .plan-price { font-size: 3rem; font-weight: 900; margin: 10px 0 30px; color:#fff; letter-spacing:-1px;}
+        .plan-price span { font-size: 1rem; color:var(--dim); font-weight:500; letter-spacing:0;}
+        .plan-features { list-style:none; margin-bottom:40px; flex:1;}
+        .plan-features li { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; font-size:0.95rem; color:#ccc; line-height:1.4;}
+        .plan-features li::before { content:'✓'; color:var(--accent); font-weight:800; margin-top:2px;}
+        .plan-features li.locked { opacity:0.4; }
+        .plan-features li.locked::before { content:'✕'; color:#fff;}
+        .plan-btn { display:block; text-align:center; padding:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:100px; color:#fff; text-decoration:none; font-weight:700; transition:0.3s;}
+        .plan-btn:hover { background:rgba(255,255,255,0.1); }
+        .plan-card.premium .plan-btn { background:var(--accent); color:#000; border:none; box-shadow:0 10px 20px rgba(255,215,0,0.2);}
+        .plan-card.premium .plan-btn:hover { transform:translateY(-2px); box-shadow:0 12px 25px rgba(255,215,0,0.4);}
 
         /* Contact/Leads Form */
-        .contact-section { padding: 80px 0; background: rgba(255,255,255,0.02); border-top: 1px solid var(--card-border); }
+        .contact-section { padding: 100px 0; background: rgba(255,255,255,0.02); border-top: 1px solid var(--card-border); }
         .contact-box {
-            max-width: 600px; margin: 0 auto;
-            background: #0d1117; padding: 40px;
+            max-width: 700px; margin: 0 auto;
+            background: #0d1117; padding: 50px;
             border-radius: 24px; border: 1px solid var(--card-border);
-            box-shadow: var(--glow);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.5), 0 0 80px rgba(255,215,0,0.1);
         }
-        .contact-box h3 { font-size: 1.8rem; font-weight: 800; margin-bottom: 10px;text-align:center; }
-        .contact-box p { color: var(--dim); margin-bottom: 30px; text-align:center;font-size:0.9rem;}
+        .contact-box h3 { font-size: 2.2rem; font-weight: 800; margin-bottom: 10px;text-align:center; letter-spacing:-1px;}
+        .contact-box p { color: var(--dim); margin-bottom: 40px; text-align:center;font-size:1.05rem;}
         
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; font-size: 0.85rem; color: var(--dim); margin-bottom: 8px; font-weight:600;}
+        .form-group { margin-bottom: 24px; }
+        .form-group label { display: block; font-size: 0.9rem; color: var(--dim); margin-bottom: 8px; font-weight:600;}
         .form-control {
-            width: 100%; padding: 14px 16px; border-radius: 12px;
+            width: 100%; padding: 16px 20px; border-radius: 12px; font-size:1rem;
             background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
             color: #fff; font-family: var(--font); outline: none; transition: all 0.2s;
         }
         .form-control:focus { border-color: var(--accent); background: rgba(255,215,0,0.05); }
         
         .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
-        @media (max-width:500px) { .grid-2 {grid-template-columns:1fr;} }
-
-        /* Plans */
-        .plans-section { padding: 100px 0; text-align:center; }
-        .plans-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top:50px;}
-        .plan-card {
-            background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: 20px; padding: 32px; text-align: left;
-            transition: all 0.3s;
-        }
-        .plan-card:hover { border-color: rgba(255,215,0,0.3); transform:translateY(-5px);}
-        .plan-card.premium { background: rgba(255,215,0,0.03); border-color: rgba(255,215,0,0.4); position:relative;}
-        .plan-badge { position:absolute; top:-12px; right:24px; background:var(--accent); color:#000; font-size:0.7rem; font-weight:800; padding:4px 12px; border-radius:100px; text-transform:uppercase;}
-        .plan-name { font-size: 0.9rem; font-weight: 800; color: var(--dim); text-transform:uppercase; letter-spacing:1px;}
-        .plan-price { font-size: 2.5rem; font-weight: 900; margin: 10px 0 20px; color:#fff;}
-        .plan-price span { font-size: 1rem; color:var(--dim); font-weight:500;}
-        .plan-features { list-style:none; margin-bottom:30px;}
-        .plan-features li { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:0.9rem; color:#ccc;}
-        .plan-features li::before { content:'✓'; color:var(--accent); font-weight:800;}
-        .plan-features li.locked { opacity:0.4; }
-        .plan-features li.locked::before { content:'✕'; color:#fff;}
-        .plan-btn { display:block; text-align:center; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; text-decoration:none; font-weight:700;}
-        .plan-card.premium .plan-btn { background:var(--accent); color:#000; border:none;}
+        @media (max-width:600px) { .grid-2 {grid-template-columns:1fr;} }
 
         /* Footer */
-        footer { padding: 40px 5%; border-top: 1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--dim);}
+        footer { padding: 50px 5%; border-top: 1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:var(--dim);}
         
         .whatsapp-float {
             position: fixed; bottom: 30px; right: 30px;
-            width: 60px; height: 60px; background: #25D366;
+            width: 65px; height: 65px; background: #25D366;
             color: #fff; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 32px; text-decoration: none;
-            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4);
+            box-shadow: 0 10px 40px rgba(37, 211, 102, 0.5);
             z-index: 1000; transition: transform 0.2s;
         }
         .whatsapp-float:hover { transform: scale(1.1); }
-        .whatsapp-float svg { width: 34px; height: 34px; fill: white; }
+        .whatsapp-float svg { width: 36px; height: 36px; fill: white; }
     </style>
 </head>
 <body>
@@ -196,120 +220,152 @@
             <div class="nav-logo-icon">⛪</div> Lago HUB
         </a>
         <div class="nav-links">
-            <a href="#solucoes">Soluções</a>
-            <a href="#planos">Planos</a>
-            <a href="#contato">Contato</a>
-            <a href="/login.html" class="btn-login">Entrar no painel</a>
+            <a href="#solucoes" class="hide-mobile">Plataforma</a>
+            <a href="#planos" class="hide-mobile">Planos</a>
+            <a href="#contato">Solicitar Acesso</a>
+            <a href="/login.html" class="btn-login">Acesso Membros</a>
         </div>
     </nav>
 
+    <!-- HERO EXTENDIDO -->
     <section class="hero">
         <div class="container">
-            <h1>Nenhuma vida<br><span class="text-accent">deixada para trás.</span></h1>
-            <p>O SaaS definitivo para gestão de múltiplos ministérios. Integre Inteligência Artificial, fluxo automático de WhatsApp, controle CRIE e consolidação total de ponta a ponta.</p>
-            <a href="#contato" class="btn-primary">Ver demonstração</a>
+            <div class="badge yellow">Único SaaS Focado em Consolidação Ágil</div>
+            <h1 class="text-gradient">Nenhuma vida deixada para trás.</h1>
+            <p>Substitua o caos das planilhas e o atraso nas respostas por uma única plataforma. Integre <b>Inteligência Artificial</b>, fluxos de mensagens <b>WhatsApp</b>, gestão de eventos (Módulo CRIE) e funis de novos decididos de ponta a ponta.</p>
             
-            <div class="mockup-container">
-                <div class="mockup-sidebar">
-                    <div class="mockup-item" style="width:60%; margin-bottom:20px; background:rgba(255,215,0,0.4);"></div>
-                    <div class="mockup-item active"></div>
-                    <div class="mockup-item"></div>
-                    <div class="mockup-item"></div>
-                    <div class="mockup-item" style="margin-top:auto;"></div>
+            <div class="hero-actions">
+                <a href="#contato" class="btn-primary">Fale com Consultor</a>
+                <a href="#solucoes" style="display:inline-flex; align-items:center; color:#fff; font-weight:600; text-decoration:none; padding:16px 20px;">
+                    Ver como funciona ↓
+                </a>
+            </div>
+            
+            <!-- VÍDEO REAL CAPTURADO PELO ROBÔ -->
+            <div class="platform-window">
+                <div class="window-header">
+                    <div class="window-dot r"></div><div class="window-dot y"></div><div class="window-dot g"></div>
+                    <div style="flex:1; text-align:center; color:rgba(255,255,255,0.3); font-size:0.75rem; font-family:monospace;">hub.7pro.tech/dashboard</div>
                 </div>
-                <div class="mockup-main">
-                    <div class="mockup-header"></div>
-                    <div class="mockup-grid">
-                        <div class="mockup-card">
-                            <div class="mockup-line" style="width:40%;"></div>
-                            <div class="mockup-line" style="width:80%; height:20px; background:rgba(255,215,0,0.6);"></div>
-                        </div>
-                        <div class="mockup-card">
-                            <div class="mockup-line" style="width:50%;"></div>
-                            <div class="mockup-line" style="width:60%; height:20px; background:rgba(74,222,128,0.6);"></div>
-                        </div>
-                        <div class="mockup-card">
-                            <div class="mockup-line" style="width:30%;"></div>
-                            <div class="mockup-line" style="width:70%; height:20px; background:rgba(96,165,250,0.6);"></div>
-                        </div>
-                    </div>
-                    <div class="mockup-list">
-                        <div class="mockup-list-item" style="animation-delay:0.1s;"><div class="mockup-circle"></div><div class="mockup-line" style="width:30%; margin:0 0 0 15px; height:10px;"></div></div>
-                        <div class="mockup-list-item" style="animation-delay:0.2s;"><div class="mockup-circle" style="background:rgba(74,222,128,0.2);"></div><div class="mockup-line" style="width:45%; margin:0 0 0 15px; height:10px;"></div></div>
-                        <div class="mockup-list-item" style="animation-delay:0.3s;"><div class="mockup-circle" style="background:rgba(248,113,113,0.2);"></div><div class="mockup-line" style="width:25%; margin:0 0 0 15px; height:10px;"></div></div>
-                        <div class="mockup-list-item" style="animation-delay:0.4s;"><div class="mockup-circle"></div><div class="mockup-line" style="width:35%; margin:0 0 0 15px; height:10px;"></div></div>
-                    </div>
+                <!-- IMPORTANTE: O Arquivo gerado pelo robô estará aqui! Usaremos img porque é .webp animado -->
+                <div class="platform-video">
+                    <img src="assets/videos/dashboard_demo.webp" alt="Demonstração do Dashboard Hub">
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- SOCIAL PROOF -->
+    <section class="trust-section">
+        <div class="container">
+            <p>Construído para Igrejas e Lideranças que querem crescimento ordenado</p>
+            <div class="logo-cloud">
+                <b>Lagoinha</b>
+                <b>Orlando</b>
+                <b>Vila Minha</b>
+                <b>Batismo Hub</b>
+                <b>Start Cursos</b>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES LONG-FORM -->
     <section class="features" id="solucoes">
         <div class="container">
             
+            <!-- Feature 1: CRM & AI -->
             <div class="feature-row">
                 <div class="feature-text">
-                    <h2>Consolidação Guiada por IA</h2>
-                    <p>O Lago HUB automatiza os primeiros contatos via WhatsApp. O nosso modelo LLM treinado interage com os novos visitantes, e se a conversa for assumida por um Consolidador Humano, a IA pausa instantaneamente.</p>
-                    <ul style="list-style:none; color:var(--dim); font-size:0.95rem;">
-                        <li style="margin-bottom:10px;">✨ <b>Respostas instantâneas</b> e personalizadas baseadas no Knowledge Base da igreja</li>
-                        <li style="margin-bottom:10px;">⏸️ <b>Human Lock (30 min)</b> protege a interação quando seu voluntário envia uma mensagem</li>
-                        <li>🚀 Retenções mais altas de novos decididos e visitantes.</li>
+                    <div class="badge yellow">Atendimento Instantâneo</div>
+                    <h2>Resgate os novos contatos antes deles esfriarem</h2>
+                    <p>Você perdeu novos decididos e visitantes simplesmente porque a sua equipe demorou dias para entrar em contato no WhatsApp. O Lago Hub muda essa lógica.</p>
+                    <ul class="feature-list">
+                        <li><span>✨</span> <div><b>Automação por Inteligência Artificial Integrada:</b> Assim que o visitante preenche o formulário da igreja no culto, o robô Hub envia uma saudação calorosa respondendo dúvidas.</div></li>
+                        <li><span>🛡️</span> <div><b>Human Lock Assurance:</b> Se a IA perceber interesse intenso, ou se um Consolidador humano da equipe entrar para falar, a IA desliga e a conversa fica reservada.</div></li>
+                        <li><span>📱</span> <div><b>Painel Omni-channel:</b> Acompanhe em quem o voluntário clicou, o histórico de mensagens, e adicione tarefas como "Ligar", "Agendar GC". Tudo isso centralizado.</div></li>
                     </ul>
                 </div>
                 <div class="feature-visual">
-                    <div class="css-mockup" style="display:flex; flex-direction:column; padding:30px; justify-content:center;">
-                        <div style="text-align:center; font-size:0.7rem; color:var(--dim); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Inteligência Artificial Ativa</div>
-                        <div style="display:flex; flex-direction:column;">
-                            <div class="chat-bubble chat-ai" style="animation-delay:0.2s">✨ Olá João! Que alegria ter você aqui na Lagoinha hoje. Gostaria de saber mais sobre nossos GCs?</div>
-                            <div class="chat-bubble chat-user" style="animation-delay:1.5s">Oi! Sim, eu gostaria muito de visitar um grupo próximo da minha casa. Mensagem</div>
-                            <div class="chat-bubble chat-ai" style="animation-delay:2.8s">✨ Perfeito! Qual o seu bairro? Vou te passar os horários certinhos.</div>
-                            <div class="chat-bubble chat-user" style="background:#555; border:1px solid #666; animation-delay:4s; align-self:flex-start; font-size:0.7rem; padding:6px 12px; margin-top:-5px;">⏸️ IA Pausada (Intervenção Humana)</div>
-                        </div>
+                    <div class="video-box chat-container">
+                        <div style="text-align:center; font-size:0.75rem; color:var(--dim); margin-bottom:20px; text-transform:uppercase; letter-spacing:1px; font-weight:800;">Simulação do Fluxo IA</div>
+                        <div class="chat-bubble chat-ai" style="animation-delay:0.2s">✨ Olá João! Que alegria ter você aqui na Lagoinha hoje. Gostaria de saber mais sobre nossos GCs?</div>
+                        <div class="chat-bubble chat-user" style="animation-delay:1.5s">Oi! Sim, eu gostaria muito de visitar um pequeno grupo próximo da minha casa.</div>
+                        <div class="chat-bubble chat-ai" style="animation-delay:2.8s">✨ Perfeito! Qual o seu bairro? Vou te passar as informações. Lembre-se, nossos pastores estarão aqui por perto pra orar com você!</div>
+                        <div class="chat-bubble chat-user" style="background:#4a90e2; border:1px solid #5aa0f2; align-self:center; font-size:0.7rem; padding:8px 16px; margin-top:10px; border-radius:100px; text-transform:uppercase; font-weight:800; animation-delay:4s;">⏸️ CONVERSA ASSUMIDA POR UM HUMANO</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Feature 2: Eventos e Check-in -->
             <div class="feature-row">
                 <div class="feature-text">
-                    <h2>Gestão CRIE e Eventos (Check-in)</h2>
-                    <p>Substitua listas de papel e dezenas de planilhas num único portal. Gerencie pagamentos (MDR), turmas de batismo e crie eventos na hora com controle individual de capacidade e check-ins no mobile.</p>
-                    <ul style="list-style:none; color:var(--dim); font-size:0.95rem;">
-                        <li style="margin-bottom:10px;">🎟️ <b>QR Codes Exclusivos</b> gerados na inscrição e lidos na porta</li>
-                        <li style="margin-bottom:10px;">📊 <b>Taxa de presenças automática</b> para acompanhar fidelidade das turmas</li>
-                        <li>💳 <b>Controle de mensalidades</b> para associados</li>
+                    <div class="badge green">Gestão de Check-ins (CRIE)</div>
+                    <h2>Controle eventos e classes, diga adeus à prancheta</h2>
+                    <p>Ter turmas grandes do START, Consolidação e Acampamentos costuma ser um pesadelo logístico. O módulo <b>CRIE</b> simplifica desde a cobrança até a portaria do evento.</p>
+                    <ul class="feature-list">
+                        <li><span>🎟️</span> <div><b>QR Code Exclusivo por Ingresso:</b> Cada inscrito ganha um QR Code na tela final. O porteiro do evento usa nosso sistema mobile para dar entrada em um bip.</div></li>
+                        <li><span>📊</span> <div><b>Estatística de Frequência e Abstenções:</b> O painel te avisa quando um aluno faltou mais do que o tolerado (ex: na classe de batismo).</div></li>
+                        <li><span>💳</span> <div><b>Registros Financeiros Inteligentes:</b> Acompanhe mensalidades ou pagamentos isolados do membro dentro do card dele sem sair da tela.</div></li>
                     </ul>
                 </div>
                 <div class="feature-visual">
-                    <div class="css-mockup" style="display:flex; flex-direction:column; background:#06090e;">
-                        <div style="padding:15px; border-bottom:1px solid var(--card-border); font-weight:800; font-size:0.9rem; display:flex; justify-content:space-between;">
-                            <span>📱 Check-in Mobile</span>
-                            <span style="color:#4ade80;">✓ 142 presentes</span>
+                    <div class="video-box" style="padding:0; background:#06090e;">
+                        <div style="padding:20px; border-bottom:1px solid var(--card-border); font-weight:800; font-size:1rem; display:flex; justify-content:space-between; align-items:center;">
+                            <span>📱 Gestão Turma START</span>
+                            <span style="color:#4ade80; background:rgba(74,222,128,0.1); padding:4px 12px; border-radius:100px; font-size:0.8rem;">142 PRESENTES</span>
                         </div>
                         <div style="padding:20px; overflow:hidden;">
-                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                                <div><div style="font-weight:700;">Maria Silva</div><div style="font-size:0.75rem; color:var(--dim);">maria@g.com</div></div>
-                                <div style="background:rgba(74,222,128,0.2); color:#4ade80; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800;">CHECK IN</div>
+                            <div style="background:var(--card-bg); padding:20px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; transition:0.3s;">
+                                <div><div style="font-weight:700; font-size:1.05rem;">Maria Silva Dias</div><div style="font-size:0.85rem; color:var(--dim);">Pago | 3/4 Presenças</div></div>
+                                <div style="background:#4ade80; color:#000; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:800; box-shadow:0 5px 15px rgba(74,222,128,0.3);">CHECK-IN ✓</div>
                             </div>
-                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                                <div><div style="font-weight:700;">Rafael Neves</div><div style="font-size:0.75rem; color:var(--dim);">rafa@g.com</div></div>
-                                <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#ccc; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800;">PENDENTE</div>
+                            <div style="background:var(--card-bg); padding:20px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                                <div><div style="font-weight:700; font-size:1.05rem;">Rafael Gomes Neves</div><div style="font-size:0.85rem; color:var(--dim);">Pendente | 0/4 Presenças</div></div>
+                                <div style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#ccc; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:800;">AGUARDANDO</div>
                             </div>
-                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; opacity:0.5;">
-                                <div><div style="font-weight:700;">...</div></div>
-                            </div>
+                            <!-- Abstraction gradient over bottom -->
+                            <div style="height:60px; background:linear-gradient(transparent, #06090e); margin-top:-40px; position:relative; z-index:10;"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Feature 3: Analytics and Multi-tenant -->
+            <div class="feature-row" style="margin-bottom:0;">
+                <div class="feature-text">
+                    <div class="badge yellow">Workspace Multi-Igreja</div>
+                    <h2>Um Hub central que conecta filiais</h2>
+                    <p>Se você tem várias igrejas campus, o Hub foi construído com a arquitetura Multi-Tenant moderna de Banco de Dados. Isso significa que Líderes locais acessam apenas a sua filial, enquanto Líderes Master enxergam as estatísticas globais.</p>
+                </div>
+                <div class="feature-visual">
+                    <div class="stats-grid" style="margin-top:0;">
+                        <div class="stat-card">
+                            <div class="stat-value">+4k</div>
+                            <div class="stat-label">Leads Processados</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">5x</div>
+                            <div class="stat-label">Mais Retenção</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- BIG STATS CALLOUT -->
+    <section class="stats-section">
+        <div class="container" style="text-align:center;">
+            <h2 style="font-size:2rem; font-weight:900; margin-bottom:15px; letter-spacing:-1px;">Sabe o que muda ao utilizar o painel consolidado?</h2>
+            <p style="color:var(--dim); font-size:1.1rem; max-width:700px; margin:0 auto;">Times deixam de perder madrugadas conciliando tabelas do Excel ou brigando com disparo de WhatsApp que atrasa. É controle e cuidado pastoral de verdade.</p>
         </div>
     </section>
 
     <section class="plans-section" id="planos">
         <div class="container">
-            <h2 style="font-size:2.5rem; font-weight:900; letter-spacing:-1px;">Planos que acompanham seu crescimento</h2>
-            <p style="color:var(--dim); font-size:1.1rem; max-width:600px; margin:10px auto 0;">Gerencie com potência independente do tamanho da sua igreja local.</p>
+            <h2 style="font-size:2.8rem; font-weight:900; letter-spacing:-1px;">Planos que acompanham o Ministério</h2>
+            <p style="color:var(--dim); font-size:1.15rem; max-width:650px; margin:15px auto 0;">Não limitamos seu crescimento; nossos planos são estruturados visando dar as ferramentas certas conforme seu volume demanda aumento tecnológico.</p>
 
             <div class="plans-grid">
                 <!-- FREE -->
@@ -317,14 +373,14 @@
                     <span class="plan-name">FREE</span>
                     <div class="plan-price">Gratuito</div>
                     <ul class="plan-features">
-                        <li>Consolidação</li>
-                        <li>Visitantes CRM</li>
-                        <li class="locked">IA WhatsApp Base</li>
-                        <li class="locked">Escola START</li>
-                        <li class="locked">Gestão CRIE</li>
-                        <li class="locked">Check-in Avançado</li>
+                        <li><b>Módulo Consolidação</b> Base</li>
+                        <li><b>Formulários de Captação</b> Online</li>
+                        <li>Limitação a 50 Membros</li>
+                        <li class="locked">Integração WhatsApp Nativa</li>
+                        <li class="locked">Fluxo CRIE / Escolas</li>
+                        <li class="locked">Sucesso de Check-in em App</li>
                     </ul>
-                    <a href="#contato" class="plan-btn">Criar Conta</a>
+                    <a href="#contato" class="plan-btn">Iniciar Gratuitamente</a>
                 </div>
 
                 <!-- START -->
@@ -332,57 +388,57 @@
                     <span class="plan-name">START</span>
                     <div class="plan-price">$ 27<span>/mês</span></div>
                     <ul class="plan-features">
-                        <li>Consolidação Inteligente</li>
-                        <li>Visitantes CRM</li>
-                        <li>Escola START / Batismo</li>
-                        <li>Alertas de Aniversariantes</li>
-                        <li class="locked">IA de WhatsApp Pro</li>
-                        <li class="locked">Gestão CRIE</li>
+                        <li><b>Tudo do FREE</b> + Capacidade Ampliada</li>
+                        <li><b>Estatísticas Analíticas</b> CRM de Visitante</li>
+                        <li><b>Escola START e Batismo:</b> Criação Eventos Livres</li>
+                        <li>Alertas Automatizados de Aniversariantes via Painel</li>
+                        <li class="locked">IA de Respostas em Lote</li>
+                        <li class="locked">Multiusuários e Filiais de Rede</li>
                     </ul>
                     <a href="https://wa.me/13214443034?text=Olá, desejo saber mais sobre o plano START" class="plan-btn" target="_blank">Falar com Consultor</a>
                 </div>
 
                 <!-- PRO -->
                 <div class="plan-card">
-                    <span class="plan-name">PRO</span>
+                    <span class="plan-name" style="color:#60a5fa;">PRO</span>
                     <div class="plan-price">$ 47<span>/mês</span></div>
                     <ul class="plan-features">
-                        <li>Todas do Plano Start</li>
-                        <li>Gestão CRIE (Eventos)</li>
-                        <li>Tickets e QR Codes</li>
-                        <li>Gestão Financeira Básica</li>
-                        <li class="locked">IA Automática Ativa</li>
-                        <li class="locked">Multi-Workspace</li>
+                        <li><b>Tudo do START</b> Ilimitado</li>
+                        <li><b>Leitura de Código QR</b> Integrado</li>
+                        <li><b>Gestão CRIE (Eventos e Check-ins):</b> Painel Total</li>
+                        <li><b>Controle Financeiro Básico:</b> Entradas e Histórico</li>
+                        <li class="locked">Automação de Atendimento ao Visitante por IA</li>
+                        <li class="locked">Servidor Dedicado ou Domínio Customizado</li>
                     </ul>
                     <a href="https://wa.me/13214443034?text=Olá, desejo saber mais sobre o plano PRO" class="plan-btn" target="_blank">Falar com Consultor</a>
                 </div>
 
                 <!-- PREMIUM -->
                 <div class="plan-card premium">
-                    <span class="plan-badge">Mais Popular</span>
+                    <span class="plan-badge">O Mais Robusto</span>
                     <span class="plan-name" style="color:#FFD700;">PREMIUM</span>
                     <div class="plan-price">$ 97<span>/mês</span></div>
                     <ul class="plan-features">
-                        <li>Ilimitados Leads</li>
-                        <li>Agente Inteligente WhatsApp</li>
-                        <li>Recuperação Automática</li>
-                        <li>Todas do Plano PRO</li>
-                        <li>Business Inteligence Integrado</li>
-                        <li>Suporte Dedicado VIP</li>
+                        <li><b>Bancos de Dados Multilocation (Múltiplas Igrejas)</b></li>
+                        <li><b>Agente AI Automático</b> (Machine Learning Padrão Bíblico)</li>
+                        <li><b>Recuperação Automática (Human Lock 30m)</b></li>
+                        <li>Business Inteligence (Grafana Dashboards Integrados)</li>
+                        <li>Leads Infinitos e Disparos Infinitos* de Servidor</li>
+                        <li>Suporte VIP Dedicado WhatsApp Direto (SLA 4h)</li>
                     </ul>
-                    <a href="https://wa.me/13214443034?text=Olá, desejo fechar o plano PREMIUM" class="plan-btn" target="_blank">Falar com Consultor</a>
+                    <a href="https://wa.me/13214443034?text=Olá, desejo fechar o plano PREMIUM" class="plan-btn" target="_blank">Entrar no Premium</a>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- LEAD / CONTACT SYSTEM -->
     <section class="contact-section" id="contato">
         <div class="container">
             <div class="contact-box">
-                <h3>Transforme o backoffice da sua Igreja hoje</h3>
-                <p>Acesse o futuro da consolidação pastoral. Insira seus dados abaixo para entrarmos em contato.</p>
+                <h3>Transforme o backoffice da sua Igreja</h3>
+                <p>Nossa equipe técnica ajuda você na migração dos dados antigos para a plataforma nova. Preencha seus dados para receber o contato comercial.</p>
                 
-                <!-- Use FormSubmit endpoints to instantly notify admin and redirect or use fetch to target Google Script Webhook -->
                 <form id="leadCaptureForm" onsubmit="submitLeadForm(event)">
                     <div class="form-group">
                         <label>Nome Completo (Liderança)</label>
@@ -402,8 +458,8 @@
 
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Cidade da Igreja</label>
-                            <input type="text" id="leadCity" required class="form-control" placeholder="Orlando">
+                            <label>Cidade e Nome da Igreja Local</label>
+                            <input type="text" id="leadCity" required class="form-control" placeholder="Lagoinha Orlando">
                         </div>
                         <div class="form-group">
                             <label>País</label>
@@ -417,8 +473,8 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="btnLeadSubmit" class="btn-primary" style="width:100%; border:none; margin-top:20px; font-size:1.05rem;">Solicitar Acesso / Contato</button>
-                    <div id="leadSuccess" style="display:none; color:#4ade80; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.3); padding:16px; border-radius:12px; margin-top:20px; text-align:center; font-weight:600;">Obrigado! Recebemos sua solicitação e entraremos em contato em breve.</div>
+                    <button type="submit" id="btnLeadSubmit" class="btn-primary" style="width:100%; border:none; margin-top:20px; font-size:1.1rem; padding:18px;">Me contatem por via WhatsApp</button>
+                    <div id="leadSuccess" style="display:none; color:#000; background:var(--accent); border:1px solid #cca600; padding:20px; border-radius:12px; margin-top:20px; text-align:center; font-weight:800;">Obrigado! Sucesso total na requisição. Já vamos te chamar!</div>
                 </form>
 
             </div>
@@ -426,25 +482,23 @@
     </section>
 
     <footer>
-        <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-            <div>&copy; 2026 Lagoinha HUB / 7pro.tech. Todos os direitos reservados.</div>
-            <div style="display:flex; gap:20px;">
-                <a href="#solucoes" style="color:var(--dim); text-decoration:none;">Soluções</a>
-                <a href="https://wa.me/13214443034" style="color:var(--dim); text-decoration:none;" target="_blank">Ajuda e Suporte</a>
+        <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:20px;">
+            <div>&copy; 2026 Lagoinha HUB / Produzido e escalado por <b>7pro SaaS</b>.</div>
+            <div style="display:flex; gap:24px; font-weight:600;">
+                <a href="#solucoes" style="color:var(--dim); text-decoration:none;">Conheça a Plataforma</a>
+                <a href="https://wa.me/13214443034" style="color:var(--text); text-decoration:none;" target="_blank">Ajuda Rápida</a>
             </div>
         </div>
     </footer>
 
     <!-- Botão WhatsApp Flutuante -->
-    <a href="https://wa.me/13214443034?text=Olá, Acessei o site do Hub 7pro e gostaria de mais informações" class="whatsapp-float" target="_blank" title="Fale com nosso Suporte">
+    <a href="https://wa.me/13214443034?text=Olá, Acessei o site do Hub 7pro e gostaria de marcar uma demonstração do sistema" class="whatsapp-float" target="_blank" title="Fale com nosso Suporte Comercial">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
     </a>
 
-    <!-- Scripts -->
     <script>
-        // Check for existing logical login
         const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
 
@@ -453,15 +507,13 @@
                 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 const { data: { session } } = await sb.auth.getSession();
                 
-                // Keep the same quick access or just change CTA link to Dashboard
                 if (session) {
                     const btnLogin = document.querySelector('.btn-login');
                     if (btnLogin) {
                         const role = session.user.user_metadata?.role || 'user';
-                        // Simple redirection logic, letting hub-router handle specific workspace logic 
-                        btnLogin.innerText = "Acessar Painel";
+                        btnLogin.innerText = "Meu Painel";
                         if (role === 'master_admin') {
-                            btnLogin.href = '/login.html'; // Or whatever global dash exist. Let's redirect to login to auto-route
+                            btnLogin.href = '/login.html'; 
                         } else {
                             const { data: userRow } = await sb.from('users').select('workspace_id').eq('id', session.user.id).single();
                             if (userRow?.workspace_id) {
@@ -480,7 +532,7 @@
             const success = document.getElementById('leadSuccess');
             const originalText = btn.innerText;
 
-            btn.innerText = "Enviando...";
+            btn.innerText = "Enviando Dados em Segurança...";
             btn.disabled = true;
 
             const payload = {
@@ -494,7 +546,6 @@
             };
 
             try {
-                // 1. Enviar para WebHook do Google Sheets Existente (Silencioso para não gerar erro CORS)
                 fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
                     method: 'POST',
                     mode: 'no-cors',
@@ -502,8 +553,6 @@
                     body: JSON.stringify(payload)
                 }).catch(() => {});
 
-                // 2. Enviar por Email para g@7proservices.com usando FormSubmit (Serviço Grátis Frontend)
-                // Utilizamos mode no-cors ou o endpoint dinâmico do formsubmit para disparar o email.
                 await fetch('https://formsubmit.co/ajax/g@7proservices.com', {
                     method: 'POST',
                     headers: { 
@@ -511,23 +560,22 @@
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        _subject: "Novo Cadastro de Igreja | Hub 7Pro",
-                        "Nome do Pastor/Lider": payload.name,
+                        _subject: "SaaS Lead: Nova Contato Comercial | Hub",
+                        "Nome do Líder": payload.name,
                         "WhatsApp": payload.whatsapp,
-                        "Email": payload.email,
-                        "Cidade/Estado": payload.city,
+                        "Email Corporativo": payload.email,
+                        "Igreja/Cidade": payload.city,
                         "País": payload.country
                     })
                 });
 
-                // Clear form and show success
                 e.target.reset();
                 btn.style.display = 'none';
                 success.style.display = 'block';
 
             } catch(e) {
                 console.error("Erro no envio:", e);
-                alert("Falha ao enviar. Por favor, tente pelo WhatsApp.");
+                alert("Falha ao enviar seus dados. Nossa equipe está corrigindo. Por favor, nos chame no WhatsApp.");
                 btn.innerText = originalText;
                 btn.disabled = false;
             }
