@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
     <style>
         :root {
             --primary: #FFD700;
@@ -122,6 +124,16 @@
         
         button.secondary { background: var(--surface); color: #fff; border: 1px solid var(--border); }
         button.secondary:hover { background: var(--surface-hover); }
+
+        /* intl-tel-input overrides */
+        .iti { width: 100%; display: block; }
+        .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png");}
+        @media (min-resolution: 2x) { .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png");}}
+        .iti__country-list { background-color: #0d1117; border: 1px solid var(--border); color: #fff; border-radius: 12px; overflow: hidden; font-family: 'Outfit'; z-index: 99999; }
+        .iti__country-list li:hover { background-color: rgba(255,255,255,0.1); }
+        .iti__selected-flag { border-top-left-radius: 12px; border-bottom-left-radius: 12px; padding: 0 16px; transition: 0.2s; }
+        .iti__selected-flag:hover { background-color: rgba(255,255,255,0.05); }
+        .iti__selected-dial-code { color: #fff; }
 
         /* Dashboard specific */
         .dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
@@ -394,6 +406,7 @@
         let _lessons = [];
         let _progress = [];
         let _questions = [];
+        let pPhoneIti = null;
         
         let _currentLessonIndex = 0;
         let _userAnswers = [];
@@ -417,6 +430,15 @@
                 document.getElementById('langSelect').value = savedLang;
                 window.changeLanguage(savedLang);
             }
+
+            // Phone intl-tel-input setup
+            const pPhoneInput = document.querySelector("#auth-phone");
+            pPhoneIti = window.intlTelInput(pPhoneInput, {
+                initialCountry: "pt",
+                preferredCountries: ["pt", "br", "us", "es", "gb", "fr", "de", "it"],
+                separateDialCode: true,
+                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
+            });
 
             const storedId = localStorage.getItem(`start_session_${_workspaceId}`);
             if (storedId) {
@@ -519,7 +541,7 @@
         async function submitNewSignup() {
             const email = document.getElementById('auth-email').value.trim();
             const name = document.getElementById('auth-name').value.trim();
-            const phone = document.getElementById('auth-phone').value.trim();
+            const phone = pPhoneIti ? pPhoneIti.getNumber() : '';
             if(!name) { showToast(TRANSLATIONS[_lang].nameLabel + ' obrigatório','error'); return; }
             
             const btn = document.getElementById('btn-signup');
