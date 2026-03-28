@@ -254,7 +254,8 @@
                 const { error: compErr } = await sb.from('start_completions').upsert({
                     participant_id: participantId,
                     workspace_id: _workspaceId,
-                    completion_type: 'presential'
+                    completion_type: 'presential',
+                    completed_at: new Date().toISOString()
                 }, { onConflict: 'participant_id' }); 
                 
                 if (compErr && compErr.code !== '23505') {
