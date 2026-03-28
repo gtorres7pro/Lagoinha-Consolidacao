@@ -318,7 +318,9 @@ window.openStartDrawer = async function(id) {
     
     // Open drawer first so user sees it immediately
     const overlay = document.getElementById('start-drawer-overlay');
-    if (overlay) overlay.style.display = 'flex';
+    const drawerEl = overlay?.querySelector('.hub-drawer');
+    if (overlay) overlay.classList.add('open');
+    if (drawerEl) drawerEl.classList.add('open');
     
     // Load comments fresh from DB
     const commentsEl = document.getElementById('start-drawer-comments');
@@ -372,7 +374,10 @@ window.openStartDrawer = async function(id) {
 };
 
 window.closeStartDrawer = function() {
-    document.getElementById('start-drawer-overlay').style.display = 'none';
+    const overlay = document.getElementById('start-drawer-overlay');
+    const drawerEl = overlay?.querySelector('.hub-drawer');
+    if (overlay) overlay.classList.remove('open');
+    if (drawerEl) drawerEl.classList.remove('open');
     _currentStartSelectedId = null;
 };
 
