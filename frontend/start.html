@@ -3,132 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Módulo Start - Lagoinha HUB</title>
+    <title>Start - Passo a Passo da Fé</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="/index.css">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; }
-        .main-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        :root {
+            --primary: #FFD700;
+            --primary-glow: rgba(255, 215, 0, 0.4);
+            --bg-dark: #07090f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.06);
+            --text-dim: rgba(255, 255, 255, 0.6);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        .header-logo { text-align: center; margin: 40px 0; }
-        .header-logo img { max-width: 150px; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: #fff; 
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animated Background Orbs */
+        .bg-orbs {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: -1; pointer-events: none;
+            background: radial-gradient(circle at center, #0B111A 0%, #030407 100%);
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+        .orb-1 { width: 40vw; height: 40vw; background: rgba(255, 215, 0, 0.15); top: -10%; left: -10%; }
+        .orb-2 { width: 50vw; height: 50vw; background: rgba(15, 23, 42, 0.8); bottom: -20%; right: -10%; animation-delay: -5s; }
+        .orb-3 { width: 30vw; height: 30vw; background: rgba(255, 215, 0, 0.08); top: 40%; left: 50%; transform: translateX(-50%); animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5%, 10%) scale(1.1); }
+        }
+
+        /* Layout */
+        .main-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            z-index: 1;
+        }
+        @media (min-width: 900px) {
+            .main-wrapper.split { grid-template-columns: 1fr 1fr; align-items: center; }
+        }
+
+        /* Branding & Intro */
+        .intro-side {
+            padding: 20px;
+            animation: fadeLeft 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .logo-wrap {
+            display: inline-flex; flex-direction: column; margin-bottom: 2rem;
+            background: var(--surface); padding: 12px 24px; border-radius: 20px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .logo-title { color: var(--primary); font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; margin:0; }
+        .logo-subtitle { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-top:2px;}
+        .intro-heading { font-size: 3rem; font-weight: 800; line-height: 1.1; margin-bottom: 20px; letter-spacing: -1px; }
+        .intro-body { font-size: 1.1rem; color: var(--text-dim); line-height: 1.7; max-width: 480px; }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(13, 17, 23, 0.6);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-panel::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.3), transparent);
+        }
+
+        /* Forms */
+        .form-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+        .form-subtitle { font-size: 1rem; color: var(--text-dim); margin-bottom: 32px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
+        .input-light { 
+            width: 100%; padding: 14px 16px; border-radius: 12px; font-family: 'Outfit'; font-size: 1rem;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #fff;
+            transition: all 0.3s;
+        }
+        .input-light:focus { outline: none; border-color: var(--primary); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 4px rgba(255,215,0,0.1); }
+        .input-light::placeholder { color: rgba(255,255,255,0.2); }
+
+        /* Buttons */
+        button.btn { padding: 14px 28px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: all 0.3s; width: 100%; font-size: 1.05rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        button.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        button.primary { background: var(--primary); color: #000; box-shadow: 0 4px 15px var(--primary-glow); }
+        button.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px var(--primary-glow); }
+        button.primary:active:not(:disabled) { transform: translateY(0); }
         
-        /* Login / Signup Flow */
-        .auth-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 400px; margin: 0 auto; }
-        .auth-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 10px; color: #FFD700; }
-        .auth-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.6); margin-bottom: 30px; }
+        button.secondary { background: var(--surface); color: #fff; border: 1px solid var(--border); }
+        button.secondary:hover { background: var(--surface-hover); }
+
+        /* Dashboard specific */
+        .dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        #welcome-name { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin:0; }
+        #progress-pct { color: var(--primary); font-weight: 800; font-size: 1.2rem; }
         
-        /* Lessons Grid */
-        .lesson-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .lesson-card:hover:not(.locked) { background: rgba(255,255,255,0.05); border-color: rgba(255,215,0,0.3); }
-        .lesson-card.locked { opacity: 0.5; cursor: not-allowed; }
-        .lesson-card.completed { border-color: #34D399; background: rgba(52, 211, 153, 0.05); }
-        .lesson-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; }
-        .lesson-card.completed .lesson-icon { background: #34D399; color: #0b141a; }
-        .lesson-card.locked .lesson-icon { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.2); }
-        .lesson-info { flex: 1; padding: 0 16px; text-align: left; }
-        .lesson-title { font-weight: 600; font-size: 1.1rem; margin: 0; }
+        /* Lesson Cards */
+        .lessons-grid { display: grid; gap: 16px; }
+        .lesson-card { 
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; 
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); cursor: pointer; display: flex; align-items: center; justify-content: space-between; 
+            position: relative; overflow: hidden;
+        }
+        .lesson-card:hover:not(.locked) { transform: translateY(-3px); border-color: rgba(255,215,0,0.4); background: rgba(255,255,255,0.05); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        .lesson-card.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
+        .lesson-card.completed { border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.03); }
         
-        /* Player View */
-        .player-view { display: none; }
-        .video-wrapper { position: relative; padding-bottom: 56.25%; /* 16:9 */ height: 0; overflow: hidden; max-width: 100%; border-radius: 16px; margin-bottom: 24px; background: #000; }
-        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; border-radius: 16px; }
+        .lesson-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(255,255,255,0.1); }
+        .lesson-card.completed .lesson-icon { background: #34D399; color: #000; box-shadow: 0 0 15px rgba(52,211,153,0.3); }
+        .lesson-card.locked .lesson-icon { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.2); box-shadow: none; }
         
+        .lesson-info { flex: 1; padding: 0 20px; }
+        .lesson-title { font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .lesson-subtitle { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 4px; }
+        
+        /* Player */
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 20px; margin-bottom: 24px; background: #000; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid var(--border); }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        
+        .action-bar { display: flex; gap: 16px; margin-top:24px; flex-wrap: wrap; }
+        .action-bar > * { flex: 1; min-width: 200px; }
+
         /* Quiz */
-        .quiz-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 30px; margin-top: 30px; display: none; }
-        .quiz-title { font-size: 1.2rem; font-weight: 700; color: #FFD700; margin-bottom: 20px; }
-        .q-text { font-weight: 600; margin-bottom: 12px; font-size: 1.05rem; }
-        .q-option { display: block; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
-        .q-option:hover { background: rgba(255,255,255,0.1); }
-        .q-option.selected { background: rgba(255,215,0,0.15); border-color: #FFD700; }
+        .quiz-container { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-top: 32px; display: none; }
+        .quiz-title { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-bottom: 24px; }
+        .q-text { font-weight: 700; margin-bottom: 16px; font-size: 1.15rem; line-height: 1.4; color: #fff;}
+        .q-option { display: block; background: var(--surface); border: 1px solid var(--border); padding: 16px 20px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; font-size: 1.05rem; }
+        .q-option:hover { background: var(--surface-hover); transform: translateX(4px); }
+        .q-option.selected { background: rgba(255,215,0,0.1); border-color: var(--primary); color: #fff; }
         .q-option.correct { background: rgba(52, 211, 153, 0.15); border-color: #34D399; }
         .q-option.wrong { background: rgba(248, 113, 113, 0.15); border-color: #F87171; }
         
-        button.btn { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1rem; }
-        button.primary { background: #FFD700; color: #0b141a; }
-        button.primary:hover { background: #e0bd00; }
-        
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2f3640; color: #fff; padding: 14px 24px; border-radius: 30px; font-weight: 600; font-size: 0.9rem; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
-        .toast.show { opacity: 1; bottom: 40px; }
+        /* Utils */
+        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #2f3640; color: #fff; padding: 14px 28px; border-radius: 30px; font-weight: 600; z-index: 10000; transition: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border); }
+        .toast.show { bottom: 40px; }
         .toast.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-        .toast.success { background: #dcfce7; color: #166534; border-color: #86efac; }
+        .toast.success { background: rgba(52,211,153,0.1); color: #34D399; border-color: rgba(52,211,153,0.3); backdrop-filter: blur(10px); }
         
-        /* Language Selector */
-        .lang-switch { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 20px; font-family: 'Outfit'; font-size: 0.8rem; outline: none; }
+        .lang-switch { position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 8px 16px; border-radius: 30px; font-family: 'Outfit'; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; backdrop-filter: blur(10px); z-index: 100; transition: 0.3s; }
+        .lang-switch:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .lang-switch option { background: #0f172a; color: #fff; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Fullscreen View transition */
+        .dash-layout { max-width: 800px; margin: 0 auto; width: 100%; transition: 0.5s; padding: 40px 0;}
     </style>
 </head>
 <body>
-    <select class="lang-switch" id="langSelect" onchange="changeLanguage(this.value)">
-        <option value="pt">Português</option>
-        <option value="en">English</option>
-        <option value="es">Español</option>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <select class="lang-switch" id="langSelect" onchange="window.changeLanguage(this.value)">
+        <option value="pt">🇧🇷 Português</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="es">🇪🇸 Español</option>
     </select>
 
-    <div class="main-container">
-        <div class="header-logo">
-            <h1 style="color: #FFD700; font-size: 2rem; margin:0; letter-spacing: -1px;">START</h1>
-            <p style="color: rgba(255,255,255,0.6); margin:0;">Passo a Passo da Fé</p>
+    <div class="main-wrapper split" id="main-wrapper">
+        
+        <!-- INTRO SIDEBAR (Hidden inside dashboard) -->
+        <div class="intro-side" id="intro-side">
+            <div class="logo-wrap">
+                <h1 class="logo-title">START</h1>
+                <span class="logo-subtitle">Passo a Passo da Fé</span>
+            </div>
+            <h2 class="intro-heading" id="t-introTitle">A sua jornada da fé.</h2>
+            <p class="intro-body" id="t-introText">
+                O Start é a base que você precisa após a sua decisão. Serão 8 aulas curtas e fundamentais para solidificar sua vida com Cristo.<br><br>
+                Assista aos vídeos, teste seus conhecimentos e prepare-se para ser transformado!
+            </p>
         </div>
 
-        <!-- 1. AUTHENTICATION VIEW -->
-        <div id="view-auth" class="auth-card">
-            <h2 class="auth-title">Bem-vindo(a)</h2>
-            <p class="auth-subtitle">Insira seu email para continuar</p>
-            <div style="margin-bottom: 20px; text-align:left;">
-                <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Email</label>
-                <input type="email" id="auth-email" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';" placeholder="seu@email.com">
-            </div>
-            <button class="btn primary" onclick="submitAuth()" id="btn-auth">Continuar</button>
-            <div id="auth-new-fields" style="display:none; text-align:left; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
-                <p style="font-size:0.85rem; color:#FFD700; margin-bottom:16px;">Parece que é sua primeira vez. Qual seu nome e telefone?</p>
-                <div style="margin-bottom: 16px;">
-                    <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Nome</label>
-                    <input type="text" id="auth-name" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';">
+        <!-- AUTH VIEW -->
+        <div id="view-auth">
+            <div class="glass-panel">
+                <h3 class="form-title" id="t-authTitle">Acesse sua conta</h3>
+                <p class="form-subtitle" id="t-authSubtitle">Insira seu email para continuar</p>
+                
+                <div class="input-group">
+                    <label id="t-emailLabel">Email</label>
+                    <input type="email" id="auth-email" class="input-light" placeholder="seu@email.com" autocomplete="email">
                 </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Telefone</label>
-                    <input type="tel" id="auth-phone" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';" placeholder="Inclua DDD">
+                
+                <button class="btn primary" onclick="submitAuth()" id="btn-auth">Continuar</button>
+                
+                <div id="auth-new-fields" style="display:none; margin-top:32px; border-top:1px solid var(--border); padding-top:24px; animation: fadeUp 0.5s forwards;">
+                    <p style="font-size:0.9rem; color:var(--primary); font-weight:600; margin-bottom:20px;" id="t-newNameText">Primeira vez aqui? Preencha os dados abaixo:</p>
+                    
+                    <div class="input-group">
+                        <label id="t-nameLabel">Nome completo</label>
+                        <input type="text" id="auth-name" class="input-light" placeholder="Seu nome">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label id="t-phoneLabel">Telefone (opcional)</label>
+                        <input type="tel" id="auth-phone" class="input-light" placeholder="WhatsApp">
+                    </div>
+                    
+                    <button class="btn primary" onclick="submitNewSignup()" id="btn-signup">Entrar no Curso</button>
                 </div>
-                <button class="btn primary" onclick="submitNewSignup()" id="btn-signup">Entrar no Curso</button>
             </div>
         </div>
+    </div> <!-- /main-wrapper auth -->
 
-        <!-- 2. LESSONS LIST VIEW -->
-        <div id="view-dashboard" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" style="display:none;" class="dash-layout">
+        <div class="glass-panel" style="padding: 40px;">
+            <div class="dash-header">
                 <div>
-                    <h2 style="margin:0; font-size:1.5rem;" id="welcome-name">Olá, participante</h2>
-                    <p style="margin:4px 0 0; color:rgba(255,255,255,0.6); font-size:0.9rem;">Seu progresso: <span id="progress-pct" style="color:#FFD700; font-weight:700;">0%</span></p>
+                    <h2 id="welcome-name">Olá, participante</h2>
+                    <p style="margin:8px 0 0; color:var(--text-dim); font-size:1rem;" id="t-progressText">Seu progresso: <span id="progress-pct">0%</span></p>
                 </div>
-                <button onclick="logout()" style="background:none; border:none; color:rgba(255,255,255,0.4); text-decoration:underline; cursor:pointer;">Sair</button>
+                <button onclick="logout()" id="btn-logout" class="btn secondary" style="width:auto; padding:8px 16px; font-size:0.9rem;">Sair</button>
             </div>
-            <div id="lessons-list">
-                <div style="text-align:center; padding:40px; color:rgba(255,255,255,0.4);">Carregando aulas...</div>
+            
+            <div id="lessons-list" class="lessons-grid">
+                <div style="text-align:center; padding:40px; color:var(--text-dim);" id="t-loading">Carregando aulas...</div>
             </div>
         </div>
+    </div>
 
-        <!-- 3. PLAYER VIEW -->
-        <div id="view-player" class="player-view">
-            <button onclick="backToDashboard()" style="background:none; border:none; color:#FFD700; font-weight:600; cursor:pointer; margin-bottom:20px; padding:0; display:flex; align-items:center; gap:8px;">
+    <!-- PLAYER VIEW -->
+    <div id="view-player" style="display:none;" class="dash-layout">
+        <div class="glass-panel" style="padding: 40px;">
+            <button id="btn-back" onclick="backToDashboard()" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:24px; padding:0; display:flex; align-items:center; gap:8px; font-family:'Outfit'; font-size:1rem; transition:0.2s;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 Voltar às Aulas
             </button>
             
-            <h2 id="lesson-header-title" style="margin:0 0 16px; font-size:1.6rem;">Aula 1</h2>
+            <h2 id="lesson-header-title" style="margin:0 0 24px; font-size:2rem; font-weight:800; letter-spacing:-0.5px;">Aula 1</h2>
             
             <div class="video-wrapper" id="video-container">
                 <!-- iframe injected here -->
             </div>
             
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <a id="btn-download-pdf" href="#" target="_blank" style="display:none; text-decoration:none; background:rgba(255,255,255,0.1); color:#fff; padding:10px 20px; border-radius:12px; font-weight:600; transition:0.2s;">
+            <div class="action-bar">
+                <a id="btn-download-pdf" href="#" target="_blank" class="btn secondary" style="display:none; text-decoration:none;">
                     📄 Baixar PDF de Apoio
                 </a>
-                <button id="btn-start-quiz" class="btn primary" style="width:auto;" onclick="startQuiz()">Fazer Quiz e Avançar</button>
+                <button id="btn-start-quiz" class="btn primary" onclick="startQuiz()">Fazer Quiz e Avançar</button>
             </div>
             
             <div id="quiz-area" class="quiz-container">
@@ -147,48 +295,96 @@
                 progress: "Seu progresso:",
                 logout: "Sair",
                 lesson: "Aula",
-                welcomeLesson: "Aula de Boas-vindas",
+                welcomeLesson: "Introdução",
                 locked: "Bloqueada",
                 completed: "Concluída",
                 back: "Voltar às Aulas",
                 downloadPdf: "📄 Baixar PDF de Apoio",
                 doQuiz: "Fazer Quiz e Avançar",
-                concludeLevel: "Marcar como Concluída e Avançar",
+                concludeLevel: "Marcar como Concluída",
                 quizPass: "Parabéns! Você passou no quiz.",
-                quizFail: "Você não atingiu a nota mínima. Tente novamente.",
-                confirmSubmit: "Submeter respostas"
+                quizFail: "Nota mínima não atingida. Tente novamente.",
+                confirmSubmit: "Submeter respostas",
+                introTitle: "A sua jornada da fé.",
+                introText: "O Start é a base que você precisa após a sua decisão. Serão aulas curtas e fundamentais para solidificar sua vida com Cristo.<br><br>Assista aos vídeos, teste seus conhecimentos e prepare-se para ser transformado!",
+                authTitle: "Acesse sua conta",
+                authSubtitle: "Insira seu email para continuar",
+                emailLabel: "Email",
+                emailPlaceholder: "seu@email.com",
+                btnContinue: "Continuar",
+                newNameText: "Primeira vez aqui? Preencha os dados abaixo:",
+                nameLabel: "Nome completo",
+                namePlaceholder: "Seu nome",
+                phoneLabel: "Telefone (opcional)",
+                phonePlaceholder: "WhatsApp",
+                btnStartCourse: "Entrar no Curso",
+                loading: "Carregando...",
+                tryAgain: "Tentar Novamente",
+                loadingQuiz: "Carregando quiz..."
             },
             en: {
                 welcome: "Hello,",
                 progress: "Your progress:",
                 logout: "Logout",
                 lesson: "Lesson",
-                welcomeLesson: "Welcome Lesson",
+                welcomeLesson: "Introduction",
                 locked: "Locked",
                 completed: "Completed",
                 back: "Back to Lessons",
-                downloadPdf: "📄 Download Reference PDF",
+                downloadPdf: "📄 Download PDF",
                 doQuiz: "Take Quiz & Advance",
-                concludeLevel: "Mark as Completed & Advance",
-                quizPass: "Congratulations! You passed the quiz.",
-                quizFail: "You did not reach the passing score. Please try again.",
-                confirmSubmit: "Submit answers"
+                concludeLevel: "Mark as Completed",
+                quizPass: "Congratulations! You passed.",
+                quizFail: "Passing score not reached. Please try again.",
+                confirmSubmit: "Submit answers",
+                introTitle: "Your faith journey.",
+                introText: "Start is the foundation you need after making your decision. These short, essential lessons will solidify your life with Christ.<br><br>Watch the videos, test your knowledge, and prepare to be transformed!",
+                authTitle: "Access your account",
+                authSubtitle: "Enter your email to continue",
+                emailLabel: "Email",
+                emailPlaceholder: "your@email.com",
+                btnContinue: "Continue",
+                newNameText: "First time here? Fill in the details below:",
+                nameLabel: "Full Name",
+                namePlaceholder: "Your name",
+                phoneLabel: "Phone (optional)",
+                phonePlaceholder: "Phone number",
+                btnStartCourse: "Enter Course",
+                loading: "Loading...",
+                tryAgain: "Try Again",
+                loadingQuiz: "Loading quiz..."
             },
             es: {
                 welcome: "Hola,",
-                progress: "Su progreso:",
+                progress: "Tu progreso:",
                 logout: "Salir",
                 lesson: "Lección",
-                welcomeLesson: "Lección de Bienvenida",
+                welcomeLesson: "Introducción",
                 locked: "Bloqueada",
                 completed: "Completada",
                 back: "Volver a Lecciones",
-                downloadPdf: "📄 Descargar PDF de Apoyo",
+                downloadPdf: "📄 Descargar PDF",
                 doQuiz: "Hacer Quiz y Avanzar",
-                concludeLevel: "Marcar como Completada y Avanzar",
-                quizPass: "¡Felicidades! Aprobaste el quiz.",
+                concludeLevel: "Marcar como Completada",
+                quizPass: "¡Felicidades! Aprobaste.",
                 quizFail: "No alcanzaste la puntuación mínima. Inténtalo de nuevo.",
-                confirmSubmit: "Enviar respuestas"
+                confirmSubmit: "Enviar respuestas",
+                introTitle: "Tu viaje de fe.",
+                introText: "Start es la base que necesitas después de tomar tu decisión. Son lecciones breves y esenciales para solidificar tu vida con Cristo.<br><br>Observa los videos, pon a prueba tus conocimientos y prepárate para ser transformado.",
+                authTitle: "Accede a tu cuenta",
+                authSubtitle: "Ingresa tu correo para continuar",
+                emailLabel: "Correo electrónico",
+                emailPlaceholder: "tu@correo.com",
+                btnContinue: "Continuar",
+                newNameText: "¿Primera vez aquí? Completa los detalles:",
+                nameLabel: "Nombre completo",
+                namePlaceholder: "Tu nombre",
+                phoneLabel: "Teléfono (opcional)",
+                phonePlaceholder: "Número de teléfono",
+                btnStartCourse: "Entrar al Curso",
+                loading: "Cargando...",
+                tryAgain: "Intentar de Nuevo",
+                loadingQuiz: "Cargando quiz..."
             }
         };
 
@@ -215,18 +411,69 @@
             _workspaceId = await HubRouter.getWorkspaceId();
             if (!_workspaceId) { alert("Workspace não encontrado na URL."); return; }
             
-            // Check session
+            // Reapply language if available
+            const savedLang = localStorage.getItem('start_lang');
+            if(savedLang) {
+                document.getElementById('langSelect').value = savedLang;
+                window.changeLanguage(savedLang);
+            }
+
             const storedId = localStorage.getItem(`start_session_${_workspaceId}`);
             if (storedId) {
                 await loadParticipant(storedId);
             }
         }
 
+        // ── Language ──
+        window.changeLanguage = function(lang) {
+            _lang = lang;
+            localStorage.setItem('start_lang', lang);
+            const t = TRANSLATIONS[lang];
+            
+            // Update static elements
+            document.getElementById('t-introTitle').innerHTML = t.introTitle;
+            document.getElementById('t-introText').innerHTML = t.introText;
+            document.getElementById('t-authTitle').innerText = t.authTitle;
+            document.getElementById('t-authSubtitle').innerText = t.authSubtitle;
+            document.getElementById('t-emailLabel').innerText = t.emailLabel;
+            document.getElementById('auth-email').placeholder = t.emailPlaceholder;
+            document.getElementById('btn-auth').innerText = t.btnContinue;
+            document.getElementById('t-newNameText').innerText = t.newNameText;
+            document.getElementById('t-nameLabel').innerText = t.nameLabel;
+            document.getElementById('auth-name').placeholder = t.namePlaceholder;
+            document.getElementById('t-phoneLabel').innerText = t.phoneLabel;
+            document.getElementById('auth-phone').placeholder = t.phonePlaceholder;
+            document.getElementById('btn-signup').innerText = t.btnStartCourse;
+            
+            document.getElementById('btn-logout').innerText = t.logout;
+            document.getElementById('btn-download-pdf').innerHTML = t.downloadPdf;
+            document.getElementById('btn-back').innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> ' + t.back;
+            document.getElementById('t-loading').innerText = t.loading;
+            
+            if (_participant) {
+                renderDashboard();
+                if (document.getElementById('view-player').style.display === 'block') {
+                    const conf = _lessons.find(x => x.lesson_number === _currentLessonIndex) || {};
+                    const headTitle = conf.title || (_currentLessonIndex === 0 ? t.welcomeLesson : `${t.lesson} ${_currentLessonIndex}`);
+                    document.getElementById('lesson-header-title').textContent = (_currentLessonIndex === 0 ? '' : `${t.lesson} ${_currentLessonIndex}: `) + headTitle;
+                    document.getElementById('btn-start-quiz').textContent = _currentLessonIndex === 0 ? t.concludeLevel : t.doQuiz;
+
+                    if (document.getElementById('quiz-area').style.display === 'block') {
+                        renderQuiz();
+                    }
+                }
+            }
+        }
+
         // ── Auth ──
         async function submitAuth() {
             const email = document.getElementById('auth-email').value.trim();
-            if (!email) { showToast('Preencha seu email.', 'error'); return; }
-            document.getElementById('btn-auth').disabled = true;
+            if (!email) { showToast(TRANSLATIONS[_lang].emailLabel + ' obrigatório', 'error'); return; }
+            
+            const btn = document.getElementById('btn-auth');
+            const originalText = btn.innerText;
+            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
+            btn.disabled = true;
             
             try {
                 // 1. Check if participant exists
@@ -242,8 +489,8 @@
                 if (leadData) {
                     const src = leadData.type === 'visitor' ? 'visitor' : 'consolidation';
                     if (leadData.preferred_language) {
-                        _lang = leadData.preferred_language;
-                        document.getElementById('langSelect').value = _lang;
+                        document.getElementById('langSelect').value = leadData.preferred_language;
+                        window.changeLanguage(leadData.preferred_language);
                     }
                     // Auto create participant
                     const { data: newP, error } = await sb.from('start_participants').insert({
@@ -258,13 +505,14 @@
                     await loadParticipant(newP.id);
                 } else {
                     // 3. Brand new person. Show mini-form
-                    document.getElementById('btn-auth').style.display = 'none';
+                    btn.style.display = 'none';
                     document.getElementById('auth-new-fields').style.display = 'block';
                 }
             } catch(e) {
                 console.error(e);
                 showToast('Erro ao validar email.', 'error');
-                document.getElementById('btn-auth').disabled = false;
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         }
 
@@ -272,9 +520,13 @@
             const email = document.getElementById('auth-email').value.trim();
             const name = document.getElementById('auth-name').value.trim();
             const phone = document.getElementById('auth-phone').value.trim();
-            if(!name) { showToast('Nome obrigatório','error'); return; }
+            if(!name) { showToast(TRANSLATIONS[_lang].nameLabel + ' obrigatório','error'); return; }
             
-            // Create brand new
+            const btn = document.getElementById('btn-signup');
+            const originalText = btn.innerText;
+            btn.innerText = TRANSLATIONS[_lang].loading;
+            btn.disabled = true;
+
             try {
                 const { data: newP, error } = await sb.from('start_participants').insert({
                     workspace_id: _workspaceId,
@@ -288,6 +540,8 @@
             } catch(e) {
                 console.error(e);
                 showToast('Erro ao registrar.', 'error');
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         }
 
@@ -315,7 +569,8 @@
                 const { data: lesData } = await sb.from('start_lessons').select('*').eq('workspace_id', _workspaceId).order('lesson_number', { ascending: true });
                 _lessons = lesData || [];
 
-                document.getElementById('view-auth').style.display = 'none';
+                // Transition UI
+                document.getElementById('main-wrapper').style.display = 'none';
                 document.getElementById('view-dashboard').style.display = 'block';
                 
                 renderDashboard();
@@ -328,6 +583,7 @@
             // Welcome Header
             const firstName = _participant.name.split(' ')[0];
             document.getElementById('welcome-name').textContent = `${t.welcome} ${firstName}`;
+            document.getElementById('t-progressText').innerHTML = `${t.progress} <span id="progress-pct">0%</span>`;
             
             let completedCount = _progress.filter(x => x.status === 'completed').length;
             let expectedTotal = _lessons.length > 0 ? _lessons.length : 9; // 0 to 8 = 9 lessons
@@ -357,8 +613,8 @@
                 if (isLocked) iconChar = '🔒';
                 
                 let stateTxt = '';
-                if (isCompleted) stateTxt = `<span style="color:#34D399; font-size:0.8rem; font-weight:700;">${t.completed.toUpperCase()}</span>`;
-                else if (isLocked) stateTxt = `<span style="color:var(--text-dim); font-size:0.8rem;">${t.locked}</span>`;
+                if (isCompleted) stateTxt = `<span style="color:#34D399; font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:1px;">${t.completed}</span>`;
+                else if (isLocked) stateTxt = `<span style="color:var(--text-dim); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; font-weight:600;">${t.locked}</span>`;
 
                 let classes = 'lesson-card';
                 if (isCompleted) classes += ' completed';
@@ -368,9 +624,7 @@
                 <div class="${classes}" onclick="${isLocked ? '' : `openLesson(${i})`}">
                     <div class="lesson-icon">${iconChar}</div>
                     <div class="lesson-info">
-                        <div style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">
-                            ${i === 0 ? 'Intro' : t.lesson + ' ' + i}
-                        </div>
+                        <div class="lesson-subtitle">${i === 0 ? 'Intro' : t.lesson + ' ' + i}</div>
                         <h3 class="lesson-title">${title}</h3>
                     </div>
                     <div>${stateTxt}</div>
@@ -388,7 +642,7 @@
             document.getElementById('view-dashboard').style.display = 'none';
             document.getElementById('view-player').style.display = 'block';
             document.getElementById('quiz-area').style.display = 'none';
-            document.getElementById('btn-start-quiz').style.display = 'block';
+            document.getElementById('btn-start-quiz').style.display = 'inline-flex';
             
             const headTitle = conf.title || (n === 0 ? t.welcomeLesson : `${t.lesson} ${n}`);
             document.getElementById('lesson-header-title').textContent = (n === 0 ? '' : `${t.lesson} ${n}: `) + headTitle;
@@ -403,7 +657,7 @@
                 if (m) vidId = m[1];
                 if (vidId) {
                     wrap.style.display = 'block';
-                    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${vidId}" title="Video" allowfullscreen></iframe>`;
+                    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${vidId}?rel=0&modestbranding=1" title="Video" allowfullscreen></iframe>`;
                 } else { wrap.style.display = 'none'; }
             } else {
                 wrap.style.display = 'none';
@@ -412,9 +666,9 @@
             // PDF logic
             const btnPdf = document.getElementById('btn-download-pdf');
             if (conf.pdf_url) {
-                btnPdf.style.display = 'inline-block';
+                btnPdf.style.display = 'inline-flex';
                 btnPdf.href = conf.pdf_url;
-                btnPdf.textContent = t.downloadPdf;
+                btnPdf.innerHTML = t.downloadPdf;
             } else {
                 btnPdf.style.display = 'none';
             }
@@ -427,13 +681,13 @@
         function backToDashboard() {
             document.getElementById('view-player').style.display = 'none';
             document.getElementById('view-dashboard').style.display = 'block';
-            // Stop video
-            document.getElementById('video-container').innerHTML = '';
+            document.getElementById('video-container').innerHTML = ''; // Stop video
             renderDashboard();
         }
 
         // ── Quiz Logic ──
         async function startQuiz() {
+            const t = TRANSLATIONS[_lang];
             if (_currentLessonIndex === 0) {
                 // Lesson 0 has no quiz, just mark completed
                 await saveLessonProgress(0, 'completed', 100);
@@ -445,26 +699,12 @@
             btnQuiz.style.display = 'none';
             
             const area = document.getElementById('quiz-area');
-            area.innerHTML = '<div style="text-align:center; padding:20px;">Carregando quiz...</div>';
+            area.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-dim); font-weight:600;">${t.loadingQuiz}</div>`;
             area.style.display = 'block';
             
             try {
                 const conf = _lessons.find(x => x.lesson_number === _currentLessonIndex);
-                // Fetch questions for this lesson from start_quiz_questions
-                // Since lesson_id references start_lessons but those might be deleted/readded, we should match by lesson_number and workspace_id.
-                // Actually the db has start_quiz_questions which has lesson_id or we just fetch by lesson_number directly if modified?
-                // Wait, based on earlier plan: start_quiz_questions has workspace_id? No, it has lesson_id.
                 
-                let lessonId = conf?.id;
-                let data = [];
-                if (lessonId) {
-                    const res = await sb.from('start_quiz_questions').select('*').eq('lesson_id', lessonId).order('order', {ascending:true});
-                    data = res.data || [];
-                }
-                
-                // If the db doesn't have questions yet for this exact lesson ID, we fallback to our generic queries based on the original seed.
-                // The seed in the DB from Phase 1 actually mapped by workspace. So we fetch questions joined with lessons.
-                // Alternatively, let's fetch based on lesson_number and workspace_id through the relationship:
                 const { data: deepQ, error } = await sb.from('start_quiz_questions')
                     .select('*, start_lessons!inner(workspace_id, lesson_number)')
                     .eq('start_lessons.workspace_id', _workspaceId)
@@ -486,7 +726,6 @@
                 _userAnswers = Array(_questions.length).fill(null);
                 renderQuiz();
                 
-                // Keep record of starting
                 await saveLessonProgress(_currentLessonIndex, 'watching', null);
             } catch(e) {
                 console.error(e);
@@ -498,14 +737,13 @@
             const area = document.getElementById('quiz-area');
             const t = TRANSLATIONS[_lang];
             
-            let html = `<h3 class="quiz-title">Quiz: Aula ${_currentLessonIndex}</h3>`;
+            let html = `<h3 class="quiz-title">Quiz</h3>`;
             
             _questions.forEach((q, qIndex) => {
-                // Handle JSONB multilingual structure
                 const qText = q.question_text[_lang] || q.question_text['pt'] || "Texto da Pergunta";
                 const optsArr = q.options[_lang] || q.options['pt'] || ["A", "B"];
                 
-                html += `<div style="margin-bottom:24px;">
+                html += `<div style="margin-bottom:32px;">
                     <div class="q-text">${qIndex + 1}. ${qText}</div>`;
                 
                 optsArr.forEach((optText, oIndex) => {
@@ -519,29 +757,25 @@
             });
             
             const allAnswered = _userAnswers.every(x => x !== null);
-            html += `<button class="btn primary" onclick="submitQuiz()" ${!allAnswered ? 'disabled style="opacity:0.5"' : ''}>${t.confirmSubmit}</button>`;
+            html += `<button class="btn primary" onclick="submitQuiz()" ${!allAnswered ? 'disabled' : ''}>${t.confirmSubmit}</button>`;
             
             area.innerHTML = html;
         }
 
-        function selectAnswer(qIndex, oIndex) {
+        window.selectAnswer = function(qIndex, oIndex) {
             _userAnswers[qIndex] = oIndex;
             renderQuiz();
         }
 
-        async function submitQuiz() {
+        window.submitQuiz = async function() {
             if (_userAnswers.some(x => x === null)) return;
             const t = TRANSLATIONS[_lang];
             
-            // Calculate score
             let correct = 0;
-            _questions.forEach((q, i) => {
-                if (q.correct_index === _userAnswers[i]) correct++;
-            });
+            _questions.forEach((q, i) => { if (q.correct_index === _userAnswers[i]) correct++; });
             const scorePct = Math.round((correct / _questions.length) * 100);
             const passed = scorePct >= 60;
             
-            // Highlight answers
             const area = document.getElementById('quiz-area');
             const items = area.children;
             // +1 because title is children[0]
@@ -556,31 +790,26 @@
                 });
             });
             
-            // Status and toast
             if (passed) {
                 showToast(t.quizPass, 'success');
                 await saveLessonProgress(_currentLessonIndex, 'completed', scorePct);
                 
-                // If they completed lesson 8, redirect to form presencial maybe? or just obrigado
                 if (_currentLessonIndex === 8) {
                     setTimeout(() => {
                         const slug = HubRouter.getSlug();
                         window.location.href = `/${slug}/start-obrigado`;
-                    }, 2000);
+                    }, 2500);
                 } else {
-                    setTimeout(() => backToDashboard(), 2000);
+                    setTimeout(() => backToDashboard(), 2500);
                 }
             } else {
                 showToast(t.quizFail, 'error');
                 await saveLessonProgress(_currentLessonIndex, 'quiz_failed', scorePct);
                 
-                // Append retry button
                 const btnRetry = document.createElement('button');
-                btnRetry.className = 'btn';
-                btnRetry.style.marginTop = '15px';
-                btnRetry.style.background = 'rgba(255,255,255,0.1)';
-                btnRetry.style.color = '#fff';
-                btnRetry.textContent = 'Tentar Novamente';
+                btnRetry.className = 'btn secondary';
+                btnRetry.style.marginTop = '24px';
+                btnRetry.textContent = t.tryAgain;
                 btnRetry.onclick = () => {
                     _userAnswers = Array(_questions.length).fill(null);
                     renderQuiz();
@@ -588,15 +817,12 @@
                 area.appendChild(btnRetry);
             }
             
-            // hide submit button (last element before retry)
-            // It's the last child in the initial render, but retry will be appended
             const submitBtn = area.querySelector('button.primary');
-            submitBtn.style.display = 'none';
+            if (submitBtn) submitBtn.style.display = 'none';
         }
 
         async function saveLessonProgress(lnum, status, score) {
             try {
-                // Find existing progress record
                 const existing = _progress.find(x => x.lesson_number === lnum);
                 const updates = {
                     participant_id: _participant.id,
@@ -611,9 +837,7 @@
                 
                 if (existing) {
                     const { error } = await sb.from('start_progress').update(updates).eq('id', existing.id);
-                    if (!error) {
-                        Object.assign(existing, updates);
-                    }
+                    if (!error) Object.assign(existing, updates);
                 } else {
                     const { data, error } = await sb.from('start_progress').insert(updates).select().single();
                     if (!error && data) _progress.push(data);
@@ -621,30 +845,6 @@
             } catch(e) { console.error(e); }
         }
 
-        function changeLanguage(lang) {
-            _lang = lang;
-            if (_participant) {
-                renderDashboard();
-                if (document.getElementById('view-player').style.display === 'block') {
-                    // re-render player head
-                    const t = TRANSLATIONS[_lang];
-                    const conf = _lessons.find(x => x.lesson_number === _currentLessonIndex) || {};
-                    const headTitle = conf.title || (_currentLessonIndex === 0 ? t.welcomeLesson : `${t.lesson} ${_currentLessonIndex}`);
-                    document.getElementById('lesson-header-title').textContent = (_currentLessonIndex === 0 ? '' : `${t.lesson} ${_currentLessonIndex}: `) + headTitle;
-                    
-                    if (document.getElementById('quiz-area').style.display === 'block') {
-                        renderQuiz();
-                    }
-                }
-            } else {
-                // Update login UI texts manually based on lang
-                // simple updates
-                const t = TRANSLATIONS[_lang];
-                document.getElementById('btn-auth').textContent = t.confirmSubmit.replace('Submit answers', 'Continue').replace('Enviar respuestas', 'Continuar').replace('Submeter respostas', 'Continuar');
-            }
-        }
-
-        // Boot
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
