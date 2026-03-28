@@ -53,20 +53,40 @@ function setupStartListeners() {
     newFStatus.addEventListener('change', renderStartGrid);
     newFSource.addEventListener('change', renderStartGrid);
 
-    const btnPublic = document.getElementById('btn-copy-start-public');
-    const btnPresential = document.getElementById('btn-copy-start-presential');
-    if (btnPublic) btnPublic.onclick = () => copyStartLink('start');
-    if (btnPresential) btnPresential.onclick = () => copyStartLink('start-conclusao');
 }
 
-function copyStartLink(page) {
+window.copyStartLink = function(page) {
     const slug = window._slug || (window.location.pathname.split('/')[1]);
     const url = window.location.origin + '/' + slug + '/' + page;
-    navigator.clipboard.writeText(url).then(() => {
-        if (typeof hubToast !== 'undefined') hubToast('Link copiado!', 'success');
-        else alert('Link copiado: ' + url);
-    });
-}
+    
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(() => {
+            if (typeof hubToast !== 'undefined') hubToast('Link copiado!', 'success');
+            else alert('Link copiado!');
+        }).catch(err => {
+            console.error('Failed to copy', err);
+            prompt('Copie o link manualmente:', url);
+        });
+    } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            if (typeof hubToast !== 'undefined') hubToast('Link copiado!', 'success');
+            else alert('Link copiado!');
+        } catch (err) {
+            console.error('Failed to copy', err);
+            prompt('Copie o link manualmente:', url);
+        }
+        document.body.removeChild(textArea);
+    }
+};
 
 // ── Sub-logic: Determine participant overall status ─
 function getParticipantComputedStatus(p) {
