@@ -3,339 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lago HUB — Plataforma de Múltiplos Ministérios</title>
-    <meta name="description" content="Lago HUB: plataforma de controle de múltiplos ministérios. Gerencie consolidados, visitantes, equipes e eventos com inteligência artificial.">
+    <title>Lago HUB — A Plataforma SaaS para Igrejas Inteligentes</title>
+    <meta name="description" content="A ferramenta definitiva de gestão para igrejas consolidadas por Inteligência Artificial e WhatsApp integrado.">
     
-    <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Lago HUB">
     <link rel="apple-touch-icon" href="/icon-192.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js').catch(() => {});
-            });
-        }
-    </script>
 
     <style>
         :root {
             --accent: #FFD700;
-            --bg: #0a0a0a;
-            --card: rgba(255,255,255,0.04);
-            --border: rgba(255,255,255,0.08);
+            --accent-dim: rgba(255,215,0,0.15);
+            --bg: #030508;
+            --card-bg: rgba(255,255,255,0.03);
+            --card-border: rgba(255,255,255,0.08);
             --text: #ffffff;
-            --dim: rgba(255,255,255,0.5);
+            --dim: rgba(255,255,255,0.6);
+            --font: 'Inter', sans-serif;
+            --glow: 0 0 60px rgba(255,215,0,0.15);
         }
+
         * { margin:0; padding:0; box-sizing:border-box; }
+        
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font);
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        /* Ambient glow */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -30%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 700px; height: 700px;
-            background: radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            bottom: -20%;
-            right: -10%;
-            width: 500px; height: 500px;
-            background: radial-gradient(circle, rgba(255,150,0,0.05) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 40px 24px;
-            max-width: 560px;
-            width: 100%;
-        }
-
-        /* Logo / Brand */
-        .logo-wrap {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 48px;
-            animation: fadeUp 0.6s ease both;
-        }
-        .logo-icon {
-            width: 52px; height: 52px;
-            background: linear-gradient(135deg, var(--accent), #ff9500);
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 0 30px rgba(255,215,0,0.3);
-        }
-        .logo-text { text-align: left; }
-        .logo-title {
-            font-size: 1.3rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            line-height: 1;
-        }
-        .logo-subtitle {
-            font-size: 0.72rem;
-            color: var(--dim);
-            font-weight: 500;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        /* Hero text */
-        .hero-title {
-            font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 900;
-            letter-spacing: -1.5px;
-            line-height: 1.1;
-            margin-bottom: 18px;
-            animation: fadeUp 0.6s 0.1s ease both;
-        }
-        .hero-title span { color: var(--accent); }
-
-        .hero-sub {
-            font-size: 1rem;
-            color: var(--dim);
-            line-height: 1.7;
-            max-width: 420px;
-            margin-bottom: 48px;
-            animation: fadeUp 0.6s 0.2s ease both;
-        }
-
-        /* Action card */
-        .action-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 32px;
-            width: 100%;
-            max-width: 380px;
-            backdrop-filter: blur(12px);
-            animation: fadeUp 0.6s 0.3s ease both;
-        }
-        .action-card h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-        .action-card p {
-            font-size: 0.82rem;
-            color: var(--dim);
-            margin-bottom: 24px;
+            overflow-x: hidden;
             line-height: 1.6;
         }
+
+        /* Nav */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 5%; z-index: 100;
+            background: rgba(3,5,8,0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--card-border);
+        }
+        .nav-logo { font-size: 1.2rem; font-weight: 800; display:flex; align-items:center; gap:10px; text-decoration: none; color:#fff;}
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #ff9500); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#000; font-weight:900;}
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { color: var(--text); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent); }
+        .btn-login { padding: 8px 18px; background: rgba(255,255,255,0.1); border-radius: 100px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); transition:all .2s;}
+        .btn-login:hover { background: rgba(255,255,255,0.2); }
+
+        /* Globals */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 5%; }
+        .text-accent { color: var(--accent); }
         .btn-primary {
-            display: block;
-            width: 100%;
-            padding: 14px 24px;
-            background: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            font-weight: 800;
-            cursor: pointer;
-            letter-spacing: -0.2px;
-            transition: all 0.2s;
-            text-decoration: none;
-            text-align: center;
-            margin-bottom: 12px;
+            display: inline-block; padding: 16px 32px;
+            background: var(--accent); color: #000;
+            border-radius: 100px; font-weight: 800; text-decoration: none;
+            box-shadow: 0 8px 30px rgba(255,215,0,0.3);
+            transition: all 0.3s;
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(255,215,0,0.35);
-        }
-        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(255,215,0,0.4); }
 
-        .or-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 8px 0 12px;
-            color: var(--dim);
-            font-size: 0.75rem;
+        /* Hero */
+        .hero { position: relative; padding: 180px 0 100px; text-align: center; overflow: hidden; }
+        .hero::before {
+            content: ''; position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+            width: 80vh; height: 80vh; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
+            z-index: -1; pointer-events: none;
         }
-        .or-divider::before, .or-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
+        .hero h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; letter-spacing: -2px; line-height: 1.1; margin-bottom: 24px; }
+        .hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--dim); max-width: 650px; margin: 0 auto 40px; }
 
-        /* Workspace direct access (for logged in devs) */
-        #quick-access {
-            display: none;
-            width: 100%;
-            max-width: 380px;
-            margin-top: 16px;
-            animation: fadeUp 0.3s ease both;
+        /* Animated Dashboard Mockup */
+        .mockup-container {
+            position: relative; margin: 60px auto 0;
+            width: 90%; max-width: 1000px; height: 500px;
+            background: #0d1117; border-radius: 20px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 100px rgba(255,215,0,0.05);
+            overflow: hidden; display: flex;
+            transform: perspective(1000px) rotateX(5deg);
         }
-        .ws-list-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            color: var(--text);
-        }
-        .ws-list-item:hover {
-            border-color: rgba(255,215,0,0.3);
-            background: rgba(255,215,0,0.05);
-        }
-        .ws-name { font-weight: 600; font-size: 0.9rem; }
-        .ws-badge {
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            background: rgba(255,215,0,0.15);
-            color: var(--accent);
-            font-weight: 700;
-        }
-        .ws-arrow { color: var(--dim); font-size: 0.8rem; }
+        .mockup-sidebar { width: 220px; background: #06090e; border-right: 1px solid var(--card-border); padding: 20px; display:flex; flex-direction:column; gap:16px;}
+        .mockup-item { height: 28px; background: rgba(255,255,255,0.05); border-radius: 6px; width:100%; animation: pulse 2s infinite ease-in-out; }
+        .mockup-item.active { background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3); }
+        .mockup-main { flex: 1; padding: 30px; display:flex; flex-direction:column; gap:20px; }
+        .mockup-header { height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; width:40%; animation: pulse 2s infinite ease-in-out .2s;}
+        .mockup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .mockup-card { height: 120px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--card-border); padding:20px; display:flex; flex-direction:column; justify-content:flex-end;}
+        .mockup-line { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 8px; }
+        .mockup-list { flex:1; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px;}
+        .mockup-list-item { height: 40px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 10px; display:flex; align-items:center; padding:0 15px;}
+        .mockup-circle { width:24px; height:24px; border-radius:50%; background:rgba(255,215,0,0.2); }
 
-        .loading-spinner {
-            width: 20px; height: 20px;
-            border: 2px solid rgba(255,215,0,0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 16px auto;
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        /* Features */
+        .features { padding: 120px 0; }
+        .feature-row { display: flex; align-items: center; gap: 80px; margin-bottom: 120px; }
+        .feature-row:nth-child(even) { flex-direction: row-reverse; }
+        @media (max-width: 900px) { .feature-row, .feature-row:nth-child(even) { flex-direction: column; gap:40px; } }
+        .feature-text { flex: 1; }
+        .feature-text h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
+        .feature-text p { color: var(--dim); font-size: 1.1rem; margin-bottom: 24px; }
+        .feature-visual { flex: 1; position: relative; }
+        
+        /* Interactive CSS Modules (Replacing GIFs) */
+        .css-mockup {
+            width: 100%; aspect-ratio: 4/3;
+            background: #0d1117; border-radius: 20px;
+            border: 1px solid var(--card-border);
+            padding: 24px; position:relative; overflow:hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
+        /* Chat Mockup */
+        .chat-bubble { padding:14px 18px; border-radius:18px; max-width:80%; font-size:0.85rem; margin-bottom:12px; animation: slideUp 0.5s ease backwards;}
+        .chat-ai { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.2); color:#fff; border-bottom-left-radius: 4px; align-self:flex-start; }
+        .chat-user { background: #2b5278; border: 1px solid #3b72a8; color:#fff; border-bottom-right-radius: 4px; align-self:flex-end; margin-left:auto;}
+        
+        @keyframes slideUp { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+        /* Contact/Leads Form */
+        .contact-section { padding: 80px 0; background: rgba(255,255,255,0.02); border-top: 1px solid var(--card-border); }
+        .contact-box {
+            max-width: 600px; margin: 0 auto;
+            background: #0d1117; padding: 40px;
+            border-radius: 24px; border: 1px solid var(--card-border);
+            box-shadow: var(--glow);
+        }
+        .contact-box h3 { font-size: 1.8rem; font-weight: 800; margin-bottom: 10px;text-align:center; }
+        .contact-box p { color: var(--dim); margin-bottom: 30px; text-align:center;font-size:0.9rem;}
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--dim); margin-bottom: 8px; font-weight:600;}
+        .form-control {
+            width: 100%; padding: 14px 16px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+            color: #fff; font-family: var(--font); outline: none; transition: all 0.2s;
+        }
+        .form-control:focus { border-color: var(--accent); background: rgba(255,215,0,0.05); }
+        
+        .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+        @media (max-width:500px) { .grid-2 {grid-template-columns:1fr;} }
+
+        /* Plans */
+        .plans-section { padding: 100px 0; text-align:center; }
+        .plans-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-top:50px;}
+        .plan-card {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            border-radius: 20px; padding: 32px; text-align: left;
+            transition: all 0.3s;
+        }
+        .plan-card:hover { border-color: rgba(255,215,0,0.3); transform:translateY(-5px);}
+        .plan-card.premium { background: rgba(255,215,0,0.03); border-color: rgba(255,215,0,0.4); position:relative;}
+        .plan-badge { position:absolute; top:-12px; right:24px; background:var(--accent); color:#000; font-size:0.7rem; font-weight:800; padding:4px 12px; border-radius:100px; text-transform:uppercase;}
+        .plan-name { font-size: 0.9rem; font-weight: 800; color: var(--dim); text-transform:uppercase; letter-spacing:1px;}
+        .plan-price { font-size: 2.5rem; font-weight: 900; margin: 10px 0 20px; color:#fff;}
+        .plan-price span { font-size: 1rem; color:var(--dim); font-weight:500;}
+        .plan-features { list-style:none; margin-bottom:30px;}
+        .plan-features li { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:0.9rem; color:#ccc;}
+        .plan-features li::before { content:'✓'; color:var(--accent); font-weight:800;}
+        .plan-features li.locked { opacity:0.4; }
+        .plan-features li.locked::before { content:'✕'; color:#fff;}
+        .plan-btn { display:block; text-align:center; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; text-decoration:none; font-weight:700;}
+        .plan-card.premium .plan-btn { background:var(--accent); color:#000; border:none;}
 
         /* Footer */
-        .footer-links {
-            margin-top: 48px;
-            display: flex;
-            gap: 24px;
-            font-size: 0.75rem;
-            color: var(--dim);
-            animation: fadeUp 0.6s 0.4s ease both;
+        footer { padding: 40px 5%; border-top: 1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--dim);}
+        
+        .whatsapp-float {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background: #25D366;
+            color: #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; text-decoration: none;
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4);
+            z-index: 1000; transition: transform 0.2s;
         }
-        .footer-links a { color: var(--dim); text-decoration: none; transition: color 0.2s; }
-        .footer-links a:hover { color: var(--accent); }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Floating particles */
-        .particle {
-            position: fixed;
-            border-radius: 50%;
-            background: rgba(255,215,0,0.15);
-            animation: float linear infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-        @keyframes float {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100px) scale(1); opacity: 0; }
-        }
+        .whatsapp-float:hover { transform: scale(1.1); }
+        .whatsapp-float svg { width: 34px; height: 34px; fill: white; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- Logo -->
-        <div class="logo-wrap">
-            <div class="logo-icon">⛪</div>
-            <div class="logo-text">
-                <div class="logo-title">Lago HUB</div>
-                <div class="logo-subtitle">Controle de Múltiplos Ministérios</div>
+    <nav>
+        <a href="#" class="nav-logo">
+            <div class="nav-logo-icon">⛪</div> Lago HUB
+        </a>
+        <div class="nav-links">
+            <a href="#solucoes">Soluções</a>
+            <a href="#planos">Planos</a>
+            <a href="#contato">Contato</a>
+            <a href="/login.html" class="btn-login">Entrar no painel</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Nenhuma vida<br><span class="text-accent">deixada para trás.</span></h1>
+            <p>O SaaS definitivo para gestão de múltiplos ministérios. Integre Inteligência Artificial, fluxo automático de WhatsApp, controle CRIE e consolidação total de ponta a ponta.</p>
+            <a href="#contato" class="btn-primary">Ver demonstração</a>
+            
+            <div class="mockup-container">
+                <div class="mockup-sidebar">
+                    <div class="mockup-item" style="width:60%; margin-bottom:20px; background:rgba(255,215,0,0.4);"></div>
+                    <div class="mockup-item active"></div>
+                    <div class="mockup-item"></div>
+                    <div class="mockup-item"></div>
+                    <div class="mockup-item" style="margin-top:auto;"></div>
+                </div>
+                <div class="mockup-main">
+                    <div class="mockup-header"></div>
+                    <div class="mockup-grid">
+                        <div class="mockup-card">
+                            <div class="mockup-line" style="width:40%;"></div>
+                            <div class="mockup-line" style="width:80%; height:20px; background:rgba(255,215,0,0.6);"></div>
+                        </div>
+                        <div class="mockup-card">
+                            <div class="mockup-line" style="width:50%;"></div>
+                            <div class="mockup-line" style="width:60%; height:20px; background:rgba(74,222,128,0.6);"></div>
+                        </div>
+                        <div class="mockup-card">
+                            <div class="mockup-line" style="width:30%;"></div>
+                            <div class="mockup-line" style="width:70%; height:20px; background:rgba(96,165,250,0.6);"></div>
+                        </div>
+                    </div>
+                    <div class="mockup-list">
+                        <div class="mockup-list-item" style="animation-delay:0.1s;"><div class="mockup-circle"></div><div class="mockup-line" style="width:30%; margin:0 0 0 15px; height:10px;"></div></div>
+                        <div class="mockup-list-item" style="animation-delay:0.2s;"><div class="mockup-circle" style="background:rgba(74,222,128,0.2);"></div><div class="mockup-line" style="width:45%; margin:0 0 0 15px; height:10px;"></div></div>
+                        <div class="mockup-list-item" style="animation-delay:0.3s;"><div class="mockup-circle" style="background:rgba(248,113,113,0.2);"></div><div class="mockup-line" style="width:25%; margin:0 0 0 15px; height:10px;"></div></div>
+                        <div class="mockup-list-item" style="animation-delay:0.4s;"><div class="mockup-circle"></div><div class="mockup-line" style="width:35%; margin:0 0 0 15px; height:10px;"></div></div>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <!-- Hero -->
-        <h1 class="hero-title">Nenhuma vida<br>deixada <span>para trás.</span></h1>
-        <p class="hero-sub">
-            Uma plataforma para gerir pessoas, equipes e eventos de todos os ministérios — com inteligência artificial e integração ao WhatsApp.
-        </p>
+    <section class="features" id="solucoes">
+        <div class="container">
+            
+            <div class="feature-row">
+                <div class="feature-text">
+                    <h2>Consolidação Guiada por IA</h2>
+                    <p>O Lago HUB automatiza os primeiros contatos via WhatsApp. O nosso modelo LLM treinado interage com os novos visitantes, e se a conversa for assumida por um Consolidador Humano, a IA pausa instantaneamente.</p>
+                    <ul style="list-style:none; color:var(--dim); font-size:0.95rem;">
+                        <li style="margin-bottom:10px;">✨ <b>Respostas instantâneas</b> e personalizadas baseadas no Knowledge Base da igreja</li>
+                        <li style="margin-bottom:10px;">⏸️ <b>Human Lock (30 min)</b> protege a interação quando seu voluntário envia uma mensagem</li>
+                        <li>🚀 Retenções mais altas de novos decididos e visitantes.</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="css-mockup" style="display:flex; flex-direction:column; padding:30px; justify-content:center;">
+                        <div style="text-align:center; font-size:0.7rem; color:var(--dim); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Inteligência Artificial Ativa</div>
+                        <div style="display:flex; flex-direction:column;">
+                            <div class="chat-bubble chat-ai" style="animation-delay:0.2s">✨ Olá João! Que alegria ter você aqui na Lagoinha hoje. Gostaria de saber mais sobre nossos GCs?</div>
+                            <div class="chat-bubble chat-user" style="animation-delay:1.5s">Oi! Sim, eu gostaria muito de visitar um grupo próximo da minha casa. Mensagem</div>
+                            <div class="chat-bubble chat-ai" style="animation-delay:2.8s">✨ Perfeito! Qual o seu bairro? Vou te passar os horários certinhos.</div>
+                            <div class="chat-bubble chat-user" style="background:#555; border:1px solid #666; animation-delay:4s; align-self:flex-start; font-size:0.7rem; padding:6px 12px; margin-top:-5px;">⏸️ IA Pausada (Intervenção Humana)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Action card -->
-        <div class="action-card">
-            <h3>Acesse o painel da sua igreja</h3>
-            <p>Faça login com as suas credenciais para entrar no seu workspace.</p>
-            <a href="/login.html" class="btn-primary">→ Entrar no HUB</a>
+            <div class="feature-row">
+                <div class="feature-text">
+                    <h2>Gestão CRIE e Eventos (Check-in)</h2>
+                    <p>Substitua listas de papel e dezenas de planilhas num único portal. Gerencie pagamentos (MDR), turmas de batismo e crie eventos na hora com controle individual de capacidade e check-ins no mobile.</p>
+                    <ul style="list-style:none; color:var(--dim); font-size:0.95rem;">
+                        <li style="margin-bottom:10px;">🎟️ <b>QR Codes Exclusivos</b> gerados na inscrição e lidos na porta</li>
+                        <li style="margin-bottom:10px;">📊 <b>Taxa de presenças automática</b> para acompanhar fidelidade das turmas</li>
+                        <li>💳 <b>Controle de mensalidades</b> para associados</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="css-mockup" style="display:flex; flex-direction:column; background:#06090e;">
+                        <div style="padding:15px; border-bottom:1px solid var(--card-border); font-weight:800; font-size:0.9rem; display:flex; justify-content:space-between;">
+                            <span>📱 Check-in Mobile</span>
+                            <span style="color:#4ade80;">✓ 142 presentes</span>
+                        </div>
+                        <div style="padding:20px; overflow:hidden;">
+                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div><div style="font-weight:700;">Maria Silva</div><div style="font-size:0.75rem; color:var(--dim);">maria@g.com</div></div>
+                                <div style="background:rgba(74,222,128,0.2); color:#4ade80; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800;">CHECK IN</div>
+                            </div>
+                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div><div style="font-weight:700;">Rafael Neves</div><div style="font-size:0.75rem; color:var(--dim);">rafa@g.com</div></div>
+                                <div style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#ccc; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800;">PENDENTE</div>
+                            </div>
+                            <div style="background:var(--card-bg); padding:15px; border-radius:12px; border:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; opacity:0.5;">
+                                <div><div style="font-weight:700;">...</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+    </section>
 
-        <!-- Quick access (shown if already logged in as master_admin) -->
-        <div id="quick-access">
-            <div class="or-divider">ou acesse diretamente</div>
-            <div id="ws-quick-list">
-                <div class="loading-spinner"></div>
+    <section class="plans-section" id="planos">
+        <div class="container">
+            <h2 style="font-size:2.5rem; font-weight:900; letter-spacing:-1px;">Planos que acompanham seu crescimento</h2>
+            <p style="color:var(--dim); font-size:1.1rem; max-width:600px; margin:10px auto 0;">Gerencie com potência independente do tamanho da sua igreja local.</p>
+
+            <div class="plans-grid">
+                <!-- FREE -->
+                <div class="plan-card">
+                    <span class="plan-name">FREE</span>
+                    <div class="plan-price">Gratuito</div>
+                    <ul class="plan-features">
+                        <li>Consolidação</li>
+                        <li>Visitantes CRM</li>
+                        <li class="locked">IA WhatsApp Base</li>
+                        <li class="locked">Escola START</li>
+                        <li class="locked">Gestão CRIE</li>
+                        <li class="locked">Check-in Avançado</li>
+                    </ul>
+                    <a href="#contato" class="plan-btn">Criar Conta</a>
+                </div>
+
+                <!-- START -->
+                <div class="plan-card">
+                    <span class="plan-name">START</span>
+                    <div class="plan-price">$ 27<span>/mês</span></div>
+                    <ul class="plan-features">
+                        <li>Consolidação Inteligente</li>
+                        <li>Visitantes CRM</li>
+                        <li>Escola START / Batismo</li>
+                        <li>Alertas de Aniversariantes</li>
+                        <li class="locked">IA de WhatsApp Pro</li>
+                        <li class="locked">Gestão CRIE</li>
+                    </ul>
+                    <a href="https://wa.me/13214443034?text=Olá, desejo saber mais sobre o plano START" class="plan-btn" target="_blank">Falar com Consultor</a>
+                </div>
+
+                <!-- PRO -->
+                <div class="plan-card">
+                    <span class="plan-name">PRO</span>
+                    <div class="plan-price">$ 47<span>/mês</span></div>
+                    <ul class="plan-features">
+                        <li>Todas do Plano Start</li>
+                        <li>Gestão CRIE (Eventos)</li>
+                        <li>Tickets e QR Codes</li>
+                        <li>Gestão Financeira Básica</li>
+                        <li class="locked">IA Automática Ativa</li>
+                        <li class="locked">Multi-Workspace</li>
+                    </ul>
+                    <a href="https://wa.me/13214443034?text=Olá, desejo saber mais sobre o plano PRO" class="plan-btn" target="_blank">Falar com Consultor</a>
+                </div>
+
+                <!-- PREMIUM -->
+                <div class="plan-card premium">
+                    <span class="plan-badge">Mais Popular</span>
+                    <span class="plan-name" style="color:#FFD700;">PREMIUM</span>
+                    <div class="plan-price">$ 97<span>/mês</span></div>
+                    <ul class="plan-features">
+                        <li>Ilimitados Leads</li>
+                        <li>Agente Inteligente WhatsApp</li>
+                        <li>Recuperação Automática</li>
+                        <li>Todas do Plano PRO</li>
+                        <li>Business Inteligence Integrado</li>
+                        <li>Suporte Dedicado VIP</li>
+                    </ul>
+                    <a href="https://wa.me/13214443034?text=Olá, desejo fechar o plano PREMIUM" class="plan-btn" target="_blank">Falar com Consultor</a>
+                </div>
             </div>
         </div>
+    </section>
 
-        <!-- Footer -->
-        <div class="footer-links">
-            <a href="/login.html">Login</a>
-            <span>·</span>
-            <span>© 2026 Lagoinha HUB</span>
-            <span>·</span>
-            <a href="mailto:suporte@7pro.tech">Suporte</a>
+    <section class="contact-section" id="contato">
+        <div class="container">
+            <div class="contact-box">
+                <h3>Transforme o backoffice da sua Igreja hoje</h3>
+                <p>Acesse o futuro da consolidação pastoral. Insira seus dados abaixo para entrarmos em contato.</p>
+                
+                <!-- Use FormSubmit endpoints to instantly notify admin and redirect or use fetch to target Google Script Webhook -->
+                <form id="leadCaptureForm" onsubmit="submitLeadForm(event)">
+                    <div class="form-group">
+                        <label>Nome Completo (Liderança)</label>
+                        <input type="text" id="leadName" required class="form-control" placeholder="Pr. Tiago Silva">
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Telefone / WhatsApp</label>
+                            <input type="tel" id="leadPhone" required class="form-control" placeholder="+1 (000) 000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Email Profissional</label>
+                            <input type="email" id="leadEmail" required class="form-control" placeholder="lider@igreja.com">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Cidade da Igreja</label>
+                            <input type="text" id="leadCity" required class="form-control" placeholder="Orlando">
+                        </div>
+                        <div class="form-group">
+                            <label>País</label>
+                            <select id="leadCountry" required class="form-control" style="appearance:none;">
+                                <option value="" disabled selected>Selecionar...</option>
+                                <option value="Estados Unidos">Estados Unidos</option>
+                                <option value="Brasil">Brasil</option>
+                                <option value="Portugal">Portugal</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnLeadSubmit" class="btn-primary" style="width:100%; border:none; margin-top:20px; font-size:1.05rem;">Solicitar Acesso / Contato</button>
+                    <div id="leadSuccess" style="display:none; color:#4ade80; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.3); padding:16px; border-radius:12px; margin-top:20px; text-align:center; font-weight:600;">Obrigado! Recebemos sua solicitação e entraremos em contato em breve.</div>
+                </form>
+
+            </div>
         </div>
-    </div>
+    </section>
 
+    <footer>
+        <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <div>&copy; 2026 Lagoinha HUB / 7pro.tech. Todos os direitos reservados.</div>
+            <div style="display:flex; gap:20px;">
+                <a href="#solucoes" style="color:var(--dim); text-decoration:none;">Soluções</a>
+                <a href="https://wa.me/13214443034" style="color:var(--dim); text-decoration:none;" target="_blank">Ajuda e Suporte</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Botão WhatsApp Flutuante -->
+    <a href="https://wa.me/13214443034?text=Olá, Acessei o site do Hub 7pro e gostaria de mais informações" class="whatsapp-float" target="_blank" title="Fale com nosso Suporte">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+    </a>
+
+    <!-- Scripts -->
     <script>
-        // ── Floating particles ambient effect ──
-        for (let i = 0; i < 8; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            const size = Math.random() * 6 + 3;
-            p.style.cssText = `
-                width:${size}px; height:${size}px;
-                left:${Math.random()*100}%;
-                animation-duration:${Math.random()*12+8}s;
-                animation-delay:${Math.random()*8}s;
-            `;
-            document.body.appendChild(p);
-        }
-
-        // ── Check if user is already logged in ──
+        // Check for existing logical login
         const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
 
@@ -343,54 +452,86 @@
             try {
                 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 const { data: { session } } = await sb.auth.getSession();
-                if (!session) return; // not logged in, show login button only
-
-                const role = session.user.user_metadata?.role || 'user';
-
-                if (role === 'master_admin') {
-                    // Show all workspaces for quick jump
-                    document.getElementById('quick-access').style.display = 'block';
-                    const { data: workspaces } = await sb.from('workspaces')
-                        .select('id, name, slug, status')
-                        .eq('status', 'active')
-                        .order('name');
-
-                    const list = document.getElementById('ws-quick-list');
-                    if (!workspaces || workspaces.length === 0) {
-                        list.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);font-size:0.8rem;">Nenhum workspace ativo</p>';
-                        return;
-                    }
-                    list.innerHTML = workspaces.map(ws => `
-                        <a href="/${ws.slug}/dashboard.html" class="ws-list-item">
-                            <span class="ws-name">🏛 ${ws.name}</span>
-                            <span style="display:flex;align-items:center;gap:8px;">
-                                <span class="ws-badge">${ws.status}</span>
-                                <span class="ws-arrow">→</span>
-                            </span>
-                        </a>
-                    `).join('');
-
-                } else {
-                    // Regular user → redirect directly to their workspace
-                    const { data: userRow } = await sb.from('users')
-                        .select('workspace_id')
-                        .eq('id', session.user.id)
-                        .single();
-
-                    if (userRow?.workspace_id) {
-                        const { data: ws } = await sb.from('workspaces')
-                            .select('slug')
-                            .eq('id', userRow.workspace_id)
-                            .single();
-                        if (ws?.slug) {
-                            window.location.href = `/${ws.slug}/dashboard.html`;
+                
+                // Keep the same quick access or just change CTA link to Dashboard
+                if (session) {
+                    const btnLogin = document.querySelector('.btn-login');
+                    if (btnLogin) {
+                        const role = session.user.user_metadata?.role || 'user';
+                        // Simple redirection logic, letting hub-router handle specific workspace logic 
+                        btnLogin.innerText = "Acessar Painel";
+                        if (role === 'master_admin') {
+                            btnLogin.href = '/login.html'; // Or whatever global dash exist. Let's redirect to login to auto-route
+                        } else {
+                            const { data: userRow } = await sb.from('users').select('workspace_id').eq('id', session.user.id).single();
+                            if (userRow?.workspace_id) {
+                                const { data: ws } = await sb.from('workspaces').select('slug').eq('id', userRow.workspace_id).single();
+                                if (ws?.slug) btnLogin.href = `/${ws.slug}/dashboard.html`;
+                            }
                         }
                     }
                 }
-            } catch (e) {
-                console.warn('[Landing] session check failed:', e);
-            }
+            } catch (ignore) {}
         })();
+
+        async function submitLeadForm(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLeadSubmit');
+            const success = document.getElementById('leadSuccess');
+            const originalText = btn.innerText;
+
+            btn.innerText = "Enviando...";
+            btn.disabled = true;
+
+            const payload = {
+                formUsed: 'Landing_Page_Leads',
+                date: new Date().toISOString(),
+                name: document.getElementById('leadName').value,
+                whatsapp: document.getElementById('leadPhone').value,
+                email: document.getElementById('leadEmail').value,
+                city: document.getElementById('leadCity').value,
+                country: document.getElementById('leadCountry').value
+            };
+
+            try {
+                // 1. Enviar para WebHook do Google Sheets Existente (Silencioso para não gerar erro CORS)
+                fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                }).catch(() => {});
+
+                // 2. Enviar por Email para g@7proservices.com usando FormSubmit (Serviço Grátis Frontend)
+                // Utilizamos mode no-cors ou o endpoint dinâmico do formsubmit para disparar o email.
+                await fetch('https://formsubmit.co/ajax/g@7proservices.com', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        _subject: "Novo Cadastro de Igreja | Hub 7Pro",
+                        "Nome do Pastor/Lider": payload.name,
+                        "WhatsApp": payload.whatsapp,
+                        "Email": payload.email,
+                        "Cidade/Estado": payload.city,
+                        "País": payload.country
+                    })
+                });
+
+                // Clear form and show success
+                e.target.reset();
+                btn.style.display = 'none';
+                success.style.display = 'block';
+
+            } catch(e) {
+                console.error("Erro no envio:", e);
+                alert("Falha ao enviar. Por favor, tente pelo WhatsApp.");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
