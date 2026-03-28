@@ -12,15 +12,70 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
     <link rel="stylesheet" href="/index.css">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .auth-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 400px; width: 100%; margin: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .auth-title { font-size: 1.8rem; font-weight: 800; margin: 0 0 10px; color: #FBBF24; letter-spacing: -0.5px; }
-        .auth-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.6); margin-bottom: 30px; }
+        :root {
+            --primary: #FFD700;
+            --primary-glow: rgba(255, 215, 0, 0.4);
+            --bg-dark: #07090f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.06);
+            --text-dim: rgba(255, 255, 255, 0.6);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; }
-        button.primary { background: #FBBF24; color: #0b141a; }
-        button.primary:hover { background: #d9a010; transform: translateY(-2px); }
-        button.primary:disabled { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); transform: none; cursor: not-allowed; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: #fff; 
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Orbs */
+        .bg-orbs {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: -1; pointer-events: none;
+            background: radial-gradient(circle at center, #0B111A 0%, #030407 100%);
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+        .orb-1 { width: 40vw; height: 40vw; background: rgba(255, 215, 0, 0.15); top: -10%; left: -10%; }
+        .orb-2 { width: 50vw; height: 50vw; background: rgba(15, 23, 42, 0.8); bottom: -20%; right: -10%; animation-delay: -5s; }
+        .orb-3 { width: 30vw; height: 30vw; background: rgba(255, 215, 0, 0.08); top: 40%; left: 50%; transform: translateX(-50%); animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5%, 10%) scale(1.1); }
+        }
+
+        .auth-card { 
+            background: rgba(13, 17, 23, 0.6);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px; padding: 40px; text-align: center; max-width: 400px; width: 100%; margin: 20px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
+            position: relative; overflow: hidden;
+            z-index: 1;
+        }
+        .auth-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.3), transparent);
+        }
+
+        .auth-title { font-size: 1.8rem; font-weight: 800; margin: 0 0 10px; color: var(--primary); letter-spacing: -0.5px; }
+        .auth-subtitle { font-size: 0.95rem; color: var(--text-dim); margin-bottom: 30px; }
+        
+        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        button.primary { background: var(--primary); color: #000; box-shadow: 0 4px 15px var(--primary-glow); }
+        button.primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px var(--primary-glow); }
+        button.primary:disabled { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); transform: none; box-shadow: none; cursor: not-allowed; }
         
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2f3640; color: #fff; padding: 14px 24px; border-radius: 30px; font-weight: 600; font-size: 0.9rem; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; border: 1px solid rgba(255,255,255,0.1); }
         .toast.show { opacity: 1; bottom: 40px; }
@@ -28,25 +83,32 @@
         .toast.success { background: #dcfce7; color: #166534; border-color: #86efac; }
 
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+        .input-group label { display: block; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
         .input-light { 
             width: 100%; padding: 14px 16px; border-radius: 12px; font-family: 'Outfit'; font-size: 1rem;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #fff;
             transition: all 0.3s;
         }
-        .input-light:focus { outline: none; border-color: #FBBF24; background: rgba(255,255,255,0.1); }
+        .input-light:focus { outline: none; border-color: var(--primary); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 4px rgba(255,215,0,0.1); }
+        .input-light::placeholder { color: rgba(255,255,255,0.2); }
 
         /* intl-tel-input overrides */
-        .iti { width: 100%; }
+        .iti { width: 100%; display: block; }
         .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png");}
         @media (min-resolution: 2x) { .iti__flag {background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png");}}
-        .iti__country-list { background-color: #1f2937; border-color: rgba(255,255,255,0.1); color: #fff; border-radius: 12px; overflow: hidden; }
-        .iti__country-list li:hover { background-color: #374151; }
-        .iti__selected-flag { border-top-left-radius: 12px; border-bottom-left-radius: 12px; padding: 0 16px; }
+        .iti__country-list { background-color: #0d1117; border: 1px solid var(--border); color: #fff; border-radius: 12px; overflow: hidden; font-family: 'Outfit'; z-index: 99999; }
+        .iti__country-list li:hover { background-color: rgba(255,255,255,0.1); }
+        .iti__selected-flag { border-top-left-radius: 12px; border-bottom-left-radius: 12px; padding: 0 16px; transition: 0.2s; }
+        .iti__selected-flag:hover { background-color: rgba(255,255,255,0.05); }
         .iti__selected-dial-code { color: #fff; }
     </style>
 </head>
 <body>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
 
     <div class="auth-card" id="form-container">
         <h2 class="auth-title">O Passo da Fé</h2>
