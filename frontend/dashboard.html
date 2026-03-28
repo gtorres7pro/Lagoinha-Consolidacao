@@ -2689,8 +2689,11 @@ REGRAS:
                     <div style="margin-bottom:24px;">
                         <h3 style="font-size:0.9rem; color:var(--text-dim); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px;">📝 Notas do Consolidador</h3>
                         <textarea id="start-drawer-input-notes" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; padding:10px 12px; font-family:'Outfit'; font-size:0.9rem; resize:vertical; min-height:80px; margin-bottom:8px; box-sizing:border-box;" placeholder="Adicione observações internas sobre este participante..."></textarea>
-                        <button onclick="window.saveStartNotes()" class="hub-btn-primary" style="padding:8px 16px; font-size:0.85rem; float:right;">Salvar Notas</button>
-                        <div style="clear:both;"></div>
+                        <button id="start-drawer-save-notes-btn" onclick="window.saveStartNotes()" class="hub-btn" style="padding:10px 16px; font-size:0.85rem; border-radius:10px; width:100%;">+ Adicionar Nota</button>
+                        
+                        <div id="start-drawer-notes-list" style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
+                            <!-- Notes will be loaded here -->
+                        </div>
                     </div>
 
                     <div>
@@ -2707,9 +2710,8 @@ REGRAS:
                         </div>
                     </div>
                 </div>
-                <div style="padding:20px; border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-between; align-items:center;">
-                    <button onclick="window.startDeleteParticipant()" style="background:none; border:none; color:#ef4444; font-size:0.8rem; cursor:pointer;" title="Remover e apagar progresso">✕ Excluir Participante</button>
-                    <!-- Additional actions could go here -->
+                <div style="padding:24px; border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.2);">
+                    <button onclick="window.startDeleteParticipant()" style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; font-size:0.85rem; padding:12px 24px; border-radius:10px; font-weight:700; cursor:pointer; width:100%; transition:all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.borderColor='rgba(239, 68, 68, 0.4)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.borderColor='rgba(239, 68, 68, 0.2)'" title="Remover e apagar progresso">🗑️ Excluir Participante Permanentemente</button>
                 </div>
             </div>
         </div>

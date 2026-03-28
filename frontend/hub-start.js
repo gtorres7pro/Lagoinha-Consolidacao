@@ -19,7 +19,8 @@ window.loadStartModule = async function() {
                 *,
                 start_progress(lesson_number, status, completed_at, quiz_score),
                 start_completions(completion_type, completed_at),
-                start_comments(id, lesson_number, lesson_title, message, reply, reply_at, reply_viewed, created_at)
+                start_comments(id, lesson_number, lesson_title, message, reply, reply_at, reply_viewed, created_at),
+                start_notes(id, content, created_at, user_id, users(name))
             `)
             .eq('workspace_id', window.currentWorkspaceId)
             .order('created_at', { ascending: false });
@@ -267,10 +268,8 @@ window.openStartDrawer = async function(id) {
     document.getElementById('start-drawer-input-email').value = p.email || '';
     document.getElementById('start-drawer-input-phone').value = p.phone || '';
     
-    const notesInput = document.getElementById('start-drawer-input-notes');
-    if (notesInput) {
-        notesInput.value = p.notes || '';
-    }
+    document.getElementById('start-drawer-input-notes').value = '';
+    startRenderNotesList(p);
 
     const cStatus = getParticipantComputedStatus(p);
     const badgeEl = document.getElementById('start-drawer-badge');
@@ -352,7 +351,7 @@ window.openStartDrawer = async function(id) {
                            </div>`
                         : `<div style="margin-top:12px;">
                             <textarea id="reply-input-${safeId}" placeholder="Escrever resposta para ${safeName}..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; padding:10px 12px; font-family:'Outfit'; font-size:0.9rem; resize:vertical; min-height:70px; margin-bottom:8px; box-sizing:border-box;"></textarea>
-                            <button data-comment-id="${safeId}" data-participant-id="${p.id}" data-participant-email="${safeEmail}" data-participant-name="${safeName}" data-lesson-title="${safeLesson}" data-lesson-number="${c.lesson_number}" onclick="handleStartReply(this)" style="background:var(--primary); border:none; border-radius:8px; color:#000; font-family:'Outfit'; font-weight:800; font-size:0.85rem; padding:10px 16px; cursor:pointer; width:100%; transition:0.2s;">💬 Responder &amp; enviar email</button>
+                            <button data-comment-id="${safeId}" data-participant-id="${p.id}" data-participant-email="${safeEmail}" data-participant-name="${safeName}" data-lesson-title="${safeLesson}" data-lesson-number="${c.lesson_number}" onclick="handleStartReply(this)" style="background:linear-gradient(135deg, #FBBF24, #D97706); border:none; border-radius:10px; color:#000; font-family:'Outfit'; font-weight:800; font-size:0.85rem; padding:12px 16px; cursor:pointer; width:100%; transition:all 0.2s; box-shadow:0 10px 20px -5px rgba(251, 191, 36, 0.4);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">✨ Responder &amp; Enviar Email</button>
                            </div>`;
                     
                     return `
@@ -404,30 +403,89 @@ window.saveStartNotes = async function() {
     if (!notesInput) return;
     
     const newNotes = notesInput.value.trim();
-    const btn = event.currentTarget;
+    if (!newNotes) return;
+
+    const btn = document.getElementById('start-drawer-save-notes-btn') || event.currentTarget;
     const originalText = btn.innerText;
-    btn.innerText = 'Salvando...';
+    btn.innerText = 'Adicionando...';
     btn.disabled = true;
 
     try {
         const sb = window.supabaseClient;
-        const { error } = await sb.from('start_participants').update({ notes: newNotes }).eq('id', _currentStartSelectedId);
+        const { data, error } = await sb.from('start_notes').insert({
+            participant_id: _currentStartSelectedId,
+            workspace_id: window.currentWorkspaceId,
+            content: newNotes
+        }).select('id, content, created_at, user_id, users(name)').single();
         if (error) throw error;
         
-        if (typeof hubToast !== 'undefined') hubToast('Notas salvas com sucesso', 'success');
+        if (typeof hubToast !== 'undefined') hubToast('Nota adicionada com sucesso', 'success');
         
         // Update local state
         const p = _startParticipants.find(x => x.id === _currentStartSelectedId);
-        if (p) p.notes = newNotes;
-
+        if (p) {
+            if (!p.start_notes) p.start_notes = [];
+            p.start_notes.push(data);
+            notesInput.value = '';
+            startRenderNotesList(p);
+        }
     } catch(e) {
         console.error('saveStartNotes error:', e);
-        if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar notas', 'error');
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar nota', 'error');
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
     }
 };
+
+window.startDeleteNote = async function(noteId) {
+    if (!confirm('Excluir esta nota permanentemente?')) return;
+    const p = _startParticipants.find(x => x.id === _currentStartSelectedId);
+    if (!p) return;
+
+    try {
+        const sb = window.supabaseClient;
+        const { error } = await sb.from('start_notes').delete().eq('id', noteId);
+        if (error) throw error;
+        
+        if (typeof hubToast !== 'undefined') hubToast('Nota excluída', 'success');
+        
+        if (p.start_notes) {
+            p.start_notes = p.start_notes.filter(n => n.id !== noteId);
+            startRenderNotesList(p);
+        }
+    } catch(e) {
+        console.error(e);
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir nota', 'error');
+    }
+};
+
+function startRenderNotesList(p) {
+    const listEl = document.getElementById('start-drawer-notes-list');
+    if (!listEl) return;
+    if (!p.start_notes || p.start_notes.length === 0) {
+        listEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-dim); text-align:center; padding:12px;">Nenhuma nota adicionada ainda.</div>';
+        return;
+    }
+    const sorted = [...p.start_notes].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    listEl.innerHTML = sorted.map(n => {
+        const authorName = n.users && n.users.name ? n.users.name : 'Administrador';
+        return `
+        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-size:0.75rem; font-weight:700; color:var(--accent); display:flex; align-items:center; gap:6px;">
+                    <div style="width:18px; height:18px; border-radius:50%; background:var(--accent); color:#000; display:flex; align-items:center; justify-content:center; font-size:0.6rem;">${authorName.charAt(0)}</div>
+                    ${authorName}
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.7rem; color:var(--text-dim);">${new Date(n.created_at).toLocaleString('pt-BR').substring(0, 16)}</span>
+                    <button onclick="window.startDeleteNote('${n.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem; padding:0; opacity:0.7; transition:0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" title="Excluir nota">✕</button>
+                </div>
+            </div>
+            <div style="font-size:0.85rem; color:#fff; line-height:1.4; white-space:pre-wrap;">${n.content}</div>
+        </div>`;
+    }).join('');
+}
 
 
 // ── Config Modal ────────────────────────────────────
