@@ -946,27 +946,42 @@
 
         async function saveLessonProgress(lnum, status, score) {
             try {
+                if (!_participant?.id || !_workspaceId) {
+                    console.error('saveLessonProgress: missing participant or workspace');
+                    return;
+                }
                 const existing = _progress.find(x => x.lesson_number === lnum);
-                const upsertData = {
+                const progressData = {
                     participant_id: _participant.id,
                     workspace_id: _workspaceId,
                     lesson_number: lnum,
                     status: status,
-                    quiz_score: score !== null ? score : (existing ? existing.quiz_score : null),
+                    quiz_score: score !== null ? score : (existing?.quiz_score ?? null),
                 };
-                if (status === 'completed' && (!existing || existing.status !== 'completed')) {
-                    upsertData.completed_at = new Date().toISOString();
+                if (status === 'completed' && existing?.status !== 'completed') {
+                    progressData.completed_at = new Date().toISOString();
                 }
 
-                const { data, error } = await sb.from('start_progress')
-                    .upsert(upsertData, { onConflict: 'participant_id,lesson_number' })
-                    .select().single();
-                
-                if (!error && data) {
-                    const idx = _progress.findIndex(x => x.lesson_number === lnum);
-                    if (idx >= 0) _progress[idx] = data; else _progress.push(data);
-                } else if (error) { console.error('saveLessonProgress error:', error); }
-            } catch(e) { console.error(e); }
+                if (existing?.id) {
+                    // Update existing record
+                    const { data, error } = await sb.from('start_progress')
+                        .update(progressData)
+                        .eq('id', existing.id)
+                        .select().single();
+                    if (error) throw error;
+                    if (data) _progress[_progress.findIndex(x => x.id === existing.id)] = data;
+                } else {
+                    // Insert new record
+                    const { data, error } = await sb.from('start_progress')
+                        .insert(progressData)
+                        .select().single();
+                    if (error) throw error;
+                    if (data) _progress.push(data);
+                }
+            } catch(e) {
+                console.error('saveLessonProgress error:', e);
+                showToast('Erro ao salvar progresso: ' + (e.message || JSON.stringify(e)), 'error');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', init);
@@ -998,18 +1013,25 @@
             btn.textContent = '...';
             
             try {
+                if (!_participant?.id || !_workspaceId || _pendingReflectionLesson === null) {
+                    throw new Error('Sessão inválida. Recarregue a página.');
+                }
                 const conf = _lessons.find(x => x.lesson_number === _pendingReflectionLesson);
                 const lessonTitle = conf?.title || (_pendingReflectionLesson === 0 ? 'Boas-vindas' : `Aula ${_pendingReflectionLesson}`);
                 
-                await sb.from('start_comments').insert({
+                const { error } = await sb.from('start_comments').insert({
                     participant_id: _participant.id,
                     workspace_id: _workspaceId,
                     lesson_number: _pendingReflectionLesson,
                     lesson_title: lessonTitle,
                     message: msg,
                 });
+                if (error) throw error;
                 showToast('Reflexão enviada! 🙏', 'success');
-            } catch(e) { console.error(e); }
+            } catch(e) {
+                console.error('submitReflection error:', e);
+                showToast('Erro ao enviar reflexão: ' + (e.message || JSON.stringify(e)), 'error');
+            }
             
             document.getElementById('reflection-modal').classList.remove('open');
             _pendingReflectionLesson = null;
