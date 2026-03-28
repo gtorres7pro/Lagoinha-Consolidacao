@@ -3761,8 +3761,8 @@ window.initFaseG = function(user) {
 // JOURNEY MODULE
 // ═══════════════════════════════════════════════════════════
 window.loadJourneyModule = async function() {
-    if (!window.supabaseClient || !window.HubRouter || !window.HubRouter.currentWorkspaceId) return;
-    const wsId = window.HubRouter.currentWorkspaceId;
+    if (!window.supabaseClient || !window.currentWorkspaceId) return;
+    const wsId = window.currentWorkspaceId;
     const sb = window.supabaseClient;
 
     try {
