@@ -211,20 +211,28 @@ function renderStartGrid() {
         
         // Unread comments
         const unreadComments = p.start_comments?.filter(c => !c.reply) || [];
-        const commentBadge = unreadComments.length > 0 ? `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:#fff; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:10px; border:2px solid #07090f; box-shadow:0 0 10px rgba(239,68,68,0.5);">${unreadComments.length} 💬</div>` : '';
+        const commentBadge = unreadComments.length > 0 ? `<div style="background:rgba(239, 68, 68, 0.15); color:#ef4444; font-size:0.65rem; font-weight:800; padding:4px 10px; border-radius:12px; border:1px solid rgba(239, 68, 68, 0.3); display:flex; align-items:center; gap:4px; animation: pulse 2s infinite;"><span style="font-size:0.8rem;">💬</span> ${unreadComments.length} nova(s)</div>` : '';
 
         return `
             <div class="hub-card premium-hover-card" style="border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.01); backdrop-filter:blur(10px); cursor:pointer; position:relative; overflow:hidden; box-shadow:${borderGlow}; padding:20px; border-radius:16px;" onclick="openStartDrawer('${p.id}')">
                 ${cStatus.st === 'completed' ? `<div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, #FBBF24, transparent); opacity:0.8;"></div>` : ''}
-                ${commentBadge}
 
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
-                    <div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <h3 style="margin:0; font-size:1.15rem; color:#fff; font-weight:800; letter-spacing:-0.3px;">${p.name}</h3>
-                            <span title="${sourceStr}" style="font-size:0.85rem; opacity:0.9;">${sourceIcon}</span>
+                    <div style="width:100%;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <h3 style="margin:0; font-size:1.15rem; color:#fff; font-weight:800; letter-spacing:-0.3px;">${p.name}</h3>
+                                <span title="${sourceStr}" style="font-size:0.85rem; opacity:0.9;">${sourceIcon}</span>
+                            </div>
+                            ${commentBadge}
                         </div>
                         <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-dim);">${p.email}</p>
+                        ${p.phone ? `
+                        <div style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:rgba(37, 211, 102, 0.1); border:1px solid rgba(37, 211, 102, 0.2); padding:4px 10px; border-radius:8px; cursor:pointer; color:#25D366; font-size:0.75rem; font-weight:600; transition:all 0.2s;" class="hub-premium-hover" onclick="event.stopPropagation(); window.open('https://wa.me/${p.phone.replace(/[^0-9]/g, '')}', '_blank')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.996 2C6.471 2 2 6.471 2 11.996c0 1.777.463 3.454 1.34 4.965L2 22l5.163-1.332C8.65 21.536 10.283 22 11.996 22c5.525 0 9.996-4.471 9.996-9.997 0-5.524-4.471-9.995-9.996-9.995zm5.542 14.394c-.237.669-1.373 1.258-1.928 1.348-.521.085-1.187.161-3.327-.723-2.583-1.066-4.228-3.705-4.357-3.878-.129-.174-1.042-1.383-1.042-2.636 0-1.253.649-1.874.885-2.115.236-.242.518-.303.689-.303.172 0 .343.006.495.012.161.006.376-.06.58.43.216.516.732 1.79.796 1.92.064.129.108.28.022.451-.086.173-.129.28-.258.431-.13.151-.274.32-.387.432-.129.129-.265.267-.12.516.145.249.646 1.068 1.393 1.737.965.864 1.765 1.132 2.013 1.261.248.13.393.109.544-.065.15-.173.649-.757.821-1.015.172-.259.344-.216.57-.13.226.086 1.431.674 1.678.798.247.124.412.186.473.29.062.105.062.607-.175 1.275z"/></svg>
+                            ${p.phone}
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -259,6 +267,11 @@ window.openStartDrawer = async function(id) {
     document.getElementById('start-drawer-input-email').value = p.email || '';
     document.getElementById('start-drawer-input-phone').value = p.phone || '';
     
+    const notesInput = document.getElementById('start-drawer-input-notes');
+    if (notesInput) {
+        notesInput.value = p.notes || '';
+    }
+
     const cStatus = getParticipantComputedStatus(p);
     const badgeEl = document.getElementById('start-drawer-badge');
     if (badgeEl) {
@@ -377,6 +390,37 @@ window.startDeleteParticipant = async function() {
     } catch(e) {
         console.error('startDeleteParticipant error:', e);
         if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir', 'error');
+    }
+};
+
+window.saveStartNotes = async function() {
+    if (!_currentStartSelectedId) return;
+    const notesInput = document.getElementById('start-drawer-input-notes');
+    if (!notesInput) return;
+    
+    const newNotes = notesInput.value.trim();
+    const btn = event.currentTarget;
+    const originalText = btn.innerText;
+    btn.innerText = 'Salvando...';
+    btn.disabled = true;
+
+    try {
+        const sb = window.supabaseClient;
+        const { error } = await sb.from('start_participants').update({ notes: newNotes }).eq('id', _currentStartSelectedId);
+        if (error) throw error;
+        
+        if (typeof hubToast !== 'undefined') hubToast('Notas salvas com sucesso', 'success');
+        
+        // Update local state
+        const p = _startParticipants.find(x => x.id === _currentStartSelectedId);
+        if (p) p.notes = newNotes;
+
+    } catch(e) {
+        console.error('saveStartNotes error:', e);
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar notas', 'error');
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 };
 

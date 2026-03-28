@@ -2355,8 +2355,6 @@
 
     // ─── Module + Submenu definitions matching actual sidebar ──────────────
     const AVAILABLE_MODULES = [
-        { key: 'mural',           label: 'Mural',           navIds: ['nav-mural'],
-          svg: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.61 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>' },
         { key: 'consolidados',    label: 'Consolidados',    navIds: ['nav-dashboard'],
           svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
         { key: 'visitantes',      label: 'Visitantes',      navIds: ['nav-visitors'],
@@ -3574,92 +3572,6 @@ let _allAnnouncements = [];
 let _devWorkspaces = [];
 let _overrideTargetId = null;
 
-// ── G2: Mural de Anúncios ────────────────────────────
-async function loadMural() {
-    try {
-        const sb = window.supabaseClient;
-        if (!sb) return;
-        // Note: We do NOT join users(name) here because author_id → public.users causes PostgREST PGRST200.
-        // Instead we fetch announcements without the join and show a generic author label.
-        const { data, error } = await sb
-            .from('announcements')
-            .select('id, title, body, scope, workspace_id, author_id, created_at')
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        _allAnnouncements = data || [];
-        renderMural(_allAnnouncements);
-        // Show create button for admins
-        const me = window._currentUser;
-        if (me && (me.role === 'church_admin' || me.role === 'master_admin')) {
-            const btn = document.getElementById('btn-new-announcement');
-            if (btn) btn.style.display = '';
-        }
-    } catch(e) { console.error('loadMural:', e); }
-}
-
-function renderMural(list) {
-    const container = document.getElementById('mural-list');
-    const empty = document.getElementById('mural-empty');
-    if (!container) return;
-    if (!list || list.length === 0) {
-        container.innerHTML = '';
-        if (empty) empty.style.display = 'block';
-        return;
-    }
-    if (empty) empty.style.display = 'none';
-    const scopeLabel = { global: 'Global', regional: 'Regional', local: 'Local' };
-    const scopeColor = { global: '#FFD700', regional: '#60a5fa', local: '#a0aec0' };
-    container.innerHTML = list.map(a => {
-        const author = a.users?.name || 'Liderança';
-        const date = new Date(a.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
-        return `<div class="hub-announcement-card" data-scope="${a.scope}">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                <h4 style="font-size:.95rem; font-weight:700; margin:0;">${a.title}</h4>
-                <span class="hub-scope-badge" style="background:${scopeColor[a.scope]}22; color:${scopeColor[a.scope]}; border:1px solid ${scopeColor[a.scope]}44;">${scopeLabel[a.scope]}</span>
-            </div>
-            <p style="font-size:.85rem; color:var(--text-dim); line-height:1.6; margin:0 0 12px;">${a.body || ''}</p>
-            <div style="font-size:.72rem; color:var(--text-dim); display:flex; gap:12px;">
-                <span>${author}</span>
-                <span>${date}</span>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function filterAnnouncements(scope, btn) {
-    document.querySelectorAll('.hub-scope-tab').forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const filtered = scope === 'all' ? _allAnnouncements : _allAnnouncements.filter(a => a.scope === scope);
-    renderMural(filtered);
-}
-
-function showAnnouncementModal() {
-    document.getElementById('announcement-modal-overlay').style.display = 'flex';
-}
-function closeAnnouncementModal() {
-    document.getElementById('announcement-modal-overlay').style.display = 'none';
-}
-
-async function createAnnouncement() {
-    const title = document.getElementById('ann-title').value.trim();
-    const body  = document.getElementById('ann-body').value.trim();
-    const scope = document.getElementById('ann-scope').value;
-    if (!title) { window.showToast && showToast('Título obrigatório', 'error'); return; }
-    try {
-        const sb = window.supabaseClient;
-        const { error } = await sb.from('announcements').insert([{
-            title, body, scope,
-            workspace_id: window.currentWorkspaceId || null,
-            author_id: (await sb.auth.getUser()).data.user?.id
-        }]);
-        if (error) throw error;
-        closeAnnouncementModal();
-        document.getElementById('ann-title').value = '';
-        document.getElementById('ann-body').value = '';
-        await loadMural();
-        window.showToast && showToast('Anúncio publicado!', 'success');
-    } catch(e) { console.error('createAnnouncement:', e); window.showToast && showToast('Erro ao publicar', 'error'); }
-}
 
 // ── G3: Workspace Settings ────────────────────────────
 async function loadWorkspaceSettings() {
@@ -3808,14 +3720,13 @@ async function saveOverrideModules() {
     const _origSwitchTab = window.switchTab;
     window.switchTab = function(tab) {
         // Handle new G views
-        ['mural', 'dev', 'start'].forEach(v => {
+        ['dev', 'start'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.style.display = (tab === v) ? '' : 'none';
         });
         // Delegate the rest to original
         if (_origSwitchTab) _origSwitchTab(tab);
         // Load data on tab activation
-        if (tab === 'mural') loadMural();
         if (tab === 'dev')   loadDevView();
         if (tab === 'start') {
             if (typeof loadStartModule === 'function') loadStartModule();
@@ -3829,7 +3740,7 @@ async function saveOverrideModules() {
 // ── Init: show nav-dev for master_admin ─────────────────
 document.addEventListener('DOMContentLoaded', () => {
     // Hide new views by default
-    ['view-mural', 'view-dev'].forEach(id => {
+    ['view-dev'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
