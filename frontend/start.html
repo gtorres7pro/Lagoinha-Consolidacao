@@ -243,7 +243,7 @@
                     </div>
                     
                     <div class="input-group">
-                        <label id="t-phoneLabel">Telefone (opcional)</label>
+                        <label id="t-phoneLabel">TELEFONE</label>
                         <input type="tel" id="auth-phone" class="input-light" placeholder="WhatsApp">
                     </div>
                     
@@ -327,7 +327,7 @@
                 newNameText: "Primeira vez aqui? Preencha os dados abaixo:",
                 nameLabel: "Nome completo",
                 namePlaceholder: "Seu nome",
-                phoneLabel: "Telefone (opcional)",
+                phoneLabel: "Telefone",
                 phonePlaceholder: "WhatsApp",
                 btnStartCourse: "Entrar no Curso",
                 loading: "Carregando...",
@@ -359,7 +359,7 @@
                 newNameText: "First time here? Fill in the details below:",
                 nameLabel: "Full Name",
                 namePlaceholder: "Your name",
-                phoneLabel: "Phone (optional)",
+                phoneLabel: "Phone",
                 phonePlaceholder: "Phone number",
                 btnStartCourse: "Enter Course",
                 loading: "Loading...",
@@ -391,7 +391,7 @@
                 newNameText: "¿Primera vez aquí? Completa los detalles:",
                 nameLabel: "Nombre completo",
                 namePlaceholder: "Tu nombre",
-                phoneLabel: "Teléfono (opcional)",
+                phoneLabel: "Teléfono",
                 phonePlaceholder: "Número de teléfono",
                 btnStartCourse: "Entrar al Curso",
                 loading: "Cargando...",
@@ -431,14 +431,7 @@
                 window.changeLanguage(savedLang);
             }
 
-            // Phone intl-tel-input setup
-            const pPhoneInput = document.querySelector("#auth-phone");
-            pPhoneIti = window.intlTelInput(pPhoneInput, {
-                initialCountry: "pt",
-                preferredCountries: ["pt", "br", "us", "es", "gb", "fr", "de", "it"],
-                separateDialCode: true,
-                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
-            });
+            // Remove initialization here. We will initialize when container displays.
 
             const storedId = localStorage.getItem(`start_session_${_workspaceId}`);
             if (storedId) {
@@ -528,7 +521,19 @@
                 } else {
                     // 3. Brand new person. Show mini-form
                     btn.style.display = 'none';
-                    document.getElementById('auth-new-fields').style.display = 'block';
+                    const newFieldsContainer = document.getElementById('auth-new-fields');
+                    newFieldsContainer.style.display = 'block';
+
+                    // Initialize phone only when it becomes visible so widths calculate correctly
+                    if (!pPhoneIti) {
+                        const pPhoneInput = document.querySelector("#auth-phone");
+                        pPhoneIti = window.intlTelInput(pPhoneInput, {
+                            initialCountry: "pt",
+                            preferredCountries: ["pt", "br", "us", "es", "gb", "fr", "de", "it"],
+                            separateDialCode: true,
+                            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
+                        });
+                    }
                 }
             } catch(e) {
                 console.error(e);
@@ -543,6 +548,10 @@
             const name = document.getElementById('auth-name').value.trim();
             const phone = pPhoneIti ? pPhoneIti.getNumber() : '';
             if(!name) { showToast(TRANSLATIONS[_lang].nameLabel + ' obrigatório','error'); return; }
+            if(!phone || (pPhoneIti && !pPhoneIti.isValidNumber())) { 
+                showToast(TRANSLATIONS[_lang].phoneLabel + ' inválido ou em branco','error'); 
+                return; 
+            }
             
             const btn = document.getElementById('btn-signup');
             const originalText = btn.innerText;

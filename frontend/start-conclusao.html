@@ -96,14 +96,7 @@
             _workspaceId = await HubRouter.getWorkspaceId();
             if (!_workspaceId) { alert("Workspace não encontrado na URL."); }
 
-            // Initialize Intl-Tel-Input
-            const pPhoneInput = document.querySelector("#auth-phone");
-            pPhoneIti = window.intlTelInput(pPhoneInput, {
-                initialCountry: "pt",
-                preferredCountries: ["pt", "br", "us", "es", "gb", "fr", "de", "it"],
-                separateDialCode: true,
-                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
-            });
+            // Remove initialization here. We will initialize when container displays.
         }
 
         async function submitPresentialCompletion() {
@@ -115,6 +108,10 @@
 
             if (isNewUserFlow && !nameField) {
                 showToast('Nome é obrigatório para novo cadastro.', 'error');
+                return;
+            }
+            if (isNewUserFlow && (!phoneField || (pPhoneIti && !pPhoneIti.isValidNumber()))) {
+                showToast('Telefone é obrigatório e precisa ser válido.', 'error');
                 return;
             }
 
@@ -158,6 +155,18 @@
                             // Prompt new user flow
                             isNewUserFlow = true;
                             document.getElementById('new-fields').style.display = 'block';
+                            
+                            // Initialize phone only when it becomes visible so widths calculate correctly
+                            if (!pPhoneIti) {
+                                const pPhoneInput = document.querySelector("#auth-phone");
+                                pPhoneIti = window.intlTelInput(pPhoneInput, {
+                                    initialCountry: "pt",
+                                    preferredCountries: ["pt", "br", "us", "es", "gb", "fr", "de", "it"],
+                                    separateDialCode: true,
+                                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
+                                });
+                            }
+
                             btn.textContent = 'Criar Cadastro e Concluir';
                             btn.disabled = false;
                             showToast('Email não encontrado. Preencha seus dados rápidos para concluir!', 'success');
