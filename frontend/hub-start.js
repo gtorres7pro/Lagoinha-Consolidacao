@@ -18,7 +18,8 @@ window.loadStartModule = async function() {
             .select(`
                 *,
                 start_progress(lesson_number, status, completed_at, quiz_score),
-                start_completions(completion_type, completed_at)
+                start_completions(completion_type, completed_at),
+                start_comments(id, lesson_number, lesson_title, message, reply, reply_at, reply_viewed, created_at)
             `)
             .eq('workspace_id', window.currentWorkspaceId)
             .order('created_at', { ascending: false });
@@ -260,6 +261,36 @@ window.openStartDrawer = function(id) {
         }).join('');
     }
     
+    // Render comments section
+    const commentsEl = document.getElementById('start-drawer-comments');
+    const comments = (p.start_comments || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    if (comments.length === 0) {
+        commentsEl.innerHTML = '<div style="font-size:0.85rem; color:var(--text-dim); text-align:center; padding:16px 0;">Nenhuma reflex&atilde;o ainda.</div>';
+    } else {
+        commentsEl.innerHTML = comments.map(c => {
+            const lessonStr = c.lesson_title || `Aula ${c.lesson_number}`;
+            const replyHtml = c.reply 
+                ? `<div style="margin-top:10px; background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.2); border-radius:10px; padding:10px 14px;">
+                    <div style="font-size:0.7rem; color:rgba(255,215,0,0.7); text-transform:uppercase; letter-spacing:1px; font-weight:700; margin-bottom:4px;">Sua resposta</div>
+                    <div style="font-size:0.9rem; color:#fff;">${c.reply}</div>
+                  </div>`
+                : `<div style="margin-top:10px;">
+                    <textarea id="reply-input-${c.id}" placeholder="Escrever resposta..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:#fff; padding:10px 12px; font-family:'Outfit'; font-size:0.9rem; resize:vertical; min-height:60px; margin-bottom:8px;"></textarea>
+                    <button onclick="sendStartReply('${c.id}', '${p.id}', '${p.email?.replace(/'/g, '')}', '${p.name?.replace(/'/g, '')}', '${lessonStr.replace(/'/g, '')}', ${c.lesson_number})" style="background:var(--primary); border:none; border-radius:8px; color:#000; font-family:'Outfit'; font-weight:800; font-size:0.85rem; padding:8px 16px; cursor:pointer; width:100%; transition:0.2s;">Responder &amp; enviar email 💬</button>
+                  </div>`;
+            return `
+            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:0.7rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:1px;">${lessonStr}</span>
+                    <span style="font-size:0.7rem; color:var(--text-dim);">${new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <p style="margin:0; font-size:0.9rem; color:rgba(255,255,255,0.85); line-height:1.5; font-style:italic;">&ldquo;${c.message}&rdquo;</p>
+                ${replyHtml}
+            </div>`;
+        }).join('');
+    }
+    
     document.getElementById('start-drawer-overlay').style.display = 'flex';
 };
 
@@ -379,5 +410,69 @@ window.startConfigSave = async function() {
     } finally {
         btn.textContent = 'Salvar Configurações';
         btn.disabled = false;
+    }
+};
+
+// ── Send Reply to Participant ─────────────────────────
+window.sendStartReply = async function(commentId, participantId, participantEmail, participantName, lessonTitle, lessonNumber) {
+    const replyText = document.getElementById(`reply-input-${commentId}`)?.value?.trim();
+    if (!replyText) {
+        if (typeof hubToast !== 'undefined') hubToast('Escreva uma resposta primeiro.', 'error');
+        return;
+    }
+    
+    const btn = document.querySelector(`button[onclick*="${commentId}"]`);
+    if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+    
+    try {
+        const sb = window.supabaseClient;
+        
+        // Get participant's original message for email context
+        const { data: commentData } = await sb.from('start_comments')
+            .select('message')
+            .eq('id', commentId)
+            .single();
+        
+        // Get workspace name
+        const { data: wsData } = await sb.from('workspaces')
+            .select('name')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+        
+        const supabaseUrl = window.SUPABASE_URL || 'https://uyseheucqikgcorrygzc.supabase.co';
+        const supabaseKey = window.SUPABASE_ANON_KEY;
+        
+        // Call edge function
+        const res = await fetch(`${supabaseUrl}/functions/v1/send-start-reply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+            },
+            body: JSON.stringify({
+                comment_id: commentId,
+                participant_email: participantEmail,
+                participant_name: participantName,
+                lesson_title: lessonTitle,
+                lesson_number: lessonNumber,
+                original_message: commentData?.message || '',
+                reply_message: replyText,
+                workspace_name: wsData?.name || 'Igreja',
+            })
+        });
+        
+        const result = await res.json();
+        if (result.error) throw new Error(result.error);
+        
+        if (typeof hubToast !== 'undefined') hubToast('Resposta enviada por email! 📧', 'success');
+        
+        // Reload to show updated state
+        loadStartModule();
+        closeStartDrawer();
+        
+    } catch(e) {
+        console.error('sendStartReply error:', e);
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao enviar resposta: ' + e.message, 'error');
+        if (btn) { btn.textContent = 'Responder & enviar email 💬'; btn.disabled = false; }
     }
 };

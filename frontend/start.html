@@ -209,6 +209,22 @@
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
 
+        /* Lesson Modal Reflection */
+        .modal-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:2000; display:none; align-items:center; justify-content:center; padding:16px; }
+        .modal-overlay.open { display:flex; }
+        .modal-box { background: rgba(13, 17, 23, 0.95); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:32px; max-width:480px; width:100%; position:relative; animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .modal-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4), transparent); border-radius:24px 24px 0 0; }
+        .modal-title { font-size:1.3rem; font-weight:800; color:var(--primary); margin-bottom:6px; letter-spacing:-0.3px; }
+        .modal-subtitle { font-size:0.9rem; color:var(--text-dim); margin-bottom:20px; }
+        textarea.modal-input { width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:12px; color:#fff; padding:14px 16px; font-family:'Outfit'; font-size:1rem; resize:vertical; min-height:100px; transition:0.3s; }
+        textarea.modal-input:focus { outline:none; border-color:var(--primary); background:rgba(0,0,0,0.5); box-shadow:0 0 0 4px rgba(255,215,0,0.1); }
+        
+        /* Reply Popup */
+        .reply-popup { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:3000; display:none; align-items:center; justify-content:center; padding:16px; }
+        .reply-popup.open { display:flex; }
+        .reply-popup-box { background: rgba(13, 17, 23, 0.95); border:1px solid rgba(255,215,0,0.3); border-radius:24px; padding:32px; max-width:460px; width:100%; position:relative; animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow:0 0 50px rgba(255,215,0,0.1); }
+        .reply-popup-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4), transparent); border-radius:24px 24px 0 0; }
+        
         /* Fullscreen View transition */
         .dash-layout { max-width: 800px; margin: 0 auto; width: 100%; transition: 0.5s; padding: 40px 0;}
     </style>
@@ -314,6 +330,39 @@
             <div id="quiz-area" class="quiz-container">
                 <!-- quiz questions injected here -->
             </div>
+        </div>
+    </div>
+
+    <!-- Reflection Modal -->
+    <div class="modal-overlay" id="reflection-modal">
+        <div class="modal-box">
+            <p class="modal-title">✨ Sua Reflexão</p>
+            <p class="modal-subtitle">você acabou de concluir <strong id="reflection-lesson-name">a aula</strong>. Como você se sentiu? Deixe uma reflex&atilde;o para o seu consolidador.</p>
+            <textarea class="modal-input" id="reflection-textarea" placeholder="Compartilhe seus pensamentos, d&uacute;vidas ou agradecimentos..."></textarea>
+            <div style="display:flex; gap:12px; margin-top:16px;">
+                <button class="btn secondary" onclick="skipReflection()" style="flex:1; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:12px; color:var(--text-dim); font-family:'Outfit'; font-weight:600; cursor:pointer; transition:0.2s;">Pular</button>
+                <button class="btn primary" onclick="submitReflection()" id="btn-reflection-send" style="flex:2; padding:12px; border-radius:12px; background:var(--primary); color:#000; font-family:'Outfit'; font-weight:800; border:none; cursor:pointer; transition:0.3s;">Enviar Reflex&atilde;o 🙏</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply Popup -->
+    <div class="reply-popup" id="reply-popup">
+        <div class="reply-popup-box">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:2.5rem; margin-bottom:8px;">💬</div>
+                <h3 style="margin:0; color:var(--primary); font-size:1.3rem; font-weight:800;">Seu consolidador respondeu!</h3>
+                <p style="margin:6px 0 0; color:var(--text-dim); font-size:0.9rem;">Sobre: <span id="popup-lesson-name" style="color:#fff; font-weight:600;"></span></p>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:16px;">
+                <p style="margin:0 0 6px; font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px;">Sua mensagem</p>
+                <p style="margin:0; font-size:0.9rem; color:var(--text-dim); font-style:italic;" id="popup-original-msg"></p>
+            </div>
+            <div style="background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.2); border-radius:12px; padding:16px; margin-bottom:24px;">
+                <p style="margin:0 0 6px; font-size:0.75rem; color:rgba(255,215,0,0.7); text-transform:uppercase; letter-spacing:1px; font-weight:700;">Resposta</p>
+                <p style="margin:0; font-size:1rem; color:#fff; line-height:1.6;" id="popup-reply-text"></p>
+            </div>
+            <button onclick="closeReplyPopup()" style="width:100%; padding:14px; background:var(--primary); color:#000; border:none; border-radius:12px; font-family:'Outfit'; font-weight:800; font-size:1rem; cursor:pointer; transition:0.3s;">Obrigado! 🙏</button>
         </div>
     </div>
 
@@ -625,6 +674,7 @@
                 document.getElementById('view-dashboard').style.display = 'block';
                 
                 renderDashboard();
+                checkPendingReplies();
             } catch(e) { console.error(e); }
         }
 
@@ -755,7 +805,10 @@
             if (_currentLessonIndex === 0) {
                 // Lesson 0 has no quiz, just mark completed
                 await saveLessonProgress(0, 'completed', 100);
+                const conf0 = _lessons.find(x => x.lesson_number === 0);
+                const title0 = conf0?.title || 'Boas-vindas';
                 backToDashboard();
+                setTimeout(() => openReflectionModal(0, title0), 400);
                 return;
             }
             
@@ -858,13 +911,19 @@
                 showToast(t.quizPass, 'success');
                 await saveLessonProgress(_currentLessonIndex, 'completed', scorePct);
                 
+                const confLesson = _lessons.find(x => x.lesson_number === _currentLessonIndex);
+                const lessonTitle = confLesson?.title || `Aula ${_currentLessonIndex}`;
+                
                 if (_currentLessonIndex === 8) {
                     setTimeout(() => {
                         const slug = HubRouter.getSlug();
                         window.location.href = `/${slug}/start-obrigado`;
                     }, 2500);
                 } else {
-                    setTimeout(() => backToDashboard(), 2500);
+                    setTimeout(() => {
+                        backToDashboard();
+                        setTimeout(() => openReflectionModal(_currentLessonIndex, lessonTitle), 400);
+                    }, 2000);
                 }
             } else {
                 showToast(t.quizFail, 'error');
@@ -888,28 +947,103 @@
         async function saveLessonProgress(lnum, status, score) {
             try {
                 const existing = _progress.find(x => x.lesson_number === lnum);
-                const updates = {
+                const upsertData = {
                     participant_id: _participant.id,
                     workspace_id: _workspaceId,
                     lesson_number: lnum,
                     status: status,
-                    quiz_score: score !== null ? score : (existing ? existing.quiz_score : null)
+                    quiz_score: score !== null ? score : (existing ? existing.quiz_score : null),
                 };
                 if (status === 'completed' && (!existing || existing.status !== 'completed')) {
-                    updates.completed_at = new Date().toISOString();
+                    upsertData.completed_at = new Date().toISOString();
                 }
+
+                const { data, error } = await sb.from('start_progress')
+                    .upsert(upsertData, { onConflict: 'participant_id,lesson_number' })
+                    .select().single();
                 
-                if (existing) {
-                    const { error } = await sb.from('start_progress').update(updates).eq('id', existing.id);
-                    if (!error) Object.assign(existing, updates);
-                } else {
-                    const { data, error } = await sb.from('start_progress').insert(updates).select().single();
-                    if (!error && data) _progress.push(data);
-                }
+                if (!error && data) {
+                    const idx = _progress.findIndex(x => x.lesson_number === lnum);
+                    if (idx >= 0) _progress[idx] = data; else _progress.push(data);
+                } else if (error) { console.error('saveLessonProgress error:', error); }
             } catch(e) { console.error(e); }
         }
 
         document.addEventListener('DOMContentLoaded', init);
+
+        // ── Supabase URL helper ──
+        const SUPABASE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+
+        // ── Reflection Modal ──
+        let _pendingReflectionLesson = null;
+        
+        function openReflectionModal(lessonNum, lessonTitle) {
+            _pendingReflectionLesson = lessonNum;
+            document.getElementById('reflection-lesson-name').textContent = lessonTitle || `Aula ${lessonNum}`;
+            document.getElementById('reflection-textarea').value = '';
+            document.getElementById('reflection-modal').classList.add('open');
+        }
+        
+        window.skipReflection = function() {
+            document.getElementById('reflection-modal').classList.remove('open');
+            _pendingReflectionLesson = null;
+        }
+        
+        window.submitReflection = async function() {
+            const msg = document.getElementById('reflection-textarea').value.trim();
+            const btn = document.getElementById('btn-reflection-send');
+            if (!msg) { window.skipReflection(); return; }
+            
+            btn.disabled = true;
+            btn.textContent = '...';
+            
+            try {
+                const conf = _lessons.find(x => x.lesson_number === _pendingReflectionLesson);
+                const lessonTitle = conf?.title || (_pendingReflectionLesson === 0 ? 'Boas-vindas' : `Aula ${_pendingReflectionLesson}`);
+                
+                await sb.from('start_comments').insert({
+                    participant_id: _participant.id,
+                    workspace_id: _workspaceId,
+                    lesson_number: _pendingReflectionLesson,
+                    lesson_title: lessonTitle,
+                    message: msg,
+                });
+                showToast('Reflexão enviada! 🙏', 'success');
+            } catch(e) { console.error(e); }
+            
+            document.getElementById('reflection-modal').classList.remove('open');
+            _pendingReflectionLesson = null;
+            btn.disabled = false;
+            btn.textContent = TRANSLATIONS[_lang].btnSendReflection || 'Enviar Reflexão';
+        }
+
+        // ── Reply Popup ──
+        async function checkPendingReplies() {
+            try {
+                const { data } = await sb.from('start_comments')
+                    .select('*')
+                    .eq('participant_id', _participant.id)
+                    .not('reply', 'is', null)
+                    .eq('reply_viewed', false)
+                    .order('reply_at', { ascending: false })
+                    .limit(1);
+                
+                if (data && data.length > 0) {
+                    const c = data[0];
+                    document.getElementById('popup-lesson-name').textContent = c.lesson_title || `Aula ${c.lesson_number}`;
+                    document.getElementById('popup-reply-text').textContent = c.reply;
+                    document.getElementById('popup-original-msg').textContent = `"${c.message}"`;
+                    document.getElementById('reply-popup').classList.add('open');
+                    
+                    // Mark as viewed
+                    await sb.from('start_comments').update({ reply_viewed: true }).eq('id', c.id);
+                }
+            } catch(e) { console.error(e); }
+        }
+        
+        window.closeReplyPopup = function() {
+            document.getElementById('reply-popup').classList.remove('open');
+        }
     </script>
 </body>
 </html>
