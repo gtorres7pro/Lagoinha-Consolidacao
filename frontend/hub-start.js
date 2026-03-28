@@ -173,36 +173,74 @@ function renderStartGrid() {
         return;
     }
     
+    if (!document.getElementById('start-premium-styles')) {
+        const style = document.createElement('style');
+        style.id = 'start-premium-styles';
+        style.innerHTML = `
+            .premium-hover-card { transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important; }
+            .premium-hover-card:hover { transform: translateY(-3px) scale(1.01); background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.15) !important; z-index: 2; box-shadow: 0 15px 35px rgba(0,0,0,0.4) !important; }
+        `;
+        document.head.appendChild(style);
+    }
+
     container.innerHTML = filtered.map(p => {
         const cStatus = getParticipantComputedStatus(p);
+        
+        let maxL = 0;
+        if (p.start_progress && p.start_progress.length > 0) {
+            maxL = Math.max(...p.start_progress.map(x => x.lesson_number));
+        }
+        let progressPct = cStatus.st === 'completed' ? 100 : (cStatus.st === 'in_progress' ? Math.round((maxL) / 8 * 100) : 0);
+        
         let statusBadge = '';
-        let statusBorder = 'rgba(255,255,255,.06)';
+        let borderGlow = '0 5px 15px rgba(0,0,0,0.2)';
         
         if (cStatus.st === 'completed') {
-            statusBorder = 'rgba(251, 191, 36, .4)';
-            statusBadge = `<div style="background:rgba(251, 191, 36, .15); color:#FBBF24; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-weight:700;">CONCLUÍDO (${cStatus.type === 'online'? 'Online': 'Presencial'})</div>`;
+            borderGlow = '0 0 20px rgba(251, 191, 36, 0.05)';
+            statusBadge = `<div style="background:linear-gradient(90deg, rgba(251, 191, 36, .15), rgba(251, 191, 36, .05)); color:#FBBF24; padding:5px 12px; border-radius:12px; font-size:0.65rem; font-weight:800; border:1px solid rgba(251,191,36,0.3); box-shadow:0 0 10px rgba(251,191,36,0.1); display:flex; align-items:center; gap:4px;"><span>✨</span>CONCLUÍDO (${cStatus.type === 'online'? 'ONLINE': 'PRESENCIAL'})</div>`;
         } else if (cStatus.st === 'in_progress') {
-            statusBadge = `<div style="background:rgba(96, 165, 250, .15); color:#60A5FA; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-weight:700;">EM ANDAMENTO</div>`;
+            borderGlow = '0 0 20px rgba(96, 165, 250, 0.05)';
+            statusBadge = `<div style="background:rgba(96, 165, 250, .15); color:#60A5FA; padding:5px 12px; border-radius:12px; font-size:0.65rem; font-weight:800; border:1px solid rgba(96,165,250,0.2);">EM ANDAMENTO</div>`;
         } else {
-            statusBadge = `<div style="background:rgba(255,255,255,.05); color:var(--text-dim); padding:4px 10px; border-radius:12px; font-size:0.7rem; font-weight:700;">NÃO INICIOU</div>`;
+            statusBadge = `<div style="background:rgba(255,255,255,.05); color:var(--text-dim); padding:5px 12px; border-radius:12px; font-size:0.65rem; font-weight:700; border:1px solid rgba(255,255,255,0.05);">NÃO INICIOU</div>`;
         }
         
-        let sourceStr = 'Novo Cadastro';
-        if (p.source === 'consolidation') sourceStr = 'Consolidado';
-        if (p.source === 'visitor') sourceStr = 'Visitante';
+        let sourceStr = 'Novo Cadastro'; let sourceIcon = '🌍';
+        if (p.source === 'consolidation') { sourceStr = 'Consolidado'; sourceIcon = '🤝'; }
+        if (p.source === 'visitor') { sourceStr = 'Visitante'; sourceIcon = '👋'; }
         
+        // Unread comments
+        const unreadComments = p.start_comments?.filter(c => !c.reply) || [];
+        const commentBadge = unreadComments.length > 0 ? `<div style="position:absolute; top:-8px; right:-8px; background:#ef4444; color:#fff; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:10px; border:2px solid #07090f; box-shadow:0 0 10px rgba(239,68,68,0.5);">${unreadComments.length} 💬</div>` : '';
+
         return `
-            <div class="hub-card" style="border:1px solid ${statusBorder}; cursor:pointer;" onclick="openStartDrawer('${p.id}')">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div class="hub-card premium-hover-card" style="border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.01); backdrop-filter:blur(10px); cursor:pointer; position:relative; overflow:hidden; box-shadow:${borderGlow}; padding:20px; border-radius:16px;" onclick="openStartDrawer('${p.id}')">
+                ${cStatus.st === 'completed' ? `<div style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, #FBBF24, transparent); opacity:0.8;"></div>` : ''}
+                ${commentBadge}
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
                     <div>
-                        <h3 style="margin:0; font-size:1rem; color:#fff;">${p.name}</h3>
-                        <p style="margin:2px 0 0; font-size:0.8rem; color:var(--text-dim);">${p.email}</p>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h3 style="margin:0; font-size:1.15rem; color:#fff; font-weight:800; letter-spacing:-0.3px;">${p.name}</h3>
+                            <span title="${sourceStr}" style="font-size:0.85rem; opacity:0.9;">${sourceIcon}</span>
+                        </div>
+                        <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-dim);">${p.email}</p>
                     </div>
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:12px;">Origem: ${sourceStr}</div>
+                
+                <div style="margin-bottom:18px; padding:12px; background:rgba(0,0,0,0.2); border-radius:10px; border:1px solid rgba(255,255,255,0.03);">
+                    <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-dim); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                        <span>Última: <span style="color:#fff;">${getLastLessonText(p)}</span></span>
+                        <span style="color:${cStatus.st === 'completed' ? '#FBBF24' : (progressPct>0?'#60A5FA':'var(--text-dim)')}">${progressPct}%</span>
+                    </div>
+                    <div style="width:100%; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                        <div style="height:100%; width:${progressPct}%; background:${cStatus.st === 'completed' ? '#FBBF24' : '#60A5FA'}; border-radius:2px; box-shadow:0 0 8px ${cStatus.st === 'completed' ? 'rgba(251,191,36,0.5)' : 'rgba(96,165,250,0.5)'}; transition:width 0.8s;"></div>
+                    </div>
+                </div>
+
                 <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                     ${statusBadge}
-                    <div style="font-size:0.75rem; color:var(--text-dim); text-align:right;">Última: ${getLastLessonText(p)}<br>${new Date(p.created_at).toLocaleDateString('pt-BR')}</div>
+                    <div style="font-size:0.65rem; color:var(--text-dim); text-align:right; text-transform:uppercase; letter-spacing:0.5px;">Ativo em<br><span style="color:rgba(255,255,255,0.85); font-weight:700; font-size:0.75rem;">${new Date(p.created_at).toLocaleDateString('pt-BR')}</span></div>
                 </div>
             </div>
         `;
