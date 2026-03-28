@@ -249,7 +249,7 @@ function renderStartGrid() {
 
 
 // ── Drawer ──────────────────────────────────────────
-window.openStartDrawer = function(id) {
+window.openStartDrawer = async function(id) {
     const p = _startParticipants.find(x => x.id === id);
     if (!p) return;
     _currentStartSelectedId = id;
@@ -261,75 +261,101 @@ window.openStartDrawer = function(id) {
     
     const cStatus = getParticipantComputedStatus(p);
     const badgeEl = document.getElementById('start-drawer-badge');
-    if (cStatus.st === 'completed') {
-        badgeEl.textContent = 'CONCLUÍDO';
-        badgeEl.style.background = 'rgba(251,191,36,.2)';
-        badgeEl.style.color = '#FBBF24';
-    } else if (cStatus.st === 'in_progress') {
-        badgeEl.textContent = 'EM ANDAMENTO';
-        badgeEl.style.background = 'rgba(96,165,250,.2)';
-        badgeEl.style.color = '#60A5FA';
-    } else {
-        badgeEl.textContent = 'NÃO INICIOU';
-        badgeEl.style.background = 'rgba(255,255,255,.1)';
-        badgeEl.style.color = '#fff';
+    if (badgeEl) {
+        if (cStatus.st === 'completed') {
+            badgeEl.textContent = 'CONCLUÍDO';
+            badgeEl.style.background = 'rgba(251,191,36,.2)';
+            badgeEl.style.color = '#FBBF24';
+        } else if (cStatus.st === 'in_progress') {
+            badgeEl.textContent = 'EM ANDAMENTO';
+            badgeEl.style.background = 'rgba(96,165,250,.2)';
+            badgeEl.style.color = '#60A5FA';
+        } else {
+            badgeEl.textContent = 'NÃO INICIOU';
+            badgeEl.style.background = 'rgba(255,255,255,.1)';
+            badgeEl.style.color = '#fff';
+        }
     }
     
     const histEl = document.getElementById('start-drawer-progress-history');
-    if (!p.start_progress || p.start_progress.length === 0) {
-        histEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-dim);">Nenhum progresso registrado.</div>';
-    } else {
-        const sorted = [...p.start_progress].sort((a,b) => a.lesson_number - b.lesson_number);
-        histEl.innerHTML = sorted.map(pr => {
-            let sCol = '#60A5FA';
-            let sText = 'Assistindo';
-            if (pr.status === 'completed') { sCol = '#34D399'; sText = 'Concluída'; }
-            if (pr.status === 'quiz_failed') { sCol = '#F87171'; sText = 'Reprovada'; }
-            return `
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.06);">
-                <div>
-                    <div style="font-weight:600; font-size:0.85rem; color:#fff;">Aula ${pr.lesson_number}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">${pr.completed_at ? new Date(pr.completed_at).toLocaleString('pt-BR') : 'Sem data'}</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.75rem; font-weight:700; color:${sCol};">${sText}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Score: ${pr.quiz_score !== null ? pr.quiz_score+'%' : '-'}</div>
-                </div>
-            </div>`;
-        }).join('');
+    if (histEl) {
+        if (!p.start_progress || p.start_progress.length === 0) {
+            histEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-dim);">Nenhum progresso registrado.</div>';
+        } else {
+            const sorted = [...p.start_progress].sort((a,b) => a.lesson_number - b.lesson_number);
+            histEl.innerHTML = sorted.map(pr => {
+                let sCol = '#60A5FA';
+                let sText = 'Assistindo';
+                if (pr.status === 'completed') { sCol = '#34D399'; sText = 'Concluída'; }
+                if (pr.status === 'quiz_failed') { sCol = '#F87171'; sText = 'Reprovada'; }
+                return `
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.06);">
+                    <div>
+                        <div style="font-weight:600; font-size:0.85rem; color:#fff;">Aula ${pr.lesson_number}</div>
+                        <div style="font-size:0.7rem; color:var(--text-dim);">${pr.completed_at ? new Date(pr.completed_at).toLocaleString('pt-BR') : 'Sem data'}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.75rem; font-weight:700; color:${sCol};">${sText}</div>
+                        <div style="font-size:0.7rem; color:var(--text-dim);">Score: ${pr.quiz_score !== null ? pr.quiz_score+'%' : '-'}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
     }
     
-    // Render comments section
+    // Open drawer first so user sees it immediately
+    const overlay = document.getElementById('start-drawer-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    
+    // Load comments fresh from DB
     const commentsEl = document.getElementById('start-drawer-comments');
-    const comments = (p.start_comments || []).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    
-    if (comments.length === 0) {
-        commentsEl.innerHTML = '<div style="font-size:0.85rem; color:var(--text-dim); text-align:center; padding:16px 0;">Nenhuma reflex&atilde;o ainda.</div>';
-    } else {
-        commentsEl.innerHTML = comments.map(c => {
-            const lessonStr = c.lesson_title || `Aula ${c.lesson_number}`;
-            const replyHtml = c.reply 
-                ? `<div style="margin-top:10px; background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.2); border-radius:10px; padding:10px 14px;">
-                    <div style="font-size:0.7rem; color:rgba(255,215,0,0.7); text-transform:uppercase; letter-spacing:1px; font-weight:700; margin-bottom:4px;">Sua resposta</div>
-                    <div style="font-size:0.9rem; color:#fff;">${c.reply}</div>
-                  </div>`
-                : `<div style="margin-top:10px;">
-                    <textarea id="reply-input-${c.id}" placeholder="Escrever resposta..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; color:#fff; padding:10px 12px; font-family:'Outfit'; font-size:0.9rem; resize:vertical; min-height:60px; margin-bottom:8px;"></textarea>
-                    <button onclick="sendStartReply('${c.id}', '${p.id}', '${p.email?.replace(/'/g, '')}', '${p.name?.replace(/'/g, '')}', '${lessonStr.replace(/'/g, '')}', ${c.lesson_number})" style="background:var(--primary); border:none; border-radius:8px; color:#000; font-family:'Outfit'; font-weight:800; font-size:0.85rem; padding:8px 16px; cursor:pointer; width:100%; transition:0.2s;">Responder &amp; enviar email 💬</button>
-                  </div>`;
-            return `
-            <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; margin-bottom:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:0.7rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:1px;">${lessonStr}</span>
-                    <span style="font-size:0.7rem; color:var(--text-dim);">${new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <p style="margin:0; font-size:0.9rem; color:rgba(255,255,255,0.85); line-height:1.5; font-style:italic;">&ldquo;${c.message}&rdquo;</p>
-                ${replyHtml}
-            </div>`;
-        }).join('');
+    if (commentsEl) {
+        commentsEl.innerHTML = '<div style="font-size:0.8rem; color:var(--text-dim); text-align:center; padding:12px;">Carregando reflexões...</div>';
+        try {
+            const sb = window.supabaseClient;
+            const { data: comments, error } = await sb.from('start_comments')
+                .select('*')
+                .eq('participant_id', p.id)
+                .order('created_at', { ascending: true });
+            
+            if (error) throw error;
+            
+            if (!comments || comments.length === 0) {
+                commentsEl.innerHTML = '<div style="font-size:0.85rem; color:var(--text-dim); text-align:center; padding:16px 0;">Nenhuma reflexão ainda.</div>';
+            } else {
+                commentsEl.innerHTML = comments.map(c => {
+                    const lessonStr = c.lesson_title || `Aula ${c.lesson_number}`;
+                    const safeId = c.id;
+                    const safeEmail = (p.email || '').replace(/'/g, '').replace(/"/g, '');
+                    const safeName = (p.name || '').replace(/'/g, '').replace(/"/g, '');
+                    const safeLesson = lessonStr.replace(/'/g, '').replace(/"/g, '');
+                    
+                    const replyHtml = c.reply
+                        ? `<div style="margin-top:12px; background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.25); border-radius:10px; padding:12px 14px;">
+                            <div style="font-size:0.65rem; color:rgba(255,215,0,0.7); text-transform:uppercase; letter-spacing:1px; font-weight:700; margin-bottom:6px;">✅ Sua resposta</div>
+                            <div style="font-size:0.9rem; color:#fff; line-height:1.5;">${c.reply}</div>
+                           </div>`
+                        : `<div style="margin-top:12px;">
+                            <textarea id="reply-input-${safeId}" placeholder="Escrever resposta para ${safeName}..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; padding:10px 12px; font-family:'Outfit'; font-size:0.9rem; resize:vertical; min-height:70px; margin-bottom:8px; box-sizing:border-box;"></textarea>
+                            <button data-comment-id="${safeId}" data-participant-id="${p.id}" data-participant-email="${safeEmail}" data-participant-name="${safeName}" data-lesson-title="${safeLesson}" data-lesson-number="${c.lesson_number}" onclick="handleStartReply(this)" style="background:var(--primary); border:none; border-radius:8px; color:#000; font-family:'Outfit'; font-weight:800; font-size:0.85rem; padding:10px 16px; cursor:pointer; width:100%; transition:0.2s;">💬 Responder &amp; enviar email</button>
+                           </div>`;
+                    
+                    return `
+                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:14px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-size:0.7rem; font-weight:800; color:var(--primary); text-transform:uppercase; letter-spacing:1px;">${lessonStr}</span>
+                            <span style="font-size:0.7rem; color:var(--text-dim);">${new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                        <p style="margin:0; font-size:0.9rem; color:rgba(255,255,255,0.85); line-height:1.5; font-style:italic;">&ldquo;${c.message}&rdquo;</p>
+                        ${replyHtml}
+                    </div>`;
+                }).join('');
+            }
+        } catch(e) {
+            console.error('Error loading comments:', e);
+            commentsEl.innerHTML = `<div style="font-size:0.8rem; color:#F87171; text-align:center; padding:12px;">Erro ao carregar reflexões: ${e.message}</div>`;
+        }
     }
-    
-    document.getElementById('start-drawer-overlay').style.display = 'flex';
 };
 
 window.closeStartDrawer = function() {
@@ -449,6 +475,17 @@ window.startConfigSave = async function() {
         btn.textContent = 'Salvar Configurações';
         btn.disabled = false;
     }
+};
+
+// ── Handle Reply Button Click ─────────────────────────
+window.handleStartReply = function(btn) {
+    const commentId = btn.getAttribute('data-comment-id');
+    const participantId = btn.getAttribute('data-participant-id');
+    const participantEmail = btn.getAttribute('data-participant-email');
+    const participantName = btn.getAttribute('data-participant-name');
+    const lessonTitle = btn.getAttribute('data-lesson-title');
+    const lessonNumber = parseInt(btn.getAttribute('data-lesson-number'), 10);
+    sendStartReply(commentId, participantId, participantEmail, participantName, lessonTitle, lessonNumber);
 };
 
 // ── Send Reply to Participant ─────────────────────────
