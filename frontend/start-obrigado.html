@@ -9,19 +9,84 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/index.css">
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .success-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 450px; width: 100%; margin: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .icon-circle { width: 80px; height: 80px; background: rgba(52, 211, 153, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
-        .success-title { font-size: 2rem; font-weight: 800; margin: 0 0 16px; color: #34D399; letter-spacing: -0.5px; }
-        .success-text { font-size: 1.05rem; color: rgba(255,255,255,0.7); margin-bottom: 30px; }
-        .success-highlight { color: #FFD700; font-weight: 700; }
+        :root {
+            --primary: #FFD700;
+            --primary-glow: rgba(255, 215, 0, 0.4);
+            --bg-dark: #07090f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.06);
+            --text-dim: rgba(255, 255, 255, 0.6);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; display: inline-flex; justify-content: center; align-items: center; gap:8px;}
-        button.primary { background: #FFD700; color: #0b141a; }
-        button.primary:hover { background: #e0bd00; transform: translateY(-2px); }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: #fff; 
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Orbs */
+        .bg-orbs {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: -1; pointer-events: none;
+            background: radial-gradient(circle at center, #0B111A 0%, #030407 100%);
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+        .orb-1 { width: 40vw; height: 40vw; background: rgba(52, 211, 153, 0.15); top: -10%; left: -10%; }
+        .orb-2 { width: 50vw; height: 50vw; background: rgba(15, 23, 42, 0.8); bottom: -20%; right: -10%; animation-delay: -5s; }
+        .orb-3 { width: 30vw; height: 30vw; background: rgba(255, 215, 0, 0.08); top: 40%; left: 50%; transform: translateX(-50%); animation-duration: 25s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5%, 10%) scale(1.1); }
+        }
+
+        .success-card { 
+            background: rgba(13, 17, 23, 0.6);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px; padding: 40px; text-align: center; max-width: 450px; width: 100%; margin: 20px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
+            position: relative; overflow: hidden;
+            z-index: 1;
+        }
+        .success-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
+        }
+        
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        .icon-circle { width: 80px; height: 80px; background: rgba(52, 211, 153, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; box-shadow: 0 0 30px rgba(52, 211, 153, 0.2); animation: popIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .success-title { font-size: 2.2rem; font-weight: 800; margin: 0 0 16px; color: #34D399; letter-spacing: -1px; animation: popIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .success-text { font-size: 1.05rem; color: rgba(255,255,255,0.7); margin-bottom: 30px; animation: popIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .success-highlight { color: #FFD700; font-weight: 800; filter: drop-shadow(0 0 5px rgba(255,215,0,0.5));}
+        
+        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 800; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; display: inline-flex; justify-content: center; align-items: center; gap:8px;}
+        button.primary { background: var(--primary); color: #000; box-shadow: 0 4px 15px var(--primary-glow); }
+        button.primary:hover { box-shadow: 0 8px 25px var(--primary-glow); transform: translateY(-2px); }
     </style>
 </head>
 <body>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
 
     <div class="success-card">
         <div class="icon-circle">
