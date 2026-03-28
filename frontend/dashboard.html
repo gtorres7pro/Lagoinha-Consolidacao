@@ -708,13 +708,12 @@
                 <span class="nav-label">Consolidados</span>
             </li>
 
-            <!-- 4. Start (em desenvolvimento) -->
-            <li id="nav-start" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
+            <!-- 4. Start -->
+            <li id="nav-start" onclick="switchTab('start')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 </span>
                 <span class="nav-label">Start</span>
-                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
             <!-- 5. Visitantes -->
@@ -1179,6 +1178,69 @@
                     <button class="bulk-btn" style="background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.5);color:#FF6B6B;" onclick="bulkDelete()">🗑️ Excluir Selecionados</button>
                     <button class="bulk-btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.2);color:#ccc;" onclick="exitBulkMode()">✕ Cancelar</button>
                 </div>
+            </div>
+        </div>
+        <!-- View: Start -->
+        <div id="view-start" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Módulo Start</h1>
+                    <p>Acompanhamento dos participantes do curso básico</p>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-outline" id="btn-copy-start-public">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Link Público
+                    </button>
+                    <button class="btn btn-outline" id="btn-copy-start-presential">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Form Presencial
+                    </button>
+                    <button class="btn btn-primary" onclick="window.startConfigOpen()">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        Configurar Aulas
+                    </button>
+                </div>
+            </header>
+            
+            <div class="kpi-row">
+                <div class="kpi-box">
+                    <div class="kpi-title">Total Participantes</div>
+                    <div class="kpi-number" id="start-kpi-total">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Em Andamento</div>
+                    <div class="kpi-number" id="start-kpi-active" style="color: #60A5FA;">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Concluídos (Online)</div>
+                    <div class="kpi-number" id="start-kpi-completed-online" style="color: #34D399;">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Concluídos (Presencial)</div>
+                    <div class="kpi-number" id="start-kpi-completed-presential" style="color: #FBBF24;">0</div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <input type="text" class="search-bar" id="start-search" placeholder="Buscar por nome ou email...">
+                <select class="select-filter" id="start-filter-status">
+                    <option value="">Status: Todos</option>
+                    <option value="completed">Concluídos</option>
+                    <option value="in_progress">Em Andamento</option>
+                    <option value="not_started">Não Iniciou</option>
+                </select>
+                <select class="select-filter" id="start-filter-source">
+                    <option value="">Origem: Todas</option>
+                    <option value="consolidation">Consolidado</option>
+                    <option value="visitor">Visitante</option>
+                    <option value="new">Novo Cadastro</option>
+                </select>
+            </div>
+
+            <div class="grid-container" id="start-grid">
+                <!-- Start Cards go here -->
+                <div style="font-size:0.9rem; color:var(--text-dim); padding:20px;">Carregando participantes...</div>
             </div>
         </div>
 
@@ -2641,6 +2703,72 @@ REGRAS:
         <!-- ─────────────────────────────────────────────────────────────
              UPGRADE MODAL — Plan comparison (Fase F)
         ────────────────────────────────────────────────────────────── -->
+        <!-- ========================================== -->
+        <!-- START MODULE MODALS -->
+        <!-- ========================================== -->
+
+        <!-- Start Config Modal -->
+        <div id="start-config-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(8px); z-index:9200; align-items:flex-start; justify-content:center; padding:30px 16px; overflow-y:auto;">
+            <div class="hub-modal" style="width:100%; max-width:600px; background:#0b141a; border:1px solid rgba(255,255,255,.1); border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden;">
+                <div style="padding:24px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2 style="font-size:1.2rem; font-weight:700; margin:0;">Configurar Aulas Módulo Start</h2>
+                        <p style="font-size:0.85rem; color:var(--text-dim); margin:4px 0 0;">Insira as URLs do YouTube e links para PDF de cada aula.</p>
+                    </div>
+                    <button onclick="window.startConfigClose()" style="background:none; border:none; color:#fff; cursor:pointer;">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div style="padding:24px; max-height: 60vh; overflow-y:auto;" id="start-config-lessons-container">
+                    <div style="text-align:center; padding:20px; color:var(--text-dim);">Carregando aulas...</div>
+                </div>
+                <div style="padding:20px 24px; border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:flex-end; gap:12px; background:rgba(255,255,255,.02);">
+                    <button onclick="window.startConfigClose()" class="btn btn-outline">Cancelar</button>
+                    <button onclick="window.startConfigSave()" class="btn btn-primary" id="btn-start-config-save">Salvar Configurações</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Participant Drawer -->
+        <div class="hub-drawer-overlay" id="start-drawer-overlay" onclick="window.closeStartDrawer()">
+            <div class="hub-drawer" style="width: 450px;" onclick="event.stopPropagation()">
+                <div class="hub-drawer-header">
+                    <h2 id="start-drawer-name" style="margin:0; font-size:1.2rem;">Participante</h2>
+                    <span id="start-drawer-badge" style="background:rgba(255,255,255,.1); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600;">Status</span>
+                    <button class="hub-drawer-close" onclick="window.closeStartDrawer()">✕</button>
+                </div>
+                <div class="hub-drawer-body">
+                    <div style="margin-bottom:24px;">
+                        <h3 style="font-size:0.9rem; color:var(--text-dim); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px;">Dados Básicos</h3>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="display:block; margin-bottom:5px; font-size:0.8rem; color:var(--text-dim);">Nome</label>
+                            <input type="text" id="start-drawer-input-name" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.02); color:#fff;" disabled>
+                        </div>
+                        <div style="display:flex; gap:12px;">
+                            <div class="form-group" style="flex:1; margin-bottom: 15px;">
+                                <label style="display:block; margin-bottom:5px; font-size:0.8rem; color:var(--text-dim);">Email</label>
+                                <input type="email" id="start-drawer-input-email" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.02); color:#fff;" disabled>
+                            </div>
+                            <div class="form-group" style="flex:1; margin-bottom: 15px;">
+                                <label style="display:block; margin-bottom:5px; font-size:0.8rem; color:var(--text-dim);">Telefone</label>
+                                <input type="tel" id="start-drawer-input-phone" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.02); color:#fff;" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size:0.9rem; color:var(--text-dim); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px;">Progresso das Aulas</h3>
+                        <div id="start-drawer-progress-history" style="display:flex; flex-direction:column; gap:8px;">
+                            <!-- Progress items go here -->
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:20px; border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-between; align-items:center;">
+                    <button onclick="window.startDeleteParticipant()" style="background:none; border:none; color:#ef4444; font-size:0.8rem; cursor:pointer;" title="Remover e apagar progresso">✕ Excluir Participante</button>
+                    <!-- Additional actions could go here -->
+                </div>
+            </div>
+        </div>
+
         <div id="upgrade-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(12px); z-index:9200; align-items:flex-start; justify-content:center; padding:30px 16px; overflow-y:auto;">
             <div style="width:100%; max-width:900px; animation: fadeInUp .35s ease;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
@@ -2741,6 +2869,6 @@ REGRAS:
 ═══════════════════════════════════════════════════════ -->
 
     <script src="/hub-dashboard.js?v=20260326v5"></script>
+    <script src="/hub-start.js?v=1"></script>
 </body>
 </html>
-

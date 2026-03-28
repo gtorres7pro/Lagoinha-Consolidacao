@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sucesso - Módulo Start</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/index.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .success-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 450px; width: 100%; margin: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .icon-circle { width: 80px; height: 80px; background: rgba(52, 211, 153, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+        .success-title { font-size: 2rem; font-weight: 800; margin: 0 0 16px; color: #34D399; letter-spacing: -0.5px; }
+        .success-text { font-size: 1.05rem; color: rgba(255,255,255,0.7); margin-bottom: 30px; }
+        .success-highlight { color: #FFD700; font-weight: 700; }
+        
+        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; display: inline-flex; justify-content: center; align-items: center; gap:8px;}
+        button.primary { background: #FFD700; color: #0b141a; }
+        button.primary:hover { background: #e0bd00; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <div class="success-card">
+        <div class="icon-circle">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2 class="success-title">Parabéns!</h2>
+        <p class="success-text">Você concluiu com sucesso o <span class="success-highlight">Módulo Start</span>.</p>
+        <p style="font-size:0.9rem; color:var(--text-dim); margin-bottom:30px;">
+            Este é um passo fundamental na sua jornada. A equipe de consolidação entrará em contato em breve para os próximos passos.
+        </p>
+        
+        <button class="btn primary" onclick="closeWindow()">
+            <span>Ok, entendi</span>
+        </button>
+    </div>
+
+    <script>
+        function closeWindow() {
+            // Em navegadores modernos, `window.close()` pode não funcionar se não foi aberto via script, 
+            // mas podemos redirecionar para a home do hub ou uma pág de agradecimento.
+            window.location.href = 'https://lagoinha.com';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conclusão Presencial - Start</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="/index.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .auth-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 400px; width: 100%; margin: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .auth-title { font-size: 1.8rem; font-weight: 800; margin: 0 0 10px; color: #FBBF24; letter-spacing: -0.5px; }
+        .auth-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.6); margin-bottom: 30px; }
+        
+        button.btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1.05rem; }
+        button.primary { background: #FBBF24; color: #0b141a; }
+        button.primary:hover { background: #d9a010; transform: translateY(-2px); }
+        button.primary:disabled { background: rgba(255,255,255,0.2); color: rgba(255,255,255,0.5); transform: none; cursor: not-allowed; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2f3640; color: #fff; padding: 14px 24px; border-radius: 30px; font-weight: 600; font-size: 0.9rem; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+        .toast.show { opacity: 1; bottom: 40px; }
+        .toast.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .toast.success { background: #dcfce7; color: #166534; border-color: #86efac; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card" id="form-container">
+        <h2 class="auth-title">O Passo da Fé</h2>
+        <p class="auth-subtitle">Registre sua conclusão do Módulo Start presencial.</p>
+        
+        <div style="margin-bottom: 24px; text-align:left;">
+            <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:rgba(255,255,255,0.7); font-weight:600;">Seu Email de Cadastro</label>
+            <input type="email" id="auth-email" class="input-light" style="width:100%; padding:14px; border-radius:12px; font-family:'Outfit'; font-size:1rem; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#fff;" placeholder="exemplo@email.com">
+        </div>
+        
+        <button class="btn primary" onclick="submitPresentialCompletion()" id="btn-submit">Registrar Conclusão</button>
+        
+        <p style="margin-top:20px; font-size:0.8rem; color:var(--text-dim);">Ao submeter, você confirma ter participado do módulo Start integralmente.</p>
+    </div>
+
+    <div id="toast" class="toast">Mensagem</div>
+
+    <script src="/hub-router.js"></script>
+    <script>
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let _workspaceId = null;
+
+        function showToast(msg, type = 'success') {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast show ' + type;
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        async function init() {
+            _workspaceId = await HubRouter.getWorkspaceId();
+            if (!_workspaceId) { alert("Workspace não encontrado na URL."); }
+        }
+
+        async function submitPresentialCompletion() {
+            const email = document.getElementById('auth-email').value.trim();
+            if (!email) { showToast('Por favor, digite seu email.', 'error'); return; }
+            
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            
+            try {
+                // 1. Check if participant exists
+                const { data: pData } = await sb.from('start_participants')
+                    .select('id, name')
+                    .eq('workspace_id', _workspaceId)
+                    .ilike('email', email)
+                    .maybeSingle();
+                    
+                let participantId = null;
+                
+                if (pData) {
+                    participantId = pData.id;
+                } else {
+                    // Try to migrate from leads
+                    const { data: leadData } = await sb.from('leads')
+                        .select('id, name, phone, type')
+                        .eq('workspace_id', _workspaceId)
+                        .ilike('email', email)
+                        .maybeSingle();
+                        
+                    if (leadData) {
+                        const { data: newP, error } = await sb.from('start_participants').insert({
+                            workspace_id: _workspaceId,
+                            lead_id: leadData.id,
+                            name: leadData.name,
+                            email: email,
+                            phone: leadData.phone,
+                            source: leadData.type === 'visitor' ? 'visitor' : 'consolidation'
+                        }).select().single();
+                        if (error) throw error;
+                        participantId = newP.id;
+                    } else {
+                        throw new Error('Email não encontrado. Verifique a digitação ou fale com a liderança.');
+                    }
+                }
+                
+                // Save Completion
+                btn.textContent = 'Registrando...';
+                
+                const { error: compErr } = await sb.from('start_completions').upsert({
+                    participant_id: participantId,
+                    workspace_id: _workspaceId,
+                    completion_type: 'presential'
+                }, { onConflict: 'participant_id' }); // assuming participant_id is UK
+                
+                if (compErr) {
+                    if (compErr.code === '23505') {
+                        // Already exists
+                    } else { throw compErr; }
+                }
+
+                // Redirect to thank you
+                const slug = HubRouter.getSlug();
+                window.location.href = `/${slug}/start-obrigado`;
+                
+            } catch(e) {
+                console.error(e);
+                showToast(e.message || 'Erro ao registrar.', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Registrar Conclusão';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

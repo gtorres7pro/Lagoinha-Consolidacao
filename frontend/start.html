@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Módulo Start - Lagoinha HUB</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="/index.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #0b141a; color: #fff; line-height: 1.6; }
+        .main-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        
+        .header-logo { text-align: center; margin: 40px 0; }
+        .header-logo img { max-width: 150px; }
+        
+        /* Login / Signup Flow */
+        .auth-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 40px; text-align: center; max-width: 400px; margin: 0 auto; }
+        .auth-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 10px; color: #FFD700; }
+        .auth-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.6); margin-bottom: 30px; }
+        
+        /* Lessons Grid */
+        .lesson-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; transition: 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .lesson-card:hover:not(.locked) { background: rgba(255,255,255,0.05); border-color: rgba(255,215,0,0.3); }
+        .lesson-card.locked { opacity: 0.5; cursor: not-allowed; }
+        .lesson-card.completed { border-color: #34D399; background: rgba(52, 211, 153, 0.05); }
+        .lesson-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; }
+        .lesson-card.completed .lesson-icon { background: #34D399; color: #0b141a; }
+        .lesson-card.locked .lesson-icon { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.2); }
+        .lesson-info { flex: 1; padding: 0 16px; text-align: left; }
+        .lesson-title { font-weight: 600; font-size: 1.1rem; margin: 0; }
+        
+        /* Player View */
+        .player-view { display: none; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; /* 16:9 */ height: 0; overflow: hidden; max-width: 100%; border-radius: 16px; margin-bottom: 24px; background: #000; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; border-radius: 16px; }
+        
+        /* Quiz */
+        .quiz-container { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 30px; margin-top: 30px; display: none; }
+        .quiz-title { font-size: 1.2rem; font-weight: 700; color: #FFD700; margin-bottom: 20px; }
+        .q-text { font-weight: 600; margin-bottom: 12px; font-size: 1.05rem; }
+        .q-option { display: block; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; }
+        .q-option:hover { background: rgba(255,255,255,0.1); }
+        .q-option.selected { background: rgba(255,215,0,0.15); border-color: #FFD700; }
+        .q-option.correct { background: rgba(52, 211, 153, 0.15); border-color: #34D399; }
+        .q-option.wrong { background: rgba(248, 113, 113, 0.15); border-color: #F87171; }
+        
+        button.btn { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; font-family: 'Outfit'; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1rem; }
+        button.primary { background: #FFD700; color: #0b141a; }
+        button.primary:hover { background: #e0bd00; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2f3640; color: #fff; padding: 14px 24px; border-radius: 30px; font-weight: 600; font-size: 0.9rem; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+        .toast.show { opacity: 1; bottom: 40px; }
+        .toast.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .toast.success { background: #dcfce7; color: #166534; border-color: #86efac; }
+        
+        /* Language Selector */
+        .lang-switch { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 20px; font-family: 'Outfit'; font-size: 0.8rem; outline: none; }
+    </style>
+</head>
+<body>
+    <select class="lang-switch" id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="pt">Português</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+    </select>
+
+    <div class="main-container">
+        <div class="header-logo">
+            <h1 style="color: #FFD700; font-size: 2rem; margin:0; letter-spacing: -1px;">START</h1>
+            <p style="color: rgba(255,255,255,0.6); margin:0;">Passo a Passo da Fé</p>
+        </div>
+
+        <!-- 1. AUTHENTICATION VIEW -->
+        <div id="view-auth" class="auth-card">
+            <h2 class="auth-title">Bem-vindo(a)</h2>
+            <p class="auth-subtitle">Insira seu email para continuar</p>
+            <div style="margin-bottom: 20px; text-align:left;">
+                <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Email</label>
+                <input type="email" id="auth-email" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';" placeholder="seu@email.com">
+            </div>
+            <button class="btn primary" onclick="submitAuth()" id="btn-auth">Continuar</button>
+            <div id="auth-new-fields" style="display:none; text-align:left; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:20px;">
+                <p style="font-size:0.85rem; color:#FFD700; margin-bottom:16px;">Parece que é sua primeira vez. Qual seu nome e telefone?</p>
+                <div style="margin-bottom: 16px;">
+                    <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Nome</label>
+                    <input type="text" id="auth-name" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; font-size:0.85rem; margin-bottom:8px; color:var(--text-dim);">Telefone</label>
+                    <input type="tel" id="auth-phone" class="input-light" style="width:100%; padding:12px; border-radius:12px; font-family:'Outfit';" placeholder="Inclua DDD">
+                </div>
+                <button class="btn primary" onclick="submitNewSignup()" id="btn-signup">Entrar no Curso</button>
+            </div>
+        </div>
+
+        <!-- 2. LESSONS LIST VIEW -->
+        <div id="view-dashboard" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+                <div>
+                    <h2 style="margin:0; font-size:1.5rem;" id="welcome-name">Olá, participante</h2>
+                    <p style="margin:4px 0 0; color:rgba(255,255,255,0.6); font-size:0.9rem;">Seu progresso: <span id="progress-pct" style="color:#FFD700; font-weight:700;">0%</span></p>
+                </div>
+                <button onclick="logout()" style="background:none; border:none; color:rgba(255,255,255,0.4); text-decoration:underline; cursor:pointer;">Sair</button>
+            </div>
+            <div id="lessons-list">
+                <div style="text-align:center; padding:40px; color:rgba(255,255,255,0.4);">Carregando aulas...</div>
+            </div>
+        </div>
+
+        <!-- 3. PLAYER VIEW -->
+        <div id="view-player" class="player-view">
+            <button onclick="backToDashboard()" style="background:none; border:none; color:#FFD700; font-weight:600; cursor:pointer; margin-bottom:20px; padding:0; display:flex; align-items:center; gap:8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Voltar às Aulas
+            </button>
+            
+            <h2 id="lesson-header-title" style="margin:0 0 16px; font-size:1.6rem;">Aula 1</h2>
+            
+            <div class="video-wrapper" id="video-container">
+                <!-- iframe injected here -->
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <a id="btn-download-pdf" href="#" target="_blank" style="display:none; text-decoration:none; background:rgba(255,255,255,0.1); color:#fff; padding:10px 20px; border-radius:12px; font-weight:600; transition:0.2s;">
+                    📄 Baixar PDF de Apoio
+                </a>
+                <button id="btn-start-quiz" class="btn primary" style="width:auto;" onclick="startQuiz()">Fazer Quiz e Avançar</button>
+            </div>
+            
+            <div id="quiz-area" class="quiz-container">
+                <!-- quiz questions injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Mensagem</div>
+
+    <script src="/hub-router.js"></script>
+    <script>
+        const TRANSLATIONS = {
+            pt: {
+                welcome: "Olá,",
+                progress: "Seu progresso:",
+                logout: "Sair",
+                lesson: "Aula",
+                welcomeLesson: "Aula de Boas-vindas",
+                locked: "Bloqueada",
+                completed: "Concluída",
+                back: "Voltar às Aulas",
+                downloadPdf: "📄 Baixar PDF de Apoio",
+                doQuiz: "Fazer Quiz e Avançar",
+                concludeLevel: "Marcar como Concluída e Avançar",
+                quizPass: "Parabéns! Você passou no quiz.",
+                quizFail: "Você não atingiu a nota mínima. Tente novamente.",
+                confirmSubmit: "Submeter respostas"
+            },
+            en: {
+                welcome: "Hello,",
+                progress: "Your progress:",
+                logout: "Logout",
+                lesson: "Lesson",
+                welcomeLesson: "Welcome Lesson",
+                locked: "Locked",
+                completed: "Completed",
+                back: "Back to Lessons",
+                downloadPdf: "📄 Download Reference PDF",
+                doQuiz: "Take Quiz & Advance",
+                concludeLevel: "Mark as Completed & Advance",
+                quizPass: "Congratulations! You passed the quiz.",
+                quizFail: "You did not reach the passing score. Please try again.",
+                confirmSubmit: "Submit answers"
+            },
+            es: {
+                welcome: "Hola,",
+                progress: "Su progreso:",
+                logout: "Salir",
+                lesson: "Lección",
+                welcomeLesson: "Lección de Bienvenida",
+                locked: "Bloqueada",
+                completed: "Completada",
+                back: "Volver a Lecciones",
+                downloadPdf: "📄 Descargar PDF de Apoyo",
+                doQuiz: "Hacer Quiz y Avanzar",
+                concludeLevel: "Marcar como Completada y Avanzar",
+                quizPass: "¡Felicidades! Aprobaste el quiz.",
+                quizFail: "No alcanzaste la puntuación mínima. Inténtalo de nuevo.",
+                confirmSubmit: "Enviar respuestas"
+            }
+        };
+
+        let _lang = 'pt';
+        let _workspaceId = null;
+        let _participant = null;
+        let _lessons = [];
+        let _progress = [];
+        let _questions = [];
+        
+        let _currentLessonIndex = 0;
+        let _userAnswers = [];
+        
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function showToast(msg, type = 'success') {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast show ' + type;
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        async function init() {
+            _workspaceId = await HubRouter.getWorkspaceId();
+            if (!_workspaceId) { alert("Workspace não encontrado na URL."); return; }
+            
+            // Check session
+            const storedId = localStorage.getItem(`start_session_${_workspaceId}`);
+            if (storedId) {
+                await loadParticipant(storedId);
+            }
+        }
+
+        // ── Auth ──
+        async function submitAuth() {
+            const email = document.getElementById('auth-email').value.trim();
+            if (!email) { showToast('Preencha seu email.', 'error'); return; }
+            document.getElementById('btn-auth').disabled = true;
+            
+            try {
+                // 1. Check if participant exists
+                const { data: pData } = await sb.from('start_participants').select('*').eq('workspace_id', _workspaceId).ilike('email', email).maybeSingle();
+                if (pData) {
+                    await loadParticipant(pData.id);
+                    return;
+                }
+                
+                // 2. Not a participant. Check if lead in consolidation/visitor
+                const { data: leadData } = await sb.from('leads').select('id, name, phone, type, preferred_language').eq('workspace_id', _workspaceId).ilike('email', email).maybeSingle();
+                
+                if (leadData) {
+                    const src = leadData.type === 'visitor' ? 'visitor' : 'consolidation';
+                    if (leadData.preferred_language) {
+                        _lang = leadData.preferred_language;
+                        document.getElementById('langSelect').value = _lang;
+                    }
+                    // Auto create participant
+                    const { data: newP, error } = await sb.from('start_participants').insert({
+                        workspace_id: _workspaceId,
+                        lead_id: leadData.id,
+                        name: leadData.name,
+                        email: email,
+                        phone: leadData.phone,
+                        source: src
+                    }).select().single();
+                    if (error) throw error;
+                    await loadParticipant(newP.id);
+                } else {
+                    // 3. Brand new person. Show mini-form
+                    document.getElementById('btn-auth').style.display = 'none';
+                    document.getElementById('auth-new-fields').style.display = 'block';
+                }
+            } catch(e) {
+                console.error(e);
+                showToast('Erro ao validar email.', 'error');
+                document.getElementById('btn-auth').disabled = false;
+            }
+        }
+
+        async function submitNewSignup() {
+            const email = document.getElementById('auth-email').value.trim();
+            const name = document.getElementById('auth-name').value.trim();
+            const phone = document.getElementById('auth-phone').value.trim();
+            if(!name) { showToast('Nome obrigatório','error'); return; }
+            
+            // Create brand new
+            try {
+                const { data: newP, error } = await sb.from('start_participants').insert({
+                    workspace_id: _workspaceId,
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    source: 'new'
+                }).select().single();
+                if (error) throw error;
+                await loadParticipant(newP.id);
+            } catch(e) {
+                console.error(e);
+                showToast('Erro ao registrar.', 'error');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem(`start_session_${_workspaceId}`);
+            location.reload();
+        }
+
+        // ── Main Load ──
+        async function loadParticipant(id) {
+            try {
+                const { data, error } = await sb.from('start_participants').select('*').eq('id', id).single();
+                if (error || !data) { localStorage.removeItem(`start_session_${_workspaceId}`); location.reload(); return; }
+                _participant = data;
+                localStorage.setItem(`start_session_${_workspaceId}`, data.id);
+                
+                // Update last access
+                sb.from('start_participants').update({ last_access_at: new Date() }).eq('id', data.id).then();
+                
+                // Load Progress
+                const { data: progData } = await sb.from('start_progress').select('*').eq('participant_id', data.id);
+                _progress = progData || [];
+                
+                // Load Lessons
+                const { data: lesData } = await sb.from('start_lessons').select('*').eq('workspace_id', _workspaceId).order('lesson_number', { ascending: true });
+                _lessons = lesData || [];
+
+                document.getElementById('view-auth').style.display = 'none';
+                document.getElementById('view-dashboard').style.display = 'block';
+                
+                renderDashboard();
+            } catch(e) { console.error(e); }
+        }
+
+        function renderDashboard() {
+            const t = TRANSLATIONS[_lang];
+            
+            // Welcome Header
+            const firstName = _participant.name.split(' ')[0];
+            document.getElementById('welcome-name').textContent = `${t.welcome} ${firstName}`;
+            
+            let completedCount = _progress.filter(x => x.status === 'completed').length;
+            let expectedTotal = _lessons.length > 0 ? _lessons.length : 9; // 0 to 8 = 9 lessons
+            let percent = Math.round((completedCount / expectedTotal) * 100);
+            document.getElementById('progress-pct').textContent = `${percent}%`;
+
+            // Max unlocked lesson = Max lesson completed + 1
+            let maxUnlocked = 0;
+            _progress.forEach(x => {
+                if (x.status === 'completed' && x.lesson_number >= maxUnlocked) maxUnlocked = x.lesson_number + 1;
+            });
+            
+            const listEl = document.getElementById('lessons-list');
+            let html = '';
+            
+            // Loop exactly 0 to 8 (9 lessons)
+            for (let i = 0; i <= 8; i++) {
+                const conf = _lessons.find(x => x.lesson_number === i);
+                const prg = _progress.find(x => x.lesson_number === i);
+                
+                const title = conf?.title || (i === 0 ? t.welcomeLesson : `${t.lesson} ${i}`);
+                const isCompleted = prg?.status === 'completed';
+                const isLocked = i > maxUnlocked;
+                
+                let iconChar = i === 0 ? '👋' : i.toString();
+                if (isCompleted) iconChar = '✓';
+                if (isLocked) iconChar = '🔒';
+                
+                let stateTxt = '';
+                if (isCompleted) stateTxt = `<span style="color:#34D399; font-size:0.8rem; font-weight:700;">${t.completed.toUpperCase()}</span>`;
+                else if (isLocked) stateTxt = `<span style="color:var(--text-dim); font-size:0.8rem;">${t.locked}</span>`;
+
+                let classes = 'lesson-card';
+                if (isCompleted) classes += ' completed';
+                if (isLocked) classes += ' locked';
+                
+                html += `
+                <div class="${classes}" onclick="${isLocked ? '' : `openLesson(${i})`}">
+                    <div class="lesson-icon">${iconChar}</div>
+                    <div class="lesson-info">
+                        <div style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">
+                            ${i === 0 ? 'Intro' : t.lesson + ' ' + i}
+                        </div>
+                        <h3 class="lesson-title">${title}</h3>
+                    </div>
+                    <div>${stateTxt}</div>
+                </div>`;
+            }
+            listEl.innerHTML = html;
+        }
+
+        // ── Lesson Player ──
+        async function openLesson(n) {
+            _currentLessonIndex = n;
+            const t = TRANSLATIONS[_lang];
+            const conf = _lessons.find(x => x.lesson_number === n) || {};
+            
+            document.getElementById('view-dashboard').style.display = 'none';
+            document.getElementById('view-player').style.display = 'block';
+            document.getElementById('quiz-area').style.display = 'none';
+            document.getElementById('btn-start-quiz').style.display = 'block';
+            
+            const headTitle = conf.title || (n === 0 ? t.welcomeLesson : `${t.lesson} ${n}`);
+            document.getElementById('lesson-header-title').textContent = (n === 0 ? '' : `${t.lesson} ${n}: `) + headTitle;
+            
+            // Embed logic
+            let ytStr = conf.youtube_url;
+            const wrap = document.getElementById('video-container');
+            if (ytStr) {
+                // simple regext to extract ID
+                let vidId = '';
+                const m = ytStr.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+                if (m) vidId = m[1];
+                if (vidId) {
+                    wrap.style.display = 'block';
+                    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${vidId}" title="Video" allowfullscreen></iframe>`;
+                } else { wrap.style.display = 'none'; }
+            } else {
+                wrap.style.display = 'none';
+            }
+            
+            // PDF logic
+            const btnPdf = document.getElementById('btn-download-pdf');
+            if (conf.pdf_url) {
+                btnPdf.style.display = 'inline-block';
+                btnPdf.href = conf.pdf_url;
+                btnPdf.textContent = t.downloadPdf;
+            } else {
+                btnPdf.style.display = 'none';
+            }
+
+            // Button label
+            const btnQuiz = document.getElementById('btn-start-quiz');
+            btnQuiz.textContent = n === 0 ? t.concludeLevel : t.doQuiz;
+        }
+
+        function backToDashboard() {
+            document.getElementById('view-player').style.display = 'none';
+            document.getElementById('view-dashboard').style.display = 'block';
+            // Stop video
+            document.getElementById('video-container').innerHTML = '';
+            renderDashboard();
+        }
+
+        // ── Quiz Logic ──
+        async function startQuiz() {
+            if (_currentLessonIndex === 0) {
+                // Lesson 0 has no quiz, just mark completed
+                await saveLessonProgress(0, 'completed', 100);
+                backToDashboard();
+                return;
+            }
+            
+            const btnQuiz = document.getElementById('btn-start-quiz');
+            btnQuiz.style.display = 'none';
+            
+            const area = document.getElementById('quiz-area');
+            area.innerHTML = '<div style="text-align:center; padding:20px;">Carregando quiz...</div>';
+            area.style.display = 'block';
+            
+            try {
+                const conf = _lessons.find(x => x.lesson_number === _currentLessonIndex);
+                // Fetch questions for this lesson from start_quiz_questions
+                // Since lesson_id references start_lessons but those might be deleted/readded, we should match by lesson_number and workspace_id.
+                // Actually the db has start_quiz_questions which has lesson_id or we just fetch by lesson_number directly if modified?
+                // Wait, based on earlier plan: start_quiz_questions has workspace_id? No, it has lesson_id.
+                
+                let lessonId = conf?.id;
+                let data = [];
+                if (lessonId) {
+                    const res = await sb.from('start_quiz_questions').select('*').eq('lesson_id', lessonId).order('order', {ascending:true});
+                    data = res.data || [];
+                }
+                
+                // If the db doesn't have questions yet for this exact lesson ID, we fallback to our generic queries based on the original seed.
+                // The seed in the DB from Phase 1 actually mapped by workspace. So we fetch questions joined with lessons.
+                // Alternatively, let's fetch based on lesson_number and workspace_id through the relationship:
+                const { data: deepQ, error } = await sb.from('start_quiz_questions')
+                    .select('*, start_lessons!inner(workspace_id, lesson_number)')
+                    .eq('start_lessons.workspace_id', _workspaceId)
+                    .eq('start_lessons.lesson_number', _currentLessonIndex)
+                    .order('order', { ascending: true });
+                
+                _questions = deepQ || [];
+                if (_questions.length === 0) {
+                    // Provide generic placeholder if empty
+                    _questions = [{
+                        question_text: { pt: "Questão 1 genérica", en: "Generic Q1", es: "Pregunta 1" },
+                        options: {
+                            pt: ["Certo", "Errado"], en: ["Right", "Wrong"], es: ["Correcto", "Falso"]
+                        },
+                        correct_index: 0
+                    }];
+                }
+                
+                _userAnswers = Array(_questions.length).fill(null);
+                renderQuiz();
+                
+                // Keep record of starting
+                await saveLessonProgress(_currentLessonIndex, 'watching', null);
+            } catch(e) {
+                console.error(e);
+                area.innerHTML = 'Erro ao carregar quiz.';
+            }
+        }
+
+        function renderQuiz() {
+            const area = document.getElementById('quiz-area');
+            const t = TRANSLATIONS[_lang];
+            
+            let html = `<h3 class="quiz-title">Quiz: Aula ${_currentLessonIndex}</h3>`;
+            
+            _questions.forEach((q, qIndex) => {
+                // Handle JSONB multilingual structure
+                const qText = q.question_text[_lang] || q.question_text['pt'] || "Texto da Pergunta";
+                const optsArr = q.options[_lang] || q.options['pt'] || ["A", "B"];
+                
+                html += `<div style="margin-bottom:24px;">
+                    <div class="q-text">${qIndex + 1}. ${qText}</div>`;
+                
+                optsArr.forEach((optText, oIndex) => {
+                    const isSelected = _userAnswers[qIndex] === oIndex;
+                    const selClass = isSelected ? 'selected' : '';
+                    html += `<div class="q-option ${selClass}" onclick="selectAnswer(${qIndex}, ${oIndex})">
+                        ${optText}
+                    </div>`;
+                });
+                html += `</div>`;
+            });
+            
+            const allAnswered = _userAnswers.every(x => x !== null);
+            html += `<button class="btn primary" onclick="submitQuiz()" ${!allAnswered ? 'disabled style="opacity:0.5"' : ''}>${t.confirmSubmit}</button>`;
+            
+            area.innerHTML = html;
+        }
+
+        function selectAnswer(qIndex, oIndex) {
+            _userAnswers[qIndex] = oIndex;
+            renderQuiz();
+        }
+
+        async function submitQuiz() {
+            if (_userAnswers.some(x => x === null)) return;
+            const t = TRANSLATIONS[_lang];
+            
+            // Calculate score
+            let correct = 0;
+            _questions.forEach((q, i) => {
+                if (q.correct_index === _userAnswers[i]) correct++;
+            });
+            const scorePct = Math.round((correct / _questions.length) * 100);
+            const passed = scorePct >= 60;
+            
+            // Highlight answers
+            const area = document.getElementById('quiz-area');
+            const items = area.children;
+            // +1 because title is children[0]
+            _questions.forEach((q, i) => {
+                const qDiv = items[i+1];
+                const opts = qDiv.querySelectorAll('.q-option');
+                opts.forEach((opt, oi) => {
+                    opt.onclick = null; // disable clicks
+                    opt.classList.remove('selected');
+                    if (oi === q.correct_index) opt.classList.add('correct');
+                    else if (oi === _userAnswers[i]) opt.classList.add('wrong');
+                });
+            });
+            
+            // Status and toast
+            if (passed) {
+                showToast(t.quizPass, 'success');
+                await saveLessonProgress(_currentLessonIndex, 'completed', scorePct);
+                
+                // If they completed lesson 8, redirect to form presencial maybe? or just obrigado
+                if (_currentLessonIndex === 8) {
+                    setTimeout(() => {
+                        const slug = HubRouter.getSlug();
+                        window.location.href = `/${slug}/start-obrigado`;
+                    }, 2000);
+                } else {
+                    setTimeout(() => backToDashboard(), 2000);
+                }
+            } else {
+                showToast(t.quizFail, 'error');
+                await saveLessonProgress(_currentLessonIndex, 'quiz_failed', scorePct);
+                
+                // Append retry button
+                const btnRetry = document.createElement('button');
+                btnRetry.className = 'btn';
+                btnRetry.style.marginTop = '15px';
+                btnRetry.style.background = 'rgba(255,255,255,0.1)';
+                btnRetry.style.color = '#fff';
+                btnRetry.textContent = 'Tentar Novamente';
+                btnRetry.onclick = () => {
+                    _userAnswers = Array(_questions.length).fill(null);
+                    renderQuiz();
+                };
+                area.appendChild(btnRetry);
+            }
+            
+            // hide submit button (last element before retry)
+            // It's the last child in the initial render, but retry will be appended
+            const submitBtn = area.querySelector('button.primary');
+            submitBtn.style.display = 'none';
+        }
+
+        async function saveLessonProgress(lnum, status, score) {
+            try {
+                // Find existing progress record
+                const existing = _progress.find(x => x.lesson_number === lnum);
+                const updates = {
+                    participant_id: _participant.id,
+                    workspace_id: _workspaceId,
+                    lesson_number: lnum,
+                    status: status,
+                    quiz_score: score !== null ? score : (existing ? existing.quiz_score : null)
+                };
+                if (status === 'completed' && (!existing || existing.status !== 'completed')) {
+                    updates.completed_at = new Date().toISOString();
+                }
+                
+                if (existing) {
+                    const { error } = await sb.from('start_progress').update(updates).eq('id', existing.id);
+                    if (!error) {
+                        Object.assign(existing, updates);
+                    }
+                } else {
+                    const { data, error } = await sb.from('start_progress').insert(updates).select().single();
+                    if (!error && data) _progress.push(data);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function changeLanguage(lang) {
+            _lang = lang;
+            if (_participant) {
+                renderDashboard();
+                if (document.getElementById('view-player').style.display === 'block') {
+                    // re-render player head
+                    const t = TRANSLATIONS[_lang];
+                    const conf = _lessons.find(x => x.lesson_number === _currentLessonIndex) || {};
+                    const headTitle = conf.title || (_currentLessonIndex === 0 ? t.welcomeLesson : `${t.lesson} ${_currentLessonIndex}`);
+                    document.getElementById('lesson-header-title').textContent = (_currentLessonIndex === 0 ? '' : `${t.lesson} ${_currentLessonIndex}: `) + headTitle;
+                    
+                    if (document.getElementById('quiz-area').style.display === 'block') {
+                        renderQuiz();
+                    }
+                }
+            } else {
+                // Update login UI texts manually based on lang
+                // simple updates
+                const t = TRANSLATIONS[_lang];
+                document.getElementById('btn-auth').textContent = t.confirmSubmit.replace('Submit answers', 'Continue').replace('Enviar respuestas', 'Continuar').replace('Submeter respostas', 'Continuar');
+            }
+        }
+
+        // Boot
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

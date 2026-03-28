@@ -3805,7 +3805,7 @@ async function saveOverrideModules() {
     const _origSwitchTab = window.switchTab;
     window.switchTab = function(tab) {
         // Handle new G views
-        ['mural', 'dev'].forEach(v => {
+        ['mural', 'dev', 'start'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.style.display = (tab === v) ? '' : 'none';
         });
@@ -3814,6 +3814,9 @@ async function saveOverrideModules() {
         // Load data on tab activation
         if (tab === 'mural') loadMural();
         if (tab === 'dev')   loadDevView();
+        if (tab === 'start') {
+            if (typeof loadStartModule === 'function') loadStartModule();
+        }
         if (tab === 'settings') {
             loadWorkspaceSettings();
         }
@@ -5503,40 +5506,43 @@ function filterCheckin() {
 const PAYMENT_CYCLE = ['Pendente', 'Pago', 'Gratuito'];
 
 function _checkinPayBadge(status) {
-    if (status === 'Pago')     return '<span style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">PAGO</span>';
-    if (status === 'Gratuito') return '<span style="background:rgba(110,231,183,.1);color:#6ee7b7;border:1px solid rgba(110,231,183,.2);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">GRATUITO</span>';
-    return '<span style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:3px 9px;border-radius:8px;font-size:.7rem;font-weight:800;">PENDENTE</span>';
+    if (status === 'Pago')     return '<span style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3);padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:800;box-shadow:0 0 10px rgba(96,165,250,.2);">PAGO</span>';
+    if (status === 'Gratuito') return '<span style="background:rgba(110,231,183,.1);color:#6ee7b7;border:1px solid rgba(110,231,183,.2);padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:800;box-shadow:0 0 10px rgba(110,231,183,.1);">GRATUITO</span>';
+    return '<span style="background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:800;box-shadow:0 0 10px rgba(251,191,36,.15);">PENDENTE</span>';
 }
 
 function _checkinCard(a, presente) {
     const phoneClean = (a.phone || '').replace(/\D/g, '');
     const waBtn = phoneClean
-        ? `<a href="https://wa.me/${phoneClean}" target="_blank" onclick="event.stopPropagation()" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:rgba(37,211,102,.12);border-radius:50%;color:#25d366;text-decoration:none;flex-shrink:0;" onmouseover="this.style.background='rgba(37,211,102,.28)'" onmouseout="this.style.background='rgba(37,211,102,.12)'"><svg viewBox='0 0 24 24' width='13' height='13' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>`
+        ? `<a href="https://wa.me/${phoneClean}" target="_blank" onclick="event.stopPropagation()" title="Abrir WhatsApp" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:rgba(37,211,102,.12);border-radius:10px;color:#25d366;text-decoration:none;flex-shrink:0;transition:all .2s;" onmouseover="this.style.background='rgba(37,211,102,.28)';this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(37,211,102,.12)';this.style.transform='scale(1)'"><svg viewBox='0 0 24 24' width='14' height='14' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.998 0C5.373 0 0 5.373 0 11.998c0 2.117.553 4.1 1.518 5.823L0 24l6.335-1.493A11.945 11.945 0 0 0 11.999 24C18.625 24 24 18.627 24 12.002 24 5.373 18.625 0 11.998 0zm.001 21.818a9.823 9.823 0 0 1-5.011-1.37l-.36-.214-3.722.877.894-3.613-.235-.372A9.818 9.818 0 0 1 2.18 12c0-5.42 4.4-9.818 9.819-9.818 5.42 0 9.82 4.398 9.82 9.818 0 5.42-4.4 9.818-9.82 9.818z'/></svg></a>`
         : '';
-    const bg     = presente ? 'rgba(74,222,128,.06)' : 'rgba(255,255,255,.03)';
-    const border = presente ? 'rgba(74,222,128,.2)'  : 'rgba(255,255,255,.07)';
+    const bg     = presente ? 'radial-gradient(135deg, rgba(74,222,128,.15), rgba(74,222,128,.02))' : 'radial-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.01))';
+    const border = presente ? 'rgba(74,222,128,.3)'  : 'rgba(255,255,255,.08)';
+    const shadow = presente ? '0 8px 30px rgba(74,222,128,.1)' : '0 4px 15px rgba(0,0,0,.3)';
     return `
-    <div class="crie-checkin-card" onclick="toggleCheckinPresence('${a.id}')" style="display:flex;align-items:center;gap:14px;background:${bg};border:1px solid ${border};border-radius:16px;padding:14px 18px;cursor:pointer;transition:all .2s;user-select:none;">
-        <div style="width:38px;height:38px;border-radius:50%;background:${presente?'rgba(74,222,128,.15)':'rgba(255,255,255,.05)'};border:2px solid ${presente?'rgba(74,222,128,.5)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;transition:all .2s;">
-            ${presente ? '&#10003;' : ''}
+    <div id="checkin-card-${a.id}" class="crie-checkin-card anim-card-enter" onclick="toggleCheckinPresence('${a.id}')" style="display:flex;align-items:center;gap:16px;background:${bg};border:1px solid ${border};border-radius:20px;padding:16px 20px;cursor:pointer;transition:all .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);user-select:none;box-shadow:${shadow};backdrop-filter:blur(10px);" onmouseover="this.style.transform='scale(1.02) translateY(-2px)'" onmouseout="this.style.transform='scale(1) translateY(0)'">
+        <div style="width:42px;height:42px;border-radius:12px;background:${presente?'rgba(74,222,128,.2)':'rgba(255,255,255,.05)'};border:2px solid ${presente?'rgba(74,222,128,.6)':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;transition:all .3s;box-shadow:inset 0 2px 5px rgba(255,255,255,.1);">
+            ${presente ? '<span style="color:#4ade80;text-shadow:0 0 8px rgba(74,222,128,.5);">&#10003;</span>' : ''}
         </div>
-        <div class="checkin-info-container" style="flex:1;min-width:0;overflow:hidden;">
-            <div style="font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div class="checkin-info-container" style="flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-weight:800;font-size:1.05rem;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:.02em;">
                 ${a.name}
-                ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(255,215,0,.15));border:1px solid rgba(245,158,11,.4);border-radius:50%;color:#F59E0B;font-size:.6rem;flex-shrink:0;box-shadow:0 0 5px rgba(245,158,11,.2);">&#9733;</span>' : ''}
+                ${a.is_member ? '<span title="Membro CRIE" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:linear-gradient(135deg,#F59E0B,#FFD700);border-radius:50%;color:#111;font-size:.7rem;flex-shrink:0;box-shadow:0 0 10px rgba(245,158,11,.4);">&#9733;</span>' : ''}
             </div>
-            <div style="font-size:.74rem;color:rgba(255,255,255,.38);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="font-size:.8rem;font-weight:500;color:rgba(255,255,255,.45);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span>${a.email || '&mdash;'}</span>
-                <span style="opacity:.4;">&middot;</span>
+                <span style="opacity:.3;">&bull;</span>
                 <span>${a.phone || '&mdash;'}</span>
                 ${waBtn}
             </div>
         </div>
-        <div class="crie-checkin-controls" style="display:flex;align-items:center;gap:14px;">
-            <div onclick="event.stopPropagation(); cycleCheckinPayment('${a.id}','${a.payment_status || 'Pendente'}')" title="Clique para alterar pagamento" style="flex-shrink:0;">
+        <div class="crie-checkin-controls" style="display:flex;align-items:center;gap:16px;">
+            <div onclick="event.stopPropagation(); cycleCheckinPayment('${a.id}','${a.payment_status || 'Pendente'}')" title="Clique para alterar pagamento" style="flex-shrink:0;transition:transform .2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 ${_checkinPayBadge(a.payment_status)}
             </div>
-            <div style="font-size:.75rem;font-weight:700;color:${presente?'#4ade80':'rgba(255,255,255,.2)'};min-width:90px;text-align:right;flex-shrink:0;">${presente ? 'PRESENTE' : 'CONFIRMAR'}</div>
+            <div style="font-size:.75rem;font-weight:900;letter-spacing:.05em;padding:6px 12px;border-radius:8px;background:${presente?'rgba(74,222,128,.1)':'rgba(255,255,255,.05)'};color:${presente?'#4ade80':'rgba(255,255,255,.3)'};text-align:center;flex-shrink:0;min-width:90px;">
+                ${presente ? 'PRESENTE' : 'CONFIRMAR'}
+            </div>
         </div>
     </div>`;
 }
@@ -5571,12 +5577,22 @@ function renderCheckinList(list) {
 async function toggleCheckinPresence(id) {
     const attendee = crieCheckinData.find(a => a.id === id);
     if (!attendee) return;
+    
+    // Add leave animation locally
+    const card = document.getElementById(`checkin-card-${id}`);
+    if (card) {
+        card.classList.add('anim-card-leave');
+    }
+
     const next = attendee.presence_status === 'Presente' ? 'Pendente' : 'Presente';
     const sb = window.supabaseClient;
     await sb.from('crie_attendees').update({ presence_status: next }).eq('id', id);
     attendee.presence_status = next;
-    filterCheckin();
-    updateCheckinCounter();
+    
+    setTimeout(() => {
+        filterCheckin();
+        updateCheckinCounter();
+    }, 250);
 }
 
 async function cycleCheckinPayment(id, currentStatus) {
@@ -5595,17 +5611,77 @@ function updateCheckinCounter() {
     const presentes = crieCheckinData.filter(a => a.presence_status === 'Presente').length;
     const pagos     = crieCheckinData.filter(a => a.payment_status === 'Pago').length;
     const pendentes = crieCheckinData.filter(a => (a.payment_status || 'Pendente') === 'Pendente').length;
-    const gratuitos = crieCheckinData.filter(a => a.payment_status === 'Gratuito').length;
 
     const elC  = document.getElementById('checkin-counter');
     const elPg = document.getElementById('checkin-pagos');
     const elPd = document.getElementById('checkin-pendentes');
-    const elGr = document.getElementById('checkin-gratuitos');
 
-    if (elC)  elC.textContent  = `${presentes} de ${total} presentes`;
-    if (elPg) elPg.textContent = `${pagos} pagos`;
-    if (elPd) elPd.textContent = `${pendentes} pendentes`;
-    if (elGr) elGr.textContent = `${gratuitos} gratuitos`;
+    if (elC)  elC.textContent  = `${presentes} / ${total}`;
+    if (elPg) elPg.textContent = `${pagos}`;
+    if (elPd) elPd.textContent = `${pendentes}`;
+}
+
+// ───────────────────────────────────────────────────────────
+// Quick Override Adds
+// ───────────────────────────────────────────────────────────
+function openQuickAddCrie() {
+    const eventId = document.getElementById('checkin-event-select')?.value;
+    if (!eventId) {
+        if (typeof hubToast !== 'undefined') hubToast('Selecione um evento primeiro!', 'error');
+        else alert('Selecione um evento primeiro para poder adicionar inscritos avulsos.');
+        return;
+    }
+    document.getElementById('modal-quick-add-checkin').style.display = 'flex';
+}
+
+async function quickAddCrieAttendee(e) {
+    e.preventDefault();
+    const eventId = document.getElementById('checkin-event-select')?.value;
+    const wsId = getCrieWorkspaceId();
+    if (!eventId || !wsId) return;
+
+    const form = e.target;
+    const qName = form.elements['q_name'].value.trim();
+    const qPhone = form.elements['q_phone'].value.trim() || null;
+    
+    const btn = document.getElementById('btn-quick-add');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Adicionando...';
+    }
+
+    const payload = {
+        workspace_id: wsId,
+        event_id: eventId,
+        name: qName,
+        phone: qPhone,
+        payment_status: 'Pendente',
+        presence_status: 'Presente',
+        is_member: false
+    };
+
+    const sb = window.supabaseClient;
+    const { data, error } = await sb.from('crie_attendees').insert(payload).select().single();
+    
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar Entrada (Override)';
+    }
+
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao adicionar: ' + error.message, 'error');
+        return;
+    }
+
+    // Append to local state and update UI
+    crieCheckinData.push(data);
+    form.reset();
+    closeModal('modal-quick-add-checkin');
+    
+    if (typeof hubToast !== 'undefined') hubToast('Entrada rápida confirmada!', 'success');
+    
+    filterCheckin();
+    updateCheckinCounter();
 }
 
 // ═══════════════════════════════════════════════════════════

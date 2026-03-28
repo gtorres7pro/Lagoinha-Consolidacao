@@ -127,13 +127,13 @@
         .btn-submit svg { width: 16px; height: 16px; transition: transform 0.2s; }
         .btn-submit:hover svg { transform: translateX(3px); }
         .success-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(5,5,5,0.96); backdrop-filter: blur(12px);
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center; padding: 40px;
             opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease; z-index: 10;
+            transition: opacity 0.3s ease; z-index: 10000;
         }
         .success-overlay.active { opacity: 1; pointer-events: auto; }
         .success-overlay h3 { font-size: 1.8rem; margin-bottom: 10px; color: #60a5fa; font-weight: 900; letter-spacing: -0.03em; }
@@ -144,20 +144,21 @@
 </head>
 <body>
 
+    <!-- Success Screen -->
+    <div class="success-overlay" id="successScreen">
+        <h3 data-i18n="success_title" style="color: #60a5fa; font-size: 2rem;">Obrigado!</h3>
+        <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
+        <!-- G1: Welcome-back note (hidden by default, shown when email already exists) -->
+        <p id="success-welcome-note" style="display:none; font-size:.85rem; color:#64dc96; margin-top:6px; background:rgba(100,220,150,.08); padding:8px 14px; border-radius:8px; border:1px solid rgba(100,220,150,.2);">Bem-vindo(a) de volta! Sua nova visita foi registrada no seu perfil existente.</p>
+        <p style="font-weight: 600; margin-top: 15px;"><span data-i18n="redirecting">Redirecionando em</span> <span id="countdown">3</span>...</p>
+    </div>
+
     <div class="container">
         <!-- Banner Added -->
         <div class="banner"></div>
 
         <!-- Form Content Area -->
         <div class="form-content">
-            <!-- Success Screen -->
-            <div class="success-overlay" id="successScreen">
-                <h3 data-i18n="success_title" style="color: var(--accent-color); font-size: 2rem;">Obrigado!</h3>
-                <p data-i18n="success_sub">Seus dados foram enviados com sucesso.</p>
-                <!-- G1: Welcome-back note (hidden by default, shown when email already exists) -->
-                <p id="success-welcome-note" style="display:none; font-size:.85rem; color:#64dc96; margin-top:6px; background:rgba(100,220,150,.08); padding:8px 14px; border-radius:8px; border:1px solid rgba(100,220,150,.2);">Bem-vindo(a) de volta! Sua nova visita foi registrada no seu perfil existente.</p>
-                <p style="font-weight: 600;"><span data-i18n="redirecting">Redirecionando em</span> <span id="countdown">3</span>...</p>
-            </div>
 
 
             <div class="header">
