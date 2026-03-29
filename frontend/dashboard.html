@@ -693,15 +693,15 @@
             </li>
 
 
-            <!-- ══ PIPELINE JOURNEY ══════════════════════════════════════ -->
+            <!-- ══ PIPELINE JORNADA ══════════════════════════════════════ -->
             <li class="nav-group" style="display:block;padding:0;background:none; margin-top: 8px;">
-                <div onclick="switchTab('journey')" id="nav-journey" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
+                <div onclick="switchTab('jornada')" id="nav-jornada" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
                     <span class="nav-icon" style="background:rgba(255, 255, 255, 0.08); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#FFF; flex-shrink:0;">
                         <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </span>
-                    <span class="nav-label" style="font-weight:700; letter-spacing: 0.1em; text-transform:uppercase; color: #FFF; font-size: 0.75rem;">JOURNEY</span>
+                    <span class="nav-label" style="font-weight:700; letter-spacing: 0.1em; text-transform:uppercase; color: #FFF; font-size: 0.75rem;">JORNADA</span>
                 </div>
-                <div class="nav-submenu-wrap" id="journey-submenu-wrap" style="display:flex;">
+                <div class="nav-submenu-wrap" id="jornada-submenu-wrap" style="display:flex;">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-visitors" onclick="switchTab('visitors')">
@@ -1057,11 +1057,11 @@
             </div>
         </div>
 
-        <!-- View: Journey -->
-        <div id="view-journey" class="view-section">
+        <!-- View: Jornada -->
+        <div id="view-jornada" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Journey</h1>
+                    <h1>Jornada</h1>
                     <p>Acompanhamento de toda a jornada do membro</p>
                 </div>
             </header>
@@ -1069,27 +1069,27 @@
             <div class="crie-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
                 <div class="crie-kpi-card" style="border-top:2px solid #60A5FA; padding:20px;">
                     <h3 style="font-size:0.8rem;">Visitantes</h3>
-                    <div id="journey-kpi-visitantes" class="crie-kpi-val" style="font-size:2rem;">-</div>
+                    <div id="jornada-kpi-visitantes" class="crie-kpi-val" style="font-size:2rem;">-</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Na base de dados</div>
                 </div>
                 <div class="crie-kpi-card" style="border-top:2px solid #FBBF24; padding:20px;">
                     <h3 style="font-size:0.8rem;">Consolidação</h3>
-                    <div id="journey-kpi-consolidacao" class="crie-kpi-val" style="font-size:2rem;">-</div>
+                    <div id="jornada-kpi-consolidacao" class="crie-kpi-val" style="font-size:2rem;">-</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Decisões / Acompanhamento</div>
                 </div>
                 <div class="crie-kpi-card" style="border-top:2px solid #34D399; padding:20px;">
                     <h3 style="font-size:0.8rem;">Start</h3>
-                    <div id="journey-kpi-start" class="crie-kpi-val" style="font-size:2rem;">-</div>
+                    <div id="jornada-kpi-start" class="crie-kpi-val" style="font-size:2rem;">-</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Inscritos</div>
                 </div>
                 <div class="crie-kpi-card" style="border-top:2px solid #A78BFA; opacity: 0.5; padding:20px;">
                     <h3 style="font-size:0.8rem;">Batismo</h3>
-                    <div id="journey-kpi-batismo" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">0</div>
+                    <div id="jornada-kpi-batismo" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">0</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;"><span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">EM BREVE</span></div>
                 </div>
                 <div class="crie-kpi-card" style="border-top:2px solid #F472B6; opacity: 0.5; padding:20px;">
                     <h3 style="font-size:0.8rem;">Novos Membros</h3>
-                    <div id="journey-kpi-membros" class="crie-kpi-val" style="color:#F472B6; font-size:2rem;">0</div>
+                    <div id="jornada-kpi-membros" class="crie-kpi-val" style="color:#F472B6; font-size:2rem;">0</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;"><span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">EM BREVE</span></div>
                 </div>
             </div>
@@ -1098,7 +1098,7 @@
                  <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Funil da Jornada</h2>
                  <p style="color:var(--text-dim); font-size:0.9rem; margin-bottom: 24px;">Gráfico de progressão (em desenvolvimento)</p>
                  <div style="background:var(--bg-card); border:1px solid var(--card-border); border-radius:var(--radius); padding:24px; position:relative; min-height: 250px; display:flex; align-items:center; justify-content:center;">
-                     <canvas id="journey-funnel-chart" style="max-height: 200px;"></canvas>
+                     <canvas id="jornada-funnel-chart" style="max-height: 200px;"></canvas>
                  </div>
             </div>
         </div>
