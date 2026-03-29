@@ -1,5 +1,5 @@
 /**
- * hub.js — Lagoinha HUB Shared Utilities
+ * hub.js — Lago Hub Shared Utilities
  * Include on every authenticated page AFTER supabase-js
  */
 

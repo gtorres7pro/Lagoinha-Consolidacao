@@ -1,4 +1,4 @@
-/* hub-dashboard.js — Lagoinha HUB Dashboard Logic */
+/* hub-dashboard.js — Lago Hub Dashboard Logic */
 /* Auto-extracted from dashboard.html — Fase J Security Hardening */
 
 /* === A: FB SDK Init === */
@@ -5251,7 +5251,7 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
     <br><br>Continue a registar os inscritos no CRIE para construir um historial preciso da comunidade e personalizar as próximas experiências!
 </div>
 
-<div class="footer">Gerado automaticamente pelo Lagoinha HUB &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
+<div class="footer">Gerado automaticamente pelo Lago Hub &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
 </body></html>`;
 
     // 3. Open report in new window

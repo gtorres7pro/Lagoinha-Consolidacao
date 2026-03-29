@@ -1,4 +1,4 @@
-/* hub-login.js — Lagoinha HUB Login Logic */
+/* hub-login.js — Lago Hub Login Logic */
 const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
