@@ -5791,7 +5791,7 @@ window.loadBatismoModule = async function() {
 
         // Generate QR
         if (typeof QRCode !== 'undefined') {
-            const slug = window._slug || '';
+            const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
             const qrUrl = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
             const canvas = document.getElementById('qr-batismo');
             if (canvas) {
@@ -5864,7 +5864,7 @@ function renderBatismoTable(list) {
 }
 
 window.copyBatismoFormLink = function() {
-    const slug = window._slug || '';
+    const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
     const url = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
     navigator.clipboard.writeText(url).then(() => {
         if (typeof hubToast !== 'undefined') hubToast('Link copiado!', 'success');
@@ -5872,7 +5872,7 @@ window.copyBatismoFormLink = function() {
 };
 
 window.openBatismoForm = function() {
-    const slug = window._slug || '';
+    const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
     const url = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
     window.open(url, '_blank');
 };
