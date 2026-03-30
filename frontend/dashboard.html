@@ -716,10 +716,9 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
                             <span class="nav-label">Start</span>
                         </li>
-                        <li style="opacity:0.4; cursor:default;" title="Em breve">
+                        <li id="nav-batismo" onclick="switchTab('batismo')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
                             <span class="nav-label">Batismo</span>
-                            <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
                         </li>
                         <li style="opacity:0.4; cursor:default;" title="Em breve">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
@@ -1082,10 +1081,10 @@
                     <div id="jornada-kpi-start" class="crie-kpi-val" style="font-size:2rem;">-</div>
                     <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Inscritos</div>
                 </div>
-                <div class="crie-kpi-card" style="border-top:2px solid #A78BFA; opacity: 0.5; padding:20px;">
+                <div class="crie-kpi-card" style="border-top:2px solid #A78BFA; padding:20px; cursor:pointer;" onclick="switchTab('batismo')">
                     <h3 style="font-size:0.8rem;">Batismo</h3>
-                    <div id="jornada-kpi-batismo" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">0</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;"><span style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">EM BREVE</span></div>
+                    <div id="jornada-kpi-batismo" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">-</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Batizados registrados</div>
                 </div>
                 <div class="crie-kpi-card" style="border-top:2px solid #F472B6; opacity: 0.5; padding:20px;">
                     <h3 style="font-size:0.8rem;">Novos Membros</h3>
@@ -1100,6 +1099,82 @@
                  <div style="background:var(--bg-card); border:1px solid var(--card-border); border-radius:var(--radius); padding:24px; position:relative; min-height: 250px; display:flex; align-items:center; justify-content:center;">
                      <canvas id="jornada-funnel-chart" style="max-height: 200px;"></canvas>
                  </div>
+            </div>
+        </div>
+
+        <!-- View: Batismo -->
+        <div id="view-batismo" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Batismo</h1>
+                    <p>Registro de batismos e acompanhamento do curso online</p>
+                </div>
+                <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <button onclick="copyBatismoFormLink()" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar Link do Form
+                    </button>
+                    <button onclick="openBatismoForm()" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;">
+                        🌊 Abrir Form
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPIs -->
+            <div class="crie-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:16px; padding:0 24px 16px;">
+                <div class="crie-kpi-card" style="border-top:2px solid #A78BFA; padding:20px;">
+                    <h3 style="font-size:0.8rem;">Total Batizados</h3>
+                    <div id="batismo-kpi-total" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">-</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Registros via form</div>
+                </div>
+                <div class="crie-kpi-card" style="border-top:2px solid #34D399; padding:20px;">
+                    <h3 style="font-size:0.8rem;">Este Mês</h3>
+                    <div id="batismo-kpi-month" class="crie-kpi-val" style="color:#34D399; font-size:2rem;">-</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Batismos no mês</div>
+                </div>
+                <div class="crie-kpi-card" style="border-top:2px solid #60A5FA; padding:20px;">
+                    <h3 style="font-size:0.8rem;">Em Curso (Online)</h3>
+                    <div id="batismo-kpi-curso" class="crie-kpi-val" style="color:#60A5FA; font-size:2rem;">-</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Fazendo curso</div>
+                </div>
+                <div class="crie-kpi-card" style="border-top:2px solid #FBBF24; padding:20px;">
+                    <h3 style="font-size:0.8rem;">Aguardando</h3>
+                    <div id="batismo-kpi-pending" class="crie-kpi-val" style="color:#FBBF24; font-size:2rem;">-</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:8px;">Será batizado</div>
+                </div>
+            </div>
+
+            <!-- QR + Search toolbar -->
+            <div style="padding:0 24px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <input id="batismo-search" type="search" placeholder="🔍 Buscar por nome, email ou telefone..." oninput="filterBatismoTable()"
+                    style="flex:1; min-width:200px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 14px; color:#fff; font-family:inherit; font-size:.85rem; outline:none;">
+                <select id="batismo-filter-status" onchange="filterBatismoTable()" style="background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 14px; color:rgba(255,255,255,.7); font-family:inherit; font-size:.85rem; outline:none;">
+                    <option value="all">Todos os status</option>
+                    <option value="baptized">Batizado</option>
+                    <option value="will_baptize_today">Será Batizado</option>
+                    <option value="course">Em Curso Online</option>
+                </select>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <canvas id="qr-batismo" width="64" height="64" style="border-radius:8px; border:1px solid rgba(255,255,255,.1);"></canvas>
+                    <button onclick="downloadQR('qr-batismo','batismo')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;">↓ QR</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div style="padding:0 24px 40px; overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:.82rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,.08);">
+                            <th style="padding:10px 14px; text-align:left; color:rgba(255,255,255,.4); font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Nome</th>
+                            <th style="padding:10px 14px; text-align:left; color:rgba(255,255,255,.4); font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Contato</th>
+                            <th style="padding:10px 14px; text-align:center; color:rgba(255,255,255,.4); font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Status</th>
+                            <th style="padding:10px 14px; text-align:left; color:rgba(255,255,255,.4); font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batismo-table-body">
+                        <tr><td colspan="4" style="padding:40px; text-align:center; color:rgba(255,255,255,.3);">Carregando...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 

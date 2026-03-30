@@ -1964,6 +1964,11 @@
                             ${lead.type !== 'visitor' ? `<span class="tag service">🏛 Culto: ${cap(lead.culto)}</span>` : ''}
                             <span class="tag baptism" style="background: rgba(255, 255, 255, 0.05); color: #FFF; border-color: rgba(255, 255, 255, 0.1);">🌍 País: ${cap(lead.pais)}</span>
                             ${lead.type !== 'visitor' ? `<span class="tag gc">👥 GC: ${cap(lead.gc_status)}</span>` : ''}
+                            ${(() => {
+                                const startTag = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : '';
+                                return startTag;
+                            })()}
+                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
                         </div>
 
                         ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
@@ -3720,7 +3725,7 @@ async function saveOverrideModules() {
     const _origSwitchTab = window.switchTab;
     window.switchTab = function(tab) {
         // Handle new G views
-        ['dev', 'start', 'jornada'].forEach(v => {
+        ['dev', 'start', 'jornada', 'batismo'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.style.display = (tab === v) ? '' : 'none';
         });
@@ -3733,6 +3738,9 @@ async function saveOverrideModules() {
         }
         if (tab === 'jornada') {
             if (typeof loadJornadaModule === 'function') loadJornadaModule();
+        }
+        if (tab === 'batismo') {
+            if (typeof loadBatismoModule === 'function') loadBatismoModule();
         }
         if (tab === 'settings') {
             loadWorkspaceSettings();
@@ -3788,6 +3796,13 @@ window.loadJornadaModule = async function() {
             .eq('workspace_id', wsId);
             
         document.getElementById('jornada-kpi-start').innerText = startCount || '0';
+
+        // 4. Batismo — count from baptism_registrations
+        const { count: batismoCount } = await sb.from('baptism_registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', wsId);
+
+        document.getElementById('jornada-kpi-batismo').innerText = batismoCount || '0';
 
     } catch (e) {
         console.error("Erro ao carregar KPIs da Jornada", e);
@@ -5724,3 +5739,251 @@ if (!window.deleteLead) {
         }
     };
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// BATISMO MODULE
+// ═══════════════════════════════════════════════════════════
+
+let _batismoAll = []; // combined: registrations + course participants
+
+window.loadBatismoModule = async function() {
+    if (!window.supabaseClient || !window.currentWorkspaceId) return;
+    const wsId = window.currentWorkspaceId;
+    const sb = window.supabaseClient;
+
+    try {
+        // 1. Fetch all baptism registrations
+        const { data: regs } = await sb.from('baptism_registrations')
+            .select('*')
+            .eq('workspace_id', wsId)
+            .order('created_at', { ascending: false });
+
+        // 2. Fetch all course participants
+        const { data: course } = await sb.from('baptism_course_participants')
+            .select('*')
+            .eq('workspace_id', wsId)
+            .order('created_at', { ascending: false });
+
+        // 3. Merge lists — regs take precedence over course (by email)
+        const regEmails = new Set((regs || []).map(r => (r.email || '').toLowerCase()));
+        const courseOnly = (course || []).filter(c => !regEmails.has((c.email || '').toLowerCase()));
+
+        _batismoAll = [
+            ...(regs || []).map(r => ({ ...r, _source: 'registration' })),
+            ...courseOnly.map(c => ({ ...c, _source: 'course', status: 'course' }))
+        ];
+
+        // KPIs
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const totalBatizados = (regs || []).filter(r => r.status === 'baptized').length;
+        const monthBatizados = (regs || []).filter(r => r.status === 'baptized' && r.created_at >= thisMonthStart).length;
+        const pending = (regs || []).filter(r => r.status === 'will_baptize_today').length;
+        const courseCount = courseOnly.length;
+
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+        setEl('batismo-kpi-total', totalBatizados);
+        setEl('batismo-kpi-month', monthBatizados);
+        setEl('batismo-kpi-curso', courseCount);
+        setEl('batismo-kpi-pending', pending);
+
+        // Generate QR
+        if (typeof QRCode !== 'undefined') {
+            const slug = window._slug || '';
+            const qrUrl = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
+            const canvas = document.getElementById('qr-batismo');
+            if (canvas) {
+                QRCode.toCanvas(canvas, qrUrl, { width: 64, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, () => {});
+            }
+        }
+
+        filterBatismoTable();
+    } catch(e) {
+        console.error('Batismo module error:', e);
+    }
+};
+
+window.filterBatismoTable = function() {
+    const search = (document.getElementById('batismo-search')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('batismo-filter-status')?.value || 'all';
+
+    let list = _batismoAll;
+    if (search) {
+        list = list.filter(r =>
+            (r.name || '').toLowerCase().includes(search) ||
+            (r.email || '').toLowerCase().includes(search) ||
+            (r.phone || '').includes(search)
+        );
+    }
+    if (statusFilter !== 'all') {
+        list = list.filter(r => r.status === statusFilter);
+    }
+
+    renderBatismoTable(list);
+};
+
+function renderBatismoTable(list) {
+    const tbody = document.getElementById('batismo-table-body');
+    if (!tbody) return;
+
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; text-align:center; color:rgba(255,255,255,.3);">Nenhum registro encontrado.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = list.map(r => {
+        const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('pt-PT') : '—';
+        const phoneClean = (r.phone || '').replace(/\D/g, '');
+        const waBtn = phoneClean
+            ? `<a href="https://wa.me/${phoneClean}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;margin-left:6px;">
+                <svg viewBox='0 0 24 24' width='10' height='10' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/></svg>
+               </a>` : '';
+
+        let statusBadge;
+        if (r.status === 'baptized') {
+            statusBadge = '<span style="background:rgba(167,139,250,.15);color:#A78BFA;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;">✅ BATIZADO</span>';
+        } else if (r.status === 'will_baptize_today') {
+            statusBadge = '<span style="background:rgba(251,191,36,.12);color:#FBBF24;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;">🕐 SERÁ BATIZADO</span>';
+        } else {
+            statusBadge = '<span style="background:rgba(96,165,250,.12);color:#60A5FA;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;">📖 EM CURSO</span>';
+        }
+
+        return `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.05);" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+            <td style="padding:12px 14px; font-weight:700; color:#fff;">${r.name || '—'}</td>
+            <td style="padding:12px 14px; font-size:.78rem; color:rgba(255,255,255,.5);">
+                <div>${r.email || '—'}</div>
+                <div style="display:flex;align-items:center;margin-top:2px;">${r.phone || '—'}${waBtn}</div>
+            </td>
+            <td style="padding:12px 14px; text-align:center;">${statusBadge}</td>
+            <td style="padding:12px 14px; font-size:.78rem; color:rgba(255,255,255,.4);">${dateStr}</td>
+        </tr>`;
+    }).join('');
+}
+
+window.copyBatismoFormLink = function() {
+    const slug = window._slug || '';
+    const url = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
+    navigator.clipboard.writeText(url).then(() => {
+        if (typeof hubToast !== 'undefined') hubToast('Link copiado!', 'success');
+    });
+};
+
+window.openBatismoForm = function() {
+    const slug = window._slug || '';
+    const url = window.location.origin + (slug ? `/${slug}/` : '/') + 'batismo-form.html';
+    window.open(url, '_blank');
+};
+
+// ═══════════════════════════════════════════════════════════
+// START STATUS TAGS on Lead Cards
+// ═══════════════════════════════════════════════════════════
+// These are loaded once and used in renderCards to show Start progress tags
+
+window._startParticipantsMap = null; // Map<email_lower, status_obj>
+
+async function loadStartParticipantsMap() {
+    if (!window.supabaseClient || !window.currentWorkspaceId) return;
+    if (window._startParticipantsMap) return; // Already loaded
+    const sb = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+
+    try {
+        // Load participants + their progress to determine status
+        const { data: participants } = await sb.from('start_participants')
+            .select('id, email, phone')
+            .eq('workspace_id', wsId);
+
+        if (!participants || !participants.length) {
+            window._startParticipantsMap = new Map();
+            return;
+        }
+
+        const ids = participants.map(p => p.id);
+        const { data: progress } = await sb.from('start_progress')
+            .select('participant_id, lesson_number')
+            .in('participant_id', ids);
+
+        // Group progress by participant
+        const progressByP = {};
+        (progress || []).forEach(pr => {
+            if (!progressByP[pr.participant_id]) progressByP[pr.participant_id] = [];
+            progressByP[pr.participant_id].push(pr.lesson_number);
+        });
+
+        // Get total lessons count for this workspace
+        const { count: totalLessons } = await sb.from('start_lessons')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', wsId);
+        const total = totalLessons || 3; // default 3 lessons
+
+        // Build map by email
+        const map = new Map();
+        participants.forEach(p => {
+            const done = (progressByP[p.id] || []).length;
+            let status;
+            if (done === 0) status = 'not_started';
+            else if (done >= total) status = 'completed';
+            else status = 'in_progress';
+
+            const key = (p.email || '').toLowerCase();
+            if (key) map.set(key, { status, done, total });
+            // Also index by phone
+            const phoneClean = (p.phone || '').replace(/\D/g, '');
+            if (phoneClean) map.set('phone:' + phoneClean, { status, done, total });
+        });
+
+        window._startParticipantsMap = map;
+    } catch(e) {
+        console.error('loadStartParticipantsMap:', e);
+        window._startParticipantsMap = new Map();
+    }
+}
+
+/**
+ * Returns a tag HTML string for the Start status of a lead.
+ * Call this when rendering lead cards.
+ */
+window.getStartStatusTag = function(lead) {
+    const map = window._startParticipantsMap;
+    if (!map) return '';
+
+    const email = (lead.email || '').toLowerCase();
+    const phoneClean = (lead.phone || '').replace(/\D/g, '');
+
+    const info = map.get(email) || (phoneClean ? map.get('phone:' + phoneClean) : null);
+    if (!info) return ''; // Not in Start — no tag
+
+    const styles = {
+        not_started: 'background:rgba(255,255,255,.07); color:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.12);',
+        in_progress: 'background:rgba(96,165,250,.12); color:#60A5FA; border:1px solid rgba(96,165,250,.25);',
+        completed: 'background:rgba(52,211,153,.1); color:#34D399; border:1px solid rgba(52,211,153,.25);',
+    };
+    const labels = {
+        not_started: '⬜ START: Não Iniciou',
+        in_progress: `🔵 START: Aula ${info.done}/${info.total}`,
+        completed: '✅ START: Concluído',
+    };
+
+    const s = styles[info.status] || styles.not_started;
+    const l = labels[info.status] || '';
+    return `<span style="${s} padding:2px 8px; border-radius:6px; font-size:0.68rem; font-weight:700; display:inline-block; white-space:nowrap;">${l}</span>`;
+};
+
+// Preload start map when workspace is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Slight delay to ensure supabaseClient and currentWorkspaceId are set
+    setTimeout(() => {
+        if (window.supabaseClient && window.currentWorkspaceId) {
+            loadStartParticipantsMap();
+        } else {
+            // Try again after auth
+            const _origInit = window.initFaseG;
+            window.initFaseG = function(user) {
+                if (_origInit) _origInit(user);
+                loadStartParticipantsMap();
+            };
+        }
+    }, 1500);
+});

@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Batismo — Lago HUB</title>
+  <meta name="description" content="Registre sua decisão de batismo e celebre esse momento histórico na sua fé.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+  <style>
+    :root {
+      --primary: #FFD700;
+      --primary-glow: rgba(255, 215, 0, 0.35);
+      --bg: #07090f;
+      --surface: rgba(255,255,255,0.03);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.07);
+      --text-dim: rgba(255,255,255,0.55);
+      --blue: #60a5fa;
+      --green: #34D399;
+      --purple: #A78BFA;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(120px); animation: float 20s infinite alternate ease-in-out; }
+    .orb-1 { width: 50vw; height: 50vw; background: rgba(0,100,255,0.08); top: -10%; left: -10%; }
+    .orb-2 { width: 40vw; height: 40vw; background: rgba(255,215,0,0.1); bottom: -10%; right: -10%; animation-delay: -8s; }
+    .orb-3 { width: 30vw; height: 30vw; background: rgba(100,50,200,0.07); top: 40%; left: 40%; animation-duration: 28s; }
+    @keyframes float { from { transform: translate(0, 0) scale(1); } to { transform: translate(4%, 8%) scale(1.08); } }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      z-index: 1;
+      position: relative;
+    }
+
+    /* Header branding */
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease;
+    }
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 8px 18px;
+      backdrop-filter: blur(10px);
+    }
+    .brand-logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-logo-icon svg { width: 14px; height: 14px; }
+    .brand-name { font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px; }
+
+    /* Progress indicator */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .progress-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: all 0.3s ease;
+    }
+    .progress-dot.active { background: var(--primary); box-shadow: 0 0 8px var(--primary-glow); width: 24px; border-radius: 4px; }
+    .progress-dot.done { background: var(--green); }
+
+    /* Glass card */
+    .glass-card {
+      background: rgba(13, 17, 23, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px;
+      padding: 36px;
+      box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.7s 0.05s cubic-bezier(0.2,0.8,0.2,1) both;
+    }
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,215,0,0.35), transparent);
+    }
+
+    /* Step panels */
+    .step { display: none; }
+    .step.active { display: block; animation: fadeUp 0.4s ease; }
+
+    /* Form elements */
+    .step-icon { font-size: 2.5rem; margin-bottom: 16px; display: block; text-align: center; }
+    .step-title { font-size: 1.6rem; font-weight: 800; line-height: 1.2; margin-bottom: 8px; letter-spacing: -0.3px; text-align: center; }
+    .step-subtitle { font-size: 0.92rem; color: var(--text-dim); line-height: 1.6; text-align: center; margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    label.field-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    input[type="email"], input[type="text"], input[type="tel"] {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      font-family: 'Outfit';
+      font-size: 1rem;
+      transition: all 0.25s;
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 3px rgba(255,215,0,0.1); }
+    input::placeholder { color: rgba(255,255,255,0.2); }
+
+    /* Int-tel-input overrides */
+    .iti { width: 100%; display: block; }
+    .iti__flag { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png"); }
+    @media (min-resolution: 2x) { .iti__flag { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png"); } }
+    .iti__country-list { background: #0d1117; border: 1px solid var(--border); color: #fff; border-radius: 12px; font-family: 'Outfit'; z-index: 9999; }
+    .iti__country-list li:hover { background: rgba(255,255,255,0.08); }
+    .iti__selected-flag { border-radius: 11px 0 0 11px; padding: 0 14px; }
+    .iti__selected-dial-code { color: #fff; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      border-radius: 100px;
+      border: none;
+      background: var(--primary);
+      color: #000;
+      font-family: 'Outfit';
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+      background-size: 200% 100%;
+      background-position: 200%;
+      transition: background-position 0.5s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--primary-glow); }
+    .btn-primary:hover::after { background-position: -200%; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 13px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-dim);
+      font-family: 'Outfit';
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    /* Name confirm card — Step 2 top */
+    .name-confirm-card {
+      background: rgba(255,215,0,0.06);
+      border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .name-confirm-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(255,215,0,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--primary);
+      flex-shrink: 0;
+      border: 1px solid rgba(255,215,0,0.3);
+    }
+    .name-confirm-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+    .name-confirm-info p { font-size: 0.8rem; color: var(--text-dim); }
+
+    /* Step 2 status radio cards */
+    .status-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .status-card {
+      position: relative;
+      cursor: pointer;
+    }
+    .status-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .status-card-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      transition: all 0.2s;
+    }
+    .status-card:hover .status-card-inner { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+    .status-card input:checked + .status-card-inner {
+      border-color: var(--primary);
+      background: rgba(255,215,0,0.07);
+      box-shadow: 0 0 0 3px rgba(255,215,0,0.1);
+    }
+    .status-card-emoji { font-size: 1.5rem; width: 42px; height: 42px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-card input:checked + .status-card-inner .status-card-emoji { background: rgba(255,215,0,0.12); }
+    .status-card-label h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+    .status-card-label p { font-size: 0.78rem; color: var(--text-dim); }
+    .status-card input:checked + .status-card-inner .status-card-label h4 { color: var(--primary); }
+
+    /* ─── STEP 3: Celebration ─── */
+    .celebration {
+      text-align: center;
+    }
+    .celebration-emoji {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 16px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .celebration-title {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+    .celebration-title span { color: var(--primary); }
+    .celebration-subtitle {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      line-height: 1.65;
+      margin-bottom: 28px;
+      max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .next-step-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .next-step-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .next-step-card-icon {
+      width: 38px; height: 38px;
+      background: rgba(255,215,0,0.1);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .next-step-card-header h3 { font-weight: 800; font-size: 1rem; }
+    .next-step-card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.65; }
+
+    /* Info alert for unknown email */
+    .info-alert {
+      background: rgba(96,165,250,0.08);
+      border: 1px solid rgba(96,165,250,0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      color: var(--blue);
+      line-height: 1.5;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: -80px; left: 50%;
+      transform: translateX(-50%);
+      background: #1d1d2e;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      z-index: 9999;
+      transition: bottom 0.4s cubic-bezier(0.2,0.8,0.2,1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      white-space: nowrap;
+    }
+    .toast.show { bottom: 32px; }
+    .toast.error { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
+    .toast.success { background: rgba(52,211,153,0.1); color: var(--green); border-color: rgba(52,211,153,0.3); }
+
+    /* Loading spinner inside button */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+      body { padding: 16px 12px; }
+      .glass-card { padding: 24px 20px; border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Branding -->
+    <div class="brand-header">
+      <div class="brand-logo">
+        <div class="brand-logo-icon">
+          <svg viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000"/>
+            <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000"/>
+            <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
+          </svg>
+        </div>
+        <span class="brand-name" id="ws-name-display">Lago HUB</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-dot active" id="dot-1"></div>
+      <div class="progress-dot" id="dot-2"></div>
+      <div class="progress-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Glass Card -->
+    <div class="glass-card">
+
+      <!-- ── STEP 1: Email Lookup ── -->
+      <div class="step active" id="step-1">
+        <span class="step-icon">🌊</span>
+        <h1 class="step-title">Registro de Batismo</h1>
+        <p class="step-subtitle">
+          Insira seu email para confirmarmos seu cadastro e registrar esse momento especial.
+        </p>
+
+        <div class="form-group">
+          <label class="field-label" for="s1-email">Seu Email</label>
+          <input type="email" id="s1-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+
+        <button class="btn-primary" id="btn-step1" onclick="handleStep1()">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- ── STEP 1b: New user fields (shown inline below email) ── -->
+      <div class="step" id="step-1b">
+        <span class="step-icon">👋</span>
+        <h2 class="step-title">Bem-vindo(a)!</h2>
+        <p class="step-subtitle">Não encontramos seu cadastro. Preencha os dados abaixo para continuar:</p>
+
+        <div class="info-alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Email não encontrado na nossa base. Complete seu cadastro para registrar seu batismo.
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="s1b-email-display">Email</label>
+          <input type="email" id="s1b-email-display" disabled style="opacity:0.5;">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="s1b-name">Nome Completo</label>
+          <input type="text" id="s1b-name" placeholder="Seu nome completo" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="s1b-phone">WhatsApp</label>
+          <input type="tel" id="s1b-phone" placeholder="">
+        </div>
+
+        <button class="btn-primary" id="btn-step1b" onclick="handleStep1b()">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <button class="btn-secondary" onclick="resetToStep1()">← Usar outro email</button>
+      </div>
+
+      <!-- ── STEP 2: Baptism Confirmation ── -->
+      <div class="step" id="step-2">
+        <div class="name-confirm-card" id="confirm-card">
+          <div class="name-confirm-avatar" id="confirm-avatar">G</div>
+          <div class="name-confirm-info">
+            <h3 id="confirm-name">Nome do Participante</h3>
+            <p>Cadastro confirmado ✓</p>
+          </div>
+        </div>
+
+        <h2 class="step-title" style="font-size:1.35rem; margin-bottom:8px;">Confirme sua Decisão</h2>
+        <p class="step-subtitle" style="margin-bottom:20px;">Você foi batizado ou será batizado hoje?</p>
+
+        <div class="status-cards">
+          <label class="status-card">
+            <input type="radio" name="batismo-status" value="baptized" checked>
+            <div class="status-card-inner">
+              <div class="status-card-emoji">✅</div>
+              <div class="status-card-label">
+                <h4>Fui batizado hoje!</h4>
+                <p>Já passei pelas águas hoje. Aleluia!</p>
+              </div>
+            </div>
+          </label>
+          <label class="status-card">
+            <input type="radio" name="batismo-status" value="will_baptize_today">
+            <div class="status-card-inner">
+              <div class="status-card-emoji">🕐</div>
+              <div class="status-card-label">
+                <h4>Serei batizado hoje</h4>
+                <p>Ainda passarei pelas águas neste culto/evento.</p>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <button class="btn-primary" id="btn-step2" onclick="handleStep2()">
+          Confirmar meu Batismo 🌊
+        </button>
+        <button class="btn-secondary" onclick="goToStep(1)">← Voltar</button>
+      </div>
+
+      <!-- ── STEP 3: Celebration ── -->
+      <div class="step" id="step-3">
+        <div class="celebration">
+          <span class="celebration-emoji">🎉</span>
+          <h2 class="celebration-title">Parabéns,<br><span id="celebrate-name">Amigo</span>!</h2>
+          <p class="celebration-subtitle">
+            Seu batismo está registrado! Esse é um dos momentos mais importantes da sua jornada de fé.
+            Toda a família celebra com você! 🙌
+          </p>
+
+          <div class="next-step-card" style="text-align:left;">
+            <div class="next-step-card-header">
+              <div class="next-step-card-icon">🏛️</div>
+              <h3>O Próximo Passo: Tornar-se Membro</h3>
+            </div>
+            <p>
+              Após o batismo, o próximo passo essencial é participar do <strong style="color:#fff;">Encontro de Novos Membros</strong>.
+              É nesse momento que você será formalmente recebido como parte do corpo da nossa igreja, conhecerá
+              nossa visão e encontrará seu lugar dentro da família. <br><br>
+              Ser membro não é apenas um título — é pertencer, servir, crescer e construir junto com outros irmãos.
+              A igreja local precisa de você, e você precisa da chiesa local.
+            </p>
+          </div>
+
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:12px;">
+            Fale com seu líder local para participar do próximo encontro. Um email de parabéns foi enviado para você! 📧
+          </p>
+
+          <button class="btn-secondary" onclick="location.reload()" style="max-width: 260px; margin: 0 auto;">
+            Registrar outro batismo
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <!-- /glass-card -->
+
+  </div>
+  <!-- /container -->
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/hub-router.js"></script>
+  <script>
+    // ── Constants ──────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    const GOOGLE_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // State
+    let _ws = null;
+    let _leadId = null;
+    let _personName = null;
+    let _personEmail = null;
+    let _personPhone = null;
+    let _phoneIti = null;
+
+    // Toast
+    function toast(msg, type = 'info', dur = 3000) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `toast show ${type}`;
+      setTimeout(() => el.classList.remove('show'), dur);
+    }
+
+    // Step navigation
+    function goToStep(n) {
+      // Hide all steps
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      // Show target
+      const target = document.getElementById(`step-${n}`);
+      if (target) target.classList.add('active');
+      // Update dots
+      ['dot-1','dot-2','dot-3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.classList.remove('active','done');
+        if (i + 1 < n) dot.classList.add('done');
+        else if (i + 1 === n) dot.classList.add('active');
+      });
+    }
+
+    function resetToStep1() {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-1').classList.add('active');
+      ['dot-1','dot-2','dot-3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.classList.remove('active','done');
+        if (i === 0) dot.classList.add('active');
+      });
+    }
+
+    function btnLoad(id, loading) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner"></div>`;
+      } else {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Step 1: Email Lookup ───────────────────────────────────────
+    async function handleStep1() {
+      const email = document.getElementById('s1-email').value.trim().toLowerCase();
+      if (!email || !email.includes('@')) { toast('Por favor insira um email válido.', 'error'); return; }
+
+      btnLoad('btn-step1', true);
+
+      try {
+        _ws = await HubRouter.getWorkspace();
+        if (!_ws) { toast('Workspace não encontrado. Verifique o link.', 'error'); return; }
+
+        // Update branding
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+
+        // Look up in leads
+        const { data: lead } = await sb.from('leads')
+          .select('id, name, email, phone')
+          .eq('workspace_id', _ws.id)
+          .ilike('email', email)
+          .maybeSingle();
+
+        if (lead) {
+          // Found! Move to step 2
+          _leadId = lead.id;
+          _personName = lead.name;
+          _personEmail = email;
+          _personPhone = lead.phone || '';
+          showStep2();
+        } else {
+          // Check start_participants
+          const { data: sp } = await sb.from('start_participants')
+            .select('id, name, email, phone, lead_id')
+            .eq('workspace_id', _ws.id)
+            .ilike('email', email)
+            .maybeSingle();
+
+          if (sp) {
+            _leadId = sp.lead_id || null;
+            _personName = sp.name;
+            _personEmail = email;
+            _personPhone = sp.phone || '';
+            showStep2();
+          } else {
+            // New user — show registration form
+            _personEmail = email;
+            document.getElementById('s1b-email-display').value = email;
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step-1b').classList.add('active');
+
+            // Init phone ITI
+            if (!_phoneIti) {
+              const phoneInput = document.getElementById('s1b-phone');
+              _phoneIti = window.intlTelInput(phoneInput, {
+                initialCountry: 'br',
+                preferredCountries: ['br','pt','us','es'],
+                separateDialCode: true,
+                utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js',
+              });
+            }
+          }
+        }
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao verificar email. Tente novamente.', 'error');
+      } finally {
+        document.getElementById('btn-step1').disabled = false;
+        document.getElementById('btn-step1').innerHTML = `Continuar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+      }
+    }
+
+    // ── Step 1b: New User Registration ───────────────────────────
+    async function handleStep1b() {
+      const name = document.getElementById('s1b-name').value.trim();
+      const phone = _phoneIti ? _phoneIti.getNumber() : '';
+
+      if (!name) { toast('Por favor insira seu nome.', 'error'); return; }
+
+      btnLoad('btn-step1b', true);
+
+      try {
+        // Create new lead
+        const { data: newLead, error } = await sb.from('leads').insert({
+          workspace_id: _ws.id,
+          name,
+          email: _personEmail,
+          phone,
+          type: 'saved',
+          preferred_language: 'pt'
+        }).select().single();
+
+        if (error) throw error;
+
+        _leadId = newLead.id;
+        _personName = name;
+        _personPhone = phone;
+        showStep2();
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao criar cadastro. Tente novamente.', 'error');
+      } finally {
+        document.getElementById('btn-step1b').disabled = false;
+        document.getElementById('btn-step1b').innerHTML = `Continuar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+      }
+    }
+
+    function showStep2() {
+      // Populate confirm card
+      const firstName = (_personName || '').split(' ')[0];
+      document.getElementById('confirm-avatar').textContent = firstName.charAt(0).toUpperCase();
+      document.getElementById('confirm-name').textContent = _personName || 'Participante';
+      goToStep(2);
+    }
+
+    // ── Step 2: Submit Baptism ────────────────────────────────────
+    async function handleStep2() {
+      const status = document.querySelector('input[name="batismo-status"]:checked')?.value || 'baptized';
+      btnLoad('btn-step2', true);
+
+      try {
+        // 1. Insert into baptism_registrations
+        const { error: regError } = await sb.from('baptism_registrations').insert({
+          workspace_id: _ws.id,
+          lead_id: _leadId || null,
+          name: _personName,
+          email: _personEmail,
+          phone: _personPhone,
+          status,
+        });
+        if (regError) throw regError;
+
+        // 2. Update lead: mark task_batismo + batismo_at
+        if (_leadId) {
+          await sb.from('leads').update({
+            task_batismo: true,
+            batismo_at: new Date().toISOString(),
+          }).eq('id', _leadId);
+        }
+
+        // 3. Google Sheets fire-and-forget
+        fetch(GOOGLE_SHEETS_WEBHOOK, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            formUsed: 'Batismo',
+            date: new Date().toISOString(),
+            workspace: _ws.name,
+            workspaceId: _ws.id,
+            name: _personName,
+            email: _personEmail,
+            whatsapp: _personPhone,
+            status: status === 'baptized' ? 'Batizado' : 'Será Batizado Hoje',
+          })
+        }).catch(() => {});
+
+        // 4. Send congratulations email (fire-and-forget)
+        if (_personEmail) {
+          fetch(`${SUPABASE_URL}/functions/v1/batismo-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({
+              name: _personName,
+              email: _personEmail,
+              workspace_name: _ws.name,
+            })
+          }).catch(() => {});
+        }
+
+        // 5. Show celebration
+        document.getElementById('celebrate-name').textContent = (_personName || '').split(' ')[0];
+        goToStep(3);
+
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao registrar. Tente novamente.', 'error');
+      } finally {
+        const btn = document.getElementById('btn-step2');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar meu Batismo 🌊'; }
+      }
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    async function init() {
+      _ws = await HubRouter.getWorkspace();
+      if (_ws) {
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+        document.title = `Batismo — ${_ws.name || 'Lago HUB'}`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    // Allow Enter key on email inputs
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (document.getElementById('step-1').classList.contains('active')) handleStep1();
+        else if (document.getElementById('step-1b').classList.contains('active')) handleStep1b();
+        else if (document.getElementById('step-2').classList.contains('active')) handleStep2();
+      }
+    });
+  </script>
+
+</body>
+</html>
