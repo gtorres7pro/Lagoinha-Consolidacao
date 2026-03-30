@@ -376,6 +376,7 @@
                 if (initial) {
                     window.currentWorkspaceId = initial.id;
                     sessionStorage.setItem('ws_id', initial.id);
+                    localStorage.setItem('currentWorkspaceId', initial.id);
                     // Update ws-pill-name in bottom bar
                     const pillName = document.getElementById('ws-pill-name');
                     if (pillName) pillName.textContent = initial.name;

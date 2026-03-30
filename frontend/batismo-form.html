@@ -607,18 +607,91 @@
     }
 
     // ── Step 1: Email Lookup ───────────────────────────────────────
+    async function resolveWorkspace() {
+      // 1st: try URL slug (normal flow)
+      let ws = await HubRouter.getWorkspace().catch(() => null);
+      if (ws) return ws;
+
+      // 2nd: try localStorage (set by dashboard after login)
+      const savedId = localStorage.getItem('currentWorkspaceId') ||
+                      localStorage.getItem('lago_workspace_id') ||
+                      sessionStorage.getItem('currentWorkspaceId') ||
+                      sessionStorage.getItem('ws_id');
+      if (savedId) {
+        const { data } = await sb.from('workspaces').select('id, name, status').eq('id', savedId).maybeSingle();
+        if (data) return data;
+      }
+
+      // 3rd: try query param ?ws=slug or ?workspace=slug
+      const params = new URLSearchParams(window.location.search);
+      const wsSlug = params.get('ws') || params.get('workspace');
+      if (wsSlug) {
+        const { data } = await sb.from('workspaces').select('id, name, status').ilike('name', wsSlug).maybeSingle();
+        if (data) return data;
+      }
+
+      return null;
+    }
+
+    function showInlineError(msg) {
+      let el = document.getElementById('inline-error');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'inline-error';
+        el.style.cssText = 'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:12px;padding:14px 16px;font-size:0.85rem;line-height:1.5;margin-top:14px;text-align:center;';
+        document.getElementById('btn-step1').insertAdjacentElement('afterend', el);
+      }
+      el.innerHTML = msg;
+      el.style.display = 'block';
+    }
+    function hideInlineError() {
+      const el = document.getElementById('inline-error');
+      if (el) el.style.display = 'none';
+    }
+
     async function handleStep1() {
       const email = document.getElementById('s1-email').value.trim().toLowerCase();
       if (!email || !email.includes('@')) { toast('Por favor insira um email válido.', 'error'); return; }
 
+      hideInlineError();
       btnLoad('btn-step1', true);
 
       try {
-        _ws = await HubRouter.getWorkspace();
-        if (!_ws) { toast('Workspace não encontrado. Verifique o link.', 'error'); return; }
+        _ws = await resolveWorkspace();
+
+        if (!_ws) {
+          // Last resort: search all workspaces by this email
+          const { data: leadAny } = await sb.from('leads')
+            .select('id, name, email, phone, workspace_id')
+            .ilike('email', email)
+            .maybeSingle();
+
+          if (leadAny) {
+            const { data: wsData } = await sb.from('workspaces')
+              .select('id, name').eq('id', leadAny.workspace_id).maybeSingle();
+            if (wsData) {
+              _ws = wsData;
+              _leadId = leadAny.id;
+              _personName = leadAny.name;
+              _personEmail = email;
+              _personPhone = leadAny.phone || '';
+              document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+              showStep2();
+              return;
+            }
+          }
+
+          showInlineError(
+            '⚠️ Não foi possível identificar sua igreja.<br>' +
+            'Use o link completo enviado pelo seu líder,<br>' +
+            'ou acesse primeiro o <a href="/" style="color:#FFD700;">portal da sua igreja</a>.'
+          );
+          return;
+        }
 
         // Update branding
         document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+        document.title = `Batismo — ${_ws.name}`;
 
         // Look up in leads
         const { data: lead } = await sb.from('leads')
@@ -628,7 +701,6 @@
           .maybeSingle();
 
         if (lead) {
-          // Found! Move to step 2
           _leadId = lead.id;
           _personName = lead.name;
           _personEmail = email;
