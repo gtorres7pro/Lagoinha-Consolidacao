@@ -811,7 +811,6 @@
         // 2. Update lead: mark task_batismo + batismo_at
         if (_leadId) {
           await sb.from('leads').update({
-            task_batismo: true,
             batismo_at: new Date().toISOString(),
           }).eq('id', _leadId);
         }
