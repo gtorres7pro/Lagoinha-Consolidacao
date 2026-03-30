@@ -1063,6 +1063,14 @@
                     <h1>Jornada</h1>
                     <p>Acompanhamento de toda a jornada do membro</p>
                 </div>
+                <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div class="hub-period-tabs" id="period-tabs-jornada" style="display:flex;align-items:center;gap:4px;">
+                        <button class="hub-period-tab active" onclick="setPeriodFilter('jornada',7,this)">7d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('jornada',30,this)">30d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('jornada',90,this)">90d</button>
+                        <button class="hub-period-tab" onclick="setPeriodFilter('jornada',0,this)">Todos</button>
+                    </div>
+                </div>
             </header>
             
             <div class="crie-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">

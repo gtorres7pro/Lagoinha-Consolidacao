@@ -3448,16 +3448,25 @@
 
     // ─── Period filter ────────────────────────────────────────────────
     window.setPeriodFilter = function(view, days, btn) {
-        const tabsId = view === 'dashboard' ? 'period-tabs-dashboard' : 'period-tabs-visitors';
+        let tabsId = 'period-tabs-dashboard';
+        if (view === 'visitors') tabsId = 'period-tabs-visitors';
+        else if (view === 'jornada') tabsId = 'period-tabs-jornada';
+        
         const tabs = document.querySelectorAll('#' + tabsId + ' .hub-period-tab');
         tabs.forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
         
-        const topCustomId = view === 'dashboard' ? 'top-custom-date' : 'top-custom-date-v';
+        let topCustomId = 'top-custom-date';
+        if (view === 'visitors') topCustomId = 'top-custom-date-v';
+        else if (view === 'jornada') topCustomId = 'top-custom-date-j';
+        
         const topCustom = document.getElementById(topCustomId);
         if (topCustom) topCustom.style.display = 'none';
         
-        const frElId = view === 'dashboard' ? 'filterTimeRange' : 'vFilterTimeRange';
+        let frElId = 'filterTimeRange';
+        if (view === 'visitors') frElId = 'vFilterTimeRange';
+        else if (view === 'jornada') frElId = 'jFilterTimeRange';
+        
         const frEl = document.getElementById(frElId);
         if (frEl) {
             if (days === 0) frEl.value = 'all';
@@ -3469,9 +3478,12 @@
         if (view === 'dashboard') {
             window._periodCutoff = null;
             if (window.applyFilters) window.applyFilters();
-        } else {
+        } else if (view === 'visitors') {
             window._vPeriodCutoff = null;
             if (window.applyFilters) window.applyFilters();
+        } else if (view === 'jornada') {
+            window._jFilterDays = days;
+            if (window.loadJornadaModule) window.loadJornadaModule();
         }
     };
 
@@ -3775,33 +3787,47 @@ window.loadJornadaModule = async function() {
     const sb = window.supabaseClient;
 
     try {
+        let dateLimit = null;
+        const days = typeof window._jFilterDays !== 'undefined' ? window._jFilterDays : 7;
+        if (days > 0) {
+            dateLimit = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+        }
+
         // 1. Visitantes
-        const { count: visitantesCount } = await sb.from('leads')
+        let queryVisitantes = sb.from('leads')
             .select('*', { count: 'exact', head: true })
             .eq('workspace_id', wsId)
             .eq('type', 'visitor');
+        if (dateLimit) queryVisitantes = queryVisitantes.gte('created_at', dateLimit);
+        const { count: visitantesCount } = await queryVisitantes;
             
         document.getElementById('jornada-kpi-visitantes').innerText = visitantesCount || '0';
 
         // 2. Consolidação
-        const { count: consolidadosCount } = await sb.from('leads')
+        let queryConsolidados = sb.from('leads')
             .select('*', { count: 'exact', head: true })
             .eq('workspace_id', wsId)
             .eq('type', 'saved');
+        if (dateLimit) queryConsolidados = queryConsolidados.gte('created_at', dateLimit);
+        const { count: consolidadosCount } = await queryConsolidados;
             
         document.getElementById('jornada-kpi-consolidacao').innerText = consolidadosCount || '0';
 
         // 3. Start Participantes
-        const { count: startCount } = await sb.from('start_participants')
+        let queryStart = sb.from('start_participants')
             .select('*', { count: 'exact', head: true })
             .eq('workspace_id', wsId);
+        if (dateLimit) queryStart = queryStart.gte('created_at', dateLimit);
+        const { count: startCount } = await queryStart;
             
         document.getElementById('jornada-kpi-start').innerText = startCount || '0';
 
         // 4. Batismo — count from baptism_registrations
-        const { count: batismoCount } = await sb.from('baptism_registrations')
+        let queryBatismo = sb.from('baptism_registrations')
             .select('*', { count: 'exact', head: true })
             .eq('workspace_id', wsId);
+        if (dateLimit) queryBatismo = queryBatismo.gte('created_at', dateLimit);
+        const { count: batismoCount } = await queryBatismo;
 
         document.getElementById('jornada-kpi-batismo').innerText = batismoCount || '0';
 
