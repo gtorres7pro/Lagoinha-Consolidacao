@@ -7710,19 +7710,19 @@ async function loadRRReports() {
 
     var wsMap = {};
     workspaces.forEach(function(w) { wsMap[w.id] = w.name; });
-    if (tbody) tbody.innerHTML = (!reports || !reports.length) ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Nenhum relatório no período.</td></tr>' :
-        reports.map(function(r) {
-            return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'
-                + '<td style="padding:12px 16px;font-weight:700;">' + (wsMap[r.workspace_id] || '—') + '</td>'
-                + '<td style="padding:12px 16px;color:rgba(255,255,255,.55);">Sem. ' + r.week_number + '/' + r.year + '</td>'
-                + '<td style="padding:12px 16px;text-align:right;">' + fmtMoney(r.total_income_local, r.local_currency) + '</td>'
-                + '<td style="padding:12px 16px;text-align:right;color:#818CF8;">' + fmtMoney(r.regional_5pct_local, r.regional_currency || r.local_currency) + '</td>'
-                + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_regional)
-                    + (r.payment_status_regional === 'pending' ? '<button onclick=\'togglePaymentStatus("' + r.id + '","regional")\' style="margin-left:6px;font-size:.65rem;padding:2px 8px;border-radius:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:#4ADE80;cursor:pointer;">✓ Marcar pago</button>' : '') + '</td>'
-                + '<td style="padding:12px 16px;text-align:center;color:rgba(255,255,255,.35);font-size:.78rem;">' + (r.submission_date || '—') + '</td>'
-                + '<td style="padding:12px 16px;text-align:center;">' + msgBtn(r.id, r.unread_for_regional ? 1 : 0, false) + '</td>'
-                + '</tr>';
-        }).join('');
+    // Enrich each report with workspace name and store globally for sort/group
+    window._rrAllReports = (reports || []).map(function(r) {
+        return Object.assign({}, r, {
+            _wsName: wsMap[r.workspace_id] || r.workspace_id,
+            // normalise field names for renderRRTable
+            regional_amount: parseFloat(r.regional_5pct_local) || 0,
+            regional_currency: r.regional_currency || r.local_currency,
+            total_amount: parseFloat(r.total_income_local) || 0,
+            currency: r.local_currency,
+            regional_payment_status: r.payment_status_regional
+        });
+    });
+    renderRRTable();
 }
 
 window.toggleRrMissing = function() {
@@ -7814,20 +7814,17 @@ async function loadRGReports() {
         var reg = regionals.find(function(r) { return r.id === w.regional_id; });
         regMap[w.id] = reg ? reg.name : '—';
     });
-
-    if (tbody) tbody.innerHTML = (!reports || !reports.length) ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Nenhum relatório no período.</td></tr>' :
-        reports.map(function(r) {
-            return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'
-                + '<td style="padding:12px 16px;font-weight:700;">' + (wsMap[r.workspace_id] || '—') + '</td>'
-                + '<td style="padding:12px 16px;color:rgba(255,255,255,.45);font-size:.8rem;">' + (regMap[r.workspace_id] || '—') + '</td>'
-                + '<td style="padding:12px 16px;color:rgba(255,255,255,.55);">Sem. ' + r.week_number + '/' + r.year + '</td>'
-                + '<td style="padding:12px 16px;text-align:right;font-weight:700;">' + fmtMoney((parseFloat(r.global_10pct_usd)||0)/0.10, 'USD') + '</td>'
-                + '<td style="padding:12px 16px;text-align:right;color:#34D399;font-weight:700;">US$ ' + fmtMoney(r.global_10pct_usd, '') + '</td>'
-                + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_global)
-                    + (r.payment_status_global === 'pending' ? '<button onclick=\'togglePaymentStatus("' + r.id + '","global")\' style="margin-left:6px;font-size:.65rem;padding:2px 8px;border-radius:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:#4ADE80;cursor:pointer;">✓ Marcar pago</button>' : '') + '</td>'
-                + '<td style="padding:12px 16px;text-align:center;">' + msgBtn(r.id, r.unread_for_global ? 1 : 0, true) + '</td>'
-                + '</tr>';
-        }).join('');
+    // Enrich and store globally for sort/group
+    window._rgAllReports = (reports || []).map(function(r) {
+        var totUSD = (parseFloat(r.global_10pct_usd) || 0) / 0.10;
+        return Object.assign({}, r, {
+            _wsName: wsMap[r.workspace_id] || r.workspace_id,
+            _regName: regMap[r.workspace_id] || '—',
+            _totalUSD: totUSD,
+            _globalUSD: parseFloat(r.global_10pct_usd) || 0
+        });
+    });
+    renderRGTable();
 }
 
 // ─── Toggle Payment Status ────────────────────────────────────────
@@ -7839,9 +7836,23 @@ window.togglePaymentStatus = async function(reportId, scope) {
     await sb.from('financial_reports').update(upd).eq('id', reportId);
     if (window.showToast) showToast('✅ Status atualizado para PAGO', 2500);
     var activeView = document.querySelector('.view-section.active');
-    if (activeView && activeView.id === 'view-relatorios-regional') loadRRReports();
-    else if (activeView && activeView.id === 'view-relatorios-global') loadRGReports();
+    if (activeView && activeView.id === 'view-rel-financeiro-regional') loadRRReports();
+    else if (activeView && activeView.id === 'view-rel-financeiro-global') loadRGReports();
 };
+
+// Aliases used by the new rrRow / rgRow buttons
+window.markRRPaid = async function(reportId, btnEl) {
+    if (btnEl) { btnEl.style.opacity = '.4'; btnEl.style.pointerEvents = 'none'; }
+    await window.togglePaymentStatus(reportId, 'regional');
+};
+window.markRGPaid = async function(reportId, btnEl) {
+    if (btnEl) { btnEl.style.opacity = '.4'; btnEl.style.pointerEvents = 'none'; }
+    await window.togglePaymentStatus(reportId, 'global');
+};
+
+// Chat placeholder stubs (if not already defined)
+if (!window.openRRChat) window.openRRChat = function(id) { if (window.showToast) showToast('Chat — em breve', 2000); };
+if (!window.openRGChat) window.openRGChat = function(id) { if (window.showToast) showToast('Chat — em breve', 2000); };
 
 // ─── Config Drawers ───────────────────────────────────────────────
 window.openRrConfigDrawer  = function() { var o=document.getElementById('rr-config-overlay'); if(o) o.style.display='flex'; };
@@ -7894,4 +7905,200 @@ window.saveRgConfig = async function() {
         if (tabName === 'rel-financeiro-global' && window.loadGlobalFinancialView) window.loadGlobalFinancialView();
     };
 })();
+
+// ─── Financial Table Sort & Group — Regional (RR) ──────────────────
+var _rrSortBy = 'week', _rrSortAsc = false, _rrGroup = 'none';
+window._rrAllReports = [];
+
+window.setRRSort = function(field, btnEl) {
+    if (_rrSortBy === field) { _rrSortAsc = !_rrSortAsc; }
+    else { _rrSortBy = field; _rrSortAsc = (field === 'church'); }
+    // Update toolbar buttons
+    if (btnEl) {
+        document.querySelectorAll('#rr-sort-btns .toolbar-sort-btn').forEach(function(b) { b.classList.remove('active'); });
+        btnEl.classList.add('active');
+    }
+    // Update dir button
+    var dirBtn = document.getElementById('rr-dir-btn');
+    if (dirBtn) dirBtn.textContent = _rrSortAsc ? '↑ Asc' : '↓ Desc';
+    // Update column header arrows
+    ['church','week','value','status'].forEach(function(f) {
+        var el = document.getElementById('rr-th-' + f);
+        if (el) { el.textContent = (f === _rrSortBy) ? (_rrSortAsc ? '↑' : '↓') : ''; el.style.opacity = (f === _rrSortBy) ? '.8' : '.3'; }
+    });
+    renderRRTable();
+};
+window.toggleRRSortDir = function() {
+    _rrSortAsc = !_rrSortAsc;
+    var dirBtn = document.getElementById('rr-dir-btn');
+    if (dirBtn) dirBtn.textContent = _rrSortAsc ? '↑ Asc' : '↓ Desc';
+    renderRRTable();
+};
+window.setRRGroup = function(g) { _rrGroup = g; renderRRTable(); };
+
+function sortRRData(data) {
+    return data.slice().sort(function(a, b) {
+        var av, bv;
+        if (_rrSortBy === 'church')  { av = (a._wsName||'').toLowerCase(); bv = (b._wsName||'').toLowerCase(); }
+        else if (_rrSortBy === 'value') { av = a.regional_amount || 0; bv = b.regional_amount || 0; }
+        else if (_rrSortBy === 'status') { av = (a.regional_payment_status||''); bv = (b.regional_payment_status||''); }
+        else { av = a.year * 100 + a.week_number; bv = b.year * 100 + b.week_number; } // week
+        if (av < bv) return _rrSortAsc ? -1 : 1;
+        if (av > bv) return _rrSortAsc ? 1 : -1;
+        return 0;
+    });
+}
+
+function renderRRTable() {
+    var tbody = document.getElementById('rr-reports-tbody');
+    if (!tbody) return;
+    var data = sortRRData(window._rrAllReports || []);
+    if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:rgba(255,255,255,.2);font-size:.82rem;">Nenhum relatório encontrado no período.</td></tr>';
+        return;
+    }
+    var html = '';
+    if (_rrGroup !== 'none') {
+        var groups = {};
+        data.forEach(function(r) {
+            var key = _rrGroup === 'church' ? (r._wsName || r.workspace_id) : ('Sem. ' + r.week_number + '/' + r.year);
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+        Object.keys(groups).sort().forEach(function(key) {
+            html += '<tr><td colspan="7" class="fin-group-header">' + key + ' <span style="color:rgba(255,255,255,.15);font-weight:500;">' + groups[key].length + ' entrada' + (groups[key].length !== 1 ? 's' : '') + '</span></td></tr>';
+            groups[key].forEach(function(r) { html += rrRow(r); });
+        });
+    } else {
+        data.forEach(function(r) { html += rrRow(r); });
+    }
+    tbody.innerHTML = html;
+}
+
+function rrRow(r) {
+    var isPaid = r.regional_payment_status === 'paid';
+    var statusBadge = isPaid
+        ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(74,222,128,.1);color:#4ADE80;font-size:.72rem;font-weight:700;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Pago</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(248,113,113,.09);color:#F87171;font-size:.72rem;font-weight:700;cursor:pointer;" onclick="markRRPaid(\'' + r.id + '\',this)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Pendente</span>';
+    var dateStr = r.submission_date ? new Date(r.submission_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '—';
+    var chatBtn = '<button onclick="openRRChat(\'' + r.id + '\')" title="Abrir chat" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 9px;cursor:pointer;color:rgba(255,255,255,.4);transition:all .2s;" onmouseover="this.style.borderColor=\'rgba(129,140,248,.4)\';this.style.color=\'#818CF8\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.1)\';this.style.color=\'rgba(255,255,255,.4)\'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
+    var cur = r.currency || 'BRL';
+    var totalFmt = (r.total_amount || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + cur;
+    var repasseFmt = (r.regional_amount || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + (r.regional_currency || cur);
+    return '<tr class="fin-tr">'
+        + '<td style="padding:13px 16px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;">' + (r._wsName || r.workspace_id) + '</td>'
+        + '<td style="padding:13px 16px;color:rgba(255,255,255,.55);white-space:nowrap;">Sem. ' + r.week_number + ' · ' + r.year + '</td>'
+        + '<td style="padding:13px 16px;text-align:right;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums;white-space:nowrap;">' + totalFmt + '</td>'
+        + '<td style="padding:13px 16px;text-align:right;color:rgba(129,140,248,.9);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">' + repasseFmt + '</td>'
+        + '<td style="padding:13px 16px;text-align:center;">' + statusBadge + '</td>'
+        + '<td style="padding:13px 16px;text-align:center;color:rgba(255,255,255,.35);font-size:.78rem;white-space:nowrap;">' + dateStr + '</td>'
+        + '<td style="padding:13px 16px;text-align:center;">' + chatBtn + '</td>'
+        + '</tr>';
+}
+
+// Patch loadRRReports to store data and use renderRRTable
+var _origLoadRRReports = window.loadRRReports || null;
+(function() {
+    var _orig = window.loadRRReports;
+    if (!_orig) return;
+    window.loadRRReports = async function() {
+        // Run original to compute KPIs, compliance, etc.
+        await _orig.apply(this, arguments);
+        // Also patch the tbody rendering
+        // (original already renders tbody; we re-render with styling after it runs)
+        // But we need _rrAllReports populated first — hook into query
+    };
+})();
+
+// ─── Financial Table Sort & Group — Global (RG) ────────────────────
+var _rgSortBy = 'week', _rgSortAsc = false, _rgGroupBy = 'none';
+window._rgAllReports = [];
+
+window.setRGSort = function(field, btnEl) {
+    if (_rgSortBy === field) { _rgSortAsc = !_rgSortAsc; }
+    else { _rgSortBy = field; _rgSortAsc = (field === 'church' || field === 'regional'); }
+    if (btnEl) {
+        document.querySelectorAll('#rg-sort-btns .toolbar-sort-btn').forEach(function(b) { b.classList.remove('active'); });
+        btnEl.classList.add('active');
+    }
+    var dirBtn = document.getElementById('rg-dir-btn');
+    if (dirBtn) dirBtn.textContent = _rgSortAsc ? '↑ Asc' : '↓ Desc';
+    ['church','regional','week','value','status'].forEach(function(f) {
+        var el = document.getElementById('rg-th-' + f);
+        if (el) { el.textContent = (f === _rgSortBy) ? (_rgSortAsc ? '↑' : '↓') : ''; el.style.opacity = (f === _rgSortBy) ? '.8' : '.3'; }
+    });
+    renderRGTable();
+};
+window.toggleRGSortDir = function() {
+    _rgSortAsc = !_rgSortAsc;
+    var dirBtn = document.getElementById('rg-dir-btn');
+    if (dirBtn) dirBtn.textContent = _rgSortAsc ? '↑ Asc' : '↓ Desc';
+    renderRGTable();
+};
+window.setRGGroup = function(g) { _rgGroupBy = g; renderRGTable(); };
+
+function sortRGData(data) {
+    return data.slice().sort(function(a, b) {
+        var av, bv;
+        if (_rgSortBy === 'church') { av = (a._wsName||'').toLowerCase(); bv = (b._wsName||'').toLowerCase(); }
+        else if (_rgSortBy === 'regional') { av = (a._regName||'').toLowerCase(); bv = (b._regName||'').toLowerCase(); }
+        else if (_rgSortBy === 'value') { av = a._totalUSD || 0; bv = b._totalUSD || 0; }
+        else if (_rgSortBy === 'status') { av = a.global_payment_status||''; bv = b.global_payment_status||''; }
+        else { av = a.year * 100 + a.week_number; bv = b.year * 100 + b.week_number; }
+        if (av < bv) return _rgSortAsc ? -1 : 1;
+        if (av > bv) return _rgSortAsc ? 1 : -1;
+        return 0;
+    });
+}
+
+function renderRGTable() {
+    var tbody = document.getElementById('rg-reports-tbody');
+    if (!tbody) return;
+    var data = sortRGData(window._rgAllReports || []);
+    if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:rgba(255,255,255,.2);font-size:.82rem;">Nenhum relatório encontrado no período.</td></tr>';
+        return;
+    }
+    var html = '';
+    if (_rgGroupBy !== 'none') {
+        var groups = {};
+        data.forEach(function(r) {
+            var key = _rgGroupBy === 'regional' ? (r._regName || 'Sem regional')
+                    : _rgGroupBy === 'church'   ? (r._wsName || r.workspace_id)
+                    : ('Sem. ' + r.week_number + '/' + r.year);
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(r);
+        });
+        Object.keys(groups).sort().forEach(function(key) {
+            var groupTotal = groups[key].reduce(function(s, r) { return s + (r._totalUSD || 0); }, 0);
+            html += '<tr><td colspan="7" class="fin-group-header">' + key
+                + ' <span style="color:rgba(255,255,255,.15);font-weight:500;">' + groups[key].length + ' relatório' + (groups[key].length !== 1 ? 's' : '')
+                + ' · US$ ' + groupTotal.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</span></td></tr>';
+            groups[key].forEach(function(r) { html += rgRow(r); });
+        });
+    } else {
+        data.forEach(function(r) { html += rgRow(r); });
+    }
+    tbody.innerHTML = html;
+}
+
+function rgRow(r) {
+    var isPaid = r.global_payment_status === 'paid';
+    var statusBadge = isPaid
+        ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(74,222,128,.1);color:#4ADE80;font-size:.72rem;font-weight:700;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Pago</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:rgba(248,113,113,.09);color:#F87171;font-size:.72rem;font-weight:700;cursor:pointer;" onclick="markRGPaid(\'' + r.id + '\',this)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Pendente</span>';
+    var chatBtn = '<button onclick="openRGChat(\'' + r.id + '\')" title="Abrir chat" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 9px;cursor:pointer;color:rgba(255,255,255,.4);transition:all .2s;" onmouseover="this.style.borderColor=\'rgba(52,211,153,.4)\';this.style.color=\'#34D399\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.1)\';this.style.color=\'rgba(255,255,255,.4)\'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
+    var totalUSD = (r._totalUSD || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var globalAmt = (r._globalUSD || r.global_amount || 0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return '<tr class="fin-tr">'
+        + '<td style="padding:13px 16px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;">' + (r._wsName || r.workspace_id) + '</td>'
+        + '<td style="padding:13px 16px;color:rgba(255,255,255,.45);font-size:.8rem;white-space:nowrap;">' + (r._regName || '—') + '</td>'
+        + '<td style="padding:13px 16px;color:rgba(255,255,255,.55);white-space:nowrap;">Sem. ' + r.week_number + ' · ' + r.year + '</td>'
+        + '<td style="padding:13px 16px;text-align:right;color:#fff;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;">US$ ' + totalUSD + '</td>'
+        + '<td style="padding:13px 16px;text-align:right;color:rgba(52,211,153,.9);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">US$ ' + globalAmt + '</td>'
+        + '<td style="padding:13px 16px;text-align:center;">' + statusBadge + '</td>'
+        + '<td style="padding:13px 16px;text-align:center;">' + chatBtn + '</td>'
+        + '</tr>';
+}
+
 
