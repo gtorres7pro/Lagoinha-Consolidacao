@@ -574,9 +574,10 @@
             if (navEl) navEl.classList.add('active');
 
             // Phase 3: Lazy-load data for specific views
-            if (tabName === 'logs' && window.loadAuditLogs) window.loadAuditLogs();
-            if (tabName === 'users' && window.loadTeam) window.loadTeam();
+            if (tabName === 'logs'  && window.loadAuditLogs) window.loadAuditLogs();
+            if (tabName === 'users' && window.loadTeam)      window.loadTeam();
             if (tabName === 'home' && typeof generateQRCodes === 'function') setTimeout(generateQRCodes, 50);
+            // Legacy regional/global — now handled by new patch; kept for safety
             if (tabName === 'regional' && window.loadRegionalView) window.loadRegionalView();
             if (tabName === 'global'   && window.loadGlobalView)   window.loadGlobalView();
         }
@@ -585,8 +586,15 @@
         window.applyHierarchyNav = function(level) {
             const levels = { workspace: 0, regional: 1, global: 2, master: 3 };
             const rank = levels[level] || 0;
-            if (rank >= 1) document.getElementById('nav-regional').style.display = '';
-            if (rank >= 2) document.getElementById('nav-global').style.display = '';
+            // Regional submenu in Relatórios
+            const navRelRegional = document.getElementById('nav-relatorios-regional');
+            if (navRelRegional) navRelRegional.style.display = (rank >= 1) ? '' : 'none';
+            // Global submenu in Relatórios
+            const navRelGlobal = document.getElementById('nav-relatorios-global');
+            if (navRelGlobal) navRelGlobal.style.display = (rank >= 2) ? '' : 'none';
+            // Desenvolvedor — only master (rank>=3)
+            const navDev = document.getElementById('nav-desenvolvedor');
+            if (navDev) navDev.style.display = (rank >= 3) ? '' : 'none';
         };
 
         // ─── REGIONAL VIEW ───────────────────────────────────────────────
@@ -6423,6 +6431,695 @@ window.confirmDeletePersonDrawer = async function() {
             if (typeof filterMembrosTable === 'function') filterMembrosTable();
         }
         closePersonDrawer();
+    }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════
+// MENU REESTRUTURAÇÃO — Relatórios, Desenvolvedor, Administrativo
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Toggle: Relatórios ────────────────────────────────────────────
+let relatoriosMenuOpen = false;
+window.toggleRelatoriosMenu = function() {
+    relatoriosMenuOpen = !relatoriosMenuOpen;
+    const wrap  = document.getElementById('relatorios-submenu-wrap');
+    const arrow = document.getElementById('relatorios-arrow');
+    if (wrap)  wrap.style.display = relatoriosMenuOpen ? 'flex' : 'none';
+    if (arrow) arrow.style.transform = relatoriosMenuOpen ? 'rotate(90deg)' : '';
+    document.getElementById('nav-relatorios-toggle')?.classList.toggle('active', relatoriosMenuOpen);
+    // Navigate to local when opening
+    if (relatoriosMenuOpen) switchTab('relatorios-local');
+};
+
+// ── Toggle: Administrativo ────────────────────────────────────────
+let adminMenuOpen = true; // starts open
+window.toggleAdminMenu = function() {
+    adminMenuOpen = !adminMenuOpen;
+    const wrap  = document.getElementById('admin-submenu-wrap');
+    const arrow = document.getElementById('admin-arrow');
+    if (wrap)  wrap.style.display = adminMenuOpen ? 'block' : 'none';
+    if (arrow) arrow.style.transform = adminMenuOpen ? '' : 'rotate(-90deg)';
+    document.getElementById('nav-admin-toggle')?.classList.toggle('active', adminMenuOpen);
+};
+
+// ── Patch switchTab for new tabs ──────────────────────────────────
+(function() {
+    const _prev = window.switchTab;
+    window.switchTab = function(tab) {
+        const newTabs = ['relatorios-local','relatorios-regional','relatorios-global',
+                         'admin-tarefas','admin-financeiro','desenvolvedor'];
+        if (newTabs.includes(tab)) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
+            const viewEl = document.getElementById('view-' + tab);
+            const navEl  = document.getElementById('nav-' + tab);
+            if (viewEl) { viewEl.classList.add('active'); viewEl.style.display = ''; }
+            if (navEl)  navEl.classList.add('active');
+            // Open parent menu
+            if (tab.startsWith('relatorios-')) {
+                if (!relatoriosMenuOpen) toggleRelatoriosMenu();
+                if (relatoriosMenuOpen) {
+                    // already toggled, prevent double-navigate
+                }
+            }
+            if (tab.startsWith('admin-')) {
+                if (!adminMenuOpen) toggleAdminMenu();
+            }
+            // Load data
+            if (tab === 'relatorios-local')    loadRelatoriosLocal('30d');
+            if (tab === 'relatorios-regional') loadRelatoriosRegional('30d', null);
+            if (tab === 'relatorios-global')   loadRelatoriosGlobal('30d', null);
+            if (tab === 'desenvolvedor')       loadDevPanel();
+            return;
+        }
+        if (_prev) _prev(tab);
+    };
+})();
+
+// ── Nav visibility: update for new menu ──────────────────────────
+(function() {
+    const _origApply = window.applyHierarchyNav;
+    window.applyHierarchyNav = function(level) {
+        if (_origApply) _origApply(level);
+        const user = window._currentUser;
+        const role = user?.role;
+        const RANK = { master_admin:4, pastor_senior:3, church_admin:2, admin:2, pastor:1, lider_ministerio:1, user:0 };
+        const rank = RANK[role] || 0;
+        // Desenvolvedor — master_admin only
+        const navDev = document.getElementById('nav-desenvolvedor');
+        if (navDev) navDev.style.display = (role === 'master_admin') ? '' : 'none';
+        // Hide old nav-dev if still present
+        const oldNavDev = document.getElementById('nav-dev');
+        if (oldNavDev) oldNavDev.style.display = 'none';
+        // Relatórios submenus
+        const navRelRegional = document.getElementById('nav-relatorios-regional');
+        const navRelGlobal   = document.getElementById('nav-relatorios-global');
+        if (navRelRegional) navRelRegional.style.display = (rank >= 1) ? '' : 'none';
+        if (navRelGlobal)   navRelGlobal.style.display   = (role === 'master_admin') ? '' : 'none';
+    };
+})();
+
+// Also patch initFaseG to set new nav
+window.initFaseG = function(user) {
+    if (user?.role === 'master_admin') {
+        ['nav-desenvolvedor'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = '';
+        });
+        const navDev = document.getElementById('nav-dev');
+        if (navDev) navDev.style.display = 'none';
+        const navRelGlobal = document.getElementById('nav-relatorios-global');
+        if (navRelGlobal) navRelGlobal.style.display = '';
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DESENVOLVEDOR — Panel Logic
+// ═══════════════════════════════════════════════════════════════════
+let _devWorkspacesAll = [];
+
+window.loadDevPanel = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const tbody = document.getElementById('dev-workspaces-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Carregando...</td></tr>';
+
+    try {
+        // Parallel fetches
+        const [wsRes, regRes, leadsRes, usersRes] = await Promise.all([
+            sb.from('workspaces').select('*').order('created_at'),
+            sb.from('regionals').select('*'),
+            sb.from('leads').select('id, workspace_id, created_at').order('created_at', {ascending:false}),
+            sb.from('users').select('id, workspace_id, role'),
+        ]);
+
+        const workspaces = wsRes.data || [];
+        const regionals  = regRes.data || [];
+        const leads      = leadsRes.data || [];
+        const users      = usersRes.data || [];
+
+        _devWorkspacesAll = workspaces;
+
+        // Populate regional dropdown in create drawer
+        const regSelect = document.getElementById('new-ws-regional');
+        if (regSelect) {
+            regSelect.innerHTML = regionals.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+        }
+
+        // KPIs
+        const activeWs = workspaces.filter(w => w.status === 'active').length;
+        const totalLeads = leads.length;
+        const now = Date.now();
+        const thirtyAgo = new Date(now - 30*24*3600*1000).toISOString();
+        // (AI messages — from messages table with automated=true, last 30d)
+        const { count: aiMsgs } = await sb.from('messages').select('id', {count:'exact',head:true})
+            .eq('automated', true).gte('created_at', thirtyAgo);
+
+        const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+        setKpi('dkpi-workspaces', activeWs);
+        setKpi('dkpi-regionals', regionals.length);
+        setKpi('dkpi-leads', totalLeads.toLocaleString('pt-BR'));
+        setKpi('dkpi-users', users.length);
+        setKpi('dkpi-ai-msgs', (aiMsgs || 0).toLocaleString('pt-BR'));
+
+        // Build table
+        const leadsPerWs = {};
+        leads.forEach(l => { leadsPerWs[l.workspace_id] = (leadsPerWs[l.workspace_id]||0)+1; });
+        const lastActPerWs = {};
+        leads.forEach(l => { if (!lastActPerWs[l.workspace_id]) lastActPerWs[l.workspace_id] = l.created_at; });
+        const regionMap = Object.fromEntries(regionals.map(r => [r.id, r.name]));
+
+        renderDevWorkspacesTable(workspaces, leadsPerWs, lastActPerWs, regionMap);
+
+    } catch(e) {
+        console.error('loadDevPanel error', e);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:#EF4444;">Erro ao carregar dados</td></tr>`;
+    }
+};
+
+window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs, regionMap) {
+    const tbody = document.getElementById('dev-workspaces-tbody');
+    if (!tbody) return;
+    if (!workspaces.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Nenhum workspace encontrado</td></tr>';
+        return;
+    }
+    const planColor = { free:'#60A5FA', medium:'#F59E0B', premium:'#FFD700' };
+    const statusColor = { active:'#34D399', draft:'rgba(255,255,255,.3)', inactive:'#EF4444' };
+    tbody.innerHTML = workspaces.map(ws => {
+        const modules = ws.modules || [];
+        const hasAi = modules.includes('ai_whatsapp');
+        const plan = ws.plan || 'free';
+        const status = ws.status || 'draft';
+        const regional = regionMap[ws.regional_id] || '—';
+        const leadsCount = leadsPerWs[ws.id] || 0;
+        const lastAct = lastActPerWs[ws.id]
+            ? new Date(lastActPerWs[ws.id]).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})
+            : '—';
+        const moduleIcons = {visitantes:'👋',consolidados:'🤝',start:'🚀',batismo:'🙏',novos_membros:'🏛️',crie:'C*',ai_whatsapp:'🤖'};
+        const modBadges = modules.map(m => `<span title="${m}" style="font-size:.65rem;padding:1px 6px;background:rgba(255,255,255,.06);border-radius:6px;">${moduleIcons[m]||m}</span>`).join('');
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+            <td style="padding:12px 16px;font-weight:600;">${ws.name}</td>
+            <td style="padding:12px 16px;color:rgba(255,255,255,.5);font-size:.8rem;">${regional}</td>
+            <td style="padding:12px 16px;text-align:center;"><span style="padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(0,0,0,.3);color:${planColor[plan]||'#fff'};border:1px solid ${planColor[plan]||'#fff'}30;">${plan.toUpperCase()}</span></td>
+            <td style="padding:12px 16px;text-align:center;font-weight:700;">${leadsCount.toLocaleString('pt-BR')}</td>
+            <td style="padding:12px 16px;text-align:center;">${modBadges||'—'}</td>
+            <td style="padding:12px 16px;text-align:center;">${hasAi ? '<span style="color:#FFD700;font-size:1rem;" title="IA WhatsApp ativo">🤖</span>' : '<span style="color:rgba(255,255,255,.15);">—</span>'}</td>
+            <td style="padding:12px 16px;text-align:center;color:rgba(255,255,255,.4);font-size:.8rem;">${lastAct}</td>
+            <td style="padding:12px 16px;text-align:center;"><span style="width:8px;height:8px;border-radius:50%;background:${statusColor[status]||'gray'};display:inline-block;" title="${status}"></span></td>
+        </tr>`;
+    }).join('');
+};
+
+window.filterDevWorkspaces = function() {
+    const q = document.getElementById('dev-ws-search')?.value?.toLowerCase() || '';
+    const filtered = _devWorkspacesAll.filter(w => w.name.toLowerCase().includes(q) || (w.slug||'').includes(q));
+    renderDevWorkspacesTable(filtered, {}, {}, {});
+};
+
+// ── Create Workspace Drawer ───────────────────────────────────────
+window.openCreateWorkspaceDrawer = function() {
+    const overlay = document.getElementById('dev-ws-drawer-overlay');
+    const drawer  = document.getElementById('dev-ws-drawer');
+    if (!overlay || !drawer) return;
+    overlay.style.display = 'block';
+    requestAnimationFrame(() => { drawer.style.transform = 'translateX(0)'; });
+};
+
+window.closeCreateWorkspaceDrawer = function() {
+    const overlay = document.getElementById('dev-ws-drawer-overlay');
+    const drawer  = document.getElementById('dev-ws-drawer');
+    if (!drawer) return;
+    drawer.style.transform = 'translateX(100%)';
+    setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 380);
+};
+
+window.updateWsSlug = function() {
+    const name = document.getElementById('new-ws-name')?.value || '';
+    const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    const slugInput = document.getElementById('new-ws-slug');
+    if (slugInput) slugInput.value = slug;
+};
+
+window.submitCreateWorkspace = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const btn = document.getElementById('btn-create-ws');
+    const feedback = document.getElementById('dev-ws-feedback');
+
+    const name       = document.getElementById('new-ws-name')?.value?.trim();
+    const slug       = document.getElementById('new-ws-slug')?.value?.trim();
+    const city       = document.getElementById('new-ws-city')?.value?.trim();
+    const country    = document.getElementById('new-ws-country')?.value?.trim() || 'Brazil';
+    const regionalId = document.getElementById('new-ws-regional')?.value;
+    const plan       = document.getElementById('new-ws-plan')?.value || 'premium';
+    const adminName  = document.getElementById('new-ws-admin-name')?.value?.trim();
+    const adminEmail = document.getElementById('new-ws-admin-email')?.value?.trim();
+
+    const checkedModules = [...document.querySelectorAll('#new-ws-modules-grid input[type=checkbox]:checked')]
+        .map(cb => cb.value);
+
+    if (!name || !slug) { alert('Nome e slug são obrigatórios.'); return; }
+
+    if (btn) { btn.textContent = 'Criando...'; btn.disabled = true; }
+    if (feedback) { feedback.style.display = 'none'; }
+
+    try {
+        // 1. Create workspace
+        const { data: ws, error: wsErr } = await sb.from('workspaces').insert({
+            name, slug, plan, status: 'active',
+            modules: checkedModules,
+            regional_id: regionalId || null,
+            country: country || 'Brazil',
+        }).select().single();
+
+        if (wsErr) throw wsErr;
+
+        // 2. Create admin user via Supabase Admin invite (Edge Function manage-users)
+        if (adminEmail) {
+            const { data: { session } } = await sb.auth.getSession();
+            const token = session?.access_token;
+            const fnUrl = `${window.SUPABASE_URL}/functions/v1/manage-users`;
+            const resp = await fetch(fnUrl, {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    action: 'invite',
+                    email: adminEmail,
+                    name: adminName || adminEmail.split('@')[0],
+                    role: 'church_admin',
+                    workspace_id: ws.id,
+                    workspace_name: name,
+                }),
+            });
+            const fnData = await resp.json();
+            if (!resp.ok) console.warn('manage-users invite warning:', fnData);
+        }
+
+        if (feedback) {
+            feedback.textContent = `✅ Workspace "${name}" criado com sucesso!${adminEmail ? ` Email de boas-vindas enviado para ${adminEmail}.` : ''}`;
+            feedback.style.color = '#34D399';
+            feedback.style.display = 'block';
+        }
+        // Reset form
+        ['new-ws-name','new-ws-slug','new-ws-city','new-ws-country','new-ws-admin-name','new-ws-admin-email'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+        // Reload table
+        setTimeout(() => { loadDevPanel(); closeCreateWorkspaceDrawer(); }, 1800);
+
+    } catch(e) {
+        console.error('createWorkspace error', e);
+        if (feedback) {
+            feedback.textContent = `❌ Erro: ${e.message}`;
+            feedback.style.color = '#EF4444';
+            feedback.style.display = 'block';
+        }
+    } finally {
+        if (btn) { btn.textContent = '🚀 Criar Workspace'; btn.disabled = false; }
+    }
+};
+
+// ── Create Regional Modal ─────────────────────────────────────────
+window.openCreateRegionalModal = function() {
+    const modal = document.getElementById('dev-regional-modal');
+    if (modal) { modal.style.display = 'flex'; }
+};
+window.closeCreateRegionalModal = function() {
+    const modal = document.getElementById('dev-regional-modal');
+    if (modal) modal.style.display = 'none';
+};
+window.submitCreateRegional = async function() {
+    const sb = window.supabaseClient;
+    const name = document.getElementById('new-regional-name')?.value?.trim();
+    const slug = document.getElementById('new-regional-slug')?.value?.trim();
+    if (!name) { alert('Nome é obrigatório.'); return; }
+    const { error } = await sb.from('regionals').insert({ name, slug: slug||name.toLowerCase().replace(/\s+/g,'-') });
+    if (error) { alert('Erro: ' + error.message); return; }
+    alert(`Regional "${name}" criada!`);
+    closeCreateRegionalModal();
+    loadDevPanel();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// RELATÓRIOS — Data Layer
+// ═══════════════════════════════════════════════════════════════════
+
+const _relatoriosPeriod = { local:'30d', regional:'30d', global:'30d' };
+const _relatoriosFilters = { regional:[], global:{ regionalIds:[], wsIds:[] } };
+
+function getDateLimit(period) {
+    if (!period || period === 'all') return null;
+    const num = parseInt(period);
+    const unit = period.slice(-1);
+    let days;
+    if (unit === 'd') days = num;
+    else if (unit === 'm') days = num * 30;
+    else days = 30;
+    return new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+}
+
+window.setRelatoriosPeriod = function(scope, period, btn) {
+    _relatoriosPeriod[scope] = period;
+    // Update active button
+    const container = btn?.parentElement;
+    if (container) container.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    // Reload
+    if (scope === 'local')    loadRelatoriosLocal(period);
+    if (scope === 'regional') loadRelatoriosRegional(period, _relatoriosFilters.regional);
+    if (scope === 'global')   loadRelatoriosGlobal(period, _relatoriosFilters.global.regionalIds);
+};
+
+// ── Module KPI block builder ──────────────────────────────────────
+function buildModuleKpiBlock(moduleId, title, icon, accentColor, kpis) {
+    const kpiItems = kpis.map(k =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+            <span style="font-size:.8rem;color:rgba(255,255,255,.45);">${k.label}</span>
+            <span style="font-size:1rem;font-weight:800;color:${k.color||'#fff'};">${k.value ?? '—'}</span>
+        </div>`
+    ).join('');
+    return `<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;transition:border-color .2s;" onmouseover="this.style.borderColor='${accentColor}40'" onmouseout="this.style.borderColor='rgba(255,255,255,.07)'">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:10px;border-left:3px solid ${accentColor};">
+            <span style="font-size:1.3rem;">${icon}</span>
+            <span style="font-weight:800;font-size:.9rem;">${title}</span>
+        </div>
+        <div style="padding:10px 20px 16px;">${kpiItems}</div>
+    </div>`;
+}
+
+// ── Local ─────────────────────────────────────────────────────────
+window.loadRelatoriosLocal = async function(period) {
+    const sb = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!sb || !wsId) return;
+    const grid = document.getElementById('rl-modules-grid');
+    if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Calculando KPIs...</div>';
+
+    const dateLimit = getDateLimit(period || '30d');
+
+    // Get workspace modules
+    const { data: ws } = await sb.from('workspaces').select('name,modules').eq('id', wsId).single();
+    const modules = ws?.modules || [];
+    const wsName = document.getElementById('rl-workspace-name');
+    if (wsName) wsName.textContent = ws?.name || '';
+
+    const blocks = [];
+
+    // Visitantes
+    if (modules.includes('visitantes')) {
+        let q = sb.from('leads').select('id',{count:'exact',head:true}).eq('workspace_id',wsId).eq('type','visitor');
+        if (dateLimit) q = q.gte('created_at', dateLimit);
+        const {count:total} = await q;
+        let qw = sb.from('leads').select('id',{count:'exact',head:true}).eq('workspace_id',wsId).eq('type','visitor')
+            .gte('created_at', new Date(Date.now()-7*24*3600*1000).toISOString());
+        const {count:week} = await qw;
+        blocks.push(buildModuleKpiBlock('visitantes','Visitantes','👋','#60A5FA',[
+            {label:'Total no período', value:total||0},
+            {label:'Últimos 7 dias', value:week||0, color:'#60A5FA'},
+        ]));
+    }
+
+    // Consolidação
+    if (modules.includes('consolidados')) {
+        let q = sb.from('leads').select('id,tasks',{count:'exact'}).eq('workspace_id',wsId).eq('type','saved');
+        if (dateLimit) q = q.gte('created_at', dateLimit);
+        const {data:saved, count:total} = await q;
+        const completed = (saved||[]).filter(l => (l.tasks||[]).every(t=>t.status==='completed')).length;
+        blocks.push(buildModuleKpiBlock('consolidados','Consolidação','🤝','#34D399',[
+            {label:'Total no período', value:total||0},
+            {label:'Concluídos', value:completed, color:'#34D399'},
+            {label:'Em andamento', value:(total||0)-completed},
+        ]));
+    }
+
+    // START
+    if (modules.includes('start')) {
+        let q = sb.from('start_participants').select('id,completed',{count:'exact'}).eq('workspace_id',wsId);
+        if (dateLimit) q = q.gte('created_at', dateLimit);
+        const {data:starts, count:total} = await q;
+        const completed = (starts||[]).filter(s=>s.completed).length;
+        blocks.push(buildModuleKpiBlock('start','START','🚀','#A78BFA',[
+            {label:'Participantes', value:total||0},
+            {label:'Concluíram', value:completed, color:'#A78BFA'},
+        ]));
+    }
+
+    // Batismo
+    if (modules.includes('batismo')) {
+        let q = sb.from('baptism_registrations').select('id,status',{count:'exact'}).eq('workspace_id',wsId);
+        if (dateLimit) q = q.gte('created_at', dateLimit);
+        const {data:baps, count:total} = await q;
+        const baptized = (baps||[]).filter(b=>b.status==='baptized').length;
+        const inCourse = (baps||[]).filter(b=>b.status==='course').length;
+        blocks.push(buildModuleKpiBlock('batismo','Batismo','🙏','#F59E0B',[
+            {label:'Total inscritos', value:total||0},
+            {label:'Batizados', value:baptized, color:'#34D399'},
+            {label:'Em curso', value:inCourse, color:'#F59E0B'},
+        ]));
+    }
+
+    // Novos Membros
+    if (modules.includes('novos_membros')) {
+        let q = sb.from('member_registrations').select('id,inpeace_status',{count:'exact'}).eq('workspace_id',wsId);
+        if (dateLimit) q = q.gte('created_at', dateLimit);
+        const {data:mems, count:total} = await q;
+        const done = (mems||[]).filter(m=>m.inpeace_status==='done').length;
+        blocks.push(buildModuleKpiBlock('novos_membros','Novos Membros','🏛️','#F472B6',[
+            {label:'Total inscritos', value:total||0},
+            {label:'InPeace feito', value:done, color:'#34D399'},
+            {label:'Pendente', value:(total||0)-done, color:'#F472B6'},
+        ]));
+    }
+
+    // CRIE
+    if (modules.includes('crie')) {
+        let qe = sb.from('crie_events').select('id',{count:'exact',head:true}).eq('workspace_id',wsId);
+        if (dateLimit) qe = qe.gte('created_at', dateLimit);
+        const {count:events} = await qe;
+        let qa = sb.from('crie_attendees').select('id',{count:'exact',head:true}).eq('workspace_id',wsId);
+        if (dateLimit) qa = qa.gte('created_at', dateLimit);
+        const {count:checkins} = await qa;
+        blocks.push(buildModuleKpiBlock('crie','CRIE','C*','#F59E0B',[
+            {label:'Eventos', value:events||0},
+            {label:'Check-ins', value:checkins||0, color:'#F59E0B'},
+        ]));
+    }
+
+    if (!blocks.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhum módulo habilitado para este workspace.</div>';
+        return;
+    }
+    grid.innerHTML = blocks.join('');
+};
+
+// ── Regional ──────────────────────────────────────────────────────
+window.loadRelatoriosRegional = async function(period, wsIds) {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const user = window._currentUser;
+    const grid = document.getElementById('rr-modules-grid');
+    const nameEl = document.getElementById('rr-regional-name');
+    if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Calculando...</div>';
+
+    // Find regional — from current workspace
+    const { data: wsData } = await sb.from('workspaces').select('regional_id').eq('id', window.currentWorkspaceId).single();
+    const regionalId = wsData?.regional_id;
+    if (!regionalId) {
+        if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Regional não configurada para este workspace.</div>';
+        return;
+    }
+
+    // Get all workspaces in this regional
+    const { data: allWs } = await sb.from('workspaces').select('id,name,modules').eq('regional_id', regionalId);
+    const { data: regional } = await sb.from('regionals').select('name').eq('id', regionalId).single();
+    if (nameEl) nameEl.textContent = regional?.name || 'Regional';
+
+    const targetWsIds = (wsIds && wsIds.length) ? wsIds : (allWs||[]).map(w=>w.id);
+
+    // Populate church multi-select
+    const churchList = document.getElementById('rr-churches-list');
+    if (churchList && !(churchList.children.length)) {
+        churchList.innerHTML = (allWs||[]).map(w =>
+            `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:.8rem;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background=''">
+                <input type="checkbox" value="${w.id}" checked onchange="updateRegionalFilter()" style="accent-color:#818CF8;"> ${w.name}
+            </label>`
+        ).join('');
+    }
+    updateChurchFilterCount('rr-churches-list','rr-churches-count');
+
+    const dateLimit = getDateLimit(period||'30d');
+    const blocks = await buildAggregateBlocks(sb, targetWsIds, allWs||[], dateLimit);
+    if (grid) grid.innerHTML = blocks.join('') || '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhum dado no período.</div>';
+};
+
+// ── Global ────────────────────────────────────────────────────────
+window.loadRelatoriosGlobal = async function(period, regionalIds) {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const grid = document.getElementById('rg-modules-grid');
+    if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Calculando...</div>';
+
+    const { data: regionals } = await sb.from('regionals').select('*');
+    const { data: allWs }     = await sb.from('workspaces').select('id,name,modules,regional_id');
+
+    // Populate regionals multi-select
+    const regList = document.getElementById('rg-regionals-list');
+    if (regList && !(regList.children.length)) {
+        regList.innerHTML = (regionals||[]).map(r =>
+            `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:.8rem;" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background=''">
+                <input type="checkbox" value="${r.id}" checked onchange="updateGlobalFilter()" style="accent-color:#34D399;"> ${r.name}
+            </label>`
+        ).join('');
+        updateGlobalFilter();
+    }
+
+    const targetRegIds = (regionalIds && regionalIds.length)
+        ? regionalIds
+        : (regionals||[]).map(r=>r.id);
+
+    const targetWs = (allWs||[]).filter(w => !targetRegIds.length || targetRegIds.includes(w.regional_id));
+    const targetWsIds = targetWs.map(w=>w.id);
+
+    // Populate churches list
+    const churchList = document.getElementById('rg-churches-list');
+    if (churchList) {
+        churchList.innerHTML = targetWs.map(w =>
+            `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:.8rem;" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background=''">
+                <input type="checkbox" value="${w.id}" checked style="accent-color:#34D399;"> ${w.name}
+            </label>`
+        ).join('');
+    }
+    updateChurchFilterCount('rg-churches-list','rg-churches-count');
+    updateChurchFilterCount('rg-regionals-list','rg-regionals-count');
+
+    const dateLimit = getDateLimit(period||'30d');
+    const blocks = await buildAggregateBlocks(sb, targetWsIds, allWs||[], dateLimit);
+    if (grid) grid.innerHTML = blocks.join('') || '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhum dado no período.</div>';
+};
+
+// ── Aggregate blocks helper ───────────────────────────────────────
+async function buildAggregateBlocks(sb, wsIds, allWs, dateLimit) {
+    if (!wsIds.length) return ['<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,.3);padding:40px;">Nenhuma igreja selecionada.</div>'];
+
+    // Detect which modules are present across selection
+    const selectedWs = allWs.filter(w => wsIds.includes(w.id));
+    const moduleSet = new Set();
+    selectedWs.forEach(w => (w.modules||[]).forEach(m => moduleSet.add(m)));
+
+    const blocks = [];
+
+    const countTable = async (table, col, vals, extra={}) => {
+        let q = sb.from(table).select('id',{count:'exact',head:true}).in(col, vals);
+        if (dateLimit && extra.dateField) q = q.gte(extra.dateField, dateLimit);
+        if (extra.filters) Object.entries(extra.filters).forEach(([k,v]) => { q = q.eq(k,v); });
+        const {count} = await q;
+        return count || 0;
+    };
+
+    if (moduleSet.has('visitantes')) {
+        const total = await countTable('leads','workspace_id',wsIds,{dateField:'created_at',filters:{type:'visitor'}});
+        blocks.push(buildModuleKpiBlock('visitantes','Visitantes','👋','#60A5FA',[{label:'Total no período',value:total}]));
+    }
+    if (moduleSet.has('consolidados')) {
+        const total = await countTable('leads','workspace_id',wsIds,{dateField:'created_at',filters:{type:'saved'}});
+        blocks.push(buildModuleKpiBlock('consolidados','Consolidação','🤝','#34D399',[{label:'Total no período',value:total}]));
+    }
+    if (moduleSet.has('start')) {
+        const total = await countTable('start_participants','workspace_id',wsIds,{dateField:'created_at'});
+        blocks.push(buildModuleKpiBlock('start','START','🚀','#A78BFA',[{label:'Participantes',value:total}]));
+    }
+    if (moduleSet.has('batismo')) {
+        const total = await countTable('baptism_registrations','workspace_id',wsIds,{dateField:'created_at'});
+        blocks.push(buildModuleKpiBlock('batismo','Batismo','🙏','#F59E0B',[{label:'Total inscritos',value:total}]));
+    }
+    if (moduleSet.has('novos_membros')) {
+        const total = await countTable('member_registrations','workspace_id',wsIds,{dateField:'created_at'});
+        blocks.push(buildModuleKpiBlock('novos_membros','Novos Membros','🏛️','#F472B6',[{label:'Total inscritos',value:total}]));
+    }
+    if (moduleSet.has('crie')) {
+        const events = await countTable('crie_events','workspace_id',wsIds,{dateField:'created_at'});
+        blocks.push(buildModuleKpiBlock('crie','CRIE','C*','#F59E0B',[{label:'Eventos',value:events}]));
+    }
+    return blocks;
+}
+
+// ── Multi-select helpers ──────────────────────────────────────────
+window.toggleMultiSelect = function(dropdownId) {
+    const dd = document.getElementById(dropdownId);
+    if (!dd) return;
+    const isOpen = dd.style.display !== 'none';
+    // Close all
+    document.querySelectorAll('[id$="-dropdown"]').forEach(el => el.style.display = 'none');
+    if (!isOpen) dd.style.display = 'block';
+};
+
+function updateChurchFilterCount(listId, countId) {
+    const list = document.getElementById(listId);
+    const countEl = document.getElementById(countId);
+    if (!list || !countEl) return;
+    const total = list.querySelectorAll('input[type=checkbox]').length;
+    const checked = list.querySelectorAll('input[type=checkbox]:checked').length;
+    countEl.textContent = (checked === total) ? 'Todas' : `${checked}`;
+}
+
+window.updateRegionalFilter = function() {
+    updateChurchFilterCount('rr-churches-list','rr-churches-count');
+    const checked = [...document.querySelectorAll('#rr-churches-list input:checked')].map(c=>c.value);
+    loadRelatoriosRegional(_relatoriosPeriod.regional, checked);
+};
+window.updateGlobalFilter = function() {
+    updateChurchFilterCount('rg-regionals-list','rg-regionals-count');
+    const checked = [...document.querySelectorAll('#rg-regionals-list input:checked')].map(c=>c.value);
+    loadRelatoriosGlobal(_relatoriosPeriod.global, checked);
+};
+
+// Close dropdowns on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('[id$="-dropdown"]') && !e.target.closest('button[onclick*="toggleMultiSelect"]')) {
+        document.querySelectorAll('[id$="-dropdown"]').forEach(el => el.style.display = 'none');
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// SEND REPORT EMAIL
+// ═══════════════════════════════════════════════════════════════════
+window.sendReportEmail = async function(scope) {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const { data:{session} } = await sb.auth.getSession();
+    const token = session?.access_token;
+    const userEmail = session?.user?.email;
+    if (!userEmail) { alert('Não foi possível identificar seu email.'); return; }
+
+    const btn = event?.target;
+    const origText = btn?.innerHTML;
+    if (btn) { btn.innerHTML = '⏳ Enviando...'; btn.disabled = true; }
+
+    try {
+        const res = await fetch(`${window.SUPABASE_URL}/functions/v1/send-report-email`, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+            body: JSON.stringify({
+                scope,
+                workspace_id: window.currentWorkspaceId,
+                period: _relatoriosPeriod[scope] || '30d',
+                recipient_email: userEmail,
+            }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (btn) btn.innerHTML = '✅ Enviado!';
+            setTimeout(() => { if (btn) { btn.innerHTML = origText; btn.disabled = false; } }, 3000);
+        } else {
+            throw new Error(data.error || 'Falha no envio');
+        }
+    } catch(e) {
+        console.error('sendReportEmail error', e);
+        alert('Não foi possível enviar o email: ' + e.message);
+        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
     }
 };
 
