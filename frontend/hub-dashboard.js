@@ -7065,7 +7065,10 @@ window.updateGlobalFilter = function() {
 // Close dropdowns on outside click
 document.addEventListener('click', (e) => {
     if (!e.target.closest('[id$="-dropdown"]') && !e.target.closest('button[onclick*="toggleMultiSelect"]')) {
-        document.querySelectorAll('[id$="-dropdown"]').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('[id$="-dropdown"]').forEach(el => {
+            if (el.id === 'ws-dropdown') return; // ws-dropdown is controlled by its own handler via CSS class
+            el.style.display = 'none';
+        });
     }
 });
 
