@@ -586,12 +586,16 @@
         window.applyHierarchyNav = function(level) {
             const levels = { workspace: 0, regional: 1, global: 2, master: 3 };
             const rank = levels[level] || 0;
-            // Regional submenu in Relatórios
+            // Regional: stats view + financial submenu
             const navRelRegional = document.getElementById('nav-relatorios-regional');
             if (navRelRegional) navRelRegional.style.display = (rank >= 1) ? '' : 'none';
-            // Global submenu in Relatórios
+            const navFinRegional = document.getElementById('nav-rel-financeiro-regional');
+            if (navFinRegional) navFinRegional.style.display = (rank >= 1) ? '' : 'none';
+            // Global: stats view + financial submenu
             const navRelGlobal = document.getElementById('nav-relatorios-global');
             if (navRelGlobal) navRelGlobal.style.display = (rank >= 2) ? '' : 'none';
+            const navFinGlobal = document.getElementById('nav-rel-financeiro-global');
+            if (navFinGlobal) navFinGlobal.style.display = (rank >= 2) ? '' : 'none';
             // Desenvolvedor — only master (rank>=3)
             const navDev = document.getElementById('nav-desenvolvedor');
             if (navDev) navDev.style.display = (rank >= 3) ? '' : 'none';
@@ -7866,10 +7870,13 @@ window.saveRgConfig = async function() {
 (function() {
     var _origSwitchTab = window.switchTab;
     window.switchTab = function(tabName) {
-        _origSwitchTab(tabName);
+        if (_origSwitchTab) _origSwitchTab(tabName);
+        // Financial Local
         if (tabName === 'admin-financeiro' && window.loadFinancialReports) window.loadFinancialReports();
-        if (tabName === 'relatorios-regional' && window.loadRegionalFinancialView) window.loadRegionalFinancialView();
-        if (tabName === 'relatorios-global' && window.loadGlobalFinancialView) window.loadGlobalFinancialView();
+        // Financial Regional submenu (unique ID)
+        if (tabName === 'rel-financeiro-regional' && window.loadRegionalFinancialView) window.loadRegionalFinancialView();
+        // Financial Global submenu (unique ID)
+        if (tabName === 'rel-financeiro-global' && window.loadGlobalFinancialView) window.loadGlobalFinancialView();
     };
 })();
 
