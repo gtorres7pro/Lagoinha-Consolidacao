@@ -2204,20 +2204,316 @@ REGRAS:
         ═══════════════════════════════════════════════════════════ -->
 
         <!-- ════════════════════════════════════════════════════════
-             View: Administrativo — Tarefas (em breve)
+             View: Administrativo — Tarefas
         ═══════════════════════════════════════════════════════════ -->
         <div id="view-admin-tarefas" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>✅ Tarefas</h1>
-                    <p>Gestão de tarefas administrativas</p>
+                    <h1>🗂️ Tarefas</h1>
+                    <p id="tasks-subtitle">Gestão de tarefas administrativa</p>
+                </div>
+                <div class="actions" style="display:flex;gap:10px;align-items:center;">
+                    <!-- Notification Bell -->
+                    <button id="tasks-notif-btn" onclick="openTaskNotifications()" style="position:relative;width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
+                        🔔
+                        <span id="tasks-notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#EF4444;color:#fff;font-size:.6rem;font-weight:900;align-items:center;justify-content:center;">0</span>
+                    </button>
+                    <!-- Public Requests -->
+                    <button onclick="openPublicRequestsDrawer()" style="padding:9px 16px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
+                        📥 Demandas
+                        <span id="tasks-requests-badge" style="display:none;padding:1px 7px;border-radius:20px;background:#FFD700;color:#000;font-size:.65rem;font-weight:900;">0</span>
+                    </button>
+                    <!-- New Task -->
+                    <button onclick="openTaskModal()" style="padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Nova Tarefa
+                    </button>
                 </div>
             </header>
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:60px 32px;text-align:center;">
-                <div style="font-size:4rem;margin-bottom:24px;filter:grayscale(0.3);">✅</div>
-                <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:12px;">Tarefas</h2>
-                <p style="color:rgba(255,255,255,.4);max-width:360px;line-height:1.6;margin-bottom:8px;">Este módulo está em desenvolvimento e estará disponível em breve.</p>
-                <span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);">Em breve</span>
+
+            <!-- KPI Row -->
+            <div style="padding:20px 32px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
+                <div class="kpi-box" style="border-top:2px solid rgba(255,255,255,.15);">
+                    <div class="kpi-label">Total</div>
+                    <div class="kpi-value" id="tkpi-total">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #60A5FA;">
+                    <div class="kpi-label">A Fazer</div>
+                    <div class="kpi-value" id="tkpi-todo" style="color:#60A5FA;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F59E0B;">
+                    <div class="kpi-label">Em Andamento</div>
+                    <div class="kpi-value" id="tkpi-progress" style="color:#F59E0B;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #A78BFA;">
+                    <div class="kpi-label">Em Revisão</div>
+                    <div class="kpi-value" id="tkpi-review" style="color:#A78BFA;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #34D399;">
+                    <div class="kpi-label">Concluídas</div>
+                    <div class="kpi-value" id="tkpi-done" style="color:#34D399;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F87171;">
+                    <div class="kpi-label">Atrasadas</div>
+                    <div class="kpi-value" id="tkpi-overdue" style="color:#F87171;">—</div>
+                </div>
+            </div>
+
+            <!-- Toolbar: filters + view toggle -->
+            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <!-- Search -->
+                <input id="tasks-search" type="text" placeholder="🔍 Buscar tarefas..." oninput="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;color:#fff;font-size:.82rem;outline:none;min-width:200px;">
+                <!-- Status filter -->
+                <select id="tasks-filter-status" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                    <option value="">Todos os status</option>
+                    <option value="backlog">📋 Backlog</option>
+                    <option value="todo">🔵 A Fazer</option>
+                    <option value="in_progress">🟡 Em Andamento</option>
+                    <option value="review">🟣 Em Revisão</option>
+                    <option value="done">🟢 Concluída</option>
+                    <option value="cancelled">⛔ Cancelada</option>
+                </select>
+                <!-- Priority filter -->
+                <select id="tasks-filter-priority" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                    <option value="">Todas as prioridades</option>
+                    <option value="urgent">🔴 Urgente</option>
+                    <option value="high">🟠 Alta</option>
+                    <option value="medium">🟡 Média</option>
+                    <option value="low">🔵 Baixa</option>
+                </select>
+                <!-- Department filter -->
+                <select id="tasks-filter-dept" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                    <option value="">Todos os dept.</option>
+                </select>
+                <!-- Assignee filter -->
+                <select id="tasks-filter-assignee" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                    <option value="">Todos os membros</option>
+                </select>
+                <!-- View Toggle -->
+                <div style="display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:4px;">
+                    <button id="tasks-view-list" onclick="setTasksView('list')" style="padding:7px 16px;border-radius:9px;border:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;background:rgba(255,215,0,.15);color:#FFD700;">
+                        ☰ Lista
+                    </button>
+                    <button id="tasks-view-kanban" onclick="setTasksView('kanban')" style="padding:7px 16px;border-radius:9px;border:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:rgba(255,255,255,.4);">
+                        ⊞ Kanban
+                    </button>
+                </div>
+            </div>
+
+            <!-- LIST VIEW -->
+            <div id="tasks-list-view" style="padding:16px 32px 40px;">
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:35%;">Tarefa</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Status</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Prioridade</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Departamento</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Responsável</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Vencimento</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">💬</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-list-tbody">
+                            <tr><td colspan="7" style="padding:60px;text-align:center;color:rgba(255,255,255,.2);">Carregando tarefas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- KANBAN VIEW (hidden by default) -->
+            <div id="tasks-kanban-view" style="display:none;padding:16px 32px 40px;overflow-x:auto;">
+                <div id="tasks-kanban-board" style="display:flex;gap:16px;min-width:max-content;align-items:flex-start;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Task Detail Modal ════ -->
+        <div id="task-modal-overlay" onclick="if(event.target===this)closeTaskModal()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:9500;justify-content:flex-end;">
+            <div id="task-modal-panel" style="background:#0d0f1e;border-left:1px solid rgba(255,215,0,.1);width:min(680px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FFA000,transparent);flex-shrink:0;"></div>
+
+                <!-- Modal Header -->
+                <div style="padding:24px 28px 0;display:flex;align-items:flex-start;gap:12px;">
+                    <div style="flex:1;">
+                        <div id="task-modal-source-badge" style="display:none;margin-bottom:10px;"></div>
+                        <input id="task-modal-title" type="text" placeholder="Título da tarefa..."
+                               style="width:100%;font-size:1.2rem;font-weight:800;background:transparent;border:none;outline:none;color:#fff;padding:0;line-height:1.3;">
+                    </div>
+                    <button onclick="closeTaskModal()" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;font-size:.85rem;">✕</button>
+                </div>
+
+                <!-- Meta fields row -->
+                <div style="padding:16px 28px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Status</label>
+                        <select id="task-modal-status" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                            <option value="backlog">📋 Backlog</option>
+                            <option value="todo">🔵 A Fazer</option>
+                            <option value="in_progress">🟡 Em Andamento</option>
+                            <option value="review">🟣 Em Revisão</option>
+                            <option value="done">🟢 Concluída</option>
+                            <option value="cancelled">⛔ Cancelada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Prioridade</label>
+                        <select id="task-modal-priority" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                            <option value="low">🔵 Baixa</option>
+                            <option value="medium" selected>🟡 Média</option>
+                            <option value="high">🟠 Alta</option>
+                            <option value="urgent">🔴 Urgente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Departamento</label>
+                        <select id="task-modal-dept" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                            <option value="">— Nenhum —</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Responsável</label>
+                        <select id="task-modal-assignee" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                            <option value="">— Sem responsável —</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Data de Vencimento</label>
+                        <input id="task-modal-due" type="date" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Criado em</label>
+                        <div id="task-modal-created" style="padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:.8rem;color:rgba(255,255,255,.4);">—</div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div style="padding:0 28px 16px;">
+                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Descrição</label>
+                    <textarea id="task-modal-desc" rows="4" placeholder="Adicione uma descrição detalhada..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;color:#fff;font-size:.85rem;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                </div>
+
+                <!-- Notes -->
+                <div style="padding:0 28px 16px;">
+                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Notas Internas</label>
+                    <textarea id="task-modal-notes" rows="3" placeholder="Notas internas (não visíveis externamente)..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;color:rgba(255,255,255,.7);font-size:.82rem;outline:none;resize:vertical;font-family:inherit;font-style:italic;box-sizing:border-box;"></textarea>
+                </div>
+
+                <!-- File Attachments -->
+                <div style="padding:0 28px 16px;">
+                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:8px;">📎 Anexos</label>
+                    <div id="task-modal-attachments-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                    <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;border:1px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);cursor:pointer;font-size:.8rem;color:rgba(255,255,255,.5);transition:all .2s;" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.5)'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Fazer upload de arquivo
+                        <input id="task-modal-file-input" type="file" accept="image/*,application/pdf,video/*" multiple style="display:none;" onchange="uploadTaskFiles(this)">
+                    </label>
+                    <div id="task-modal-upload-status" style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px;"></div>
+                </div>
+
+                <!-- Divider -->
+                <div style="border-top:1px solid rgba(255,255,255,.06);margin:0 28px;"></div>
+
+                <!-- Comments Section -->
+                <div style="padding:16px 28px;flex:1;">
+                    <div style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">💬 Comentários</div>
+                    <div id="task-modal-comments" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;max-height:320px;overflow-y:auto;"></div>
+                    <!-- Comment input -->
+                    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
+                        <textarea id="task-comment-input" rows="3" placeholder="Escreva um comentário... Use @nome para mencionar alguém" style="width:100%;background:transparent;border:none;padding:12px;color:#fff;font-size:.85rem;outline:none;resize:none;font-family:inherit;box-sizing:border-box;"></textarea>
+                        <div id="task-mention-suggestions" style="display:none;border-top:1px solid rgba(255,255,255,.08);padding:6px;"></div>
+                        <div style="padding:8px 12px;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.06);">
+                            <button onclick="submitTaskComment()" style="padding:7px 18px;border-radius:9px;border:none;background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.25)'" onmouseout="this.style.background='rgba(255,215,0,.15)'">
+                                Comentar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="padding:16px 28px 28px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;">
+                    <button onclick="saveTaskModal()" id="btn-save-task"
+                            style="flex:1;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.88rem;cursor:pointer;transition:opacity .2s;"
+                            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                        💾 Salvar Tarefa
+                    </button>
+                    <button id="btn-delete-task" onclick="deleteTaskModal()"
+                            style="padding:13px 16px;border:1px solid rgba(239,68,68,.2);border-radius:12px;background:rgba(239,68,68,.06);color:rgba(239,68,68,.7);cursor:pointer;font-size:.88rem;transition:all .2s;"
+                            onmouseover="this.style.background='rgba(239,68,68,.15)';this.style.color='#EF4444'" onmouseout="this.style.background='rgba(239,68,68,.06)';this.style.color='rgba(239,68,68,.7)'">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Notifications Drawer ════ -->
+        <div id="tasks-notif-overlay" onclick="if(event.target===this)closeTaskNotifications()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:9400;justify-content:flex-end;">
+            <div id="tasks-notif-panel" style="background:#0d0f1e;border-left:1px solid rgba(255,255,255,.08);width:min(400px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#818CF8,#A78BFA,transparent);flex-shrink:0;"></div>
+                <div style="padding:24px 24px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <h3 style="font-size:1rem;font-weight:800;margin:0;">🔔 Notificações</h3>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button onclick="markAllNotifsRead()" style="font-size:.72rem;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;text-decoration:underline;">Marcar todas como lidas</button>
+                        <button onclick="closeTaskNotifications()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.2rem;padding:4px;">✕</button>
+                    </div>
+                </div>
+                <div id="tasks-notif-list" style="flex:1;padding:0 24px 24px;display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+        </div>
+
+        <!-- ════ Public Requests Drawer ════ -->
+        <div id="public-requests-overlay" onclick="if(event.target===this)closePublicRequestsDrawer()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9400;justify-content:flex-end;">
+            <div id="public-requests-panel" style="background:#0d0f1e;border-left:1px solid rgba(255,215,0,.1);width:min(520px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FFA000,transparent);flex-shrink:0;"></div>
+                <div style="padding:24px 28px;display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <h2 style="font-size:1.1rem;font-weight:800;margin:0 0 3px;">📥 Demandas Públicas</h2>
+                        <p style="font-size:.78rem;color:rgba(255,255,255,.4);margin:0;">Solicitações recebidas do formulário público</p>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button onclick="copyPublicFormLink()" style="padding:7px 14px;border-radius:10px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-size:.78rem;font-weight:700;cursor:pointer;">🔗 Copiar Link</button>
+                        <button onclick="closePublicRequestsDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.3rem;">✕</button>
+                    </div>
+                </div>
+                <!-- Filter -->
+                <div style="padding:0 28px 16px;display:flex;gap:8px;">
+                    <select id="requests-filter-status" onchange="filterPublicRequests()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:rgba(255,255,255,.7);font-size:.78rem;outline:none;cursor:pointer;">
+                        <option value="">Todos</option>
+                        <option value="pending">⏳ Pendentes</option>
+                        <option value="converted">✅ Convertidas</option>
+                        <option value="rejected">❌ Rejeitadas</option>
+                    </select>
+                </div>
+                <div id="public-requests-list" style="flex:1;padding:0 28px 28px;display:flex;flex-direction:column;gap:10px;">
+                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Carregando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Department Manager Drawer ════ -->
+        <div id="dept-manager-overlay" onclick="if(event.target===this)closeDeptManager()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9600;justify-content:center;align-items:center;">
+            <div style="background:#0d0f1e;border:1px solid rgba(255,215,0,.1);border-radius:20px;padding:28px;width:min(460px,95vw);max-height:80vh;overflow-y:auto;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                    <h3 style="font-size:1rem;font-weight:800;margin:0;">🏷️ Gerenciar Departamentos</h3>
+                    <button onclick="closeDeptManager()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.2rem;">✕</button>
+                </div>
+                <div id="dept-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+                <!-- Add dept form -->
+                <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
+                    <p style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin:0 0 12px;">Adicionar Departamento</p>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input id="new-dept-icon" type="text" placeholder="🏷️" maxlength="2" style="width:52px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px;color:#fff;font-size:1rem;outline:none;text-align:center;">
+                        <input id="new-dept-name" type="text" placeholder="Nome do departamento" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;">
+                        <input id="new-dept-color" type="color" value="#FFD700" style="width:44px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;padding:4px;">
+                        <button onclick="addNewDepartment()" style="padding:9px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.82rem;cursor:pointer;">+ Adicionar</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -3987,6 +4283,8 @@ REGRAS:
 
     <script src="/hub-dashboard.js?v=20260326v5"></script>
     <script src="/hub-start.js?v=1"></script>
+    <script src="/task-manager.js?v=20260401v1"></script>
+
 </body>
 
 </html>
