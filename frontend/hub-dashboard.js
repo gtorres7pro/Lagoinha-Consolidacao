@@ -7613,18 +7613,33 @@ window.loadRegionalFinancialView = async function() {
     if (!sb) return;
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
-    const { data: profile } = await sb.from('users').select('regional_id, level').eq('id', user.id).single();
-    if (!profile || !profile.regional_id) return;
-    const { data: regional } = await sb.from('regionals').select('name, financial_contact_email').eq('id', profile.regional_id).single();
+    const { data: profile } = await sb.from('users').select('regional_id, role').eq('id', user.id).single();
+    if (!profile) return;
+
+    let regionalId = profile.regional_id;
+
+    // master_admin: sem regional_id próprio → deriva do workspace em visualização
+    if (!regionalId && (profile.role === 'master_admin') && window.currentWorkspaceId) {
+        const { data: wsData } = await sb.from('workspaces').select('regional_id').eq('id', window.currentWorkspaceId).single();
+        if (wsData && wsData.regional_id) regionalId = wsData.regional_id;
+    }
+
+    if (!regionalId) {
+        var tbody = document.getElementById('rr-reports-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Este workspace não pertence a nenhuma regional.</td></tr>';
+        return;
+    }
+
+    const { data: regional } = await sb.from('regionals').select('name, financial_contact_email').eq('id', regionalId).single();
     var nameEl = document.getElementById('rr-regional-name');
     if (nameEl && regional) nameEl.textContent = regional.name;
     if (regional && regional.financial_contact_email) {
         var configInput = document.getElementById('rr-config-email');
         if (configInput) configInput.value = regional.financial_contact_email;
     }
-    const { data: workspaces } = await sb.from('workspaces').select('id, name').eq('regional_id', profile.regional_id);
+    const { data: workspaces } = await sb.from('workspaces').select('id, name').eq('regional_id', regionalId);
     if (!workspaces || !workspaces.length) return;
-    window._rrRegionalId = profile.regional_id;
+    window._rrRegionalId = regionalId;
     window._rrWorkspaces = workspaces;
     await loadRRReports();
 };
