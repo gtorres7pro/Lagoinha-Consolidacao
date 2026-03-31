@@ -547,8 +547,10 @@
   <script src="/hub-router.js"></script>
   <script>
     // ── Constants ──────────────────────────────────────────────────
-    const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    // Note: SUPABASE_URL and SUPABASE_ANON_KEY are already declared as
+    // global consts in hub-router.js (loaded before this script).
+    // Re-declaring them with `const` would throw a SyntaxError that
+    // silently kills this entire script block.
     const GOOGLE_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec';
 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
