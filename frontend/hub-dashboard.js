@@ -6439,30 +6439,13 @@ window.confirmDeletePersonDrawer = async function() {
 // MENU REESTRUTURAÇÃO — Relatórios, Desenvolvedor, Administrativo
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Toggle: Relatórios ────────────────────────────────────────────
-let relatoriosMenuOpen = false;
-window.toggleRelatoriosMenu = function() {
-    relatoriosMenuOpen = !relatoriosMenuOpen;
-    const wrap  = document.getElementById('relatorios-submenu-wrap');
-    const arrow = document.getElementById('relatorios-arrow');
-    if (wrap)  wrap.style.display = relatoriosMenuOpen ? 'flex' : 'none';
-    if (arrow) arrow.style.transform = relatoriosMenuOpen ? 'rotate(90deg)' : '';
-    document.getElementById('nav-relatorios-toggle')?.classList.toggle('active', relatoriosMenuOpen);
-    // NOTE: no auto-navigate — clicking the label/icon navigates directly
-};
+// ── Relatórios: no toggle needed (always open), kept as no-op for safety ───
+window.toggleRelatoriosMenu = function() { /* menus are now fixed/non-collapsible */ };
 
-// ── Toggle: Administrativo ────────────────────────────────────────
-let adminMenuOpen = true; // starts open
-window.toggleAdminMenu = function() {
-    adminMenuOpen = !adminMenuOpen;
-    const wrap  = document.getElementById('admin-submenu-wrap');
-    const arrow = document.getElementById('admin-arrow');
-    if (wrap)  wrap.style.display = adminMenuOpen ? 'block' : 'none';
-    if (arrow) arrow.style.transform = adminMenuOpen ? '' : 'rotate(-90deg)';
-    document.getElementById('nav-admin-toggle')?.classList.toggle('active', adminMenuOpen);
-};
+// ── Administrativo: no toggle needed (always open) ───────────────────────────
+window.toggleAdminMenu = function() { /* menus are now fixed/non-collapsible */ };
 
-// ── Patch switchTab for new tabs ──────────────────────────────────
+// ── Patch switchTab for new tabs ──────────────────────────────────────────────
 (function() {
     const _prev = window.switchTab;
     window.switchTab = function(tab) {
@@ -6472,19 +6455,22 @@ window.toggleAdminMenu = function() {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tab);
-            const navEl  = document.getElementById('nav-' + tab);
             if (viewEl) { viewEl.classList.add('active'); viewEl.style.display = ''; }
-            if (navEl)  navEl.classList.add('active');
-            // Open parent menu
+
+            // Highlight nav item — for admin-tarefas, highlight #nav-administrativo (the clickable header)
+            if (tab === 'admin-tarefas') {
+                const navEl = document.getElementById('nav-administrativo');
+                if (navEl) navEl.classList.add('active');
+            } else {
+                const navEl = document.getElementById('nav-' + tab);
+                if (navEl) navEl.classList.add('active');
+            }
+            // Also highlight Relatórios header when on any relatorios-* tab
             if (tab.startsWith('relatorios-')) {
-                if (!relatoriosMenuOpen) toggleRelatoriosMenu();
-                if (relatoriosMenuOpen) {
-                    // already toggled, prevent double-navigate
-                }
+                const relToggle = document.getElementById('nav-relatorios-toggle');
+                if (relToggle) relToggle.classList.add('active');
             }
-            if (tab.startsWith('admin-')) {
-                if (!adminMenuOpen) toggleAdminMenu();
-            }
+
             // Load data
             if (tab === 'relatorios-local')    loadRelatoriosLocal('30d');
             if (tab === 'relatorios-regional') loadRelatoriosRegional('30d', null);
@@ -6495,6 +6481,7 @@ window.toggleAdminMenu = function() {
         if (_prev) _prev(tab);
     };
 })();
+
 
 // ── Nav visibility: update for new menu ──────────────────────────
 (function() {

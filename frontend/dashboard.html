@@ -700,7 +700,28 @@
             </li>
 
 
-            <!-- ══ PIPELINE JORNADA ══════════════════════════════════════ -->
+            <!-- ══ ADMINISTRATIVO (acima da Jornada) ══════════════════════ -->
+            <li class="nav-group" style="display:block;padding:0;background:none;margin-top:4px;">
+                <div id="nav-administrativo" onclick="switchTab('admin-tarefas')" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
+                    <span class="nav-icon" style="background:rgba(255,255,255,.06); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    </span>
+                    <span class="nav-label" style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;flex:1;">Administrativo</span>
+                </div>
+                <!-- Fixed open submenu — no collapse -->
+                <div class="nav-submenu-wrap" id="admin-submenu-wrap" style="display:flex;">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-admin-financeiro" style="opacity:0.45; cursor:default;" title="Em breve">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                            <span class="nav-label">Rel. Financeiro</span>
+                            <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+                        <!-- ══ PIPELINE JORNADA ══════════════════════════════════════ -->
             <li class="nav-group" style="display:block;padding:0;background:none; margin-top: 8px;">
                 <div onclick="switchTab('jornada')" id="nav-jornada" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
                     <span class="nav-icon" style="background:rgba(255, 255, 255, 0.08); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#FFF; flex-shrink:0;">
@@ -753,16 +774,16 @@
                 <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
-            <!-- 8. Relatórios (expandível) -->
+            <!-- 8. Relatórios — clickable header, fixed submenus (no collapse) -->
             <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-relatorios-toggle" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon" onclick="switchTab('relatorios-local')">
+                <div id="nav-relatorios-toggle" onclick="switchTab('relatorios-local')" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
+                    <span class="nav-icon">
                         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                     </span>
-                    <span class="nav-label" style="font-weight:700;flex:1;" onclick="switchTab('relatorios-local')">Relatórios</span>
-                    <span id="relatorios-arrow" onclick="toggleRelatoriosMenu()" style="padding:4px 6px;color:rgba(255,255,255,.3);font-size:.6rem;transition:transform .2s;">▶</span>
+                    <span class="nav-label" style="font-weight:700;flex:1;">Relatórios</span>
                 </div>
-                <div class="nav-submenu-wrap" id="relatorios-submenu-wrap" style="display:none;">
+                <!-- Submenus always visible, shown/hidden by JS based on user role -->
+                <div class="nav-submenu-wrap" id="relatorios-submenu-wrap" style="display:flex;">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-relatorios-regional" onclick="switchTab('relatorios-regional')" style="display:none;">
@@ -878,31 +899,6 @@
                 <span style="font-size:.6rem; background:rgba(255,215,0,.15); color:#FFD700; padding:1px 5px; border-radius:4px; margin-left:auto; font-weight:700;">DEV</span>
             </li>
 
-            <!-- Administrativo (expandível) -->
-            <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-admin-toggle" onclick="toggleAdminMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                    </span>
-                    <span class="nav-label" style="font-weight:700;">Administrativo</span>
-                    <span id="admin-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▼</span>
-                </div>
-                <div class="nav-submenu-wrap" id="admin-submenu-wrap" style="display:block;">
-                    <div class="nav-submenu-line"></div>
-                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
-                        <li id="nav-admin-tarefas" style="opacity:0.45; cursor:default;" title="Em breve">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-                            <span class="nav-label">Tarefas</span>
-                            <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
-                        </li>
-                        <li id="nav-admin-financeiro" style="opacity:0.45; cursor:default;" title="Em breve">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-                            <span class="nav-label">Rel. Financeiro</span>
-                            <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
-                        </li>
-                    </ul>
-                </div>
-            </li>
         </ul>
 
 
