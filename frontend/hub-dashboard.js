@@ -5879,8 +5879,9 @@ function renderBatismoTable(list) {
             statusBadge = '<span style="background:rgba(96,165,250,.12);color:#60A5FA;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;">📖 EM CURSO</span>';
         }
 
+        const rowData = encodeURIComponent(JSON.stringify(r));
         return `
-        <tr style="border-bottom:1px solid rgba(255,255,255,.05);" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background=''" onclick="openPersonDrawer('batismo', ${JSON.stringify(r).replace(/"/g,'&quot;')})">
             <td style="padding:12px 14px; font-weight:700; color:#fff;">${r.name || '—'}</td>
             <td style="padding:12px 14px; font-size:.78rem; color:rgba(255,255,255,.5);">
                 <div>${r.email || '—'}</div>
@@ -6105,7 +6106,7 @@ function renderMembrosTable(list) {
         const isDone = r.inpeace_status === 'done';
         const inpeaceBadge = `<span id="inpeace-tag-${r.id}" onclick="toggleInPeaceStatus('${r.id}', '${r.inpeace_status}')" title="Clique para alterar status InPeace" style="cursor:pointer;display:inline-block;padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;transition:all .2s;${isDone ? 'background:rgba(52,211,153,.15);color:#34D399;border:1px solid rgba(52,211,153,.3);' : 'background:rgba(251,191,36,.12);color:#FBBF24;border:1px solid rgba(251,191,36,.25);'}">${isDone ? '\u2705 InPeace Feito' : '\ud83d\udd50 Pendente'}</span>`;
 
-        return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onmouseover="this.style.background='rgba(255,215,0,.04)'" onmouseout="this.style.background=''" onclick="openPersonDrawer('membros', ${JSON.stringify(r).replace(/"/g,'&quot;')})">
             <td style="padding:12px 14px;font-weight:700;color:#fff;">${r.name || '\u2014'}</td>
             <td style="padding:12px 14px;font-size:.78rem;color:rgba(255,255,255,.5);"><div>${r.email || '\u2014'}</div><div style="display:flex;align-items:center;margin-top:2px;">${r.phone || '\u2014'}${waBtn}</div></td>
             <td style="padding:12px 14px;text-align:center;">${inpeaceBadge}</td>
@@ -6156,4 +6157,231 @@ window.openMembrosForm = function() {
     const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
     const url = window.location.origin + (slug ? '/' + slug + '/' : '/') + 'novos-membros-form.html';
     window.open(url, '_blank');
+};
+
+// ═══════════════════════════════════════════════════════════
+// PERSON PROFILE DRAWER
+// ═══════════════════════════════════════════════════════════
+
+let _pdSource = null; // 'batismo' | 'membros'
+let _pdId     = null;
+let _pdData   = null;
+
+window.openPersonDrawer = function(source, record) {
+    // record may arrive as object or HTML-escaped JSON string
+    const r = (typeof record === 'string') ? JSON.parse(record) : record;
+    _pdSource = source;
+    _pdId     = r.id;
+    _pdData   = r;
+
+    // Fill header
+    const name = r.name || 'Sem nome';
+    const initials = name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    document.getElementById('pd-avatar').textContent = initials || '?';
+    document.getElementById('pd-name-display').textContent = name;
+    document.getElementById('pd-source-badge').textContent = source === 'batismo' ? '🙏 Batismo' : '🏛️ Novos Membros';
+
+    // Fill fields
+    document.getElementById('pd-name').value  = r.name  || '';
+    document.getElementById('pd-email').value = r.email || '';
+    document.getElementById('pd-phone').value = r.phone || '';
+
+    // Module-specific fields
+    const modFields = document.getElementById('pd-module-fields');
+    if (source === 'batismo') {
+        modFields.innerHTML = `
+        <div>
+          <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Status Batismo</label>
+          <select id="pd-batismo-status" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;appearance:none;">
+            <option value="course" ${r.status==='course'?'selected':''} style="background:#1a1a2e;">📖 Em Curso de Batismo</option>
+            <option value="will_baptize_today" ${r.status==='will_baptize_today'?'selected':''} style="background:#1a1a2e;">🕐 Será Batizado Hoje</option>
+            <option value="baptized" ${r.status==='baptized'?'selected':''} style="background:#1a1a2e;">✅ Batizado</option>
+          </select>
+        </div>`;
+    } else {
+        modFields.innerHTML = `
+        <div>
+          <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Status InPeace</label>
+          <select id="pd-inpeace-status" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;appearance:none;">
+            <option value="pending" ${r.inpeace_status==='pending'?'selected':''} style="background:#1a1a2e;">🕐 Pendente</option>
+            <option value="done" ${r.inpeace_status==='done'?'selected':''} style="background:#1a1a2e;">✅ InPeace Feito</option>
+          </select>
+        </div>`;
+    }
+
+    // Reset to perfil tab
+    pdSwitchTab('perfil');
+
+    // Show overlay + animate panel
+    const overlay = document.getElementById('person-drawer-overlay');
+    const panel   = document.getElementById('person-drawer-panel');
+    overlay.style.display = 'block';
+    overlay.style.opacity = '0';
+    panel.style.transform = 'translateX(100%)';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            panel.style.transform = 'translateX(0)';
+        });
+    });
+
+    // Load journey in background
+    loadPersonJourney(r.email, r.phone);
+};
+
+window.closePersonDrawer = function() {
+    const overlay = document.getElementById('person-drawer-overlay');
+    const panel   = document.getElementById('person-drawer-panel');
+    overlay.style.opacity = '0';
+    panel.style.transform = 'translateX(100%)';
+    setTimeout(() => { overlay.style.display = 'none'; }, 350);
+};
+
+window.pdSwitchTab = function(tab) {
+    ['perfil','jornada'].forEach(t => {
+        document.getElementById('pd-tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+        const btn = document.getElementById('pd-tab-btn-' + t);
+        if (btn) {
+            btn.style.borderBottomColor = (t === tab) ? '#FFD700' : 'rgba(255,255,255,.1)';
+            btn.style.color             = (t === tab) ? '#FFD700' : 'rgba(255,255,255,.4)';
+        }
+    });
+};
+
+async function loadPersonJourney(email, phone) {
+    const tl = document.getElementById('pd-journey-timeline');
+    if (!tl) return;
+    tl.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.82rem;padding:12px 0;">Carregando jornada...</div>';
+
+    const sb    = window.supabaseClient;
+    const wsId  = window.currentWorkspaceId;
+    if (!sb || !wsId || !email) { tl.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.82rem;padding:12px 0;">Email não disponível para busca.</div>'; return; }
+
+    const [leadsRes, startRes, baptismoRes, membrosRes] = await Promise.all([
+        sb.from('leads').select('id,name,email,type,created_at').eq('workspace_id', wsId).ilike('email', email).maybeSingle(),
+        sb.from('start_participants').select('id,created_at,status').eq('workspace_id', wsId).ilike('email', email).maybeSingle(),
+        sb.from('baptism_registrations').select('id,created_at,status').eq('workspace_id', wsId).ilike('email', email).maybeSingle(),
+        sb.from('member_registrations').select('id,created_at,inpeace_status').eq('workspace_id', wsId).ilike('email', email).maybeSingle(),
+    ]);
+
+    const steps = [
+        {
+            icon: '👋',
+            label: 'Visitante / Lead',
+            color: '#60A5FA',
+            found: !!leadsRes.data,
+            date: leadsRes.data?.created_at,
+            detail: leadsRes.data ? (leadsRes.data.type === 'saved' ? 'Salvo' : 'Visitante') : null,
+        },
+        {
+            icon: '🚀',
+            label: 'START',
+            color: '#A78BFA',
+            found: !!startRes.data,
+            date: startRes.data?.created_at,
+            detail: startRes.data?.status || null,
+        },
+        {
+            icon: '🙏',
+            label: 'Batismo',
+            color: '#34D399',
+            found: !!baptismoRes.data,
+            date: baptismoRes.data?.created_at,
+            detail: baptismoRes.data?.status === 'baptized' ? 'Batizado ✅' : baptismoRes.data?.status === 'will_baptize_today' ? 'Será Batizado' : baptismoRes.data ? 'Em Curso' : null,
+        },
+        {
+            icon: '🏛️',
+            label: 'Novos Membros',
+            color: '#FFD700',
+            found: !!membrosRes.data,
+            date: membrosRes.data?.created_at,
+            detail: membrosRes.data?.inpeace_status === 'done' ? 'InPeace Feito ✅' : membrosRes.data ? 'InPeace Pendente 🕐' : null,
+        },
+    ];
+
+    tl.innerHTML = steps.map((s, i) => {
+        const dateStr = s.date ? new Date(s.date).toLocaleDateString('pt-PT') : '';
+        const isLast  = i === steps.length - 1;
+        return `
+        <div style="display:flex;gap:14px;${!isLast ? 'padding-bottom:0;' : ''}">
+          <!-- Dot + line -->
+          <div style="display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;">
+            <div style="width:28px;height:28px;border-radius:50%;background:${s.found ? s.color : 'rgba(255,255,255,.08)'};display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;box-shadow:${s.found ? '0 0 12px ' + s.color + '55' : 'none'};transition:all .3s;">${s.found ? s.icon : '○'}</div>
+            ${!isLast ? `<div style="width:2px;flex:1;min-height:24px;background:${s.found ? 'linear-gradient(' + s.color + ', rgba(255,255,255,.1))' : 'rgba(255,255,255,.06)'};margin:4px 0;"></div>` : ''}
+          </div>
+          <!-- Content -->
+          <div style="padding-bottom:${!isLast ? '20px' : '0'};flex:1;padding-top:4px;">
+            <div style="font-weight:700;font-size:.85rem;color:${s.found ? '#fff' : 'rgba(255,255,255,.25)'};">${s.label}</div>
+            ${s.found ? `<div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-top:2px;">${dateStr}${s.detail ? ' · ' + s.detail : ''}</div>` : '<div style="font-size:.74rem;color:rgba(255,255,255,.2);margin-top:2px;">Não registrado</div>'}
+          </div>
+        </div>`;
+    }).join('');
+}
+
+window.savePersonDrawer = async function() {
+    if (!_pdSource || !_pdId) return;
+    const sb = window.supabaseClient;
+
+    const updates = {
+        name:  document.getElementById('pd-name')?.value  || _pdData.name,
+        email: document.getElementById('pd-email')?.value || _pdData.email,
+        phone: document.getElementById('pd-phone')?.value || _pdData.phone,
+    };
+
+    if (_pdSource === 'batismo') {
+        updates.status = document.getElementById('pd-batismo-status')?.value || _pdData.status;
+    } else {
+        updates.inpeace_status = document.getElementById('pd-inpeace-status')?.value || _pdData.inpeace_status;
+    }
+
+    const table = _pdSource === 'batismo' ? 'baptism_registrations' : 'member_registrations';
+    const { error } = await sb.from(table).update(updates).eq('id', _pdId);
+
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar: ' + error.message, 'error');
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast('Salvo com sucesso! ✅', 'success');
+        // Update local cache and re-render
+        if (_pdSource === 'batismo') {
+            const rec = (window._batismoAll || []).find(r => r.id === _pdId);
+            if (rec) Object.assign(rec, updates);
+            if (typeof filterBatismoTable === 'function') filterBatismoTable();
+        } else {
+            const rec = _membrosAll.find(r => r.id === _pdId);
+            if (rec) Object.assign(rec, updates);
+            if (typeof filterMembrosTable === 'function') filterMembrosTable();
+        }
+        // Update header name
+        document.getElementById('pd-name-display').textContent = updates.name;
+        const initials = updates.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        document.getElementById('pd-avatar').textContent = initials;
+        _pdData = { ..._pdData, ...updates };
+    }
+};
+
+window.deletePersonDrawer = async function() {
+    if (!_pdSource || !_pdId) return;
+    const name = _pdData?.name || 'este registro';
+
+    // Confirmation via a simple confirm (ou podemos fazer modal no futuro)
+    if (!window.confirm('Tem certeza que deseja excluir ' + name + '?\nApenas o registro deste módulo será removido.')) return;
+
+    const sb    = window.supabaseClient;
+    const table = _pdSource === 'batismo' ? 'baptism_registrations' : 'member_registrations';
+    const { error } = await sb.from(table).delete().eq('id', _pdId);
+
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir: ' + error.message, 'error');
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast(name + ' removido do módulo. 🗑️', 'success');
+        // Remove from local cache and re-render
+        if (_pdSource === 'batismo') {
+            window._batismoAll = (window._batismoAll || []).filter(r => r.id !== _pdId);
+            if (typeof filterBatismoTable === 'function') filterBatismoTable();
+        } else {
+            _membrosAll = _membrosAll.filter(r => r.id !== _pdId);
+            if (typeof filterMembrosTable === 'function') filterMembrosTable();
+        }
+        closePersonDrawer();
+    }
 };
