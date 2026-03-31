@@ -7265,23 +7265,56 @@ window.onFinCurrencyChange = async function() {
 
 window.recalcFinValues = function() {
     const total    = parseFloat((document.getElementById('fin-input-total') || {}).value) || 0;
-    const rate     = parseFloat((document.getElementById('fin-input-rate') || {}).value)  || 1;
+    const rate     = parseFloat((document.getElementById('fin-input-rate') || {}).value)  || 1;  // 1 localCur = rate USD
     const currency = (document.getElementById('fin-input-currency') || {}).value || 'USD';
     const regCur   = (document.getElementById('fin-input-regional-currency') || {}).value || '';
 
+    // --- GLOBAL (10%) ---
     const global10Local = total * 0.10;
-    const global10Usd   = global10Local * rate;
-    const reg5Local     = total * 0.05;
+    const global10Usd   = global10Local * rate;  // convert to USD
 
-    const gLocalEl = document.getElementById('fin-calc-global-local');
-    const gUsdEl   = document.getElementById('fin-calc-global-usd');
-    const rLocalEl = document.getElementById('fin-calc-regional-local');
-    const rCurEl   = document.getElementById('fin-calc-regional-currency');
+    const gUsdEl   = document.getElementById('fin-calc-global-usd');   // primary — USD (big)
+    const gLocalEl = document.getElementById('fin-calc-global-local');  // secondary — local (small)
 
-    if (gLocalEl) gLocalEl.textContent = fmtMoney(global10Local, currency);
-    if (gUsdEl)   gUsdEl.textContent   = '≈ US$ ' + fmtMoney(global10Usd, '');
-    if (rLocalEl) rLocalEl.textContent = fmtMoney(reg5Local, regCur || currency);
-    if (rCurEl)   rCurEl.textContent   = regCur ? '(convertido para ' + regCur + ')' : '';
+    if (gUsdEl)   gUsdEl.textContent   = 'US$ ' + fmtMoney(global10Usd, '');
+    if (gLocalEl) gLocalEl.textContent = fmtMoney(global10Local, currency) + ' em moeda local';
+
+    // --- REGIONAL (5%) ---
+    const reg5Local = total * 0.05;  // always in local currency
+
+    const rConvEl  = document.getElementById('fin-calc-regional-converted'); // primary — converted (big)
+    const rLocalEl = document.getElementById('fin-calc-regional-local');     // secondary — local (small)
+    const rCurEl   = document.getElementById('fin-calc-regional-currency');  // note
+
+    if (!regCur || regCur === currency) {
+        // Same currency — no conversion needed
+        if (rConvEl)  rConvEl.textContent  = fmtMoney(reg5Local, currency);
+        if (rLocalEl) rLocalEl.style.display = 'none';
+        if (rCurEl)   rCurEl.textContent    = '';
+    } else {
+        // Different currency — convert: reg5Local (local) → USD → regCur
+        // We have: rate = 1 localCur = rate USD
+        // To get regCur amount: need regCur rate from cache
+        const regCacheKey = 'fx_' + regCur + '_usd';
+        const regCached   = JSON.parse(localStorage.getItem(regCacheKey) || '{}');
+        const regRate     = regCached.rate || null; // 1 regCur = regRate USD
+
+        if (rLocalEl) { rLocalEl.style.display = ''; rLocalEl.textContent = fmtMoney(reg5Local, currency) + ' em moeda local'; }
+
+        if (regRate && regRate > 0) {
+            const reg5Usd   = reg5Local * rate;          // local → USD
+            const reg5RegCur = reg5Usd / regRate;        // USD → regCur
+            if (rConvEl) rConvEl.textContent  = fmtMoney(reg5RegCur, regCur);
+            if (rCurEl)  rCurEl.textContent   = '≈ via USD (taxa: 1 ' + regCur + ' = ' + regRate.toFixed(4) + ' USD)';
+        } else {
+            // Rate not cached yet — trigger fetch
+            if (rConvEl) rConvEl.textContent  = '⏳ Buscando taxa...';
+            if (rCurEl)  rCurEl.textContent   = '';
+            getExchangeRate(regCur).then(function(r) {
+                if (r) { window.recalcFinValues(); }  // re-run once rate is available
+            });
+        }
+    }
 };
 
 // ─── Period filters (Local) ───────────────────────────────────────
