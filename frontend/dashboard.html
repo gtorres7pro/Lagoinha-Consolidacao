@@ -3033,65 +3033,114 @@ REGRAS:
 ═══════════════════════════════════════════════════════ -->
 
 
-<!-- ═══════════════════════════════════════════════════
-     PERSON PROFILE DRAWER
-═══════════════════════════════════════════════════════ -->
-<div id="person-drawer-overlay" onclick="if(event.target===this)closePersonDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:9000;transition:opacity .3s;">
-  <div id="person-drawer-panel" style="position:absolute;right:0;top:0;bottom:0;width:min(480px,100vw);background:linear-gradient(160deg,#1a1a2e 0%,#16213e 100%);border-left:1px solid rgba(255,215,0,.15);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);overflow:hidden;">
-
+<style>
+  .pd-input {
+    width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:11px 16px;
+    color:#fff;font-size:.88rem;font-family:inherit;
+    outline:none;transition:border-color .2s,background .2s,box-shadow .2s;
+  }
+  .pd-input:focus {
+    border-color:rgba(255,215,0,.5);
+    background:rgba(255,215,0,.03);
+    box-shadow:0 0 0 3px rgba(255,215,0,.07);
+  }
+  .pd-label {
+    display:block;font-size:.67rem;font-weight:700;
+    color:rgba(255,255,255,.28);text-transform:uppercase;
+    letter-spacing:.09em;margin-bottom:7px;
+  }
+  .pd-tab-btn {
+    flex:1;padding:12px 0;border:none;
+    border-bottom:2px solid transparent;
+    background:transparent;font-weight:700;
+    font-size:.78rem;cursor:pointer;transition:all .2s;
+    letter-spacing:.02em;
+  }
+  .pd-select {
+    width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:11px 16px;
+    color:#fff;font-size:.88rem;font-family:inherit;
+    outline:none;appearance:none;cursor:pointer;
+  }
+</style>
+<!-- PERSON PROFILE DRAWER -->
+<div id="person-drawer-overlay" onclick="if(event.target===this)closePersonDrawer()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);z-index:9000;transition:opacity .3s;">
+  <div id="person-drawer-panel"
+       style="position:absolute;right:0;top:0;bottom:0;width:min(460px,100vw);
+              background:#0d0f1e;border-left:1px solid rgba(255,215,0,.1);
+              box-shadow:-24px 0 80px rgba(0,0,0,.65);
+              display:flex;flex-direction:column;
+              transform:translateX(100%);
+              transition:transform .38s cubic-bezier(.4,0,.2,1);overflow:hidden;">
+    <!-- Gold accent bar -->
+    <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,rgba(0,0,0,0));flex-shrink:0;"></div>
     <!-- Header -->
-    <div style="padding:24px 24px 0;display:flex;align-items:center;gap:14px;flex-shrink:0;">
-      <div id="pd-avatar" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA000);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:#000;flex-shrink:0;">G</div>
+    <div style="padding:20px 24px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);">
+      <div id="pd-avatar"
+           style="width:46px;height:46px;border-radius:12px;
+                  background:linear-gradient(135deg,#FFD700,#FFA000);
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:1.1rem;font-weight:900;color:#000;flex-shrink:0;
+                  box-shadow:0 4px 16px rgba(255,215,0,.25);">G</div>
       <div style="flex:1;min-width:0;">
-        <div id="pd-name-display" style="font-size:1.1rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
-        <div id="pd-source-badge" style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:20px;font-size:.65rem;font-weight:700;background:rgba(255,215,0,.15);color:#FFD700;border:1px solid rgba(255,215,0,.3);">—</div>
+        <div id="pd-name-display"
+             style="font-size:.98rem;font-weight:800;color:#fff;
+                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em;">—</div>
+        <div id="pd-source-badge"
+             style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;
+                    padding:3px 10px;border-radius:20px;font-size:.6rem;font-weight:700;
+                    letter-spacing:.05em;background:rgba(255,215,0,.08);color:#FFD700;
+                    border:1px solid rgba(255,215,0,.18);">—</div>
       </div>
-      <button onclick="closePersonDrawer()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.6);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">✕</button>
+      <button onclick="closePersonDrawer()"
+              style="width:32px;height:32px;border-radius:10px;
+                     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+                     color:rgba(255,255,255,.35);font-size:.78rem;cursor:pointer;
+                     display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;"
+              onmouseover="this.style.background='rgba(255,255,255,.09)';this.style.color='rgba(255,255,255,.7)'"
+              onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.35)'">&#x2715;</button>
     </div>
-
     <!-- Tabs -->
-    <div style="display:flex;gap:0;padding:20px 24px 0;flex-shrink:0;">
-      <button id="pd-tab-btn-perfil" onclick="pdSwitchTab('perfil')" style="flex:1;padding:10px;border:none;border-bottom:2px solid #FFD700;background:transparent;color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;">✏️ Perfil</button>
-      <button id="pd-tab-btn-jornada" onclick="pdSwitchTab('jornada')" style="flex:1;padding:10px;border:none;border-bottom:2px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;">🗺️ Jornada</button>
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;padding:0 16px;">
+      <button id="pd-tab-btn-perfil" onclick="pdSwitchTab('perfil')" class="pd-tab-btn"
+              style="color:#FFD700;border-bottom-color:#FFD700;">&#x270F;&#xFE0F; Perfil</button>
+      <button id="pd-tab-btn-jornada" onclick="pdSwitchTab('jornada')" class="pd-tab-btn"
+              style="color:rgba(255,255,255,.28);">&#x1F5FA;&#xFE0F; Jornada</button>
     </div>
-    <div style="height:1px;background:rgba(255,255,255,.07);flex-shrink:0;"></div>
-
-    <!-- Scrollable body -->
-    <div style="flex:1;overflow-y:auto;padding:24px;">
-
-      <!-- Tab: Perfil -->
+    <!-- Body -->
+    <div style="flex:1;overflow-y:auto;padding:24px 24px 32px;">
       <div id="pd-tab-perfil">
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div>
-            <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Nome Completo</label>
-            <input id="pd-name" type="text" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;transition:border .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-          <div>
-            <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Email</label>
-            <input id="pd-email" type="email" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;transition:border .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-          <div>
-            <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">WhatsApp</label>
-            <input id="pd-phone" type="tel" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;transition:border .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-          <!-- Module-specific fields injected here -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div><label class="pd-label">Nome Completo</label><input id="pd-name" type="text" class="pd-input"></div>
+          <div><label class="pd-label">Email</label><input id="pd-email" type="email" class="pd-input"></div>
+          <div><label class="pd-label">WhatsApp</label><input id="pd-phone" type="tel" class="pd-input"></div>
           <div id="pd-module-fields"></div>
         </div>
-
-        <!-- Actions -->
-        <div style="display:flex;gap:10px;margin-top:28px;">
-          <button onclick="savePersonDrawer()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💾 Salvar Alterações</button>
-          <button onclick="deletePersonDrawer()" style="padding:12px 16px;border:1px solid rgba(239,68,68,.3);border-radius:12px;background:rgba(239,68,68,.1);color:#EF4444;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">🗑️</button>
+        <div id="pd-actions-row" style="display:flex;gap:10px;margin-top:28px;">
+          <button onclick="savePersonDrawer()"
+                  style="flex:1;padding:12px 20px;border:none;border-radius:12px;
+                         background:linear-gradient(135deg,#FFD700,#FFA000);
+                         color:#000;font-weight:800;font-size:.82rem;
+                         cursor:pointer;transition:opacity .18s;letter-spacing:.01em;"
+                  onmouseover="this.style.opacity='.8'"
+                  onmouseout="this.style.opacity='1'">&#x1F4BE; Salvar Alteracoes</button>
+          <button onclick="deletePersonDrawer()" title="Excluir registro"
+                  style="padding:12px 14px;border:1px solid rgba(239,68,68,.18);border-radius:12px;
+                         background:rgba(239,68,68,.05);color:rgba(239,68,68,.7);
+                         font-size:.82rem;cursor:pointer;transition:all .2s;"
+                  onmouseover="this.style.background='rgba(239,68,68,.14)';this.style.color='#EF4444';this.style.borderColor='rgba(239,68,68,.35)'"
+                  onmouseout="this.style.background='rgba(239,68,68,.05)';this.style.color='rgba(239,68,68,.7)';this.style.borderColor='rgba(239,68,68,.18)'">&#x1F5D1;&#xFE0F;</button>
         </div>
       </div>
-
-      <!-- Tab: Jornada -->
       <div id="pd-tab-jornada" style="display:none;">
-        <div id="pd-journey-timeline" style="display:flex;flex-direction:column;gap:0;">
-          <!-- Filled by JS -->
-        </div>
+        <div id="pd-journey-timeline" style="display:flex;flex-direction:column;gap:0;"></div>
       </div>
-
     </div>
   </div>
 </div>

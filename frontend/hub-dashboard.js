@@ -6191,20 +6191,20 @@ window.openPersonDrawer = function(source, record) {
     if (source === 'batismo') {
         modFields.innerHTML = `
         <div>
-          <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Status Batismo</label>
-          <select id="pd-batismo-status" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;appearance:none;">
-            <option value="course" ${r.status==='course'?'selected':''} style="background:#1a1a2e;">📖 Em Curso de Batismo</option>
-            <option value="will_baptize_today" ${r.status==='will_baptize_today'?'selected':''} style="background:#1a1a2e;">🕐 Será Batizado Hoje</option>
-            <option value="baptized" ${r.status==='baptized'?'selected':''} style="background:#1a1a2e;">✅ Batizado</option>
+          <label class="pd-label">Status Batismo</label>
+          <select id="pd-batismo-status" class="pd-select">
+            <option value="course" ${r.status==='course'?'selected':''} style="background:#0d0f1e;">&#x1F4D6; Em Curso de Batismo</option>
+            <option value="will_baptize_today" ${r.status==='will_baptize_today'?'selected':''} style="background:#0d0f1e;">&#x1F550; Ser\xE1 Batizado Hoje</option>
+            <option value="baptized" ${r.status==='baptized'?'selected':''} style="background:#0d0f1e;">&#x2705; Batizado</option>
           </select>
         </div>`;
     } else {
         modFields.innerHTML = `
         <div>
-          <label style="display:block;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Status InPeace</label>
-          <select id="pd-inpeace-status" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;appearance:none;">
-            <option value="pending" ${r.inpeace_status==='pending'?'selected':''} style="background:#1a1a2e;">🕐 Pendente</option>
-            <option value="done" ${r.inpeace_status==='done'?'selected':''} style="background:#1a1a2e;">✅ InPeace Feito</option>
+          <label class="pd-label">Status InPeace</label>
+          <select id="pd-inpeace-status" class="pd-select">
+            <option value="pending" ${r.inpeace_status==='pending'?'selected':''} style="background:#0d0f1e;">&#x1F550; Pendente</option>
+            <option value="done" ${r.inpeace_status==='done'?'selected':''} style="background:#0d0f1e;">&#x2705; InPeace Feito</option>
           </select>
         </div>`;
     }
@@ -6225,9 +6225,13 @@ window.openPersonDrawer = function(source, record) {
         });
     });
 
+    // Always reset action buttons (prevents delete confirmation persisting between cards)
+    cancelDeletePersonDrawer();
+
     // Load journey in background
     loadPersonJourney(r.email, r.phone);
 };
+
 
 window.closePersonDrawer = function() {
     const overlay = document.getElementById('person-drawer-overlay');
@@ -6364,7 +6368,7 @@ window.deletePersonDrawer = function() {
     const name = _pdData?.name || 'este registro';
 
     // Inline confirmation inside the drawer (window.confirm is blocked in production HTTPS)
-    const actionsDiv = document.querySelector('#pd-tab-perfil div[style*="margin-top:28px"]');
+    const actionsDiv = document.getElementById('pd-actions-row');
     if (!actionsDiv) { confirmDeletePersonDrawer(); return; } // fallback
 
     actionsDiv.innerHTML = `
@@ -6379,12 +6383,22 @@ window.deletePersonDrawer = function() {
 };
 
 window.cancelDeletePersonDrawer = function() {
-    // Restore original action buttons
-    const actionsDiv = document.querySelector('#pd-tab-perfil div[style*="margin-top:28px"]');
+    const actionsDiv = document.getElementById('pd-actions-row');
     if (actionsDiv) {
         actionsDiv.innerHTML = `
-          <button onclick="savePersonDrawer()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💾 Salvar Alterações</button>
-          <button onclick="deletePersonDrawer()" style="padding:12px 16px;border:1px solid rgba(239,68,68,.3);border-radius:12px;background:rgba(239,68,68,.1);color:#EF4444;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">🗑️</button>`;
+          <button onclick="savePersonDrawer()"
+                  style="flex:1;padding:12px 20px;border:none;border-radius:12px;
+                         background:linear-gradient(135deg,#FFD700,#FFA000);
+                         color:#000;font-weight:800;font-size:.82rem;
+                         cursor:pointer;transition:opacity .18s;letter-spacing:.01em;"
+                  onmouseover="this.style.opacity='.8'"
+                  onmouseout="this.style.opacity='1'">&#x1F4BE; Salvar Altera\xE7\xF5es</button>
+          <button onclick="deletePersonDrawer()" title="Excluir registro"
+                  style="padding:12px 14px;border:1px solid rgba(239,68,68,.18);border-radius:12px;
+                         background:rgba(239,68,68,.05);color:rgba(239,68,68,.7);
+                         font-size:.82rem;cursor:pointer;transition:all .2s;"
+                  onmouseover="this.style.background='rgba(239,68,68,.14)';this.style.color='#EF4444';this.style.borderColor='rgba(239,68,68,.35)'"
+                  onmouseout="this.style.background='rgba(239,68,68,.05)';this.style.color='rgba(239,68,68,.7)';this.style.borderColor='rgba(239,68,68,.18)'">&#x1F5D1;&#xFE0F;</button>`;
         actionsDiv.style.display = 'flex';
     }
 };
