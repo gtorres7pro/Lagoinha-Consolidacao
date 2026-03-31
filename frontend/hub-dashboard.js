@@ -3738,7 +3738,7 @@ async function saveOverrideModules() {
     const _origSwitchTab = window.switchTab;
     window.switchTab = function(tab) {
         // Handle new G views
-        ['dev', 'start', 'jornada', 'batismo'].forEach(v => {
+        ['dev', 'start', 'jornada', 'batismo', 'membros'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.style.display = (tab === v) ? '' : 'none';
         });
@@ -3754,6 +3754,9 @@ async function saveOverrideModules() {
         }
         if (tab === 'batismo') {
             if (typeof loadBatismoModule === 'function') loadBatismoModule();
+        }
+        if (tab === 'membros') {
+            if (typeof loadMembrosModule === 'function') loadMembrosModule();
         }
         if (tab === 'settings') {
             loadWorkspaceSettings();
@@ -6014,3 +6017,143 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1500);
 });
+
+// ═══════════════════════════════════════════════════════════
+// NOVOS MEMBROS MODULE
+// ═══════════════════════════════════════════════════════════
+
+let _membrosAll = []; // cached records from member_registrations
+
+window.loadMembrosModule = async function() {
+    if (!window.supabaseClient || !window.currentWorkspaceId) return;
+    const wsId = window.currentWorkspaceId;
+    const sb = window.supabaseClient;
+
+    try {
+        const { data: regs, error } = await sb
+            .from('member_registrations')
+            .select('*')
+            .eq('workspace_id', wsId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        _membrosAll = regs || [];
+
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const total    = _membrosAll.length;
+        const done     = _membrosAll.filter(r => r.inpeace_status === 'done').length;
+        const pending  = _membrosAll.filter(r => r.inpeace_status === 'pending').length;
+        const thisMonth = _membrosAll.filter(r => r.created_at >= thisMonthStart).length;
+
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
+        setEl('membros-kpi-total',   total);
+        setEl('membros-kpi-done',    done);
+        setEl('membros-kpi-pending', pending);
+        setEl('membros-kpi-month',   thisMonth);
+        setEl('jornada-kpi-membros', total);
+
+        if (typeof QRCode !== 'undefined') {
+            const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
+            const qrUrl = window.location.origin + (slug ? `/${slug}/` : '/') + 'novos-membros-form.html';
+            const canvas = document.getElementById('qr-membros');
+            if (canvas) {
+                QRCode.toCanvas(canvas, qrUrl, { width: 64, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, () => {});
+            }
+        }
+
+        filterMembrosTable();
+    } catch(e) {
+        console.error('Membros module error:', e);
+    }
+};
+
+window.filterMembrosTable = function() {
+    const search = (document.getElementById('membros-search')?.value || '').toLowerCase();
+    const inpeaceFilter = document.getElementById('membros-filter-inpeace')?.value || 'all';
+
+    let list = _membrosAll;
+    if (search) {
+        list = list.filter(r =>
+            (r.name || '').toLowerCase().includes(search) ||
+            (r.email || '').toLowerCase().includes(search) ||
+            (r.phone || '').includes(search)
+        );
+    }
+    if (inpeaceFilter !== 'all') {
+        list = list.filter(r => r.inpeace_status === inpeaceFilter);
+    }
+    renderMembrosTable(list);
+};
+
+function renderMembrosTable(list) {
+    const tbody = document.getElementById('membros-table-body');
+    if (!tbody) return;
+
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:40px; text-align:center; color:rgba(255,255,255,.3);">Nenhum registro encontrado.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = list.map(r => {
+        const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('pt-PT') : '\u2014';
+        const phoneClean = (r.phone || '').replace(/\D/g, '');
+        const waBtn = phoneClean
+            ? `<a href="https://wa.me/${phoneClean}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;margin-left:6px;"><svg viewBox='0 0 24 24' width='10' height='10' fill='#25d366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/></svg></a>` : '';
+
+        const isDone = r.inpeace_status === 'done';
+        const inpeaceBadge = `<span id="inpeace-tag-${r.id}" onclick="toggleInPeaceStatus('${r.id}', '${r.inpeace_status}')" title="Clique para alterar status InPeace" style="cursor:pointer;display:inline-block;padding:4px 12px;border-radius:20px;font-size:.7rem;font-weight:700;transition:all .2s;${isDone ? 'background:rgba(52,211,153,.15);color:#34D399;border:1px solid rgba(52,211,153,.3);' : 'background:rgba(251,191,36,.12);color:#FBBF24;border:1px solid rgba(251,191,36,.25);'}">${isDone ? '\u2705 InPeace Feito' : '\ud83d\udd50 Pendente'}</span>`;
+
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
+            <td style="padding:12px 14px;font-weight:700;color:#fff;">${r.name || '\u2014'}</td>
+            <td style="padding:12px 14px;font-size:.78rem;color:rgba(255,255,255,.5);"><div>${r.email || '\u2014'}</div><div style="display:flex;align-items:center;margin-top:2px;">${r.phone || '\u2014'}${waBtn}</div></td>
+            <td style="padding:12px 14px;text-align:center;">${inpeaceBadge}</td>
+            <td style="padding:12px 14px;font-size:.78rem;color:rgba(255,255,255,.4);">${dateStr}</td>
+        </tr>`;
+    }).join('');
+}
+
+window.toggleInPeaceStatus = async function(id, currentStatus) {
+    const newStatus = currentStatus === 'done' ? 'pending' : 'done';
+    const sb = window.supabaseClient;
+
+    const tag = document.getElementById('inpeace-tag-' + id);
+    if (tag) {
+        const isDone = newStatus === 'done';
+        tag.style.background = isDone ? 'rgba(52,211,153,.15)' : 'rgba(251,191,36,.12)';
+        tag.style.color       = isDone ? '#34D399' : '#FBBF24';
+        tag.style.border      = isDone ? '1px solid rgba(52,211,153,.3)' : '1px solid rgba(251,191,36,.25)';
+        tag.textContent       = isDone ? '\u2705 InPeace Feito' : '\ud83d\udd50 Pendente';
+        tag.setAttribute('onclick', "toggleInPeaceStatus('" + id + "', '" + newStatus + "')");
+    }
+
+    const rec = _membrosAll.find(r => r.id === id);
+    if (rec) rec.inpeace_status = newStatus;
+
+    const { error } = await sb.from('member_registrations').update({ inpeace_status: newStatus }).eq('id', id);
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao atualizar status: ' + error.message, 'error');
+        if (rec) rec.inpeace_status = currentStatus;
+        filterMembrosTable();
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast('Status atualizado: ' + (newStatus === 'done' ? 'InPeace Feito \u2705' : 'Pendente \ud83d\udd50'), 'success');
+        const setEl = (elId, val) => { const el = document.getElementById(elId); if (el) el.innerText = val; };
+        setEl('membros-kpi-done',    _membrosAll.filter(r => r.inpeace_status === 'done').length);
+        setEl('membros-kpi-pending', _membrosAll.filter(r => r.inpeace_status === 'pending').length);
+    }
+};
+
+window.copyMembrosFormLink = function() {
+    const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
+    const url = window.location.origin + (slug ? '/' + slug + '/' : '/') + 'novos-membros-form.html';
+    navigator.clipboard.writeText(url).then(() => {
+        if (typeof hubToast !== 'undefined') hubToast('Link copiado! \ud83c\udfdb\ufe0f', 'success');
+    });
+};
+
+window.openMembrosForm = function() {
+    const slug = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.slug || '';
+    const url = window.location.origin + (slug ? '/' + slug + '/' : '/') + 'novos-membros-form.html';
+    window.open(url, '_blank');
+};

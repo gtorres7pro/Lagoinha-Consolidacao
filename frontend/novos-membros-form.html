@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Encontro de Membros — Lago HUB</title>
+  <meta name="description" content="Registre sua participação no Encontro de Novos Membros e dê o próximo passo na sua jornada de fé.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+  <style>
+    :root {
+      --primary: #FFD700;
+      --primary-glow: rgba(255, 215, 0, 0.35);
+      --bg: #07090f;
+      --surface: rgba(255,255,255,0.03);
+      --border: rgba(255,255,255,0.07);
+      --text-dim: rgba(255,255,255,0.55);
+      --green: #34D399;
+      --blue: #60a5fa;
+      --pink: #F472B6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+
+    /* Animated orbs */
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(120px); animation: float 20s infinite alternate ease-in-out; }
+    .orb-1 { width: 50vw; height: 50vw; background: rgba(244,114,182,0.07); top: -10%; left: -10%; }
+    .orb-2 { width: 40vw; height: 40vw; background: rgba(255,215,0,0.09); bottom: -10%; right: -10%; animation-delay: -8s; }
+    .orb-3 { width: 30vw; height: 30vw; background: rgba(100,50,200,0.06); top: 40%; left: 40%; animation-duration: 28s; }
+    @keyframes float { from { transform: translate(0,0) scale(1); } to { transform: translate(4%,8%) scale(1.08); } }
+
+    .container { width: 100%; max-width: 500px; z-index: 1; position: relative; }
+
+    /* Brand header */
+    .brand-header { text-align: center; margin-bottom: 28px; animation: fadeUp 0.6s ease; }
+    .brand-logo { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 8px 18px; backdrop-filter: blur(10px); }
+    .brand-logo-icon { width: 28px; height: 28px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .brand-logo-icon svg { width: 14px; height: 14px; }
+    .brand-name { font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px; }
+
+    /* Progress */
+    .progress-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; animation: fadeUp 0.6s 0.1s ease both; }
+    .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.3s ease; }
+    .progress-dot.active { background: var(--primary); box-shadow: 0 0 8px var(--primary-glow); width: 24px; border-radius: 4px; }
+    .progress-dot.done { background: var(--green); }
+
+    /* Glass card */
+    .glass-card {
+      background: rgba(13, 17, 23, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px;
+      padding: 36px;
+      box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.7s 0.05s cubic-bezier(0.2,0.8,0.2,1) both;
+    }
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(244,114,182,0.4), transparent);
+    }
+
+    .step { display: none; }
+    .step.active { display: block; animation: fadeUp 0.4s ease; }
+
+    .step-icon { font-size: 2.5rem; margin-bottom: 16px; display: block; text-align: center; }
+    .step-title { font-size: 1.6rem; font-weight: 800; line-height: 1.2; margin-bottom: 8px; letter-spacing: -0.3px; text-align: center; }
+    .step-subtitle { font-size: 0.92rem; color: var(--text-dim); line-height: 1.6; text-align: center; margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    label.field-label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
+    input[type="email"], input[type="text"], input[type="tel"] {
+      width: 100%; padding: 14px 16px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(0,0,0,0.25);
+      color: #fff; font-family: 'Outfit'; font-size: 1rem;
+      transition: all 0.25s; outline: none;
+    }
+    input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 3px rgba(255,215,0,0.1); }
+    input::placeholder { color: rgba(255,255,255,0.2); }
+    input:disabled { opacity: 0.5; }
+
+    /* ITI */
+    .iti { width: 100%; display: block; }
+    .iti__flag { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags.png"); }
+    @media (min-resolution: 2x) { .iti__flag { background-image: url("https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/img/flags@2x.png"); } }
+    .iti__country-list { background: #0d1117; border: 1px solid var(--border); color: #fff; border-radius: 12px; font-family: 'Outfit'; z-index: 9999; }
+    .iti__country-list li:hover { background: rgba(255,255,255,0.08); }
+    .iti__selected-flag { border-radius: 11px 0 0 11px; padding: 0 14px; }
+    .iti__selected-dial-code { color: #fff; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%; padding: 15px; border-radius: 100px; border: none;
+      background: var(--primary); color: #000; font-family: 'Outfit';
+      font-weight: 800; font-size: 1rem; cursor: pointer; transition: all 0.25s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 24px; position: relative; overflow: hidden;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--primary-glow); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    .btn-secondary {
+      width: 100%; padding: 13px; border-radius: 100px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: var(--text-dim); font-family: 'Outfit'; font-weight: 600;
+      font-size: 0.9rem; cursor: pointer; transition: all 0.2s; margin-top: 10px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    /* Name confirm card */
+    .name-confirm-card {
+      background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 16px; padding: 18px 20px;
+      display: flex; align-items: center; gap: 14px; margin-bottom: 28px;
+    }
+    .name-confirm-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,215,0,0.15); display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 800; color: var(--primary); flex-shrink: 0;
+      border: 1px solid rgba(255,215,0,0.3);
+    }
+    .name-confirm-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+    .name-confirm-info p { font-size: 0.8rem; color: var(--text-dim); }
+
+    /* InPeace choice cards */
+    .choice-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+    .choice-card { position: relative; cursor: pointer; }
+    .choice-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .choice-card-inner {
+      display: flex; align-items: center; gap: 14px; padding: 18px 18px;
+      border: 1px solid var(--border); border-radius: 14px;
+      background: rgba(255,255,255,0.02); transition: all 0.2s;
+    }
+    .choice-card:hover .choice-card-inner { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); }
+    .choice-card input:checked + .choice-card-inner { border-color: var(--primary); background: rgba(255,215,0,0.07); box-shadow: 0 0 0 3px rgba(255,215,0,0.1); }
+    .choice-card-emoji { font-size: 1.5rem; width: 44px; height: 44px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .choice-card input:checked + .choice-card-inner .choice-card-emoji { background: rgba(255,215,0,0.12); }
+    .choice-card-label h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+    .choice-card-label p { font-size: 0.78rem; color: var(--text-dim); }
+    .choice-card input:checked + .choice-card-inner .choice-card-label h4 { color: var(--primary); }
+
+    /* Information alert */
+    .info-alert {
+      background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25);
+      border-radius: 12px; padding: 14px 16px; font-size: 0.82rem;
+      color: var(--blue); line-height: 1.5; margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+
+    /* App download buttons (step 3b) */
+    .app-btn {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 14px 18px; text-decoration: none;
+      color: #fff; transition: all 0.2s; margin-bottom: 10px;
+    }
+    .app-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+    .app-btn-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .app-btn-info { display: flex; flex-direction: column; }
+    .app-btn-sub { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .app-btn-title { font-size: 0.92rem; font-weight: 700; }
+
+    /* InPeace link card */
+    .inpeace-link-card {
+      background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 16px; padding: 22px; text-align: center; margin-bottom: 20px;
+    }
+    .inpeace-link-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+    .inpeace-link-card p { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
+    .inpeace-link-card a {
+      display: inline-block; background: var(--primary); color: #000;
+      font-weight: 800; font-size: 0.9rem; padding: 12px 28px;
+      border-radius: 100px; text-decoration: none; transition: all 0.2s;
+    }
+    .inpeace-link-card a:hover { box-shadow: 0 6px 20px var(--primary-glow); transform: translateY(-1px); }
+
+    /* Celebration */
+    .celebration { text-align: center; }
+    .celebration-emoji { font-size: 4rem; display: block; margin-bottom: 16px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .celebration-title { font-size: 2rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.5px; margin-bottom: 10px; }
+    .celebration-title span { color: var(--primary); }
+    .celebration-subtitle { color: var(--text-dim); font-size: 0.95rem; line-height: 1.65; margin-bottom: 28px; max-width: 380px; margin-left: auto; margin-right: auto; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: -80px; left: 50%; transform: translateX(-50%); background: #1d1d2e; border: 1px solid var(--border); color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: 600; font-size: 0.88rem; z-index: 9999; transition: bottom 0.4s cubic-bezier(0.2,0.8,0.2,1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap; }
+    .toast.show { bottom: 32px; }
+    .toast.error { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
+    .toast.success { background: rgba(52,211,153,0.1); color: var(--green); border-color: rgba(52,211,153,0.3); }
+
+    /* Spinner */
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+      body { padding: 16px 12px; }
+      .glass-card { padding: 24px 20px; border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Brand -->
+    <div class="brand-header">
+      <div class="brand-logo">
+        <div class="brand-logo-icon">
+          <svg viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000"/>
+            <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000"/>
+            <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
+          </svg>
+        </div>
+        <span class="brand-name" id="ws-name-display">Lago HUB</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-dot active" id="dot-1"></div>
+      <div class="progress-dot" id="dot-2"></div>
+      <div class="progress-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Glass Card -->
+    <div class="glass-card">
+
+      <!-- ── STEP 1: Email Lookup ── -->
+      <div class="step active" id="step-1">
+        <span class="step-icon">🏛️</span>
+        <h1 class="step-title">Encontro de Membros</h1>
+        <p class="step-subtitle">
+          Registre sua participação neste momento tão especial.<br>
+          Insira seu email para começarmos.
+        </p>
+
+        <div class="form-group">
+          <label class="field-label" for="s1-email">Seu Email</label>
+          <input type="email" id="s1-email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+
+        <button class="btn-primary" id="btn-step1" onclick="handleStep1()">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- ── STEP 1b: New user ── -->
+      <div class="step" id="step-1b">
+        <span class="step-icon">👋</span>
+        <h2 class="step-title">Bem-vindo(a)!</h2>
+        <p class="step-subtitle">Não encontramos seu cadastro. Preencha os dados abaixo para continuar:</p>
+
+        <div class="info-alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Email não encontrado na nossa base. Complete seu cadastro para prosseguir.
+        </div>
+
+        <div class="form-group">
+          <label class="field-label" for="s1b-email-display">Email</label>
+          <input type="email" id="s1b-email-display" disabled>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="s1b-name">Nome Completo</label>
+          <input type="text" id="s1b-name" placeholder="Seu nome completo" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="s1b-phone">WhatsApp</label>
+          <input type="tel" id="s1b-phone" placeholder="">
+        </div>
+
+        <button class="btn-primary" id="btn-step1b" onclick="handleStep1b()">
+          Continuar
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <button class="btn-secondary" onclick="resetToStep1()">← Usar outro email</button>
+      </div>
+
+      <!-- ── STEP 2: InPeace Confirmation ── -->
+      <div class="step" id="step-2">
+        <div class="name-confirm-card" id="confirm-card">
+          <div class="name-confirm-avatar" id="confirm-avatar">G</div>
+          <div class="name-confirm-info">
+            <h3 id="confirm-name">Nome do Participante</h3>
+            <p>Cadastro confirmado ✓</p>
+          </div>
+        </div>
+
+        <h2 class="step-title" style="font-size:1.35rem; margin-bottom:8px;">Ficha no InPeace App</h2>
+        <p class="step-subtitle" style="margin-bottom:20px;">
+          Você já preencheu sua ficha de membro no aplicativo oficial da igreja?
+        </p>
+
+        <div class="choice-cards">
+          <label class="choice-card">
+            <input type="radio" name="inpeace-status" value="done" checked>
+            <div class="choice-card-inner">
+              <div class="choice-card-emoji">✅</div>
+              <div class="choice-card-label">
+                <h4>Sim, já preenchi!</h4>
+                <p>Já fiz meu cadastro no InPeace App.</p>
+              </div>
+            </div>
+          </label>
+          <label class="choice-card">
+            <input type="radio" name="inpeace-status" value="pending">
+            <div class="choice-card-inner">
+              <div class="choice-card-emoji">🕐</div>
+              <div class="choice-card-label">
+                <h4>Ainda não fiz</h4>
+                <p>Ainda não completei o cadastro no aplicativo.</p>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <button class="btn-primary" id="btn-step2" onclick="handleStep2()">
+          Confirmar Participação 🏛️
+        </button>
+        <button class="btn-secondary" onclick="goToStep(1)">← Voltar</button>
+      </div>
+
+      <!-- ── STEP 3a: Confirmed (InPeace done) ── -->
+      <div class="step" id="step-3a">
+        <div class="celebration">
+          <span class="celebration-emoji">🎉</span>
+          <h2 class="celebration-title">Perfeito,<br><span id="celebrate-name-a">Amigo</span>!</h2>
+          <p class="celebration-subtitle">
+            Sua participação no Encontro de Membros está confirmada!
+            Estamos animados para te receber como parte da família. 🙌
+          </p>
+
+          <div style="background:rgba(52,211,153,0.07); border:1px solid rgba(52,211,153,0.2); border-radius:16px; padding:20px; text-align:left; margin-bottom:24px;">
+            <p style="color:var(--green); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">✓ InPeace Confirmado</p>
+            <p style="color:rgba(255,255,255,0.75); font-size:0.88rem; line-height:1.65;">
+              Ótimo! Seu cadastro no app já está feito. Fique de olho nas notificações para receber informações sobre o próximo encontro.
+            </p>
+          </div>
+
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:16px;">
+            Um email de confirmação foi enviado para você! 📧
+          </p>
+
+          <button class="btn-secondary" onclick="location.reload()" style="max-width:260px; margin:0 auto;">
+            Registrar outra pessoa
+          </button>
+        </div>
+      </div>
+
+      <!-- ── STEP 3b: Pending InPeace instructions ── -->
+      <div class="step" id="step-3b">
+        <span class="step-icon">📱</span>
+        <h2 class="step-title" style="font-size:1.4rem;">Complete seu Cadastro</h2>
+        <p class="step-subtitle">
+          Sem problemas! Veja como completar seu cadastro no aplicativo oficial da igreja:
+        </p>
+
+        <!-- InPeace web link -->
+        <div class="inpeace-link-card">
+          <h3>🌐 Passo 1 — Acesse o Portal</h3>
+          <p>Acesse o portal InPeace, selecione sua igreja local e complete seu cadastro para receber a carteirinha digital de membro.</p>
+          <a href="https://loc.inpeaceapp.com" target="_blank" rel="noopener">
+            Acessar InPeace →
+          </a>
+          <p style="font-size:0.72rem; color:var(--text-dim); margin-top:10px; margin-bottom:0;">loc.inpeaceapp.com</p>
+        </div>
+
+        <!-- App downloads -->
+        <p style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-dim); margin-bottom:12px;">📲 Passo 2 — Baixe o App</p>
+
+        <a class="app-btn" href="https://apps.apple.com/us/app/lagoinha-usa/id1491056513" target="_blank" rel="noopener">
+          <div class="app-btn-icon">🍎</div>
+          <div class="app-btn-info">
+            <span class="app-btn-sub">Disponível na</span>
+            <span class="app-btn-title">App Store (iOS)</span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;opacity:0.4;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+
+        <a class="app-btn" href="https://play.google.com/store/apps/details?id=com.inpeace.lagoinhaorlandochurch&hl=en_US&gl=US" target="_blank" rel="noopener">
+          <div class="app-btn-icon">▶️</div>
+          <div class="app-btn-info">
+            <span class="app-btn-sub">Disponível no</span>
+            <span class="app-btn-title">Google Play (Android)</span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;opacity:0.4;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px 18px; margin-top:16px; margin-bottom:20px;">
+          <p style="font-size:0.85rem; color:rgba(255,255,255,0.7); line-height:1.65;">
+            <strong style="color:#fff;">Passo 3:</strong> Após o cadastro no app, avise seu líder local para que seu status de membro seja oficialmente confirmado.
+          </p>
+        </div>
+
+        <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:16px; text-align:center;">
+          📧 Enviamos um email com todas essas instruções para você!
+        </p>
+
+        <button class="btn-secondary" onclick="location.reload()" style="max-width:260px; margin:0 auto;">
+          Registrar outra pessoa
+        </button>
+      </div>
+
+    </div>
+    <!-- /glass-card -->
+
+  </div>
+  <!-- /container -->
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/hub-router.js"></script>
+  <script>
+    // ── Note: SUPABASE_URL and SUPABASE_ANON_KEY are already declared
+    // as global consts in hub-router.js. Re-declaring with `const` here
+    // would cause a SyntaxError that silently kills the entire script.
+    const GOOGLE_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // State
+    let _ws         = null;
+    let _leadId     = null;
+    let _personName = null;
+    let _personEmail = null;
+    let _personPhone = null;
+    let _phoneIti   = null;
+
+    // Toast
+    function toast(msg, type = 'info', dur = 3500) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `toast show ${type}`;
+      setTimeout(() => el.classList.remove('show'), dur);
+    }
+
+    // Step nav
+    function goToStep(n) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      const steps = ['1','1b','2','3a','3b'];
+      // n can be 1, '1b', 2, '3a', '3b'
+      const target = document.getElementById(`step-${n}`);
+      if (target) target.classList.add('active');
+      // Dots: map numeric steps to dot positions
+      const numMap = { '1': 1, '1b': 1, '2': 2, '3a': 3, '3b': 3 };
+      const dotN = numMap[String(n)] || n;
+      ['dot-1','dot-2','dot-3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.classList.remove('active','done');
+        if (i + 1 < dotN) dot.classList.add('done');
+        else if (i + 1 === dotN) dot.classList.add('active');
+      });
+    }
+
+    function resetToStep1() {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-1').classList.add('active');
+      ['dot-1','dot-2','dot-3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.classList.remove('active','done');
+        if (i === 0) dot.classList.add('active');
+      });
+    }
+
+    function btnLoad(id, loading, defaultHTML = null) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner"></div>`;
+      } else {
+        btn.disabled = false;
+        if (defaultHTML) btn.innerHTML = defaultHTML;
+      }
+    }
+
+    // ── Workspace resolution ────────────────────────────────────────
+    async function resolveWorkspace() {
+      let ws = await HubRouter.getWorkspace().catch(() => null);
+      if (ws) return ws;
+
+      const savedId = localStorage.getItem('currentWorkspaceId') ||
+                      localStorage.getItem('lago_workspace_id') ||
+                      sessionStorage.getItem('currentWorkspaceId') ||
+                      sessionStorage.getItem('ws_id');
+      if (savedId) {
+        const { data } = await sb.from('workspaces').select('id, name, status').eq('id', savedId).maybeSingle();
+        if (data) return data;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const wsSlug = params.get('ws') || params.get('workspace');
+      if (wsSlug) {
+        const { data } = await sb.from('workspaces').select('id, name, status').ilike('name', wsSlug).maybeSingle();
+        if (data) return data;
+      }
+
+      return null;
+    }
+
+    function showInlineError(msg) {
+      let el = document.getElementById('inline-error');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'inline-error';
+        el.style.cssText = 'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:12px;padding:14px 16px;font-size:0.85rem;line-height:1.5;margin-top:14px;text-align:center;';
+        document.getElementById('btn-step1').insertAdjacentElement('afterend', el);
+      }
+      el.innerHTML = msg;
+      el.style.display = 'block';
+    }
+    function hideInlineError() {
+      const el = document.getElementById('inline-error');
+      if (el) el.style.display = 'none';
+    }
+
+    // ── Step 1: Email Lookup ────────────────────────────────────────
+    async function handleStep1() {
+      const email = document.getElementById('s1-email').value.trim().toLowerCase();
+      if (!email || !email.includes('@')) { toast('Por favor insira um email válido.', 'error'); return; }
+
+      hideInlineError();
+      btnLoad('btn-step1', true);
+
+      try {
+        _ws = await resolveWorkspace();
+
+        if (!_ws) {
+          const { data: leadAny } = await sb.from('leads')
+            .select('id, name, email, phone, workspace_id')
+            .ilike('email', email).maybeSingle();
+
+          if (leadAny) {
+            const { data: wsData } = await sb.from('workspaces')
+              .select('id, name').eq('id', leadAny.workspace_id).maybeSingle();
+            if (wsData) {
+              _ws = wsData;
+              _leadId = leadAny.id;
+              _personName = leadAny.name;
+              _personEmail = email;
+              _personPhone = leadAny.phone || '';
+              document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+              showStep2();
+              return;
+            }
+          }
+
+          showInlineError(
+            '⚠️ Não foi possível identificar sua igreja.<br>' +
+            'Use o link completo enviado pelo seu líder,<br>' +
+            'ou acesse primeiro o <a href="/" style="color:#FFD700;">portal da sua igreja</a>.'
+          );
+          return;
+        }
+
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+        document.title = `Encontro de Membros — ${_ws.name}`;
+
+        // Look up in leads
+        const { data: lead } = await sb.from('leads')
+          .select('id, name, email, phone')
+          .eq('workspace_id', _ws.id)
+          .ilike('email', email)
+          .maybeSingle();
+
+        if (lead) {
+          _leadId = lead.id;
+          _personName = lead.name;
+          _personEmail = email;
+          _personPhone = lead.phone || '';
+          showStep2();
+        } else {
+          // Check start_participants
+          const { data: sp } = await sb.from('start_participants')
+            .select('id, name, email, phone, lead_id')
+            .eq('workspace_id', _ws.id)
+            .ilike('email', email)
+            .maybeSingle();
+
+          if (sp) {
+            _leadId = sp.lead_id || null;
+            _personName = sp.name;
+            _personEmail = email;
+            _personPhone = sp.phone || '';
+            showStep2();
+          } else {
+            // Check baptism_registrations
+            const { data: br } = await sb.from('baptism_registrations')
+              .select('id, name, email, phone, lead_id')
+              .eq('workspace_id', _ws.id)
+              .ilike('email', email)
+              .maybeSingle();
+
+            if (br) {
+              _leadId = br.lead_id || null;
+              _personName = br.name;
+              _personEmail = email;
+              _personPhone = br.phone || '';
+              showStep2();
+            } else {
+              // New user
+              _personEmail = email;
+              document.getElementById('s1b-email-display').value = email;
+              goToStep('1b');
+              if (!_phoneIti) {
+                _phoneIti = window.intlTelInput(document.getElementById('s1b-phone'), {
+                  initialCountry: 'br',
+                  preferredCountries: ['br','pt','us','es'],
+                  separateDialCode: true,
+                  utilsScript: 'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js',
+                });
+              }
+            }
+          }
+        }
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao verificar email. Tente novamente.', 'error');
+      } finally {
+        const btn = document.getElementById('btn-step1');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Continuar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+        }
+      }
+    }
+
+    // ── Step 1b: New User ───────────────────────────────────────────
+    async function handleStep1b() {
+      const name  = document.getElementById('s1b-name').value.trim();
+      const phone = _phoneIti ? _phoneIti.getNumber() : '';
+
+      if (!name) { toast('Por favor insira seu nome.', 'error'); return; }
+
+      btnLoad('btn-step1b', true);
+
+      try {
+        const { data: newLead, error } = await sb.from('leads').insert({
+          workspace_id: _ws.id,
+          name,
+          email: _personEmail,
+          phone,
+          type: 'saved',
+          preferred_language: 'pt'
+        }).select().single();
+
+        if (error) throw error;
+
+        _leadId = newLead.id;
+        _personName = name;
+        _personPhone = phone;
+        showStep2();
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao criar cadastro. Tente novamente.', 'error');
+      } finally {
+        const btn = document.getElementById('btn-step1b');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Continuar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+        }
+      }
+    }
+
+    function showStep2() {
+      const firstName = (_personName || '').split(' ')[0];
+      document.getElementById('confirm-avatar').textContent = firstName.charAt(0).toUpperCase();
+      document.getElementById('confirm-name').textContent = _personName || 'Participante';
+      goToStep(2);
+    }
+
+    // ── Step 2: Submit Registration ─────────────────────────────────
+    async function handleStep2() {
+      const inpeaceStatus = document.querySelector('input[name="inpeace-status"]:checked')?.value || 'pending';
+      btnLoad('btn-step2', true);
+
+      try {
+        // 1. Insert into member_registrations
+        const { error: regError } = await sb.from('member_registrations').insert({
+          workspace_id: _ws.id,
+          lead_id: _leadId || null,
+          name: _personName,
+          email: _personEmail,
+          phone: _personPhone,
+          inpeace_status: inpeaceStatus,
+        });
+        if (regError) throw regError;
+
+        // 2. Google Sheets fire-and-forget
+        fetch(GOOGLE_SHEETS_WEBHOOK, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            formUsed: 'Novos Membros',
+            date: new Date().toISOString(),
+            workspace: _ws.name,
+            workspaceId: _ws.id,
+            name: _personName,
+            email: _personEmail,
+            whatsapp: _personPhone,
+            inpeace: inpeaceStatus === 'done' ? 'Feito' : 'Pendente',
+          })
+        }).catch(() => {});
+
+        // 3. Send email (different function based on status)
+        if (_personEmail) {
+          const fnName = inpeaceStatus === 'done'
+            ? 'novos-membros-email-confirmed'
+            : 'novos-membros-email-pending';
+
+          fetch(`${SUPABASE_URL}/functions/v1/${fnName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({
+              name: _personName,
+              email: _personEmail,
+              workspace_name: _ws.name,
+            })
+          }).catch(() => {});
+        }
+
+        // 4. Show appropriate success screen
+        const firstName = (_personName || '').split(' ')[0];
+        if (inpeaceStatus === 'done') {
+          document.getElementById('celebrate-name-a').textContent = firstName;
+          goToStep('3a');
+        } else {
+          goToStep('3b');
+        }
+
+      } catch(e) {
+        console.error(e);
+        toast('Erro ao registrar. Tente novamente.', 'error');
+      } finally {
+        const btn = document.getElementById('btn-step2');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar Participação 🏛️'; }
+      }
+    }
+
+    // ── Init ────────────────────────────────────────────────────────
+    async function init() {
+      _ws = await HubRouter.getWorkspace();
+      if (_ws) {
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+        document.title = `Encontro de Membros — ${_ws.name || 'Lago HUB'}`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    // Enter key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        if (document.getElementById('step-1').classList.contains('active')) handleStep1();
+        else if (document.getElementById('step-1b').classList.contains('active')) handleStep1b();
+        else if (document.getElementById('step-2').classList.contains('active')) handleStep2();
+      }
+    });
+  </script>
+
+</body>
+</html>
