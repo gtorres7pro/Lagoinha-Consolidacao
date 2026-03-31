@@ -7121,3 +7121,719 @@ window.sendReportEmail = async function(scope, btnEl) {
 };
 
 
+
+// ═══════════════════════════════════════════════════════════════════
+// MÓDULO FINANCEIRO — Financial Reports (Local / Regional / Global)
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Helpers ──────────────────────────────────────────────────────
+function getISOWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return { week: Math.ceil((((d - yearStart) / 86400000) + 1) / 7), year: d.getUTCFullYear() };
+}
+
+function fmtMoney(val, currency) {
+    if (val == null || isNaN(val)) return '—';
+    return new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' ' + (currency || '');
+}
+
+function periodToDateRange(period) {
+    const now = new Date();
+    let from = null;
+    if (period === '7d')  from = new Date(now - 7  * 86400000);
+    if (period === '30d') from = new Date(now - 30 * 86400000);
+    if (period === '90d') from = new Date(now - 90 * 86400000);
+    if (period === '12m') from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    return { from: from ? from.toISOString().slice(0,10) : null, to: now.toISOString().slice(0,10) };
+}
+
+function paymentBadge(status) {
+    if (status === 'paid') return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(74,222,128,.12);color:#4ADE80;border:1px solid rgba(74,222,128,.2);">✓ Pago</span>';
+    return '<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(248,113,113,.1);color:#F87171;border:1px solid rgba(248,113,113,.2);">⏳ Pendente</span>';
+}
+
+function msgBtn(reportId, count, isMaster) {
+    const unread = count > 0;
+    return '<button onclick="openFinMsgDrawer(\'' + reportId + '\',\'' + (isMaster?'master':'local') + '\')" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;background:' + (unread?'rgba(129,140,248,.15)':'rgba(255,255,255,.05)') + ';border:1px solid ' + (unread?'rgba(129,140,248,.35)':'rgba(255,255,255,.1)') + ';color:' + (unread?'#818CF8':'rgba(255,255,255,.35)') + ';">💬' + (unread ? ' ' + count : '') + '</button>';
+}
+
+// ─── Exchange Rate (with 60min cache) ─────────────────────────────
+async function getExchangeRate(fromCurrency) {
+    if (fromCurrency === 'USD') return 1.0;
+    const cacheKey = 'fx_' + fromCurrency + '_usd';
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+    if (cached.rate && (Date.now() - (cached.ts || 0)) < 3600000) return cached.rate;
+    try {
+        const resp = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (!resp.ok) throw new Error('API error');
+        const data = await resp.json();
+        const rate = 1 / (data.rates[fromCurrency] || 1);
+        localStorage.setItem(cacheKey, JSON.stringify({ rate, ts: Date.now() }));
+        return rate;
+    } catch(e) {
+        console.warn('[FX API]', e);
+        const banner = document.getElementById('fin-exchange-warning');
+        if (banner) banner.style.display = 'flex';
+        try {
+            await window.supabaseClient.from('app_logs').insert({
+                type: 'bug', title: 'Taxa de câmbio indisponível',
+                description: 'Falha ao buscar taxa ' + fromCurrency + '/USD: ' + e.message,
+                status: 'pending'
+            });
+        } catch(_) {}
+        return null;
+    }
+}
+
+// ─── Form Controls ────────────────────────────────────────────────
+window.openFinancialForm = async function() {
+    const overlay = document.getElementById('fin-form-overlay');
+    const drawer  = document.getElementById('fin-form-drawer');
+    if (!overlay || !drawer) return;
+
+    const now = new Date();
+    const isoWk = getISOWeek(now);
+    const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    document.getElementById('fin-input-week').value  = isoWk.week;
+    document.getElementById('fin-input-month').value = now.getMonth() + 1;
+    document.getElementById('fin-input-year').value  = isoWk.year;
+
+    const weekLabelEl = document.getElementById('fin-form-week-label');
+    if (weekLabelEl) weekLabelEl.textContent = 'Semana ' + isoWk.week + ' — ' + monthNames[now.getMonth()] + ' ' + isoWk.year;
+
+    const wsId = window.currentWorkspaceId;
+    if (wsId) {
+        try {
+            const { data: ws } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', wsId).single();
+            const localCur = ws && ws.credentials && ws.credentials.local_currency;
+            if (localCur) {
+                const sel = document.getElementById('fin-input-currency');
+                if (sel) sel.value = localCur;
+            }
+        } catch(_) {}
+    }
+
+    await onFinCurrencyChange();
+    ['fin-input-total','fin-input-submitter-name','fin-input-submitter-role','fin-input-notes'].forEach(function(id) {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    recalcFinValues();
+
+    const errEl = document.getElementById('fin-form-error');
+    if (errEl) errEl.style.display = 'none';
+
+    overlay.style.display = 'flex';
+    requestAnimationFrame(function() { drawer.style.transform = 'translateX(0)'; });
+};
+
+window.closeFinancialForm = function() {
+    const overlay = document.getElementById('fin-form-overlay');
+    const drawer  = document.getElementById('fin-form-drawer');
+    if (drawer)  drawer.style.transform  = 'translateX(100%)';
+    if (overlay) setTimeout(function() { overlay.style.display = 'none'; }, 360);
+};
+
+window.onFinCurrencyChange = async function() {
+    const cur = (document.getElementById('fin-input-currency') || {}).value || 'USD';
+    const rateInput = document.getElementById('fin-input-rate');
+    const indicator = document.getElementById('fin-rate-indicator');
+    if (!rateInput) return;
+    if (cur === 'USD') {
+        rateInput.value = '1.000000';
+        rateInput.readOnly = true;
+        if (indicator) indicator.textContent = '= US$ 1';
+    } else {
+        rateInput.value = '';
+        rateInput.readOnly = false;
+        if (indicator) indicator.textContent = '🔄';
+        const rate = await getExchangeRate(cur);
+        if (rate) {
+            rateInput.value = rate.toFixed(6);
+            if (indicator) indicator.textContent = '≈ ' + rate.toFixed(4) + ' USD';
+        } else {
+            if (indicator) indicator.textContent = '⚠️ manual';
+        }
+    }
+    recalcFinValues();
+};
+
+window.recalcFinValues = function() {
+    const total    = parseFloat((document.getElementById('fin-input-total') || {}).value) || 0;
+    const rate     = parseFloat((document.getElementById('fin-input-rate') || {}).value)  || 1;
+    const currency = (document.getElementById('fin-input-currency') || {}).value || 'USD';
+    const regCur   = (document.getElementById('fin-input-regional-currency') || {}).value || '';
+
+    const global10Local = total * 0.10;
+    const global10Usd   = global10Local * rate;
+    const reg5Local     = total * 0.05;
+
+    const gLocalEl = document.getElementById('fin-calc-global-local');
+    const gUsdEl   = document.getElementById('fin-calc-global-usd');
+    const rLocalEl = document.getElementById('fin-calc-regional-local');
+    const rCurEl   = document.getElementById('fin-calc-regional-currency');
+
+    if (gLocalEl) gLocalEl.textContent = fmtMoney(global10Local, currency);
+    if (gUsdEl)   gUsdEl.textContent   = '≈ US$ ' + fmtMoney(global10Usd, '');
+    if (rLocalEl) rLocalEl.textContent = fmtMoney(reg5Local, regCur || currency);
+    if (rCurEl)   rCurEl.textContent   = regCur ? '(convertido para ' + regCur + ')' : '';
+};
+
+// ─── Period filters (Local) ───────────────────────────────────────
+var _finPeriod = '7d', _finDateFrom = null, _finDateTo = null;
+window.setFinPeriod = function(p, btn) {
+    _finPeriod = p; _finDateFrom = null; _finDateTo = null;
+    document.querySelectorAll('#fin-period-btns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    loadFinancialReports();
+};
+window.setFinPeriodCustom = function() {
+    _finPeriod = 'custom';
+    _finDateFrom = (document.getElementById('fin-date-from') || {}).value || null;
+    _finDateTo   = (document.getElementById('fin-date-to') || {}).value   || null;
+    document.querySelectorAll('#fin-period-btns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    loadFinancialReports();
+};
+
+// ─── Load Financial Reports (Local) ──────────────────────────────
+window.loadFinancialReports = async function() {
+    const sb   = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!sb || !wsId) return;
+
+    const tbody = document.getElementById('fin-reports-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,.25);">Carregando...</td></tr>';
+
+    var dateFrom = _finDateFrom, dateTo = _finDateTo;
+    if (_finPeriod !== 'custom') { var dr = periodToDateRange(_finPeriod); dateFrom = dr.from; dateTo = dr.to; }
+
+    var query = sb.from('financial_reports').select('*').eq('workspace_id', wsId).order('year', { ascending: false }).order('week_number', { ascending: false });
+    if (dateFrom) query = query.gte('submission_date', dateFrom);
+    if (dateTo)   query = query.lte('submission_date', dateTo);
+
+    const { data: reports, error } = await query;
+
+    const now = new Date();
+    const isoWk = getISOWeek(now);
+    const hasThisWeek = reports && reports.some(function(r) { return r.year === isoWk.year && r.week_number === isoWk.week; });
+    const weekStatusEl = document.getElementById('fin-week-status');
+    if (weekStatusEl) {
+        weekStatusEl.textContent = hasThisWeek ? '✓ Semana ' + isoWk.week + ' enviada' : '⚠ Semana ' + isoWk.week + ' pendente';
+        weekStatusEl.style.color = hasThisWeek ? '#4ADE80' : '#F87171';
+        weekStatusEl.style.background = hasThisWeek ? 'rgba(74,222,128,.08)' : 'rgba(248,113,113,.08)';
+        weekStatusEl.style.borderColor = hasThisWeek ? 'rgba(74,222,128,.2)' : 'rgba(248,113,113,.2)';
+    }
+
+    if (error || !reports || !reports.length) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Nenhum relatório encontrado para o período selecionado.</td></tr>';
+        ['fin-kpi-total','fin-kpi-global','fin-kpi-regional','fin-kpi-count','fin-kpi-pending'].forEach(function(id) {
+            var el = document.getElementById(id); if (el) el.textContent = '0';
+        });
+        return;
+    }
+
+    const totIncome  = reports.reduce(function(a,r) { return a + (parseFloat(r.total_income_local) || 0); }, 0);
+    const totGlobalUsd = reports.reduce(function(a,r) { return a + (parseFloat(r.global_10pct_usd) || 0); }, 0);
+    const totReg5    = reports.reduce(function(a,r) { return a + (parseFloat(r.regional_5pct_local) || 0); }, 0);
+    const pendingCount = reports.filter(function(r) { return r.payment_status_global === 'pending' || r.payment_status_regional === 'pending'; }).length;
+    const currency = reports[0] ? reports[0].local_currency : '';
+
+    function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
+    setText('fin-kpi-total', fmtMoney(totIncome, currency));
+    setText('fin-kpi-global', 'US$ ' + fmtMoney(totGlobalUsd, ''));
+    setText('fin-kpi-regional', fmtMoney(totReg5, currency));
+    setText('fin-kpi-count', reports.length);
+    setText('fin-kpi-pending', pendingCount);
+
+    const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    if (tbody) tbody.innerHTML = reports.map(function(r) {
+        return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'
+            + '<td style="padding:12px 16px;font-weight:700;">Sem. ' + r.week_number + '</td>'
+            + '<td style="padding:12px 16px;color:rgba(255,255,255,.55);font-size:.78rem;">' + monthNames[(r.month||1)-1] + ' ' + r.year + '</td>'
+            + '<td style="padding:12px 16px;text-align:right;font-weight:700;">' + fmtMoney(r.total_income_local, r.local_currency) + '</td>'
+            + '<td style="padding:12px 16px;text-align:right;color:#34D399;">' + fmtMoney(r.global_10pct_usd, 'USD') + '</td>'
+            + '<td style="padding:12px 16px;text-align:right;color:#818CF8;">' + fmtMoney(r.regional_5pct_local, r.regional_currency || r.local_currency) + '</td>'
+            + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_global) + '</td>'
+            + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_regional) + '</td>'
+            + '<td style="padding:12px 16px;text-align:center;">' + msgBtn(r.id, r.unread_for_local ? 1 : 0, false) + '</td>'
+            + '</tr>';
+    }).join('');
+};
+
+// ─── Submit Report ────────────────────────────────────────────────
+window.submitFinancialReport = async function() {
+    const sb   = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!sb || !wsId) return;
+
+    const btn   = document.getElementById('btn-submit-report');
+    const errEl = document.getElementById('fin-form-error');
+    if (errEl) errEl.style.display = 'none';
+
+    const week   = parseInt((document.getElementById('fin-input-week') || {}).value)  || 0;
+    const month  = parseInt((document.getElementById('fin-input-month') || {}).value) || 0;
+    const year   = parseInt((document.getElementById('fin-input-year') || {}).value)  || 0;
+    const currency = (document.getElementById('fin-input-currency') || {}).value || 'USD';
+    const rate   = parseFloat((document.getElementById('fin-input-rate') || {}).value) || 1;
+    const total  = parseFloat((document.getElementById('fin-input-total') || {}).value) || 0;
+    const submitterName = ((document.getElementById('fin-input-submitter-name') || {}).value || '').trim();
+    const submitterRole = ((document.getElementById('fin-input-submitter-role') || {}).value || '').trim();
+    const notes = ((document.getElementById('fin-input-notes') || {}).value || '').trim();
+    const regCurrency = (document.getElementById('fin-input-regional-currency') || {}).value || '';
+
+    function showErr(msg) { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } }
+
+    if (!submitterName) { showErr('Informe o nome de quem contabilizou.'); return; }
+    if (total <= 0) { showErr('O total arrecadado deve ser maior que zero.'); return; }
+    if (week < 1 || week > 53) { showErr('Semana inválida.'); return; }
+
+    const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const periodLabel = 'Semana ' + week + ' — ' + monthNames[(month||1)-1] + ' ' + year;
+
+    if (btn) { btn.textContent = '⏳ Enviando...'; btn.disabled = true; }
+
+    try {
+        const { data: inserted, error: insertErr } = await sb.from('financial_reports').insert({
+            workspace_id: wsId, year: year, week_number: week, month: month,
+            period_label: periodLabel, local_currency: currency,
+            regional_currency: regCurrency || currency, exchange_rate_to_usd: rate,
+            total_income_local: total, submitted_by_name: submitterName,
+            submitted_by_role: submitterRole || null,
+            submission_date: new Date().toISOString().slice(0,10), notes: notes || null,
+        }).select().single();
+
+        if (insertErr) {
+            if (insertErr.code === '23505') { showErr('Já existe um relatório para esta semana.'); }
+            else { showErr('Erro ao salvar: ' + insertErr.message); }
+            if (btn) { btn.textContent = '📤 Enviar Relatório'; btn.disabled = false; }
+            return;
+        }
+
+        sendFinancialSubmissionEmail(inserted).catch(function(e) { console.warn('[fin email]', e); });
+
+        if (btn) btn.textContent = '✅ Enviado!';
+        setTimeout(function() {
+            window.closeFinancialForm();
+            if (btn) { btn.textContent = '📤 Enviar Relatório'; btn.disabled = false; }
+            window.loadFinancialReports();
+            if (window.showToast) showToast('✅ Relatório financeiro enviado!', 3000);
+        }, 1000);
+    } catch(e) {
+        showErr('Erro inesperado: ' + e.message);
+        if (btn) { btn.textContent = '📤 Enviar Relatório'; btn.disabled = false; }
+    }
+};
+
+async function sendFinancialSubmissionEmail(report) {
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('name, credentials, regional_id').eq('id', report.workspace_id).single();
+    const churchName = (ws && ws.name) || 'Igreja';
+    const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+
+    const fmt = function(v) { return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2}).format(v||0); };
+    const payload = {
+        type: 'submission', church_name: churchName,
+        submitter_name: report.submitted_by_name, submitter_role: report.submitted_by_role || '',
+        week_label: report.period_label, total_local: fmt(report.total_income_local),
+        currency: report.local_currency,
+        global_10_local: fmt(report.global_10pct_local),
+        global_10_usd: fmt(report.global_10pct_usd),
+        regional_5_local: fmt(report.regional_5pct_local),
+        exchange_rate: (report.exchange_rate_to_usd || 1).toFixed(6), notes: report.notes || '',
+    };
+
+    var regionalEmail = null, regionalName = 'Responsável Regional';
+    if (ws && ws.credentials && ws.credentials.financial_contact_email) {
+        regionalEmail = ws.credentials.financial_contact_email;
+    }
+    if (ws && ws.regional_id) {
+        const { data: reg } = await sb.from('regionals').select('name, financial_contact_email, global_financial_contact_email').eq('id', ws.regional_id).single();
+        if (reg && reg.financial_contact_email) { regionalEmail = reg.financial_contact_email; regionalName = reg.name; }
+        if (reg && reg.global_financial_contact_email) {
+            fetch(SUPABASE_URL + '/functions/v1/financial-report-email', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+                body: JSON.stringify(Object.assign({}, payload, { recipient_email: reg.global_financial_contact_email, recipient_name: 'Responsável Global' }))
+            }).catch(function() {});
+        }
+    }
+    if (regionalEmail) {
+        fetch(SUPABASE_URL + '/functions/v1/financial-report-email', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+            body: JSON.stringify(Object.assign({}, payload, { recipient_email: regionalEmail, recipient_name: regionalName }))
+        }).catch(function() {});
+    }
+}
+
+// ─── Message Drawer ───────────────────────────────────────────────
+var _finMsgReportId = null, _finMsgRole = 'local';
+
+window.openFinMsgDrawer = async function(reportId, role) {
+    _finMsgReportId = reportId; _finMsgRole = role;
+    const overlay = document.getElementById('fin-msg-overlay');
+    const drawer  = document.getElementById('fin-msg-drawer');
+    if (!overlay || !drawer) return;
+    overlay.style.display = 'flex';
+    requestAnimationFrame(function() { drawer.style.transform = 'translateX(0)'; });
+    var unreadField = role === 'local' ? 'unread_for_local' : role === 'regional' ? 'unread_for_regional' : 'unread_for_global';
+    var upd = {}; upd[unreadField] = false;
+    await window.supabaseClient.from('financial_reports').update(upd).eq('id', reportId);
+    await renderFinMessages(reportId, role);
+};
+
+window.closeFinMsgDrawer = function() {
+    const overlay = document.getElementById('fin-msg-overlay');
+    const drawer  = document.getElementById('fin-msg-drawer');
+    if (drawer) drawer.style.transform = 'translateX(100%)';
+    if (overlay) setTimeout(function() { overlay.style.display = 'none'; }, 340);
+};
+
+async function renderFinMessages(reportId, role) {
+    const sb   = window.supabaseClient;
+    const title = document.getElementById('fin-msg-title');
+    const sub   = document.getElementById('fin-msg-subtitle');
+    const list  = document.getElementById('fin-msg-list');
+    if (list) list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.3);padding:20px;">Carregando...</div>';
+    const { data: report } = await sb.from('financial_reports').select('week_number, year, period_label').eq('id', reportId).single();
+    if (title) title.textContent = '💬 ' + (report && report.period_label ? report.period_label : 'Mensagens');
+    if (sub)   sub.textContent   = role === 'local' ? 'Conversa com o Regional' : 'Conversa com a Igreja Local';
+    const { data: msgs } = await sb.from('financial_messages').select('*').eq('report_id', reportId).order('created_at', { ascending: true });
+    if (!msgs || !msgs.length) {
+        if (list) list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.25);padding:20px;font-size:.85rem;">Nenhuma mensagem ainda.</div>';
+        return;
+    }
+    if (list) list.innerHTML = msgs.map(function(m) {
+        var isOwn = (role === 'local' && m.direction.startsWith('local')) ||
+                    (role === 'regional' && m.direction.startsWith('regional')) ||
+                    (role === 'master' && m.direction.startsWith('global'));
+        return '<div style="display:flex;justify-content:' + (isOwn?'flex-end':'flex-start') + ';">'
+            + '<div style="max-width:80%;background:' + (isOwn?'rgba(255,215,0,.1)':'rgba(255,255,255,.05)') + ';border:1px solid ' + (isOwn?'rgba(255,215,0,.2)':'rgba(255,255,255,.08)') + ';border-radius:14px;padding:12px 16px;">'
+            + '<div style="font-size:.68rem;font-weight:700;color:' + (isOwn?'#FFD700':'rgba(255,255,255,.4)') + ';margin-bottom:5px;">' + m.sender_name + '</div>'
+            + '<p style="margin:0;font-size:.85rem;line-height:1.5;">' + m.message + '</p>'
+            + '<div style="font-size:.65rem;color:rgba(255,255,255,.25);margin-top:5px;text-align:right;">' + new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</div>'
+            + '</div></div>';
+    }).join('');
+}
+
+window.sendFinMessage = async function() {
+    const sb  = window.supabaseClient;
+    const msgInput = document.getElementById('fin-msg-input');
+    const msg = msgInput ? msgInput.value.trim() : '';
+    if (!msg || !_finMsgReportId) return;
+    const profile = window._profileCache || {};
+    const wsId = window.currentWorkspaceId;
+    var direction;
+    if (_finMsgRole === 'regional') direction = 'regional_to_local';
+    else if (_finMsgRole === 'master' || _finMsgRole === 'global') direction = 'global_to_local';
+    else direction = 'local_to_regional';
+    await sb.from('financial_messages').insert({
+        report_id: _finMsgReportId, workspace_id: wsId, direction: direction,
+        sender_name: profile.name || 'Responsável', sender_user_id: profile.id || null, message: msg
+    });
+    var unreadFld = direction.includes('to_local') ? 'unread_for_local' : 'unread_for_regional';
+    var upd2 = {}; upd2[unreadFld] = true;
+    await sb.from('financial_reports').update(upd2).eq('id', _finMsgReportId);
+    if (msgInput) msgInput.value = '';
+    sendFinMessageEmail(_finMsgReportId, msg, direction, profile).catch(function() {});
+    await renderFinMessages(_finMsgReportId, _finMsgRole);
+};
+
+async function sendFinMessageEmail(reportId, message, direction, profile) {
+    const sb = window.supabaseClient;
+    const { data: report } = await sb.from('financial_reports').select('period_label, workspace_id').eq('id', reportId).single();
+    const { data: ws } = await sb.from('workspaces').select('name, credentials, regional_id').eq('id', report.workspace_id).single();
+    var recipientEmail = null, recipientName = 'Responsável';
+    if (direction.includes('to_local')) {
+        recipientEmail = ws && ws.credentials && ws.credentials.financial_contact_email ? ws.credentials.financial_contact_email : null;
+        recipientName  = ws ? ws.name : 'Igreja';
+    } else if (ws && ws.regional_id) {
+        const { data: reg } = await sb.from('regionals').select('financial_contact_email, name').eq('id', ws.regional_id).single();
+        recipientEmail = reg && reg.financial_contact_email ? reg.financial_contact_email : null;
+        recipientName  = reg ? reg.name : 'Regional';
+    }
+    if (!recipientEmail) return;
+    const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    fetch(SUPABASE_URL + '/functions/v1/financial-report-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({
+            type: 'message', recipient_email: recipientEmail, recipient_name: recipientName,
+            sender_name: profile.name || 'Responsável', sender_church: ws ? ws.name : 'Igreja',
+            message: message, direction: direction,
+            week_label: report ? report.period_label : ''
+        })
+    }).catch(function() {});
+}
+
+// ─── REGIONAL VIEW ────────────────────────────────────────────────
+window.loadRegionalFinancialView = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await sb.from('users').select('regional_id, level').eq('id', user.id).single();
+    if (!profile || !profile.regional_id) return;
+    const { data: regional } = await sb.from('regionals').select('name, financial_contact_email').eq('id', profile.regional_id).single();
+    var nameEl = document.getElementById('rr-regional-name');
+    if (nameEl && regional) nameEl.textContent = regional.name;
+    if (regional && regional.financial_contact_email) {
+        var configInput = document.getElementById('rr-config-email');
+        if (configInput) configInput.value = regional.financial_contact_email;
+    }
+    const { data: workspaces } = await sb.from('workspaces').select('id, name').eq('regional_id', profile.regional_id);
+    if (!workspaces || !workspaces.length) return;
+    window._rrRegionalId = profile.regional_id;
+    window._rrWorkspaces = workspaces;
+    await loadRRReports();
+};
+
+var _rrPeriod = '7d', _rrDateFrom = null, _rrDateTo = null;
+window.setRRPeriod = function(p, btn) {
+    _rrPeriod = p; _rrDateFrom = null; _rrDateTo = null;
+    document.querySelectorAll('#rr-period-btns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    loadRRReports();
+};
+window.setRRPeriodCustom = function() {
+    _rrPeriod = 'custom';
+    _rrDateFrom = (document.getElementById('rr-date-from') || {}).value || null;
+    _rrDateTo   = (document.getElementById('rr-date-to') || {}).value   || null;
+    document.querySelectorAll('#rr-period-btns .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    loadRRReports();
+};
+
+async function loadRRReports() {
+    const sb = window.supabaseClient;
+    const workspaces = window._rrWorkspaces || [];
+    if (!workspaces.length) return;
+    const wsIds = workspaces.map(function(w) { return w.id; });
+    const tbody = document.getElementById('rr-reports-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:rgba(255,255,255,.25);">Carregando...</td></tr>';
+    var dateFrom = _rrDateFrom, dateTo = _rrDateTo;
+    if (_rrPeriod !== 'custom') { var dr = periodToDateRange(_rrPeriod); dateFrom = dr.from; dateTo = dr.to; }
+    var query = sb.from('financial_reports').select('*').in('workspace_id', wsIds).order('submission_date', { ascending: false });
+    if (dateFrom) query = query.gte('submission_date', dateFrom);
+    if (dateTo)   query = query.lte('submission_date', dateTo);
+    const { data: reports } = await query;
+
+    const now = new Date(); const isoWk = getISOWeek(now);
+    var complianceLabel = document.getElementById('rr-compliance-week-label');
+    if (complianceLabel) complianceLabel.textContent = 'Semana ' + isoWk.week + ' — ' + isoWk.year;
+    const submitted = workspaces.filter(function(w) {
+        return reports && reports.some(function(r) { return r.workspace_id === w.id && r.year === isoWk.year && r.week_number === isoWk.week; });
+    });
+    const pct = workspaces.length > 0 ? Math.round((submitted.length / workspaces.length) * 100) : 0;
+    var bar = document.getElementById('rr-compliance-bar');
+    var text = document.getElementById('rr-compliance-text');
+    var badge = document.getElementById('rr-compliance-badge');
+    var kpiComp = document.getElementById('rr-kpi-compliance');
+    if (bar) bar.style.width = pct + '%';
+    if (text) text.textContent = submitted.length + ' de ' + workspaces.length + ' igrejas enviaram esta semana';
+    if (badge) {
+        badge.textContent = pct + '% compliance';
+        badge.style.background = pct >= 80 ? 'rgba(74,222,128,.1)' : pct >= 50 ? 'rgba(245,158,11,.1)' : 'rgba(248,113,113,.1)';
+        badge.style.color = pct >= 80 ? '#4ADE80' : pct >= 50 ? '#F59E0B' : '#F87171';
+    }
+    if (kpiComp) kpiComp.textContent = pct + '%';
+    const missing = workspaces.filter(function(w) { return !submitted.find(function(s) { return s.id === w.id; }); });
+    var missingBody = document.getElementById('rr-missing-body');
+    if (missingBody) missingBody.innerHTML = missing.map(function(w) {
+        return '<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:600;background:rgba(248,113,113,.08);color:#F87171;border:1px solid rgba(248,113,113,.15);">' + w.name + '</span>';
+    }).join('');
+
+    const totIncome = (reports || []).reduce(function(a,r) { return a + (parseFloat(r.total_income_local)||0); }, 0);
+    const totRep    = (reports || []).reduce(function(a,r) { return a + (parseFloat(r.regional_5pct_local)||0); }, 0);
+    const paidCount = (reports || []).filter(function(r) { return r.payment_status_regional === 'paid'; }).length;
+    const pendCount = (reports || []).filter(function(r) { return r.payment_status_regional === 'pending'; }).length;
+    function setT(id,txt) { var el=document.getElementById(id); if(el) el.textContent=txt; }
+    setT('rr-kpi-total', fmtMoney(totIncome, ''));
+    setT('rr-kpi-repasse', fmtMoney(totRep, ''));
+    setT('rr-kpi-paid', paidCount);
+    setT('rr-kpi-pending', pendCount);
+
+    var wsMap = {};
+    workspaces.forEach(function(w) { wsMap[w.id] = w.name; });
+    if (tbody) tbody.innerHTML = (!reports || !reports.length) ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Nenhum relatório no período.</td></tr>' :
+        reports.map(function(r) {
+            return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'
+                + '<td style="padding:12px 16px;font-weight:700;">' + (wsMap[r.workspace_id] || '—') + '</td>'
+                + '<td style="padding:12px 16px;color:rgba(255,255,255,.55);">Sem. ' + r.week_number + '/' + r.year + '</td>'
+                + '<td style="padding:12px 16px;text-align:right;">' + fmtMoney(r.total_income_local, r.local_currency) + '</td>'
+                + '<td style="padding:12px 16px;text-align:right;color:#818CF8;">' + fmtMoney(r.regional_5pct_local, r.regional_currency || r.local_currency) + '</td>'
+                + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_regional)
+                    + (r.payment_status_regional === 'pending' ? '<button onclick=\'togglePaymentStatus("' + r.id + '","regional")\' style="margin-left:6px;font-size:.65rem;padding:2px 8px;border-radius:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:#4ADE80;cursor:pointer;">✓ Marcar pago</button>' : '') + '</td>'
+                + '<td style="padding:12px 16px;text-align:center;color:rgba(255,255,255,.35);font-size:.78rem;">' + (r.submission_date || '—') + '</td>'
+                + '<td style="padding:12px 16px;text-align:center;">' + msgBtn(r.id, r.unread_for_regional ? 1 : 0, false) + '</td>'
+                + '</tr>';
+        }).join('');
+}
+
+window.toggleRrMissing = function() {
+    var el = document.getElementById('rr-missing-list');
+    var btn = document.getElementById('btn-rr-missing');
+    if (!el) return;
+    var open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : 'block';
+    if (btn) btn.textContent = open ? 'Ver pendentes ▼' : 'Ocultar ▲';
+};
+
+// ─── GLOBAL VIEW ──────────────────────────────────────────────────
+window.loadGlobalFinancialView = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const { data: regionals } = await sb.from('regionals').select('id, name, global_financial_contact_email');
+    const { data: workspaces } = await sb.from('workspaces').select('id, name, regional_id').eq('status', 'active');
+    window._rgRegionals = regionals || [];
+    window._rgWorkspaces = workspaces || [];
+    var listEl = document.getElementById('rg-regionals-list');
+    if (listEl && regionals) {
+        listEl.innerHTML = regionals.map(function(r) {
+            return '<label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:.82rem;color:rgba(255,255,255,.7);">'
+                + '<input type="checkbox" checked data-reg-id="' + r.id + '" onchange="filterRGRegionals()" style="accent-color:#34D399;width:14px;height:14px;">'
+                + r.name + '</label>';
+        }).join('');
+    }
+    await loadRGReports();
+};
+
+var _rgPeriod = '7d', _rgDateFrom = null, _rgDateTo = null, _rgSelectedRegionals = null;
+window.setRGPeriod = function(p, btn) {
+    _rgPeriod = p; _rgDateFrom = null; _rgDateTo = null;
+    document.querySelectorAll('#view-relatorios-global .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    loadRGReports();
+};
+window.setRGPeriodCustom = function() {
+    _rgPeriod = 'custom';
+    _rgDateFrom = (document.getElementById('rg-date-from') || {}).value || null;
+    _rgDateTo   = (document.getElementById('rg-date-to') || {}).value   || null;
+    document.querySelectorAll('#view-relatorios-global .period-btn').forEach(function(b) { b.classList.remove('active'); });
+    loadRGReports();
+};
+window.filterRGRegionals = function() {
+    _rgSelectedRegionals = Array.from(document.querySelectorAll('#rg-regionals-list input[type=checkbox]:checked')).map(function(cb) { return cb.dataset.regId; });
+    var countEl = document.getElementById('rg-regionals-count');
+    if (countEl) countEl.textContent = _rgSelectedRegionals.length === (window._rgRegionals ? window._rgRegionals.length : 0) ? 'Todas' : _rgSelectedRegionals.length;
+    loadRGReports();
+};
+window.toggleMultiSelect = function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('rg-regionals-dropdown');
+    if (dd && !dd.contains(e.target) && !e.target.closest('[onclick*="rg-regionals-dropdown"]')) dd.style.display = 'none';
+});
+
+async function loadRGReports() {
+    const sb = window.supabaseClient;
+    const allWorkspaces = window._rgWorkspaces || [];
+    const regionals = window._rgRegionals || [];
+    var filteredWs = _rgSelectedRegionals ? allWorkspaces.filter(function(w) { return _rgSelectedRegionals.includes(w.regional_id); }) : allWorkspaces;
+    var wsIds = filteredWs.map(function(w) { return w.id; });
+    if (!wsIds.length) return;
+    var tbody = document.getElementById('rg-reports-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:rgba(255,255,255,.25);">Carregando...</td></tr>';
+    var dateFrom = _rgDateFrom, dateTo = _rgDateTo;
+    if (_rgPeriod !== 'custom') { var dr = periodToDateRange(_rgPeriod); dateFrom = dr.from; dateTo = dr.to; }
+    var query = sb.from('financial_reports').select('*').in('workspace_id', wsIds).order('submission_date', { ascending: false });
+    if (dateFrom) query = query.gte('submission_date', dateFrom);
+    if (dateTo)   query = query.lte('submission_date', dateTo);
+    const { data: reports } = await query;
+
+    const totUsd   = (reports || []).reduce(function(a,r) { return a + ((parseFloat(r.global_10pct_usd)||0)/0.10); }, 0);
+    const tot10Usd = (reports || []).reduce(function(a,r) { return a + (parseFloat(r.global_10pct_usd)||0); }, 0);
+    const pendGlob = (reports || []).filter(function(r) { return r.payment_status_global === 'pending'; }).length;
+    function setG(id,txt) { var el=document.getElementById(id); if(el) el.textContent=txt; }
+    setG('rg-kpi-total', 'US$ ' + fmtMoney(totUsd, ''));
+    setG('rg-kpi-global10', 'US$ ' + fmtMoney(tot10Usd, ''));
+    setG('rg-kpi-submitted', (reports || []).length);
+    setG('rg-kpi-regionals', regionals.length);
+    setG('rg-kpi-pending', pendGlob);
+
+    var wsMap  = {}, regMap = {};
+    filteredWs.forEach(function(w) { wsMap[w.id] = w.name; });
+    filteredWs.forEach(function(w) {
+        var reg = regionals.find(function(r) { return r.id === w.regional_id; });
+        regMap[w.id] = reg ? reg.name : '—';
+    });
+
+    if (tbody) tbody.innerHTML = (!reports || !reports.length) ? '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Nenhum relatório no período.</td></tr>' :
+        reports.map(function(r) {
+            return '<tr style="border-bottom:1px solid rgba(255,255,255,.04);" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'
+                + '<td style="padding:12px 16px;font-weight:700;">' + (wsMap[r.workspace_id] || '—') + '</td>'
+                + '<td style="padding:12px 16px;color:rgba(255,255,255,.45);font-size:.8rem;">' + (regMap[r.workspace_id] || '—') + '</td>'
+                + '<td style="padding:12px 16px;color:rgba(255,255,255,.55);">Sem. ' + r.week_number + '/' + r.year + '</td>'
+                + '<td style="padding:12px 16px;text-align:right;font-weight:700;">' + fmtMoney((parseFloat(r.global_10pct_usd)||0)/0.10, 'USD') + '</td>'
+                + '<td style="padding:12px 16px;text-align:right;color:#34D399;font-weight:700;">US$ ' + fmtMoney(r.global_10pct_usd, '') + '</td>'
+                + '<td style="padding:12px 16px;text-align:center;">' + paymentBadge(r.payment_status_global)
+                    + (r.payment_status_global === 'pending' ? '<button onclick=\'togglePaymentStatus("' + r.id + '","global")\' style="margin-left:6px;font-size:.65rem;padding:2px 8px;border-radius:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:#4ADE80;cursor:pointer;">✓ Marcar pago</button>' : '') + '</td>'
+                + '<td style="padding:12px 16px;text-align:center;">' + msgBtn(r.id, r.unread_for_global ? 1 : 0, true) + '</td>'
+                + '</tr>';
+        }).join('');
+}
+
+// ─── Toggle Payment Status ────────────────────────────────────────
+window.togglePaymentStatus = async function(reportId, scope) {
+    const sb = window.supabaseClient;
+    var field = scope === 'global' ? 'payment_status_global' : 'payment_status_regional';
+    var timeField = scope === 'global' ? 'payment_status_global_at' : 'payment_status_regional_at';
+    var upd = {}; upd[field] = 'paid'; upd[timeField] = new Date().toISOString();
+    await sb.from('financial_reports').update(upd).eq('id', reportId);
+    if (window.showToast) showToast('✅ Status atualizado para PAGO', 2500);
+    var activeView = document.querySelector('.view-section.active');
+    if (activeView && activeView.id === 'view-relatorios-regional') loadRRReports();
+    else if (activeView && activeView.id === 'view-relatorios-global') loadRGReports();
+};
+
+// ─── Config Drawers ───────────────────────────────────────────────
+window.openRrConfigDrawer  = function() { var o=document.getElementById('rr-config-overlay'); if(o) o.style.display='flex'; };
+window.closeRrConfigDrawer = function() { var o=document.getElementById('rr-config-overlay'); if(o) o.style.display='none'; };
+window.openRgConfigDrawer  = function() { var o=document.getElementById('rg-config-overlay'); if(o) o.style.display='flex'; };
+window.closeRgConfigDrawer = function() { var o=document.getElementById('rg-config-overlay'); if(o) o.style.display='none'; };
+
+window.saveRrConfig = async function() {
+    const sb = window.supabaseClient;
+    var email = ((document.getElementById('rr-config-email') || {}).value || '').trim();
+    var regId = window._rrRegionalId;
+    var feedback = document.getElementById('rr-config-feedback');
+    if (!regId || !email) return;
+    const { error } = await sb.from('regionals').update({ financial_contact_email: email }).eq('id', regId);
+    if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.color = error ? '#F87171' : '#4ADE80';
+        feedback.textContent = error ? '❌ ' + error.message : '✅ Salvo com sucesso!';
+        setTimeout(function() { feedback.style.display = 'none'; window.closeRrConfigDrawer(); }, 2000);
+    }
+};
+
+window.saveRgConfig = async function() {
+    const sb = window.supabaseClient;
+    var email = ((document.getElementById('rg-config-email') || {}).value || '').trim();
+    var feedback = document.getElementById('rg-config-feedback');
+    if (!email) return;
+    var regionals = window._rgRegionals || [];
+    for (var i = 0; i < regionals.length; i++) {
+        await sb.from('regionals').update({ global_financial_contact_email: email }).eq('id', regionals[i].id);
+    }
+    if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.color = '#4ADE80';
+        feedback.textContent = '✅ Email global salvo!';
+        setTimeout(function() { feedback.style.display = 'none'; window.closeRgConfigDrawer(); }, 2000);
+    }
+};
+
+// ─── Hook into switchTab for lazy loading ─────────────────────────
+(function() {
+    var _origSwitchTab = window.switchTab;
+    window.switchTab = function(tabName) {
+        _origSwitchTab(tabName);
+        if (tabName === 'admin-financeiro' && window.loadFinancialReports) window.loadFinancialReports();
+        if (tabName === 'relatorios-regional' && window.loadRegionalFinancialView) window.loadRegionalFinancialView();
+        if (tabName === 'relatorios-global' && window.loadGlobalFinancialView) window.loadGlobalFinancialView();
+    };
+})();
+

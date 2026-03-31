@@ -2284,29 +2284,520 @@ REGRAS:
         </div>
 
         <!-- ════════════════════════════════════════════════════════
-             View: Administrativo — Relatório Financeiro (em breve)
+             View: Administrativo — Relatório Financeiro
         ═══════════════════════════════════════════════════════════ -->
         <div id="view-admin-financeiro" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>💰 Relatório Financeiro</h1>
-                    <p>Gestão e análise financeira da igreja</p>
+                    <h1>💰 Relatório Financeiro <span id="fin-local-ws-badge" style="font-size:.72rem;background:rgba(255,215,0,.12);color:#FFD700;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Local</span></h1>
+                    <p id="fin-local-subtitle">Dízimos, ofertas e repasses semanais da sua igreja</p>
+                </div>
+                <div class="actions" style="gap:10px;display:flex;">
+                    <button onclick="openFinancialForm()" id="btn-novo-relatorio"
+                        style="padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Novo Relatório
+                    </button>
                 </div>
             </header>
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:60px 32px;text-align:center;">
-                <div style="font-size:4rem;margin-bottom:24px;">💰</div>
-                <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:12px;">Relatório Financeiro</h2>
-                <p style="color:rgba(255,255,255,.4);max-width:400px;line-height:1.6;margin-bottom:8px;">Controle de dízimos, ofertas, entradas e saídas. Em desenvolvimento com você.</p>
-                <span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:.72rem;font-weight:700;background:rgba(255,215,0,.1);color:#FFD700;border:1px solid rgba(255,215,0,.2);">Em desenvolvimento</span>
+
+            <!-- Exchange rate warning banner (hidden by default) -->
+            <div id="fin-exchange-warning" style="display:none;margin:16px 32px 0;padding:14px 20px;background:rgba(255,165,0,.1);border:1px solid rgba(255,165,0,.3);border-radius:14px;display:none;align-items:center;gap:12px;">
+                <span style="font-size:1.3rem;">⚠️</span>
+                <div>
+                    <div style="font-weight:700;font-size:.88rem;color:#FFA500;">Taxa de câmbio indisponível</div>
+                    <div style="font-size:.78rem;color:rgba(255,255,255,.5);margin-top:3px;">
+                        Não foi possível obter a taxa de câmbio automaticamente. 
+                        Insira a taxa manualmente no formulário ou verifique sua conexão. 
+                        Se o problema persistir, acesse <a href="https://open.er-api.com" target="_blank" style="color:#FFA500;">open.er-api.com</a>.
+                    </div>
+                </div>
+                <button onclick="this.parentElement.style.display='none'" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:1.2rem;padding:4px;flex-shrink:0;">✕</button>
+            </div>
+
+            <!-- KPI Row -->
+            <div style="padding:20px 32px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">
+                <div class="kpi-box" style="border-top:2px solid #FFD700;">
+                    <div class="kpi-label">Total Arrecadado (ano)</div>
+                    <div class="kpi-value" id="fin-kpi-total">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #34D399;">
+                    <div class="kpi-label">Global 10% (USD)</div>
+                    <div class="kpi-value" id="fin-kpi-global" style="color:#34D399;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #818CF8;">
+                    <div class="kpi-label">Regional 5%</div>
+                    <div class="kpi-value" id="fin-kpi-regional" style="color:#818CF8;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F59E0B;">
+                    <div class="kpi-label">Relatórios do Ano</div>
+                    <div class="kpi-value" id="fin-kpi-count" style="color:#F59E0B;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F87171;">
+                    <div class="kpi-label">Pendentes de Pagamento</div>
+                    <div class="kpi-value" id="fin-kpi-pending" style="color:#F87171;">—</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:.72rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Período:</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="fin-period-btns">
+                    <button class="period-btn active" onclick="setFinPeriod('7d',this)">7d</button>
+                    <button class="period-btn" onclick="setFinPeriod('30d',this)">30d</button>
+                    <button class="period-btn" onclick="setFinPeriod('90d',this)">90d</button>
+                    <button class="period-btn" onclick="setFinPeriod('12m',this)">12m</button>
+                    <button class="period-btn" onclick="setFinPeriod('all',this)">Todo período</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                    <input type="date" id="fin-date-from" onchange="setFinPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                    <span style="color:rgba(255,255,255,.3);font-size:.78rem;">até</span>
+                    <input type="date" id="fin-date-to" onchange="setFinPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                </div>
+            </div>
+
+            <!-- Submissions Table -->
+            <div style="padding:20px 32px 40px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h3 style="font-size:.8rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin:0;">Histórico de Submissões</h3>
+                    <span id="fin-week-status" style="font-size:.78rem;background:rgba(255,215,0,.08);color:#FFD700;padding:4px 12px;border-radius:20px;font-weight:600;border:1px solid rgba(255,215,0,.2);"></span>
+                </div>
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:800px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Semana</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Período</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Total Arrecadado</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Global 10%</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Regional 5%</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Global</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Regional</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fin-reports-tbody">
+                            <tr><td colspan="8" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Carregando relatórios...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Financeiro: Drawer de Submit ════ -->
+        <div id="fin-form-overlay" onclick="if(event.target===this)closeFinancialForm()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9200;justify-content:flex-end;">
+            <div id="fin-form-drawer" style="background:#0d0f1e;border-left:1px solid rgba(255,215,0,.12);width:min(560px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FFA000,transparent);flex-shrink:0;"></div>
+                <div style="padding:28px 28px 40px;flex:1;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+                        <div>
+                            <h2 style="font-size:1.15rem;font-weight:800;margin:0 0 4px;">💰 Novo Relatório Financeiro</h2>
+                            <p id="fin-form-week-label" style="font-size:.8rem;color:rgba(255,255,255,.4);margin:0;"></p>
+                        </div>
+                        <button onclick="closeFinancialForm()" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;">✕</button>
+                    </div>
+
+                    <!-- Period -->
+                    <div style="background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.12);border-radius:16px;padding:20px;margin-bottom:20px;">
+                        <h4 style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#FFD700;margin:0 0 16px;">📅 Período de Referência</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                            <div>
+                                <label class="hub-field-label">Semana do Ano</label>
+                                <input id="fin-input-week" type="number" min="1" max="53" class="hub-input" readonly>
+                            </div>
+                            <div>
+                                <label class="hub-field-label">Mês</label>
+                                <select id="fin-input-month" class="hub-input" style="outline:none;">
+                                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                                    <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                                    <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                                    <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="hub-field-label">Ano</label>
+                                <input id="fin-input-year" type="number" class="hub-input" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Currency & Income -->
+                    <div style="background:rgba(52,211,153,.04);border:1px solid rgba(52,211,153,.12);border-radius:16px;padding:20px;margin-bottom:20px;">
+                        <h4 style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#34D399;margin:0 0 16px;">💵 Arrecadação</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                            <div>
+                                <label class="hub-field-label">Moeda Local</label>
+                                <select id="fin-input-currency" class="hub-input" onchange="onFinCurrencyChange()" style="outline:none;">
+                                    <option value="USD">🇺🇸 USD — Dólar Americano</option>
+                                    <option value="BRL">🇧🇷 BRL — Real Brasileiro</option>
+                                    <option value="EUR">🇪🇺 EUR — Euro</option>
+                                    <option value="GBP">🇬🇧 GBP — Libra Esterlina</option>
+                                    <option value="MXN">🇲🇽 MXN — Peso Mexicano</option>
+                                    <option value="ARS">🇦🇷 ARS — Peso Argentino</option>
+                                    <option value="COP">🇨🇴 COP — Peso Colombiano</option>
+                                    <option value="CLP">🇨🇱 CLP — Peso Chileno</option>
+                                    <option value="PEN">🇵🇪 PEN — Sol Peruano</option>
+                                    <option value="UYU">🇺🇾 UYU — Peso Uruguaio</option>
+                                    <option value="PYG">🇵🇾 PYG — Guarani Paraguaio</option>
+                                    <option value="BOB">🇧🇴 BOB — Boliviano</option>
+                                    <option value="ANG">🇳🇱 ANG — Florim Antilhas</option>
+                                    <option value="CAD">🇨🇦 CAD — Dólar Canadense</option>
+                                    <option value="AUD">🇦🇺 AUD — Dólar Australiano</option>
+                                    <option value="CHF">🇨🇭 CHF — Franco Suíço</option>
+                                    <option value="JPY">🇯🇵 JPY — Iene Japonês</option>
+                                    <option value="KRW">🇰🇷 KRW — Won Coreano</option>
+                                    <option value="ZAR">🇿🇦 ZAR — Rand Sul-Africano</option>
+                                    <option value="NGN">🇳🇬 NGN — Naira Nigeriana</option>
+                                    <option value="GHS">🇬🇭 GHS — Cedi Ganense</option>
+                                    <option value="AOA">🇦🇴 AOA — Kwanza Angolano</option>
+                                    <option value="MZN">🇲🇿 MZN — Metical Moçambicano</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="hub-field-label">Taxa de Câmbio (1 moeda = X USD)</label>
+                                <div style="position:relative;">
+                                    <input id="fin-input-rate" type="number" step="0.000001" min="0.000001" class="hub-input" placeholder="Ex: 0.179" oninput="recalcFinValues()">
+                                    <span id="fin-rate-indicator" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.65rem;color:#34D399;font-weight:700;pointer-events:none;"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Total de Entradas (Dízimos + Ofertas)</label>
+                            <input id="fin-input-total" type="number" step="0.01" min="0" class="hub-input" placeholder="0,00" oninput="recalcFinValues()">
+                        </div>
+                    </div>
+
+                    <!-- Calculated values -->
+                    <div style="background:rgba(129,140,248,.04);border:1px solid rgba(129,140,248,.15);border-radius:16px;padding:20px;margin-bottom:20px;">
+                        <h4 style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#818CF8;margin:0 0 16px;">📊 Valores a Depositar (calculados automaticamente)</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                            <div style="background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:12px;padding:16px;">
+                                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#34D399;margin-bottom:6px;">🌐 Global (10%)</div>
+                                <div id="fin-calc-global-local" style="font-size:1.1rem;font-weight:800;color:#fff;">—</div>
+                                <div id="fin-calc-global-usd" style="font-size:.78rem;color:#34D399;margin-top:3px;font-weight:600;">≈ US$ —</div>
+                            </div>
+                            <div style="background:rgba(129,140,248,.07);border:1px solid rgba(129,140,248,.2);border-radius:12px;padding:16px;">
+                                <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#818CF8;margin-bottom:6px;">🌎 Regional (5%)</div>
+                                <div id="fin-calc-regional-local" style="font-size:1.1rem;font-weight:800;color:#fff;">—</div>
+                                <div id="fin-calc-regional-currency" style="font-size:.78rem;color:#818CF8;margin-top:3px;font-weight:600;"></div>
+                            </div>
+                        </div>
+                        <!-- Regional currency override -->
+                        <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <label style="font-size:.75rem;color:rgba(255,255,255,.4);">Moeda do repasse Regional:</label>
+                            <select id="fin-input-regional-currency" class="hub-input" style="flex:1;max-width:200px;padding:7px 12px;font-size:.8rem;outline:none;" onchange="recalcFinValues()">
+                                <option value="">Mesma moeda local</option>
+                                <option value="USD">USD — Dólar</option>
+                                <option value="BRL">BRL — Real</option>
+                                <option value="EUR">EUR — Euro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Verification -->
+                    <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:20px;">
+                        <h4 style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:0 0 16px;">✍️ Verificação</h4>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                            <div>
+                                <label class="hub-field-label">Nome de quem contabilizou</label>
+                                <input id="fin-input-submitter-name" type="text" class="hub-input" placeholder="Nome completo">
+                            </div>
+                            <div>
+                                <label class="hub-field-label">Cargo / Posição</label>
+                                <input id="fin-input-submitter-role" type="text" class="hub-input" placeholder="Ex: Tesoureiro, Pastor">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Observações (opcional)</label>
+                            <textarea id="fin-input-notes" rows="3" class="hub-input" style="resize:vertical;font-family:inherit;" placeholder="Evento especial, oferta designada, etc."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="fin-form-error" style="display:none;padding:12px 16px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:10px;color:#F87171;font-size:.82rem;margin-bottom:16px;"></div>
+
+                    <button onclick="submitFinancialReport()" id="btn-submit-report"
+                        style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:900;font-size:.95rem;cursor:pointer;transition:opacity .2s;"
+                        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                        📤 Enviar Relatório
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Financeiro: Drawer de Mensagens ════ -->
+        <div id="fin-msg-overlay" onclick="if(event.target===this)closeFinMsgDrawer()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:9300;justify-content:flex-end;">
+            <div id="fin-msg-drawer" style="background:#0d0f1e;border-left:1px solid rgba(129,140,248,.15);width:min(440px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#818CF8,#A78BFA,transparent);flex-shrink:0;"></div>
+                <div style="padding:24px 24px 32px;flex:1;display:flex;flex-direction:column;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                        <div style="flex:1;">
+                            <h3 id="fin-msg-title" style="font-size:1rem;font-weight:800;margin:0 0 3px;"></h3>
+                            <p id="fin-msg-subtitle" style="font-size:.75rem;color:rgba(255,255,255,.4);margin:0;"></p>
+                        </div>
+                        <button onclick="closeFinMsgDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;padding:4px;">✕</button>
+                    </div>
+                    <div id="fin-msg-list" style="flex:1;display:flex;flex-direction:column;gap:12px;margin-bottom:20px;"></div>
+                    <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
+                        <textarea id="fin-msg-input" rows="3" placeholder="Escrever mensagem..." style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;color:#fff;font-size:.88rem;outline:none;resize:none;font-family:inherit;box-sizing:border-box;"></textarea>
+                        <button onclick="sendFinMessage()" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:12px;background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.35);color:#818CF8;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(129,140,248,.25)'" onmouseout="this.style.background='rgba(129,140,248,.15)'">
+                            ✉️ Enviar
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- ════════════════════════════════════════════════════════
-             View: Regional (legado — mantido para compatibilidade)
+             View: Relatórios — Regional (REBUILT)
         ═══════════════════════════════════════════════════════════ -->
+        <div id="view-relatorios-regional" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>📊 Relatórios <span style="font-size:.75rem;background:rgba(129,140,248,.12);color:#818CF8;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Regional</span></h1>
+                    <p id="rr-regional-name">Regional</p>
+                </div>
+                <div class="actions" style="gap:10px;display:flex;">
+                    <button onclick="openRrConfigDrawer()" style="padding:9px 18px;border:1px solid rgba(129,140,248,.25);border-radius:12px;background:rgba(129,140,248,.06);color:#818CF8;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(129,140,248,.12)'" onmouseout="this.style.background='rgba(129,140,248,.06)'">
+                        ⚙️ Configurar Email
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPI Row -->
+            <div style="padding:20px 32px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">
+                <div class="kpi-box" style="border-top:2px solid #818CF8;">
+                    <div class="kpi-label">Total Arrecadado (semana)</div>
+                    <div class="kpi-value" id="rr-kpi-total">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #34D399;">
+                    <div class="kpi-label">Repasse Esperado (5%)</div>
+                    <div class="kpi-value" id="rr-kpi-repasse" style="color:#34D399;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #4ADE80;">
+                    <div class="kpi-label">Pagamentos Realizados</div>
+                    <div class="kpi-value" id="rr-kpi-paid" style="color:#4ADE80;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F87171;">
+                    <div class="kpi-label">Pagamentos Pendentes</div>
+                    <div class="kpi-value" id="rr-kpi-pending" style="color:#F87171;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F59E0B;">
+                    <div class="kpi-label">Compliance (semana atual)</div>
+                    <div class="kpi-value" id="rr-kpi-compliance" style="color:#F59E0B;">—</div>
+                </div>
+            </div>
+
+            <!-- Weekly compliance block -->
+            <div style="padding:20px 32px 0;">
+                <div style="background:rgba(129,140,248,.05);border:1px solid rgba(129,140,248,.15);border-radius:16px;padding:20px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+                        <div>
+                            <h3 style="font-size:.9rem;font-weight:800;margin:0 0 3px;">📅 Controle Semanal</h3>
+                            <p id="rr-compliance-week-label" style="font-size:.78rem;color:rgba(255,255,255,.4);margin:0;"></p>
+                        </div>
+                        <div id="rr-compliance-badge" style="padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);"></div>
+                    </div>
+                    <!-- Progress bar -->
+                    <div style="background:rgba(255,255,255,.06);border-radius:100px;height:10px;margin-bottom:16px;overflow:hidden;">
+                        <div id="rr-compliance-bar" style="height:100%;border-radius:100px;background:linear-gradient(90deg,#818CF8,#A78BFA);width:0%;transition:width .6s ease;"></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                        <span id="rr-compliance-text" style="font-size:.82rem;color:rgba(255,255,255,.6);"></span>
+                        <button onclick="toggleRrMissing()" id="btn-rr-missing" style="font-size:.75rem;color:rgba(255,255,255,.4);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 12px;cursor:pointer;transition:all .2s;">Ver pendentes ▼</button>
+                    </div>
+                    <!-- Missing churches list -->
+                    <div id="rr-missing-list" style="display:none;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">
+                        <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin:0 0 10px;">Igrejas sem relatório esta semana:</p>
+                        <div id="rr-missing-body" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:.72rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Período:</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rr-period-btns">
+                    <button class="period-btn active" onclick="setRRPeriod('7d',this)">7d</button>
+                    <button class="period-btn" onclick="setRRPeriod('30d',this)">30d</button>
+                    <button class="period-btn" onclick="setRRPeriod('90d',this)">90d</button>
+                    <button class="period-btn" onclick="setRRPeriod('12m',this)">12m</button>
+                    <button class="period-btn" onclick="setRRPeriod('all',this)">Todo período</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+                    <input type="date" id="rr-date-from" onchange="setRRPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                    <span style="color:rgba(255,255,255,.3);font-size:.78rem;">até</span>
+                    <input type="date" id="rr-date-to" onchange="setRRPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                </div>
+            </div>
+
+            <!-- Submissions Table -->
+            <div style="padding:20px 32px 40px;">
+                <h3 style="font-size:.8rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;">Submissões das Igrejas</h3>
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:900px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Igreja</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Semana</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Total (moeda local)</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Repasse 5%</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Status Pagamento</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Data</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rr-reports-tbody">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Regional: Config Email Drawer ════ -->
+        <div id="rr-config-overlay" onclick="if(event.target===this)closeRrConfigDrawer()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:9300;justify-content:flex-end;">
+            <div style="background:#0d0f1e;border-left:1px solid rgba(129,140,248,.15);width:min(420px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;padding:28px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+                    <h3 style="font-size:1rem;font-weight:800;margin:0;">⚙️ Responsável pelo Email</h3>
+                    <button onclick="closeRrConfigDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;padding:4px;">✕</button>
+                </div>
+                <p style="font-size:.83rem;color:rgba(255,255,255,.45);margin:0 0 24px;line-height:1.6;">Configure quem receberá os emails de submissão de relatórios desta regional e avisos de mensagens.</p>
+                <div style="margin-bottom:16px;">
+                    <label class="hub-field-label">Email do Responsável Financeiro Regional</label>
+                    <input id="rr-config-email" type="email" class="hub-input" placeholder="financeiro@regional.com">
+                </div>
+                <div style="margin-bottom:24px;">
+                    <label class="hub-field-label">Nome do Responsável</label>
+                    <input id="rr-config-name" type="text" class="hub-input" placeholder="Pastor João Silva">
+                </div>
+                <button onclick="saveRrConfig()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#818CF8,#6366F1);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
+                    💾 Salvar Configuração
+                </button>
+                <div id="rr-config-feedback" style="margin-top:12px;font-size:.8rem;text-align:center;display:none;"></div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+             View: Relatórios — Global (REBUILT)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-relatorios-global" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>📊 Relatórios <span style="font-size:.75rem;background:rgba(52,211,153,.12);color:#34D399;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Global</span></h1>
+                    <p>Lagoinha — Visão consolidada de todas as regionais (em USD)</p>
+                </div>
+                <div class="actions" style="gap:10px;display:flex;">
+                    <button onclick="openRgConfigDrawer()" style="padding:9px 18px;border:1px solid rgba(52,211,153,.25);border-radius:12px;background:rgba(52,211,153,.06);color:#34D399;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(52,211,153,.12)'" onmouseout="this.style.background='rgba(52,211,153,.06)'">
+                        ⚙️ Configurar Email
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPI Row -->
+            <div style="padding:20px 32px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">
+                <div class="kpi-box" style="border-top:2px solid #34D399;">
+                    <div class="kpi-label">Total Arrecadado (USD)</div>
+                    <div class="kpi-value" id="rg-kpi-total" style="color:#34D399;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #FFD700;">
+                    <div class="kpi-label">Global 10% Esperado</div>
+                    <div class="kpi-value" id="rg-kpi-global10" style="color:#FFD700;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #4ADE80;">
+                    <div class="kpi-label">Igrejas com Relatório</div>
+                    <div class="kpi-value" id="rg-kpi-submitted" style="color:#4ADE80;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #818CF8;">
+                    <div class="kpi-label">Regionais Ativas</div>
+                    <div class="kpi-value" id="rg-kpi-regionals" style="color:#818CF8;">—</div>
+                </div>
+                <div class="kpi-box" style="border-top:2px solid #F87171;">
+                    <div class="kpi-label">Pagamentos Pendentes</div>
+                    <div class="kpi-value" id="rg-kpi-pending" style="color:#F87171;">—</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:.72rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Período:</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="period-btn active" onclick="setRGPeriod('7d',this)">7d</button>
+                    <button class="period-btn" onclick="setRGPeriod('30d',this)">30d</button>
+                    <button class="period-btn" onclick="setRGPeriod('90d',this)">90d</button>
+                    <button class="period-btn" onclick="setRGPeriod('12m',this)">12m</button>
+                    <button class="period-btn" onclick="setRGPeriod('all',this)">Todo período</button>
+                </div>
+                <div style="position:relative;margin-left:8px;">
+                    <button onclick="toggleMultiSelect('rg-regionals-dropdown')" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.7);font-size:.8rem;cursor:pointer;">
+                        🌎 Regionais <span id="rg-regionals-count" style="background:rgba(52,211,153,.2);color:#34D399;padding:1px 7px;border-radius:20px;font-size:.7rem;font-weight:700;">Todas</span>
+                    </button>
+                    <div id="rg-regionals-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:100;background:#0d0f1e;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+                        <div id="rg-regionals-list" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">
+                    <input type="date" id="rg-date-from" onchange="setRGPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                    <span style="color:rgba(255,255,255,.3);font-size:.78rem;">até</span>
+                    <input type="date" id="rg-date-to" onchange="setRGPeriodCustom()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:#fff;font-size:.78rem;outline:none;">
+                </div>
+            </div>
+
+            <!-- Global Table -->
+            <div style="padding:20px 32px 40px;">
+                <h3 style="font-size:.8rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;">Relatórios por Igreja (valores em USD)</h3>
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:900px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Igreja</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Regional</th>
+                                <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Semana</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Total (USD)</th>
+                                <th style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Global 10% (USD)</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Status Global</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rg-reports-tbody">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════ Global: Config Email Drawer ════ -->
+        <div id="rg-config-overlay" onclick="if(event.target===this)closeRgConfigDrawer()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:9300;justify-content:flex-end;">
+            <div style="background:#0d0f1e;border-left:1px solid rgba(52,211,153,.15);width:min(420px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;padding:28px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+                    <h3 style="font-size:1rem;font-weight:800;margin:0;">⚙️ Responsável Global</h3>
+                    <button onclick="closeRgConfigDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;padding:4px;">✕</button>
+                </div>
+                <p style="font-size:.83rem;color:rgba(255,255,255,.45);margin:0 0 24px;line-height:1.6;">Configure quem receberá os emails consolidados globais de relatórios financeiros.</p>
+                <div style="margin-bottom:16px;">
+                    <label class="hub-field-label">Email do Responsável Financeiro Global</label>
+                    <input id="rg-config-email" type="email" class="hub-input" placeholder="financeiro@lagoinhaGlobal.com">
+                </div>
+                <div style="margin-bottom:24px;">
+                    <label class="hub-field-label">Nome do Responsável</label>
+                    <input id="rg-config-name" type="text" class="hub-input" placeholder="Nome do líder financeiro global">
+                </div>
+                <button onclick="saveRgConfig()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#34D399,#10B981);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">
+                    💾 Salvar Configuração
+                </button>
+                <div id="rg-config-feedback" style="margin-top:12px;font-size:.8rem;text-align:center;display:none;"></div>
+            </div>
+        </div>
+
+        <!-- ════ View: Regional (legado) ════ -->
         <div id="view-regional" class="view-section" style="display:none;"></div>
         <!-- ════ View: Global (legado) ════ -->
         <div id="view-global" class="view-section" style="display:none;"></div>
+
 
     </main>
 
