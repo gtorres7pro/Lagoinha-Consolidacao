@@ -6359,22 +6359,48 @@ window.savePersonDrawer = async function() {
     }
 };
 
-window.deletePersonDrawer = async function() {
+window.deletePersonDrawer = function() {
     if (!_pdSource || !_pdId) return;
     const name = _pdData?.name || 'este registro';
 
-    // Confirmation via a simple confirm (ou podemos fazer modal no futuro)
-    if (!window.confirm('Tem certeza que deseja excluir ' + name + '?\nApenas o registro deste módulo será removido.')) return;
+    // Inline confirmation inside the drawer (window.confirm is blocked in production HTTPS)
+    const actionsDiv = document.querySelector('#pd-tab-perfil div[style*="margin-top:28px"]');
+    if (!actionsDiv) { confirmDeletePersonDrawer(); return; } // fallback
 
+    actionsDiv.innerHTML = `
+      <div style="width:100%;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:14px 16px;">
+        <div style="font-size:.82rem;color:#EF4444;font-weight:700;margin-bottom:10px;">🗑️ Excluir ${name}?</div>
+        <div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-bottom:14px;">Apenas o registro deste módulo será removido.</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="confirmDeletePersonDrawer()" style="flex:1;padding:9px;border:none;border-radius:9px;background:#EF4444;color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;">Sim, excluir</button>
+          <button onclick="cancelDeletePersonDrawer()" style="flex:1;padding:9px;border:1px solid rgba(255,255,255,.15);border-radius:9px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);font-weight:700;font-size:.82rem;cursor:pointer;">Cancelar</button>
+        </div>
+      </div>`;
+};
+
+window.cancelDeletePersonDrawer = function() {
+    // Restore original action buttons
+    const actionsDiv = document.querySelector('#pd-tab-perfil div[style*="margin-top:28px"]');
+    if (actionsDiv) {
+        actionsDiv.innerHTML = `
+          <button onclick="savePersonDrawer()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">💾 Salvar Alterações</button>
+          <button onclick="deletePersonDrawer()" style="padding:12px 16px;border:1px solid rgba(239,68,68,.3);border-radius:12px;background:rgba(239,68,68,.1);color:#EF4444;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">🗑️</button>`;
+        actionsDiv.style.display = 'flex';
+    }
+};
+
+window.confirmDeletePersonDrawer = async function() {
+    if (!_pdSource || !_pdId) return;
+    const name = _pdData?.name || 'este registro';
     const sb    = window.supabaseClient;
     const table = _pdSource === 'batismo' ? 'baptism_registrations' : 'member_registrations';
     const { error } = await sb.from(table).delete().eq('id', _pdId);
 
     if (error) {
         if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir: ' + error.message, 'error');
+        cancelDeletePersonDrawer();
     } else {
         if (typeof hubToast !== 'undefined') hubToast(name + ' removido do módulo. 🗑️', 'success');
-        // Remove from local cache and re-render
         if (_pdSource === 'batismo') {
             window._batismoAll = (window._batismoAll || []).filter(r => r.id !== _pdId);
             if (typeof filterBatismoTable === 'function') filterBatismoTable();
@@ -6385,3 +6411,4 @@ window.deletePersonDrawer = async function() {
         closePersonDrawer();
     }
 };
+
