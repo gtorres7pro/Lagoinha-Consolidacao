@@ -755,20 +755,16 @@
 
             <!-- 8. Relatórios (expandível) -->
             <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-relatorios-toggle" onclick="toggleRelatoriosMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon">
+                <div id="nav-relatorios-toggle" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
+                    <span class="nav-icon" onclick="switchTab('relatorios-local')">
                         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                     </span>
-                    <span class="nav-label" style="font-weight:700;">Relatórios</span>
-                    <span id="relatorios-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+                    <span class="nav-label" style="font-weight:700;flex:1;" onclick="switchTab('relatorios-local')">Relatórios</span>
+                    <span id="relatorios-arrow" onclick="toggleRelatoriosMenu()" style="padding:4px 6px;color:rgba(255,255,255,.3);font-size:.6rem;transition:transform .2s;">▶</span>
                 </div>
                 <div class="nav-submenu-wrap" id="relatorios-submenu-wrap" style="display:none;">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
-                        <li id="nav-relatorios-local" onclick="switchTab('relatorios-local')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-                            <span class="nav-label">Local</span>
-                        </li>
                         <li id="nav-relatorios-regional" onclick="switchTab('relatorios-regional')" style="display:none;">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
                             <span class="nav-label">Regional</span>
@@ -780,6 +776,7 @@
                     </ul>
                 </div>
             </li>
+
 
             <!-- 9. Logs -->
             <li id="nav-logs" onclick="switchTab('logs')">
@@ -2150,7 +2147,7 @@ REGRAS:
                     <p id="rl-workspace-name">Sua Igreja</p>
                 </div>
                 <div class="actions">
-                    <button onclick="sendReportEmail('local')" style="padding:10px 18px;border:1px solid rgba(255,215,0,.25);border-radius:12px;background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
+                    <button onclick="sendReportEmail('local', this)" style="padding:10px 18px;border:1px solid rgba(255,215,0,.25);border-radius:12px;background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
                             onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
                         📧 Enviar Relatório
                     </button>
@@ -2186,7 +2183,7 @@ REGRAS:
                     <p id="rr-regional-name">Regional</p>
                 </div>
                 <div class="actions">
-                    <button onclick="sendReportEmail('regional')" style="padding:10px 18px;border:1px solid rgba(129,140,248,.25);border-radius:12px;background:rgba(129,140,248,.06);color:#818CF8;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
+                    <button onclick="sendReportEmail('regional', this)" style="padding:10px 18px;border:1px solid rgba(129,140,248,.25);border-radius:12px;background:rgba(129,140,248,.06);color:#818CF8;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
                             onmouseover="this.style.background='rgba(129,140,248,.12)'" onmouseout="this.style.background='rgba(129,140,248,.06)'">
                         📧 Enviar Relatório
                     </button>
@@ -2230,7 +2227,7 @@ REGRAS:
                     <p>Lagoinha — Visão consolidada de todas as regionais</p>
                 </div>
                 <div class="actions">
-                    <button onclick="sendReportEmail('global')" style="padding:10px 18px;border:1px solid rgba(52,211,153,.25);border-radius:12px;background:rgba(52,211,153,.06);color:#34D399;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
+                    <button onclick="sendReportEmail('global', this)" style="padding:10px 18px;border:1px solid rgba(52,211,153,.25);border-radius:12px;background:rgba(52,211,153,.06);color:#34D399;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
                             onmouseover="this.style.background='rgba(52,211,153,.12)'" onmouseout="this.style.background='rgba(52,211,153,.06)'">
                         📧 Enviar Relatório
                     </button>

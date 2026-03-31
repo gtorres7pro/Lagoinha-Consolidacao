@@ -6448,8 +6448,7 @@ window.toggleRelatoriosMenu = function() {
     if (wrap)  wrap.style.display = relatoriosMenuOpen ? 'flex' : 'none';
     if (arrow) arrow.style.transform = relatoriosMenuOpen ? 'rotate(90deg)' : '';
     document.getElementById('nav-relatorios-toggle')?.classList.toggle('active', relatoriosMenuOpen);
-    // Navigate to local when opening
-    if (relatoriosMenuOpen) switchTab('relatorios-local');
+    // NOTE: no auto-navigate — clicking the label/icon navigates directly
 };
 
 // ── Toggle: Administrativo ────────────────────────────────────────
@@ -6701,7 +6700,7 @@ window.submitCreateWorkspace = async function() {
         if (adminEmail) {
             const { data: { session } } = await sb.auth.getSession();
             const token = session?.access_token;
-            const fnUrl = `${window.SUPABASE_URL}/functions/v1/manage-users`;
+            const fnUrl = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users';
             const resp = await fetch(fnUrl, {
                 method: 'POST',
                 headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
@@ -7086,22 +7085,28 @@ document.addEventListener('click', (e) => {
 // ═══════════════════════════════════════════════════════════════════
 // SEND REPORT EMAIL
 // ═══════════════════════════════════════════════════════════════════
-window.sendReportEmail = async function(scope) {
+const _SUPABASE_FNURL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+
+window.sendReportEmail = async function(scope, btnEl) {
     const sb = window.supabaseClient;
     if (!sb) return;
-    const { data:{session} } = await sb.auth.getSession();
+
+    // Get session
+    let session;
+    try { ({ data: { session } } = await sb.auth.getSession()); } catch(e) { alert('Erro de sessão'); return; }
     const token = session?.access_token;
     const userEmail = session?.user?.email;
     if (!userEmail) { alert('Não foi possível identificar seu email.'); return; }
 
-    const btn = event?.target;
-    const origText = btn?.innerHTML;
+    // btn is passed explicitly from onclick to avoid event context issues
+    const btn = btnEl || null;
+    const origHTML = btn?.innerHTML;
     if (btn) { btn.innerHTML = '⏳ Enviando...'; btn.disabled = true; }
 
     try {
-        const res = await fetch(`${window.SUPABASE_URL}/functions/v1/send-report-email`, {
+        const res = await fetch(`${_SUPABASE_FNURL}/send-report-email`, {
             method: 'POST',
-            headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+            headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
                 scope,
                 workspace_id: window.currentWorkspaceId,
@@ -7111,15 +7116,21 @@ window.sendReportEmail = async function(scope) {
         });
         const data = await res.json();
         if (res.ok) {
-            if (btn) btn.innerHTML = '✅ Enviado!';
-            setTimeout(() => { if (btn) { btn.innerHTML = origText; btn.disabled = false; } }, 3000);
+            if (btn) { btn.innerHTML = '✅ Enviado!'; }
+            setTimeout(() => { if (btn) { btn.innerHTML = origHTML; btn.disabled = false; } }, 3000);
         } else {
             throw new Error(data.error || 'Falha no envio');
         }
     } catch(e) {
         console.error('sendReportEmail error', e);
-        alert('Não foi possível enviar o email: ' + e.message);
-        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        if (btn) { btn.innerHTML = origHTML; btn.disabled = false; }
+        // Show inline error instead of alert
+        const errEl = document.createElement('div');
+        errEl.textContent = '❌ ' + e.message;
+        errEl.style.cssText = 'position:fixed;top:24px;right:24px;background:#1e0a0a;border:1px solid #EF4444;color:#EF4444;padding:12px 20px;border-radius:12px;font-size:.85rem;z-index:9999;';
+        document.body.appendChild(errEl);
+        setTimeout(() => errEl.remove(), 5000);
     }
 };
+
 
