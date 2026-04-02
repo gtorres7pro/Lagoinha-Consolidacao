@@ -8183,9 +8183,9 @@ function loadMilaHistory() {
     
     // clear except welcome message
     const welcomeHTML = `
-        <div style="display: flex; gap: 16px; max-width: 85%;">
-            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
-            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="display: flex; gap: 12px; max-width: 90%;">
+            <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
+            <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                 Olá! Eu sou a <b>Mila</b>, sua assistente de suporte Zelo Pro. <br><br>Minha missão é exclusiva para a gestão desta igreja. Tenho acesso somente a nossa <b style="color: #FFD700;">Base de Conhecimento</b>. Por favor, me peça para consultar o que temos cadastrado lá, alterar os dados de funcionamento da igreja (que alimentarão nossa Ju do WhatsApp), ou relatar problemas no painel para a equipe técnica.<br><br>Como posso ajudar hoje?
             </div>
         </div>
@@ -8195,18 +8195,17 @@ function loadMilaHistory() {
     milaHistoryVars.forEach(msg => {
         const bubble = document.createElement('div');
         if (msg.role === 'user') {
-            bubble.style = "display: flex; gap: 16px; max-width: 85%; align-self: flex-end; flex-direction: row-reverse;";
+            bubble.style = "display: flex; max-width: 85%; align-self: flex-end;";
             bubble.innerHTML = `
-                <div style="width: 32px; height: 32px; border-radius: 16px; background: #222; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFF; font-size: 0.8rem;">V</div>
-                <div style="background: rgba(255, 215, 0, 0.1); padding: 16px 20px; border-radius: 16px 0 16px 16px; color: #FFF; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255, 215, 0, 0.2);">
+                <div style="background: #FFD700; padding: 12px 18px; border-radius: 18px 18px 0 18px; color: #111; font-size: 0.95rem; line-height: 1.5; font-weight: 500; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     ${msg.content.replace(/\n/g, '<br>')}
                 </div>
             `;
         } else {
-            bubble.style = "display: flex; gap: 16px; max-width: 85%;";
+            bubble.style = "display: flex; gap: 12px; max-width: 90%;";
             bubble.innerHTML = `
-                <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
-                <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
+                <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                     ${msg.content.replace(/\n/g, '<br>')}
                 </div>
             `;
@@ -8244,10 +8243,9 @@ async function sendMilaMessage() {
     // Append user message
     const formattedText = text.replace(/\\n/g, '<br>');
     const userBubble = document.createElement('div');
-    userBubble.style = "display: flex; gap: 16px; max-width: 85%; align-self: flex-end; flex-direction: row-reverse;";
+    userBubble.style = "display: flex; max-width: 85%; align-self: flex-end;";
     userBubble.innerHTML = `
-        <div style="width: 32px; height: 32px; border-radius: 16px; background: #222; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFF; font-size: 0.8rem;">V</div>
-        <div style="background: rgba(255, 215, 0, 0.1); padding: 16px 20px; border-radius: 16px 0 16px 16px; color: #FFF; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255, 215, 0, 0.2);">
+        <div style="background: #FFD700; padding: 12px 18px; border-radius: 18px 18px 0 18px; color: #111; font-size: 0.95rem; line-height: 1.5; font-weight: 500; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
             ${formattedText}
         </div>
     `;
@@ -8260,11 +8258,11 @@ async function sendMilaMessage() {
     // Append thinking indicator
     const thinkingBubble = document.createElement('div');
     thinkingBubble.id = 'mila-thinking';
-    thinkingBubble.style = "display: flex; gap: 16px; max-width: 85%;";
+    thinkingBubble.style = "display: flex; gap: 12px; max-width: 90%;";
     thinkingBubble.innerHTML = `
-        <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
-        <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: rgba(255,255,255,0.5); font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 4px;">
-            Pensando<span style="opacity:0.5">...</span>
+        <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
+        <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: rgba(255,255,255,0.5); font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;">
+            Gravando áudio<span style="opacity:0.5">...</span>
         </div>
     `;
     milaChatWindow.appendChild(thinkingBubble);
@@ -8288,10 +8286,10 @@ async function sendMilaMessage() {
         document.getElementById('mila-thinking')?.remove();
 
         const replyBubble = document.createElement('div');
-        replyBubble.style = "display: flex; gap: 16px; max-width: 85%;";
+        replyBubble.style = "display: flex; gap: 12px; max-width: 90%;";
         replyBubble.innerHTML = `
-            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
-            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
+            <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                 ${result.reply ? result.reply.replace(/\n/g, '<br>') : "Ocorreu um erro ao gerar a resposta."}
             </div>
         `;
