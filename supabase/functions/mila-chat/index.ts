@@ -3,7 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') || '';
 
 const corsHeaders = {
@@ -41,24 +40,27 @@ serve(async (req) => {
         // Fetch workspace to get knowledge base 
         const { data: wsData, error: wsError } = await supabase
             .from('workspaces')
-            .select('knowledge_base, name')
+            .select('knowledge_base, name, credentials')
             .eq('id', wsId)
             .single();
             
         if (wsError || !wsData) throw new Error("Workspace data not found");
         
-        const { message } = await req.json();
+        const geminiApiKey = wsData.credentials?.llm_config?.gemini_token;
+        if (!geminiApiKey) throw new Error("A API Key do Gemini não está configurada neste workspace.");
+
+        const { message, history } = await req.json();
 
         // Prepare Gemini Call
         const kbString = JSON.stringify(wsData.knowledge_base || {});
         
-        const systemPrompt = \`
+        const systemPrompt = `
 Você é a **Mila**, assistente virtual de inteligência artificial exclusiva do sistema Zelo Pro.
-Você está conversando com a equipe de gestão da igreja \${wsData.name}. O usuário logado chama-se \${userData.name || 'Gestor'}.
+Você está conversando com a equipe de gestão da igreja ${wsData.name}. O usuário logado chama-se ${userData.name || 'Gestor'}.
 Seja amigável, um pouco bem humorada e use ocasionalmente o bordão "Pra cima Lagoinha! 🚀".
 
 Aqui está a Base de Conhecimento atual desta igreja, em JSON:
-\${kbString}
+${kbString}
 
 **Regras de Atuação:**
 1. Leia as mensagens do usuário.
@@ -66,7 +68,7 @@ Aqui está a Base de Conhecimento atual desta igreja, em JSON:
 3. Se o usuário disser que encontrou um problema no painel, relate que algo no painel do Zelo Pro não está funcionando bem, você PODE DEVE abrir um chamado chamando a ferramenta 'open_support_ticket'. Diga que avisou a equipe técnica de engenharia.
 4. Se o usuário quiser atualizar informações da igreja (pastor, telefone, data de culto), atualize o JSON inteiro e envie-o chamando a ferramenta 'update_knowledge_base'. Diga que "o banco de dados foi atualizado com sucesso".
 5. Não responda sobre coisas muito aleatórias de fora. Foque na igreja.
-        \`;
+        `;
 
         const tools = [{
             function_declarations: [
@@ -107,21 +109,26 @@ Aqui está a Base de Conhecimento atual desta igreja, em JSON:
 
         let resultText = "";
 
+        let contents = [];
+        if (history && history.length > 0) {
+            contents = history.map((h: any) => ({
+                role: h.role, 
+                parts: [{ text: h.content }]
+            }));
+        } else {
+            contents = [ { role: "user", parts: [{ text: message }] } ];
+        }
+
         // First pass: Call Gemini
         const geminiRequestBody = {
-            contents: [
-                {
-                    role: "user",
-                    parts: [{ text: message }]
-                }
-            ],
+            contents: contents,
             system_instruction: {
                 parts: [{ text: systemPrompt }]
             },
             tools: tools
         };
 
-        const geminiResponse = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\${geminiApiKey}\`, {
+        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(geminiRequestBody)
@@ -153,17 +160,17 @@ Aqui está a Base de Conhecimento atual desta igreja, em JSON:
                     await fetch('https://api.resend.com/emails', {
                         method: 'POST',
                         headers: {
-                            'Authorization': \`Bearer \${resendApiKey}\`,
+                            'Authorization': `Bearer ${resendApiKey}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             from: "Zelo Pro Mila <nao-responda@7pro.tech>",
                             to: "g@7proservices.com",
-                            subject: \`[SUPORTE ZELO] \${args.title}\`,
-                            html: \`<p>O usuário <b>\${userData.name || 'Desconhecido'}</b> do Workspace <b>\${wsData.name}</b> (\${wsId}) relatou via Mila o seguinte chamado:</p><p>\${args.description}</p>\`
+                            subject: `[SUPORTE ZELO] ${args.title}`,
+                            html: `<p>O usuário <b>${userData.name || 'Desconhecido'}</b> do Workspace <b>${wsData.name}</b> (${wsId}) relatou via Mila o seguinte chamado:</p><p>${args.description}</p>`
                         })
                     });
-                    if (!resultText) resultText = \`Entendido! Acabei de enviar um chamado técnico para a equipe relatando "\${args.title}". Em breve eles investigarão.\`;
+                    if (!resultText) resultText = `Entendido! Acabei de enviar um chamado técnico para a equipe relatando "${args.title}". Em breve eles investigarão.`;
                 }
 
                 if (call.name === 'update_knowledge_base') {
@@ -176,7 +183,7 @@ Aqui está a Base de Conhecimento atual desta igreja, em JSON:
                             .update({ knowledge_base: newKbObj })
                             .eq('id', wsId);
                             
-                        if (!resultText) resultText = \`Feito! Já atualizei o banco de dados da \${wsData.name} com essas novas configurações. A Ju vai aprender isso instantaneamente!\`;
+                        if (!resultText) resultText = `Feito! Já atualizei o banco de dados da ${wsData.name} com essas novas configurações. A Ju vai aprender isso instantaneamente!`;
                     } catch (err) {
                         console.error("Mila failed to parse JSON in update_knowledge_base", err);
                     }

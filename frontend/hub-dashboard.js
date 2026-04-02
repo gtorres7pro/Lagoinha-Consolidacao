@@ -8167,10 +8167,79 @@ function startNewMilaChat() {
     milaInput.value = '';
     milaInput.style.height = '';
 }
+let milaHistoryVars = [];
+
+function loadMilaHistory() {
+    const saved = localStorage.getItem('milaHistory');
+    if (saved) {
+        try {
+            milaHistoryVars = JSON.parse(saved);
+        } catch(e) {}
+    }
+    
+    // Render
+    const milaChatWindow = document.getElementById('mila-chat-window');
+    if (!milaChatWindow) return;
+    
+    // clear except welcome message
+    const welcomeHTML = `
+        <div style="display: flex; gap: 16px; max-width: 85%;">
+            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                Pra cima Lagoinha! 🚀 Oi, eu sou a <b>Mila</b>, sua assistente virtual de gestão aqui no Zelo Pro. <br><br>Estou conectada diretamente com a base de dados do nosso Workspace e posso te ajudar a descobrir informações de configurações ou relatar bugs à nossa equipe técnica. Como posso te apoiar hoje?
+            </div>
+        </div>
+    `;
+    milaChatWindow.innerHTML = welcomeHTML;
+    
+    milaHistoryVars.forEach(msg => {
+        const bubble = document.createElement('div');
+        if (msg.role === 'user') {
+            bubble.style = "display: flex; gap: 16px; max-width: 85%; align-self: flex-end; flex-direction: row-reverse;";
+            bubble.innerHTML = `
+                <div style="width: 32px; height: 32px; border-radius: 16px; background: #222; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFF; font-size: 0.8rem;">V</div>
+                <div style="background: rgba(255, 215, 0, 0.1); padding: 16px 20px; border-radius: 16px 0 16px 16px; color: #FFF; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255, 215, 0, 0.2);">
+                    ${msg.content.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        } else {
+            bubble.style = "display: flex; gap: 16px; max-width: 85%;";
+            bubble.innerHTML = `
+                <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+                <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                    ${msg.content.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        }
+        milaChatWindow.appendChild(bubble);
+    });
+    
+    milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
+}
+
+function clearMilaHistory() {
+    if(confirm("Tem certeza que deseja apagar o histórico de conversa com a Mila?")) {
+        milaHistoryVars = [];
+        localStorage.removeItem('milaHistory');
+        loadMilaHistory();
+    }
+}
+
+function startNewMilaChat() {
+    clearMilaHistory();
+}
+
+// Hook to load history on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    loadMilaHistory();
+});
 
 async function sendMilaMessage() {
     const text = milaInput.value.trim();
     if (!text) return;
+
+    milaHistoryVars.push({ role: 'user', content: text });
+    localStorage.setItem('milaHistory', JSON.stringify(milaHistoryVars));
 
     // Append user message
     const formattedText = text.replace(/\\n/g, '<br>');
@@ -8211,7 +8280,7 @@ async function sendMilaMessage() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text, history: milaHistoryVars })
         });
         
         const result = await response.json();
@@ -8223,10 +8292,15 @@ async function sendMilaMessage() {
         replyBubble.innerHTML = `
             <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
             <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
-                ${result.reply ? result.reply.replace(/\\n/g, '<br>') : "Ocorreu um erro ao gerar a resposta."}
+                ${result.reply ? result.reply.replace(/\n/g, '<br>') : "Ocorreu um erro ao gerar a resposta."}
             </div>
         `;
         milaChatWindow.appendChild(replyBubble);
+
+        if (result.reply) {
+            milaHistoryVars.push({ role: 'model', content: result.reply });
+            localStorage.setItem('milaHistory', JSON.stringify(milaHistoryVars));
+        }
 
     } catch (e) {
         document.getElementById('mila-thinking')?.remove();
