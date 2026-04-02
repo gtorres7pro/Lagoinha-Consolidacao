@@ -663,6 +663,26 @@
     </style>
     <!-- Meta Facebook SDK for Embedded Signup -->
     <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+    <!-- Facebook (Meta) SDK for WhatsApp Embedded Signup -->
+    <script>
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId      : '934037612918640', // Configurado pelo Admin Zelo Pro
+                cookie     : true,
+                xfbml      : true,
+                version    : 'v20.0'
+            });
+            FB.AppEvents.logPageView();
+        };
+
+        (function(d, s, id){
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) {return;}
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+    </script>
 </head>
 <body>
 
@@ -765,13 +785,12 @@
                 </div>
             </li>
 
-            <!-- 6. Aniversariantes (em desenvolvimento) -->
-            <li id="nav-birthdays" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v-4"/><path d="M9 17h6"/></svg>
+            <!-- 6. Aniversariantes -->
+            <li id="nav-birthdays" onclick="switchTab('birthdays')" title="Gestão de Aniversariantes">
+                <span class="nav-icon" style="color:var(--accent);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v-4"/><path d="M9 17h6"/></svg>
                 </span>
                 <span class="nav-label">Aniversariantes</span>
-                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
             <!-- 7. Assistente Mila -->
@@ -1325,6 +1344,82 @@
             </div>
         </div>
 
+        <!-- View: Aniversariantes -->
+        <div id="view-birthdays" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>Aniversariantes</h1>
+                    <p>Suba sua planilha e acompanhe os aniversários do mês</p>
+                </div>
+                <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <label for="csv-upload-birthdays" class="btn" style="background:var(--accent);color:#000;padding:8px 16px;border-radius:10px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Upload Planilha CSV
+                    </label>
+                    <input type="file" id="csv-upload-birthdays" accept=".csv" style="display:none;" onchange="handleBirthdaysCSVUpload(event)">
+                </div>
+            </header>
+
+            <div style="padding: 0 24px;">
+                <div id="birthdays-upload-status" style="display:none; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3); border-radius:12px; padding:12px 16px; margin-bottom:20px; font-size:0.85rem; color:#FFD700; align-items:center; gap:10px;">
+                    <span id="birthdays-upload-msg">Processando CSV...</span>
+                </div>
+            </div>
+
+            <!-- List Containers -->
+            <div style="padding: 0 24px 40px; display:flex; flex-direction:column; gap:24px;">
+                
+                <!-- Hoje -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--card-border); border-radius:16px; overflow:hidden;">
+                    <div style="background:rgba(251,191,36,0.1); border-bottom:1px solid rgba(251,191,36,0.2); padding:16px 20px; display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:1.2rem;">🎂</span>
+                        <h3 style="color:#FBBF24; font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Aniversariantes de Hoje</h3>
+                        <span id="birthdays-count-today" style="background:#FBBF24; color:#000; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:auto;">0</span>
+                    </div>
+                    <div style="padding:0;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                            <tbody id="birthdays-list-today">
+                                <tr><td style="padding:20px; text-align:center; color:var(--text-dim);">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Próximos 7 Dias -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--card-border); border-radius:16px; overflow:hidden;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--card-border); display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:1.2rem;">⏳</span>
+                        <h3 style="color:#FFF; font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Próximos 7 Dias</h3>
+                        <span id="birthdays-count-next" style="background:rgba(255,255,255,0.1); color:#FFF; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:12px; margin-left:auto;">0</span>
+                    </div>
+                    <div style="padding:0;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                            <tbody id="birthdays-list-next">
+                                <tr><td style="padding:20px; text-align:center; color:var(--text-dim);">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Últimos 7 Dias -->
+                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--card-border); border-radius:16px; overflow:hidden; opacity:0.8;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--card-border); display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:1.2rem;">⏪</span>
+                        <h3 style="color:var(--text-mid); font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:0;">Últimos 7 Dias</h3>
+                        <span id="birthdays-count-past" style="background:rgba(255,255,255,0.05); color:var(--text-mid); font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:12px; margin-left:auto;">0</span>
+                    </div>
+                    <div style="padding:0;">
+                        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                            <tbody id="birthdays-list-past">
+                                <tr><td style="padding:20px; text-align:center; color:var(--text-dim);">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- View: Dashboard (Leads) -->
         <div id="view-dashboard" class="view-section">
 
@@ -1875,7 +1970,7 @@
                             
                             <!-- Toggle Switch for AI -->
                             <div style="display:flex; align-items:center; gap: 8px;">
-                                <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">IA Ativa</span>
+                                <span id="ia-active-status" style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">IA Ativa</span>
                                 <label class="switch" style="position:relative; display:inline-block; width:44px; height:24px;">
                                     <input type="checkbox" id="wa-power-toggle" checked onchange="toggleWaAi(this.checked)" style="opacity:0; width:0; height:0;">
                                     <span class="slider round" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#25D366; transition:.4s; border-radius:24px;"></span>
@@ -4327,7 +4422,7 @@
     <script src="/hub-dashboard.js?v=20260326v5"></script>
     <script src="/hub-start.js?v=1"></script>
     <script src="/task-manager.js?v=20260401v1"></script>
-
+    <script src="/birthdays.js?v=20260402v1"></script>
 </body>
 
 </html>

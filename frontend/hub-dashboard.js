@@ -2773,21 +2773,17 @@
         setWASignupStatus('info', '🔍 Buscando contas WhatsApp Business...');
         try {
             // 1. Exchange for long-lived token
-            const exchangeRes = await fetch(`${API_BASE}/whatsapp/auth/exchange`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ short_lived_token: shortToken })
+            const { data: exchangeData, error: exchangeError } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+                body: { action: 'exchange', short_lived_token: shortToken }
             });
-            const exchangeData = await exchangeRes.json();
+            if (exchangeError) throw new Error(exchangeError.message);
             const longToken = exchangeData.long_lived_token || shortToken; // fallback to short if exchange fails
 
             // 2. Fetch WABA accounts
-            const accountsRes = await fetch(`${API_BASE}/whatsapp/auth/fetch-accounts`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ short_lived_token: longToken })
+            const { data: accountsData, error: accountsError } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+                body: { action: 'fetch-accounts', short_lived_token: longToken }
             });
-            const accountsData = await accountsRes.json();
+            if (accountsError) throw new Error(accountsError.message);
 
             if (accountsData.error) {
                 setWASignupStatus('error', `❌ Erro: ${accountsData.error}`);
@@ -2832,18 +2828,19 @@
         setWASignupStatus('info', `💾 Salvando ${account.phone_display}...`);
         document.getElementById('wa-account-picker').style.display = 'none';
         try {
-            const saveRes = await fetch(`${API_BASE}/whatsapp/auth/save`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    workspace_id: '9c4e23cf-26e3-4632-addb-f28325aedac3',
-                    phone_id: account.phone_id,
-                    waba_id: account.waba_id,
-                    access_token: token,
-                    phone_display: account.phone_display
-                })
-            });
-            const saveData = await saveRes.json();
+            let currentCreds = window._currentWorkspace?.credentials || {};
+            const payload = {
+                ...currentCreds,
+                whatsapp_token: token, 
+                phone_id: account.phone_id, 
+                business_id: account.waba_id, 
+                phone_display: account.phone_display || account.phone_id
+            };
+            const { error: saveError } = await window.supabaseClient.from('workspaces').update({
+                credentials: payload
+            }).eq('id', window._currentWorkspace.id);
+            
+            const saveData = saveError ? { error: saveError.message } : { status: 'saved' };
             if (saveData.status === 'saved') {
                 setWASignupStatus('success', `🎉 Conectado com sucesso!`);
                 showWAConnectedCard(account);
@@ -2872,9 +2869,30 @@
         window.hasWhatsappConfig = true;
     }
 
+    window.toggleWaAi = async function(isActive) {
+        if (!window.supabaseClient || !window._currentWorkspace?.id) return;
+        let creds = window._currentWorkspace?.credentials || {};
+        creds.ia_active = isActive;
+        
+        try {
+            await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window._currentWorkspace.id);
+            const statusEl = document.getElementById('ia-active-status');
+            if (statusEl) statusEl.innerText = isActive ? 'IA Ativa' : 'IA Pausada';
+        } catch(e) {
+            console.error('Failed to toggle IA:', e);
+            alert('Não foi possível alterar o status da IA.');
+        }
+    };
+
     function disconnectWhatsApp() {
         if (!confirm('Desconectar o WhatsApp? A Ju vai parar de responder.')) return;
-        window.supabaseClient.from('workspaces').update({ credentials: {} }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').then(() => {
+        let creds = window._currentWorkspace?.credentials || {};
+        delete creds.whatsapp_token;
+        delete creds.phone_id;
+        delete creds.business_id;
+        delete creds.phone_display;
+
+        window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window._currentWorkspace.id).then(() => {
             document.getElementById('wa-connected-card').style.display = 'none';
             document.getElementById('wa-connect-section').style.display = 'block';
             setWASignupStatus('info', '🔌 Desconectado. Clique em Conectar para reconectar.');
@@ -2909,9 +2927,10 @@
         }
         
         try {
+            let creds = window._currentWorkspace?.credentials || {};
             const { error } = await window.supabaseClient.from('workspaces').update({
-                credentials: {whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
-            }).eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3');
+                credentials: {...creds, whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
+            }).eq('id', window._currentWorkspace.id);
             
             if (error) throw error;
             alert('✅ Credenciais Salvas!');
@@ -2922,10 +2941,10 @@
     }
 
     async function checkWAStatus() {
-        if (!window.supabaseClient) return;
+        if (!window.supabaseClient || !window._currentWorkspace?.id) return;
         window.hasWhatsappConfig = false;
         
-        const { data, error } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', '9c4e23cf-26e3-4632-addb-f28325aedac3').single();
+        const { data, error } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window._currentWorkspace.id).single();
         if (data && data.credentials && data.credentials.whatsapp_token) {
             window.hasWhatsappConfig = true;
             const phoneDisplay = data.credentials.phone_display || data.credentials.phone_id || 'Número conectado';
@@ -2933,6 +2952,12 @@
             document.getElementById('wa-status-text').style.color = '#25D366';
             document.getElementById('wa-status-dot').style.background = '#25D366';
             document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(37,211,102,0.6)';
+
+            const iaActive = data.credentials.ia_active !== false;
+            const toggleWrap = document.getElementById('wa-power-toggle');
+            if (toggleWrap) toggleWrap.checked = iaActive;
+            const statusEl = document.getElementById('ia-active-status');
+            if (statusEl) statusEl.innerText = iaActive ? 'IA Ativa' : 'IA Pausada';
 
             // Show the connected card if on settings page
             const connCard = document.getElementById('wa-connected-card');
