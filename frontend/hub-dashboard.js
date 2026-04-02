@@ -2828,7 +2828,9 @@
         setWASignupStatus('info', `💾 Salvando ${account.phone_display}...`);
         document.getElementById('wa-account-picker').style.display = 'none';
         try {
-            let currentCreds = window._currentWorkspace?.credentials || {};
+            // Fetch latest creds first since we don't have _currentWorkspace object
+            const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+            let currentCreds = wsData?.credentials || {};
             const payload = {
                 ...currentCreds,
                 whatsapp_token: token, 
@@ -2838,7 +2840,7 @@
             };
             const { error: saveError } = await window.supabaseClient.from('workspaces').update({
                 credentials: payload
-            }).eq('id', window._currentWorkspace.id);
+            }).eq('id', window.currentWorkspaceId);
             
             const saveData = saveError ? { error: saveError.message } : { status: 'saved' };
             if (saveData.status === 'saved') {
@@ -2870,12 +2872,14 @@
     }
 
     window.toggleWaAi = async function(isActive) {
-        if (!window.supabaseClient || !window._currentWorkspace?.id) return;
-        let creds = window._currentWorkspace?.credentials || {};
-        creds.ia_active = isActive;
+        if (!window.supabaseClient || !window.currentWorkspaceId) return;
         
         try {
-            await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window._currentWorkspace.id);
+            const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+            let creds = wsData?.credentials || {};
+            creds.ia_active = isActive;
+
+            await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
             const statusEl = document.getElementById('ia-active-status');
             if (statusEl) statusEl.innerText = isActive ? 'IA Ativa' : 'IA Pausada';
         } catch(e) {
@@ -2884,9 +2888,13 @@
         }
     };
 
-    function disconnectWhatsApp() {
-        if (!confirm('Desconectar o WhatsApp? A Ju vai parar de responder.')) return;
-        let creds = window._currentWorkspace?.credentials || {};
+    window.disconnectWhatsapp = async function() {
+        if (!window.supabaseClient || !window.currentWorkspaceId) return;
+        if (!confirm('Tem certeza que deseja desconectar a conta do WhatsApp? Mila parará imediatamente de responder às mensagens.')) return;
+
+        const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        let creds = wsData?.credentials || {};
+        // clear WA fields
         delete creds.whatsapp_token;
         delete creds.phone_id;
         delete creds.business_id;

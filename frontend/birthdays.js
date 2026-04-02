@@ -7,7 +7,7 @@ window.handleBirthdaysCSVUpload = function(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!window._currentWorkspace?.id) {
+    if (!window.currentWorkspaceId) {
         alert('Por favor, selecione um workspace primeiro.');
         return;
     }
@@ -41,7 +41,7 @@ window.handleBirthdaysCSVUpload = function(event) {
                 const { error: deleteError } = await window.supabaseClient
                     .from('birthdays')
                     .delete()
-                    .eq('workspace_id', window._currentWorkspace.id);
+                    .eq('workspace_id', window.currentWorkspaceId);
 
                 if (deleteError) throw deleteError;
 
@@ -101,7 +101,7 @@ function processCSVRows(rows) {
     }
 
     const processed = [];
-    const workspaceId = window._currentWorkspace.id;
+    const workspaceId = window.currentWorkspaceId;
 
     for (let row of rows) {
         let name = getCaseInsensitiveKey(row, nameKey);
@@ -184,13 +184,13 @@ function getCaseInsensitiveKey(obj, targetKey) {
 
 // UI Rendering Logic
 async function loadBirthdays() {
-    if (!window.supabaseClient || !window._currentWorkspace?.id) return;
+    if (!window.supabaseClient || !window.currentWorkspaceId) return;
 
     try {
         const { data, error } = await window.supabaseClient
             .from('birthdays')
             .select('*')
-            .eq('workspace_id', window._currentWorkspace.id)
+            .eq('workspace_id', window.currentWorkspaceId)
             .order('birth_month', { ascending: true })
             .order('birth_day', { ascending: true });
 
