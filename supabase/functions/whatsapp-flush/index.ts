@@ -232,19 +232,63 @@ ${kbString}`;
           const emailPastorNotif = ws.credentials?.notifications?.email_pastor !== false;
           const resendKey = Deno.env.get('RESEND_API_KEY');
           if (emailPastorNotif && resendKey) {
-             const html = `
-               <div style="font-family: sans-serif; color: #111;">
-                 <h2 style="color: #FFD700; background: #111; padding: 15px; border-radius: 8px;">Nova Solicitação Pastoral</h2>
-                 <p>Olá <b>${adminUser.name || 'Líder'}</b>,</p>
-                 <p>O lead <b>${firstName}</b> (${lead.phone}) solicitou suporte pastoral, aconselhamento ou oração.</p>
-                 <br>
-                 <div style="border-left: 4px solid #FFD700; padding-left: 15px; color: #444;">
-                     <i>"${userTextCombined}"</i>
-                 </div>
-                 <br>
-                 <p><a href="https://hub.7pro.tech" style="display:inline-block; padding:10px 20px; background:#FFD700; color:#000; text-decoration:none; font-weight:bold; border-radius:6px;">Acessar Painel (Lagoinha HUB)</a></p>
-               </div>
-             `;
+             const formattedUserText = userTextCombined.replace(/\\n/g, '<br>');
+             const html = `<!DOCTYPE html>
+<html>
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #111111; padding: 30px; text-align: center;">
+              <h2 style="color: #FFD700; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">ALERTA PASTORAL</h2>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.6;">
+                Olá <b>${adminUser.name || 'Líder'}</b>,
+              </p>
+              <p style="margin: 0 0 25px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                O lead <b><span style="color: #111111;">${firstName}</span></b> (<span style="color: #111111;">${lead.phone}</span>) entrou em contato via WhatsApp e solicitou suporte pastoral, aconselhamento ou oração urgente.
+              </p>
+              
+              <!-- Message Box -->
+              <div style="background-color: #fcfcfc; border-left: 4px solid #FFD700; border-radius: 0 8px 8px 0; padding: 20px; margin-bottom: 30px;">
+                <p style="margin: 0; color: #666666; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Mensagem Recebida:</p>
+                <p style="margin: 0; color: #111111; font-size: 15px; font-style: italic; line-height: 1.5;">
+                  "${formattedUserText}"
+                </p>
+              </div>
+
+              <!-- Action Button -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="https://hub.7pro.tech" style="display: inline-block; background-color: #FFD700; color: #111111; text-decoration: none; font-size: 16px; font-weight: 700; padding: 14px 32px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Acessar Painel HUB</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0; color: #888888; font-size: 12px;">
+                Este é um alerta automático gerado pelo sistema <b style="color: #111;">Lagoinha HUB</b>.<br>
+                Não responda diretamente a este e-mail.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
              await fetch('https://api.resend.com/emails', {
                method: 'POST',
                headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
