@@ -8186,7 +8186,7 @@ function loadMilaHistory() {
         <div style="display: flex; gap: 16px; max-width: 85%;">
             <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
             <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
-                Pra cima Lagoinha! 🚀 Oi, eu sou a <b>Mila</b>, sua assistente virtual de gestão aqui no Zelo Pro. <br><br>Estou conectada diretamente com a base de dados do nosso Workspace e posso te ajudar a descobrir informações de configurações ou relatar bugs à nossa equipe técnica. Como posso te apoiar hoje?
+                Olá! Eu sou a <b>Mila</b>, sua assistente de suporte Zelo Pro. <br><br>Minha missão é exclusiva para a gestão desta igreja. Tenho acesso somente a nossa <b style="color: #FFD700;">Base de Conhecimento</b>. Por favor, me peça para consultar o que temos cadastrado lá, alterar os dados de funcionamento da igreja (que alimentarão nossa Ju do WhatsApp), ou relatar problemas no painel para a equipe técnica.<br><br>Como posso ajudar hoje?
             </div>
         </div>
     `;
