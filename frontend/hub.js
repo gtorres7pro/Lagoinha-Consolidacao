@@ -1,5 +1,5 @@
 /**
- * hub.js — Lago Hub Shared Utilities
+ * hub.js — Zelo Pro Shared Utilities
  * Include on every authenticated page AFTER supabase-js
  */
 

@@ -115,15 +115,15 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: "Lago HUB <equipe@7pro.tech>",
+            from: "Zelo Pro <equipe@7pro.tech>",
             to: email,
-            subject: `Convite para acesso ao Lago HUB - ${wsData?.name || 'Sua Igreja'}`,
+            subject: `Convite para acesso ao Zelo Pro - ${wsData?.name || 'Sua Igreja'}`,
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
                   <!-- Header -->
                   <div style="background-color: #FFD700; padding: 32px 20px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; text-shadow: 0px 1px 2px rgba(0,0,0,0.1);">Bem-vindo ao Lago HUB</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; text-shadow: 0px 1px 2px rgba(0,0,0,0.1);">Bem-vindo ao Zelo Pro</h1>
                   </div>
                   
                   <!-- Body -->
@@ -244,9 +244,9 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: "Lago HUB <equipe@7pro.tech>",
+            from: "Zelo Pro <equipe@7pro.tech>",
             to: email,
-            subject: `Redefinição de Acesso - Lago HUB`,
+            subject: `Redefinição de Acesso - Zelo Pro`,
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">

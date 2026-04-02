@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lagohub-cache-v1';
+const CACHE_NAME = 'zelo-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',

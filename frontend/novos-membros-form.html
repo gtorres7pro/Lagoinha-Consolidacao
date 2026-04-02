@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Encontro de Membros — Lago HUB</title>
+  <title>Encontro de Membros — Zelo Pro</title>
   <meta name="description" content="Registre sua participação no Encontro de Novos Membros e dê o próximo passo na sua jornada de fé.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -239,7 +239,7 @@
             <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
           </svg>
         </div>
-        <span class="brand-name" id="ws-name-display">Lago HUB</span>
+        <span class="brand-name" id="ws-name-display">Zelo Pro</span>
       </div>
     </div>
 
@@ -567,7 +567,7 @@
               _personName = leadAny.name;
               _personEmail = email;
               _personPhone = leadAny.phone || '';
-              document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+              document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
               showStep2();
               return;
             }
@@ -581,7 +581,7 @@
           return;
         }
 
-        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
         document.title = `Encontro de Membros — ${_ws.name}`;
 
         // Look up in leads
@@ -769,8 +769,8 @@
     async function init() {
       _ws = await HubRouter.getWorkspace();
       if (_ws) {
-        document.getElementById('ws-name-display').textContent = _ws.name || 'Lago HUB';
-        document.title = `Encontro de Membros — ${_ws.name || 'Lago HUB'}`;
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
+        document.title = `Encontro de Membros — ${_ws.name || 'Zelo Pro'}`;
       }
     }
 

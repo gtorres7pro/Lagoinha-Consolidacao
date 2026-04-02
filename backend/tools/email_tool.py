@@ -14,7 +14,7 @@ def send_credentials_email(user_email: str, user_name: str, temp_password: str):
         </div>
         <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <p style="font-size: 16px; color: #555;">Olá <b>{user_name}</b>,</p>
-            <p style="font-size: 16px; color: #555;">Sua conta no <b>Hub - Lagoinha Consolidação</b> foi criada pela nossa equipe de administração.</p>
+            <p style="font-size: 16px; color: #555;">Sua conta no <b>Zelo Pro</b> foi criada pela nossa equipe de administração.</p>
             <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; margin: 25px 0;">
                 <p style="margin: 0; font-size: 15px; color: #333;"><strong>E-mail: </strong>{user_email}</p>
                 <p style="margin: 10px 0 0; font-size: 15px; color: #333;"><strong>Senha Provisória: </strong>{temp_password}</p>
@@ -32,7 +32,7 @@ def send_credentials_email(user_email: str, user_name: str, temp_password: str):
         response = resend.Emails.send({
             "from": "Equipe Lagoinha <onboarding@resend.dev>",
             "to": user_email,
-            "subject": "Suas credenciais de acesso - Hub Lagoinha",
+            "subject": "Suas credenciais de acesso - Zelo Pro",
             "html": html_content
         })
         return response
@@ -46,7 +46,7 @@ def send_reset_password_email(user_email: str, reset_link: str):
     html_content = f"""
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
         <h2 style="color: #333;">Redefinição de Senha 🔒</h2>
-        <p>Recebemos um pedido para redefinir a senha da sua conta no Hub Lagoinha Consolidação.</p>
+        <p>Recebemos um pedido para redefinir a senha da sua conta no Zelo Pro Consolidação.</p>
         <p>Se foi você, clique no link abaixo para criar uma nova senha:</p>
         <div style="margin: 30px 0;">
             <a href="{reset_link}" style="background-color: #0b0b0b; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Minha Senha</a>
@@ -59,7 +59,7 @@ def send_reset_password_email(user_email: str, reset_link: str):
         response = resend.Emails.send({
             "from": "Equipe Lagoinha <onboarding@resend.dev>",
             "to": user_email,
-            "subject": "Redefina sua senha do Hub Lagoinha",
+            "subject": "Redefina sua senha do Zelo Pro",
             "html": html_content
         })
         return response
