@@ -278,7 +278,7 @@ ${kbString}`;
           <tr>
             <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;">
               <p style="margin: 0; color: #888888; font-size: 12px;">
-                Este é um alerta automático gerado pelo sistema <b style="color: #111;">Lagoinha HUB</b>.<br>
+                Este é um alerta automático gerado pelo sistema <b style="color: #111;">Zelo Pro</b>.<br>
                 Não responda diretamente a este e-mail.
               </p>
             </td>
@@ -293,7 +293,7 @@ ${kbString}`;
                method: 'POST',
                headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
                body: JSON.stringify({
-                 from: 'Lago HUB <equipe@7pro.tech>',
+                 from: 'Zelo Pro <equipe@7pro.tech>',
                  to: adminUser.email,
                  subject: `⚠️ Alerta Urgente: Aconselhamento Pastoral - ${firstName}`,
                  html,
