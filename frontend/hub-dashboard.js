@@ -8144,4 +8144,95 @@ function rgRow(r) {
         + '</tr>';
 }
 
+// ── MILA AI ASSISTANT LOGIC ──────────────────────────────────────
+const milaChatWindow = document.getElementById('mila-chat-window');
+const milaInput = document.getElementById('mila-input');
 
+function handleMilaKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMilaMessage();
+    }
+}
+
+function startNewMilaChat() {
+    milaChatWindow.innerHTML = `
+        <div style="display: flex; gap: 16px; max-width: 85%;">
+            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                Pra cima Lagoinha! 🚀 Nova conversa iniciada. Estou conectada e pronta para te ajudar com o Workspace. No que posso ser útil?
+            </div>
+        </div>
+    `;
+    milaInput.value = '';
+    milaInput.style.height = '';
+}
+
+async function sendMilaMessage() {
+    const text = milaInput.value.trim();
+    if (!text) return;
+
+    // Append user message
+    const formattedText = text.replace(/\\n/g, '<br>');
+    const userBubble = document.createElement('div');
+    userBubble.style = "display: flex; gap: 16px; max-width: 85%; align-self: flex-end; flex-direction: row-reverse;";
+    userBubble.innerHTML = `
+        <div style="width: 32px; height: 32px; border-radius: 16px; background: #222; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFF; font-size: 0.8rem;">V</div>
+        <div style="background: rgba(255, 215, 0, 0.1); padding: 16px 20px; border-radius: 16px 0 16px 16px; color: #FFF; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255, 215, 0, 0.2);">
+            ${formattedText}
+        </div>
+    `;
+    milaChatWindow.appendChild(userBubble);
+    
+    milaInput.value = '';
+    milaInput.style.height = '';
+    milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
+
+    // Append thinking indicator
+    const thinkingBubble = document.createElement('div');
+    thinkingBubble.id = 'mila-thinking';
+    thinkingBubble.style = "display: flex; gap: 16px; max-width: 85%;";
+    thinkingBubble.innerHTML = `
+        <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+        <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: rgba(255,255,255,0.5); font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 4px;">
+            Pensando<span style="opacity:0.5">...</span>
+        </div>
+    `;
+    milaChatWindow.appendChild(thinkingBubble);
+    milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
+
+    try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (!session) throw new Error("Não autenticado");
+
+        const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/mila-chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ message: text })
+        });
+        
+        const result = await response.json();
+        
+        document.getElementById('mila-thinking')?.remove();
+
+        const replyBubble = document.createElement('div');
+        replyBubble.style = "display: flex; gap: 16px; max-width: 85%;";
+        replyBubble.innerHTML = `
+            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                ${result.reply ? result.reply.replace(/\\n/g, '<br>') : "Ocorreu um erro ao gerar a resposta."}
+            </div>
+        `;
+        milaChatWindow.appendChild(replyBubble);
+
+    } catch (e) {
+        document.getElementById('mila-thinking')?.remove();
+        console.error(e);
+        if (typeof hubToast !== 'undefined') hubToast("Erro de comunicação com a Mila.", "error");
+    }
+    
+    milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
+}

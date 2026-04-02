@@ -671,9 +671,7 @@
         <div class="mobile-logo">
             <div class="mobile-logo-icon">
                 <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-                    <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                    <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                    <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
+                    <path d="M4 4 h10 l-10 10 h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
             Zelo Pro
@@ -694,9 +692,7 @@
             <div class="brand-icon">
                 <!-- Abstract H mark -->
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <rect x="2" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                    <rect x="11" y="2" width="5" height="14" rx="1.5" fill="#000"/>
-                    <rect x="4.5" y="7.5" width="9" height="3" rx="1.5" fill="#000"/>
+                    <path d="M4 4 h10 l-10 10 h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
             <div class="brand-text">
@@ -778,13 +774,15 @@
                 <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
-            <!-- 7. IA Chat (em desenvolvimento) -->
-            <li id="nav-messages" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <!-- 7. Assistente Mila -->
+            <li id="nav-mila" onclick="switchTab('mila')" title="Assistente Virtual Mila">
+                <span class="nav-icon" style="color: #FFD700;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2c0-1.1.9-2 2-2zm0 4a4 4 0 0 1 4 4v5h-8v-5a4 4 0 0 1 4-4zm-4 4H4v5h4v-5zm12 0h-4v5h4v-5z"/>
+                    </svg>
                 </span>
-                <span class="nav-label">IA Chat</span>
-                <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
+                <span class="nav-label" style="font-weight:700;">Assistente Mila</span>
+                <span style="font-size:0.55rem;margin-left:auto;font-weight:800;background:rgba(255,215,0,.15);color:#FFD700;padding:2px 6px;border-radius:4px;text-transform:uppercase;">Beta</span>
             </li>
 
             <!-- 8. Relatórios — clickable header, fixed submenus (no collapse) -->
@@ -1620,40 +1618,63 @@
         </div>
         </div>
 
-        <!-- MENSAGENS IA VIEW (WHATSAPP CLONE) -->
-        <div id="view-messages" class="view-section" style="padding: 0;">
-            <div class="whatsapp-container">
+        <!-- MENSAGENS IA VIEW (MILA ASSISTANT) -->
+        <div id="view-mila" class="view-section" style="padding: 0;">
+            <div class="mila-container" style="display:flex; height: 100%; background: #0a0a0a;">
                 <!-- Sidebar -->
-                <div class="wa-sidebar">
-                    <div class="wa-sidebar-header">
-                        <div class="wa-avatar" style="background:var(--accent); color:black;">LO</div>
-                        <div style="color: #d1d7db; display:flex; gap: 20px; font-size:1.2rem;">
-                            <span style="cursor:pointer;" onclick="renderWAChatList()">🔄</span>
-                            <span>💬</span>
-                            <span>⋮</span>
+                <div class="mila-sidebar" style="width: 280px; border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 20px;">
+                    <button onclick="startNewMilaChat()" style="background: rgba(255, 215, 0, 0.1); color: #FFD700; border: 1px solid rgba(255, 215, 0, 0.3); padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Nova Conversa
+                    </button>
+                    
+                    <div style="flex:1; margin-top: 30px; overflow-y: auto;">
+                        <p style="color: rgba(255,255,255,0.3); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 15px;">Hoje</p>
+                        <!-- Histórico simulado -->
+                        <div style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); color: #FFF; font-size: 0.85rem; cursor: pointer; border-left: 3px solid #FFD700;">
+                            Conversa Atual
                         </div>
-                    </div>
-                    <div class="wa-sidebar-search">
-                        <div class="wa-search-bar">
-                            <span>🔍</span>
-                            <input type="text" id="waSearch" placeholder="Pesquisar conversa ou contato" onkeyup="filterWAChats()">
-                        </div>
-                    </div>
-                    <div class="wa-chat-list" id="waChatList">
-                        <!-- Rendered by JS -->
                     </div>
                 </div>
 
-                <!-- Main Area -->
-                <div class="wa-main" id="waMainArea">
-                    <div class="wa-empty-state">
-                        <svg viewBox="0 0 100 100" width="200" height="200" fill="#2c3e50">
-                            <circle cx="50" cy="50" r="45" opacity="0.3"></circle>
-                            <path d="M50 20 L50 45 L70 45" stroke="#4a6072" stroke-width="5" fill="none" stroke-linecap="round"></path>
-                        </svg>
-                        <h1>Lagoinha Console para Web</h1>
-                        <p>Envie e receba mensagens usando a IA integrada com WhatsApp Business Oficial.</p>
-                        <p style="margin-top: 30px; font-size: 0.8rem;">🔒 Protegido com criptografia end-to-end.</p>
+                <!-- Main Chat -->
+                <div class="mila-main" style="flex: 1; display: flex; flex-direction: column; position: relative;">
+                    <!-- Header -->
+                    <div style="padding: 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 40px; height: 40px; border-radius: 20px; background: linear-gradient(135deg, #FFD700, #F59E0B); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111;">M</div>
+                            <div>
+                                <h3 style="margin:0; font-size: 1.1rem; color: #FFF; font-weight: 600;">Mila AI</h3>
+                                <div style="display:flex; align-items:center; gap:5px; margin-top:3px;">
+                                    <span style="width:8px; height:8px; border-radius:4px; background:#10B981; box-shadow: 0 0 5px #10B981;"></span>
+                                    <span style="font-size:0.75rem; color:rgba(255,255,255,0.5);">Pronta para ajudar</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages Area -->
+                    <div id="mila-chat-window" style="flex: 1; overflow-y: auto; padding: 40px 10%; display: flex; flex-direction: column; gap: 24px;">
+                        <!-- Welcome Message -->
+                        <div style="display: flex; gap: 16px; max-width: 85%;">
+                            <div style="width: 32px; height: 32px; border-radius: 16px; background: #FFD700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.8rem;">M</div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 0 16px 16px 16px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                                Pra cima Lagoinha! 🚀 Oi, eu sou a <b>Mila</b>, sua assistente virtual de gestão aqui no Zelo Pro. <br><br>Estou conectada diretamente com a base de dados do nosso Workspace e posso te ajudar a descobrir informações de configurações ou relatar bugs à nossa equipe técnica. Como posso te apoiar hoje?
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div style="padding: 20px 10%; background: linear-gradient(to top, #0a0a0a 80%, transparent);">
+                        <div style="position: relative; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 10px 16px; display: flex; align-items: flex-end; gap: 10px; transition: border 0.3s;" id="mila-input-container">
+                            <textarea id="mila-input" placeholder="Peça para alterar um dado, buscar registro ou relatar um bug..." onkeydown="handleMilaKeydown(event)" style="flex: 1; background: none; border: none; color: #FFF; outline: none; resize: none; min-height: 24px; max-height: 150px; font-size: 0.95rem; font-family: inherit; line-height: 1.5; padding: 5px 0;" rows="1" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                            <button onclick="sendMilaMessage()" style="background: #FFD700; color: #111; border: none; border-radius: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; outline:none;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.7rem; color: rgba(255,255,255,0.3);">
+                            A Mila pode cometer erros de interpretação. O time do Zelo Pro garante estabilidade, não decisões pastorais.
+                        </div>
                     </div>
                 </div>
             </div>
