@@ -3646,7 +3646,49 @@ async function saveWorkspaceSettings() {
         }).eq('id', window.currentWorkspaceId);
         if (error) throw error;
         window.showToast && showToast('Configurações salvas!', 'success');
-    } catch(e) { console.error('saveWorkspaceSettings:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
+} catch(e) { console.error('saveWorkspaceSettings:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
+}
+
+async function loadNotificationSettings() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data, error } = await sb
+            .from('workspaces')
+            .select('credentials')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+        if (error) throw error;
+        const notif = data.credentials?.notifications || {};
+        
+        const emailPastor = document.getElementById('notif-email-pastor');
+        if (emailPastor) {
+            emailPastor.checked = notif.email_pastor !== false; // default true
+        }
+    } catch(e) { console.error('loadNotificationSettings:', e); }
+}
+
+async function saveNotificationSettings() {
+    if (!window.currentWorkspaceId) return;
+    const emailPastor = document.getElementById('notif-email-pastor')?.checked;
+    
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}) };
+        
+        creds.notifications = {
+            ...creds.notifications,
+            email_pastor: emailPastor
+        };
+        
+        const { error } = await sb.from('workspaces').update({
+            credentials: creds
+        }).eq('id', window.currentWorkspaceId);
+        
+        if (error) throw error;
+        window.showToast && showToast('Preferências de notificação salvas!', 'success');
+    } catch(e) { console.error('saveNotificationSettings:', e); window.showToast && showToast('Erro ao salvar notificações', 'error'); }
 }
 
 // ── G5: Dev Menu ─────────────────────────────────────
@@ -3772,6 +3814,7 @@ async function saveOverrideModules() {
         }
         if (tab === 'settings') {
             loadWorkspaceSettings();
+            loadNotificationSettings();
         }
     };
 })();

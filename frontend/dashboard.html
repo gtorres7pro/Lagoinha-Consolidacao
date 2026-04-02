@@ -1962,6 +1962,39 @@ REGRAS:
             </div>
         </div>
 
+        <!-- ─── Settings: Notificações ──────────────────────────────────── -->
+        <div id="settings-notifications-section" style="padding:0 40px 32px; max-width:1500px; margin:0 auto;">
+            <div style="border-top:1px solid var(--border); padding-top:28px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Notificações e Alertas</h3>
+                        <p style="font-size:.78rem; color:var(--text-dim);">Escolha quais alertas você deseja receber por email ou WhatsApp para as tarefas geradas automaticamente.</p>
+                    </div>
+                    <button onclick="saveNotificationSettings()" class="hub-btn-primary" style="padding:9px 20px; font-size:.82rem;">Salvar Preferências</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr; gap:16px; max-width:900px;">
+                    
+                    <div style="background:var(--bg-card); border:1px solid var(--card-border); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <strong style="font-size:0.95rem; color:#fff;">Aconselhamento / Pedido Pastoral</strong>
+                                <p style="font-size:0.8rem; color:var(--text-dim); margin-top:4px;">Avisar quando um lead necessitar de contato com um pastor para pedido de oração e aconselhamento.</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:20px; margin-top:10px;">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
+                                <input type="checkbox" id="notif-email-pastor" style="accent-color:var(--accent); width:16px; height:16px;" checked> 📧 Receber por Email
+                            </label>
+                            <label style="display:flex; align-items:center; gap:8px; cursor:not-allowed; font-size:0.85rem; opacity:0.5;" title="Em breve">
+                                <input type="checkbox" id="notif-wpp-pastor" style="accent-color:var(--accent); width:16px; height:16px;" disabled> 💬 Receber por WhatsApp <span style="font-size:0.6rem;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">breve</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
         <!-- ─── Settings: Plano Atual ──────────────────────────────────── -->
         <div id="settings-plan-section" style="padding:0 40px 40px; max-width:1500px; margin:0 auto;">
 
