@@ -119,9 +119,16 @@ function processCSVRows(rows) {
 
         // Clean phone (Format to standard 55XX9XXXXYYYY, assuming BR if not specified)
         let cleanedPhone = phone ? phone.replace(/\D/g, '') : null;
-        if (cleanedPhone && cleanedPhone.length >= 10 && !cleanedPhone.startsWith('55') && cleanedPhone.length <= 11) {
-            // Probably BR missing country code
-            cleanedPhone = '55' + cleanedPhone;
+        if (cleanedPhone) {
+            // Se já tem '+', confiamos no DDI da pessoa (EUA +1, BR +55, etc)
+            if (!phone.includes('+')) {
+                if (cleanedPhone.length >= 10 && cleanedPhone.length <= 11) {
+                    // Se não começa com 55 e não parece ser um EUA sem + (1 seguido de 10 num)
+                    if (!cleanedPhone.startsWith('55') && !(cleanedPhone.length === 11 && cleanedPhone.startsWith('1'))) {
+                        cleanedPhone = '55' + cleanedPhone;
+                    }
+                }
+            }
         }
 
         // Parse date
