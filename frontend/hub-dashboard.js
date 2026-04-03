@@ -8302,7 +8302,7 @@ async function sendMilaMessage() {
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
 
     try {
-        const { data: { session } } = await _supabase.auth.getSession();
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
         if (!session) throw new Error("Não autenticado");
 
         const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/mila-chat', {
