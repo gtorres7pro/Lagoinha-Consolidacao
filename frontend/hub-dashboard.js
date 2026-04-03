@@ -8314,7 +8314,14 @@ async function sendMilaMessage() {
             body: JSON.stringify({ message: text, history: milaHistoryVars })
         });
         
-        const result = await response.json();
+        const rawText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(rawText);
+        } catch (parseError) {
+            console.error("Mila API returned non-JSON:", rawText);
+            throw new Error("Resposta inválida do servidor: " + response.status);
+        }
         
         document.getElementById('mila-thinking')?.remove();
 
@@ -8323,7 +8330,7 @@ async function sendMilaMessage() {
         replyBubble.innerHTML = `
             <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
             <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                ${result.reply ? result.reply.replace(/\n/g, '<br>') : "Ocorreu um erro ao gerar a resposta."}
+                ${result.reply ? result.reply.replace(/\n/g, '<br>') : (result.error ? "Aviso técnico: " + result.error : "Ocorreu um erro ao gerar a resposta.")}
             </div>
         `;
         milaChatWindow.appendChild(replyBubble);
