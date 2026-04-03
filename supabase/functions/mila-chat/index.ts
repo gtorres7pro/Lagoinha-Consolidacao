@@ -46,8 +46,11 @@ Deno.serve(async (req: Request) => {
             
         if (wsError || !wsData) throw new Error("Workspace data not found");
         
-        const geminiApiKey = wsData.credentials?.llm_config?.gemini_token;
-        if (!geminiApiKey) throw new Error("A API Key do Gemini não está configurada neste workspace.");
+        let geminiApiKey = wsData.credentials?.llm_config?.gemini_token;
+        if (!geminiApiKey) {
+            geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+        }
+        if (!geminiApiKey) throw new Error("A API Key do Gemini não está configurada.");
 
         const { message, history } = await req.json();
 
@@ -67,11 +70,12 @@ Aqui está a Base de Conhecimento atual desta igreja, em JSON:
 ${kbString}
 
 **Regras de Atuação:**
-1. Leia as mensagens do usuário.
-2. Se o usuário perguntar da base de dados, liste o que existe nela (exemplos: horário de culto, endereço, nomes dos pastores) de uma forma resumida de leitura fácil.
-3. Se o usuário quiser atualizar informações (ex: trocar pastor, endereço), atualize o JSON inteiro preservando a estrutura original e envie chamando a ferramenta 'update_knowledge_base'. Diga que "a base de conhecimento foi atualizada".
-4. Se o usuário disser que encontrou um problema no painel, algo técnico, ou que precisa da equipe de suporte do Zelo Pro, você OBRIGATORIAMENTE deve relatar a equipe chamando 'open_support_ticket'.
-5. Você não responde a dúvidas pastorais, teológicas ou genéricas fora do escopo.
+1. Você é cordial, solícita e engajada. Use linguagem natural.
+2. Se o usuário perguntar da base de dados, liste o que existe de forma resumida e elegante.
+3. Se o usuário pedir para atualizar a base, confirme os novos dados formatados e depois evoque 'update_knowledge_base'.
+4. **CHAMADO TÉCNICO:** Se o usuário reportar um erro, bug ou pedir uma funcionalidade (support/feedback), NÃO ABRA O TICKET IMEDIATAMENTE! Primeiro, seja INVESTIGATIVA. Demonstre empatia ("Ah, que pena!") e peça detalhes específicos ("Você tem um print?", "O que exatamente aconteceu antes do erro?").
+5. Após o usuário dar os detalhes do problema em mensagens subsequentes, SE você sentir que já tem informações ricas (como o caminho exato do bug ou detalhes de como reproduzir), ENTÃO evoque a tool 'open_support_ticket'.
+6. Dentro da description do ticket, forneça não apenas o que o usuário disse, mas a sua **Sugestão de Resolução para o Desenvolvedor**, baseando-se no problema (ex: dicas de frontend/backend/SQL).
         `;
 
         const tools = [{
@@ -132,7 +136,8 @@ ${kbString}
             tools: tools
         };
 
-        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+        const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
+        const geminiResponse = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(geminiRequestBody)
@@ -160,21 +165,80 @@ ${kbString}
             for (const call of toolCalls) {
                 if (call.name === 'open_support_ticket') {
                     const args = call.args;
-                    // Trigger Resend API
-                    await fetch('https://api.resend.com/emails', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${resendApiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            from: "Zelo Pro Mila <nao-responda@7pro.tech>",
-                            to: "g@7proservices.com",
-                            subject: `[SUPORTE ZELO] ${args.title}`,
-                            html: `<p>O usuário <b>${userData.name || 'Desconhecido'}</b> do Workspace <b>${wsData.name}</b> (${wsId}) relatou via Mila o seguinte chamado:</p><p>${args.description}</p>`
-                        })
-                    });
-                    if (!resultText) resultText = `Entendido! Acabei de enviar um chamado técnico para a equipe relatando "${args.title}". Em breve eles investigarão.`;
+
+                    // 1. Inserir no banco de dados para a página do Desenvolvedor
+                    const { data: logData, error: logError } = await supabase
+                        .from('app_logs')
+                        .insert({
+                            type: 'bug',
+                            title: args.title,
+                            description: args.description,
+                            status: 'pending',
+                            submitted_by: userData.id
+                        }).select().single();
+                        
+                    const logId = logData ? logData.id : 'N/A';
+
+                    // 2. Disparar email em formato High-End
+                    const phone = userData.phone || "";
+                    const waLink = phone ? "https://wa.me/" + phone.replace(/[^0-9]/g, "") : "#";
+                    const niceHtml = "" + 
+                    "<div style=\"font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eaeaec;\">" +
+                        "<div style=\"background: #111; color: #FFF; padding: 25px 30px; text-align: center; border-bottom: 4px solid #FFD700;\">" +
+                            "<img src=\"https://cdn-icons-png.flaticon.com/512/8646/8646545.png\" alt=\"Zelo Pro Triage\" style=\"width: 40px; margin-bottom: 10px; filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));\" />" +
+                            "<h2 style=\"margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.5px;\">Novo Relato de Sistema</h2>" +
+                            "<p style=\"margin: 5px 0 0 0; color: #aaa; font-size: 14px;\">Zelo Pro Triage by Mila &nbsp;•&nbsp; Ticket #" + logId.substring(0,6) + "</p>" +
+                        "</div>" +
+                        "<div style=\"padding: 30px;\">" +
+                            "<h3 style=\"margin-top: 0; color: #222; font-size: 18px;\">" + args.title + "</h3>" +
+                            "<div style=\"background: #f9f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-bottom: 25px;\">" +
+                                "<p style=\"margin: 0; font-size: 15px; color: #444; line-height: 1.6;\">" + args.description.replace(/\\n/g, '<br>') + "</p>" +
+                            "</div>" +
+                            "<h4 style=\"color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px;\">Dados do Autor</h4>" +
+                            "<table style=\"width: 100%; border-collapse: collapse; margin-bottom: 25px;\">" +
+                                "<tr>" +
+                                    "<td style=\"padding: 6px 0; color: #888; font-size: 14px; width: 30%;\">Nome</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + (userData.name || 'Desconhecido') + "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">E-mail</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + (userData.email || 'N/A') + "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">Contato</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" +
+                                        phone + " <a href=\"" + waLink + "\" style=\"display:inline-block; margin-left: 8px; background: #25D366; color: #fff; padding: 2px 8px; border-radius: 12px; text-decoration: none; font-size: 11px; font-weight: bold;\">WhatsApp me</a>" +
+                                    "</td>" +
+                                "</tr>" +
+                                "<tr>" +
+                                    "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">Workspace</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + wsData.name + " (" + wsId.substring(0,8) + ")</td>" +
+                                "</tr>" +
+                            "</table>" +
+                            "<div style=\"text-align: center; margin-top: 35px;\">" +
+                                "<a href=\"https://hub.7pro.tech/\" style=\"background: #111; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 24px; font-weight: 700; font-size: 15px; display: inline-block;\">Ver no Painel do Desenvolvedor</a>" +
+                            "</div>" +
+                        "</div>" +
+                    "</div>";
+
+                    try {
+                        await fetch('https://api.resend.com/emails', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': "Bearer " + resendApiKey,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                from: "Zelo Pro Mila <nao-responda@7pro.tech>",
+                                to: "g@7proservices.com",
+                                subject: "[Zelo Triage] " + args.title,
+                                html: niceHtml
+                            })
+                        });
+                        console.log("Resend API Email triggered success.");
+                    } catch (e) { console.error("Error triggering resend via mila-chat: ", e); }
+
+                    if (!resultText) resultText = "Entendido! Já compilei todas as nossas informações e submeti um protocolo de manutenção técnica urgente no radar dos engenheiros. Seu chamado é o #" + logId.substring(0,4) + ". Ah... só pra constar: enviei a eles até algumas anotações minhas como IA para ajudá-los! Mais alguma coisa que eu possa auxiliar?";
                 }
 
                 if (call.name === 'update_knowledge_base') {
@@ -187,7 +251,7 @@ ${kbString}
                             .update({ knowledge_base: newKbObj })
                             .eq('id', wsId);
                             
-                        if (!resultText) resultText = `Feito! Já atualizei o banco de dados da ${wsData.name} com essas novas configurações. A Ju vai aprender isso instantaneamente!`;
+                        if (!resultText) resultText = "Feito! Já atualizei o banco de dados da " + wsData.name + " com essas novas configurações. A Ju vai aprender isso instantaneamente!";
                     } catch (err) {
                         console.error("Mila failed to parse JSON in update_knowledge_base", err);
                     }

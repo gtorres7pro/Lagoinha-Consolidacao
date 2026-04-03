@@ -1200,7 +1200,7 @@
                 const date = new Date(log.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
                 const time = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
                 const statusColors = { published: '#4CAF50', in_progress: '#FFD700', pending: '#8696a0' };
-                const statusLabels = { published: 'Publicado', in_progress: 'Em Progresso', pending: 'Pendente' };
+                const statusLabels = { published: 'Resolvido', in_progress: 'Em Progresso', pending: 'Pendente' };
                 return `
                     <div class="log-item" style="border-left: 3px solid ${cfg.color}; padding: 14px 18px; margin-bottom: 8px; border-radius: 0 10px 10px 0; background: rgba(255,255,255,0.03);">
                         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
@@ -1209,12 +1209,44 @@
                             <span style="color:var(--text-main);font-weight:600;">${log.title || '(sem título)'}</span>
                             <span style="margin-left:auto;color:var(--text-dim);font-size:0.75rem;">${date} ${time}</span>
                             <span style="color:${statusColors[log.status]||'#8696a0'};font-size:0.75rem;border:1px solid ${statusColors[log.status]||'#8696a0'}40;padding:2px 8px;border-radius:6px;">${statusLabels[log.status]||log.status}</span>
+                            ${log.status === 'pending' ? `<button onclick="window.resolveTicket('${log.id}')" style="background:#4CAF50; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:bold; cursor:pointer;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✔ Resolver</button>` : ''}
                         </div>
                         ${log.description ? `<div style="color:var(--text-dim);font-size:0.85rem;line-height:1.5;">${log.description}</div>` : ''}
                     </div>
                 `;
             }).join('');
         }
+
+        window.resolveTicket = async function(ticketId) {
+            const note = prompt("Deseja adicionar uma nota técnica para o usuário sobre como o problema foi resolvido? (Opcional)");
+            if (note === null) return; // User cancelled
+            
+            try {
+                if(typeof hubToast !== 'undefined') hubToast("Marcando como resolvido e notificando...", "info");
+                
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (!session) throw new Error("Não autenticado");
+
+                const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/resolve-ticket', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ ticketId, resolutionText: note })
+                });
+
+                if (!response.ok) throw new Error("Falha na API.");
+                
+                if(typeof hubToast !== 'undefined') hubToast("Ticket resolvido com sucesso!", "success");
+                
+                if (window.loadAuditLogs) window.loadAuditLogs();
+            } catch(e) {
+                console.error(e);
+                if(typeof hubToast !== 'undefined') hubToast("Erro ao resolver: " + e.message, "error");
+                else alert("Erro ao resolver");
+            }
+        };
 
         // Legacy session logger (kept for internal use)
         let mockLogs = [];
@@ -8214,16 +8246,27 @@ function loadMilaHistory() {
     const milaChatWindow = document.getElementById('mila-chat-window');
     if (!milaChatWindow) return;
     
-    // clear except welcome message
-    const welcomeHTML = `
-        <div style="display: flex; gap: 12px; max-width: 90%;">
-            <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
-            <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                Olá! Eu sou a <b>Mila</b>, sua assistente de suporte Zelo Pro. <br><br>Minha missão é exclusiva para a gestão desta igreja. Tenho acesso somente a nossa <b style="color: #FFD700;">Base de Conhecimento</b>. Por favor, me peça para consultar o que temos cadastrado lá, alterar os dados de funcionamento da igreja (que alimentarão nossa Ju do WhatsApp), ou relatar problemas no painel para a equipe técnica.<br><br>Como posso ajudar hoje?
+    if (milaHistoryVars.length === 0) {
+        // High-end empty state styling
+        const emptyStateHTML = `
+            <div id="mila-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: #FFF; padding-bottom: 40px; animation: fadeIn 0.5s ease-out;">
+                <div style="width: 72px; height: 72px; border-radius: 36px; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), transparent); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.1);">
+                    <div style="width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #FFD700, #F59E0B); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 1.8rem; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">M</div>
+                </div>
+                <h2 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px;">Olá, eu sou a Mila.</h2>
+                <p style="color: rgba(255,255,255,0.6); max-width: 400px; line-height: 1.5; margin-bottom: 40px;">Sua assistente integrada ao Zelo Pro. Consulte a base de dados, atualize fluxos ou relate feedbacks.</p>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 600px;">
+                    <div onclick="document.getElementById('mila-input').value = 'Gostaria de relatar uma melhoria no sistema...'; document.getElementById('mila-input').focus();" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; color: #E5E7EB;">💡 Sugerir melhoria</div>
+                    <div onclick="document.getElementById('mila-input').value = 'Quais são os cultos cadastrados?'; document.getElementById('mila-input').focus();" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; color: #E5E7EB;">📅 Consultar horários</div>
+                    <div onclick="document.getElementById('mila-input').value = 'Encontrei um erro na página de Relatórios.'; document.getElementById('mila-input').focus();" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; color: #E5E7EB;">🐛 Relatar erro</div>
+                </div>
             </div>
-        </div>
-    `;
-    milaChatWindow.innerHTML = welcomeHTML;
+        `;
+        milaChatWindow.innerHTML = emptyStateHTML;
+    } else {
+        milaChatWindow.innerHTML = ''; // clear for history mapping
+    }
     
     milaHistoryVars.forEach(msg => {
         const bubble = document.createElement('div');
@@ -8266,26 +8309,60 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMilaHistory();
 });
 
+let currentMilaAttachment = null;
+
+function handleMilaAttachment(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        if (typeof hubToast !== 'undefined') hubToast("O arquivo é muito grande. Máximo de 5MB.", "error");
+        else alert("Máximo de 5MB.");
+        event.target.value = "";
+        return;
+    }
+
+    currentMilaAttachment = file;
+    document.getElementById('mila-attachment-name').innerText = file.name;
+    document.getElementById('mila-attachment-preview').style.display = 'flex';
+}
+
+function clearMilaAttachment() {
+    currentMilaAttachment = null;
+    document.getElementById('mila-file-input').value = "";
+    document.getElementById('mila-attachment-preview').style.display = 'none';
+}
+
 async function sendMilaMessage() {
     const text = milaInput.value.trim();
-    if (!text) return;
+    if (!text && !currentMilaAttachment) return;
 
-    milaHistoryVars.push({ role: 'user', content: text });
-    localStorage.setItem('milaHistory', JSON.stringify(milaHistoryVars));
+    const fileToUpload = currentMilaAttachment;
+    let appendedUrl = "";
+    
+    // UI Feedback immediately
+    const emptyNode = document.getElementById('mila-empty-state');
+    if (emptyNode) emptyNode.remove();
 
-    // Append user message
-    const formattedText = text.replace(/\\n/g, '<br>');
+    // Append user message to UI
+    let userDisplayHtml = text.replace(/\\n/g, '<br>');
+    if (fileToUpload) {
+        userDisplayHtml += `<br><br><div style="font-size:0.8rem; background:rgba(0,0,0,0.2); padding:4px 8px; border-radius:4px; display:inline-block;">📎 Anexo: ${fileToUpload.name}</div>`;
+    }
+    
     const userBubble = document.createElement('div');
     userBubble.style = "display: flex; max-width: 85%; align-self: flex-end;";
     userBubble.innerHTML = `
         <div style="background: #FFD700; padding: 12px 18px; border-radius: 18px 18px 0 18px; color: #111; font-size: 0.95rem; line-height: 1.5; font-weight: 500; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-            ${formattedText}
+            ${userDisplayHtml || '📎 Arquivo enviado'}
         </div>
     `;
     milaChatWindow.appendChild(userBubble);
     
     milaInput.value = '';
     milaInput.style.height = '';
+    clearMilaAttachment(); // Clear immediately for UI
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
 
     // Append thinking indicator
@@ -8295,7 +8372,7 @@ async function sendMilaMessage() {
     thinkingBubble.innerHTML = `
         <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
         <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: rgba(255,255,255,0.5); font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px;">
-            Gravando áudio<span style="opacity:0.5">...</span>
+            Digitando<span style="opacity:0.5">...</span>
         </div>
     `;
     milaChatWindow.appendChild(thinkingBubble);
@@ -8305,13 +8382,38 @@ async function sendMilaMessage() {
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         if (!session) throw new Error("Não autenticado");
 
+        // Upload attachment if exists
+        if (fileToUpload) {
+            const ext = fileToUpload.name.split('.').pop();
+            const filePath = `uploads/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+            const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+                .from('app_files')
+                .upload(filePath, fileToUpload);
+            
+            if (uploadError) {
+                console.error("Upload error", uploadError);
+                throw new Error("Falha ao subir anexo.");
+            }
+            const { data: urlData } = window.supabaseClient.storage.from('app_files').getPublicUrl(filePath);
+            appendedUrl = urlData.publicUrl;
+        }
+
+        let backendMessage = text || "Aqui está um anexo.";
+        if (appendedUrl) {
+            backendMessage += `\n\n[ARQUIVO ANEXADO PELO USUÁRIO (Contexto para relatórios/bugs): ${appendedUrl}]`;
+        }
+
+        // Save to history (only the text so we don't pollute UI next load)
+        milaHistoryVars.push({ role: 'user', content: backendMessage });
+        localStorage.setItem('milaHistory', JSON.stringify(milaHistoryVars));
+
         const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/mila-chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({ message: text, history: milaHistoryVars })
+            body: JSON.stringify({ message: backendMessage, history: milaHistoryVars })
         });
         
         const rawText = await response.text();
@@ -8330,7 +8432,7 @@ async function sendMilaMessage() {
         replyBubble.innerHTML = `
             <div style="width: 34px; height: 34px; border-radius: 17px; background: linear-gradient(135deg, #FFD700, #F59E0B); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 0.9rem;">M</div>
             <div style="background: #1a1a1a; padding: 14px 18px; border-radius: 0 18px 18px 18px; color: #E5E7EB; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                ${result.reply ? result.reply.replace(/\n/g, '<br>') : (result.error ? "Aviso técnico: " + result.error : "Ocorreu um erro ao gerar a resposta.")}
+                ${result.reply ? result.reply.replace(/\\n/g, '<br>') : (result.error ? "Aviso técnico: " + result.error : "Ocorreu um erro ao gerar a resposta.")}
             </div>
         `;
         milaChatWindow.appendChild(replyBubble);
@@ -8347,6 +8449,12 @@ async function sendMilaMessage() {
             const errMsg = e.message ? e.message : 'Erro genérico';
             hubToast("Mila Offline: " + errMsg, "error");
         }
+    }
+    
+    // Memory limit: trim to last 30 items
+    if (milaHistoryVars.length > 30) {
+        milaHistoryVars = milaHistoryVars.slice(-30);
+        localStorage.setItem('milaHistory', JSON.stringify(milaHistoryVars));
     }
     
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
