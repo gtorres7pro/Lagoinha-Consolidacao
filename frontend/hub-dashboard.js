@@ -8297,22 +8297,38 @@ function loadMilaHistory() {
     var _prevSwitchTabChat = window.switchTab;
     var _chatInitialized = false;
     window.switchTab = function(tabName) {
-        if (_prevSwitchTabChat) _prevSwitchTabChat(tabName);
         if (tabName === 'chat-ao-vivo') {
-            // Activate nav item
+            // Hide all view-sections (the original switchTab won't know about ours)
+            document.querySelectorAll('.view-section').forEach(function(v) {
+                v.style.display = 'none';
+            });
+            // Show our view
+            var chatView = document.getElementById('view-chat-ao-vivo');
+            if (chatView) chatView.style.display = 'block';
+
+            // Deactivate all nav items, activate ours
             document.querySelectorAll('nav li[id^="nav-"]').forEach(function(el) { el.classList.remove('active'); });
             var navEl = document.getElementById('nav-chat-ao-vivo');
             if (navEl) navEl.classList.add('active');
+
             // Lazy init
             if (!_chatInitialized) {
                 _chatInitialized = true;
-                if (typeof window.initChatAoVivo === 'function') {
-                    window.initChatAoVivo();
-                }
+                setTimeout(function() {
+                    if (typeof window.initChatAoVivo === 'function') {
+                        window.initChatAoVivo();
+                    }
+                }, 50);
             }
+        } else {
+            // For other tabs, call original and hide our view
+            if (_prevSwitchTabChat) _prevSwitchTabChat(tabName);
+            var chatView = document.getElementById('view-chat-ao-vivo');
+            if (chatView) chatView.style.display = 'none';
         }
     };
 })();
+
 function clearMilaHistory() {
     if(confirm("Tem certeza que deseja apagar o histórico de conversa com a Mila?")) {
         milaHistoryVars = [];
