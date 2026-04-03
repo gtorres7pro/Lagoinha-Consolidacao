@@ -8292,6 +8292,27 @@ function loadMilaHistory() {
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
 }
 
+// ─── Chat ao Vivo — switchTab hook ────────────────────────────────────────────
+(function() {
+    var _prevSwitchTabChat = window.switchTab;
+    var _chatInitialized = false;
+    window.switchTab = function(tabName) {
+        if (_prevSwitchTabChat) _prevSwitchTabChat(tabName);
+        if (tabName === 'chat-ao-vivo') {
+            // Activate nav item
+            document.querySelectorAll('nav li[id^="nav-"]').forEach(function(el) { el.classList.remove('active'); });
+            var navEl = document.getElementById('nav-chat-ao-vivo');
+            if (navEl) navEl.classList.add('active');
+            // Lazy init
+            if (!_chatInitialized) {
+                _chatInitialized = true;
+                if (typeof window.initChatAoVivo === 'function') {
+                    window.initChatAoVivo();
+                }
+            }
+        }
+    };
+})();
 function clearMilaHistory() {
     if(confirm("Tem certeza que deseja apagar o histórico de conversa com a Mila?")) {
         milaHistoryVars = [];

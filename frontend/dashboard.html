@@ -797,6 +797,15 @@
                 <span class="nav-label">Aniversariantes</span>
             </li>
 
+            <!-- 6.5 Chat ao Vivo -->
+            <li id="nav-chat-ao-vivo" onclick="switchTab('chat-ao-vivo')" title="Chat ao Vivo — Inbox WhatsApp" style="position:relative;">
+                <span class="nav-icon" style="color:#25D366;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </span>
+                <span class="nav-label" style="font-weight:700;">Chat ao Vivo</span>
+                <span id="chat-unread-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#f87171;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:none;align-items:center;justify-content:center;line-height:1;">0</span>
+            </li>
+
             <!-- 7. Assistente Mila -->
             <li id="nav-mila" onclick="switchTab('mila')" title="Assistente Virtual Mila">
                 <span class="nav-icon" style="color: #FFD700;">
@@ -1715,6 +1724,14 @@
 
             <div class="leads-grid" id="visitors-container"></div>
         </div>
+        </div>
+
+        <!-- VIEW: Chat ao Vivo -->
+        <div id="view-chat-ao-vivo" class="view-section" style="padding:0; height:100%; overflow:hidden;">
+            <!-- Populated by hub-chat.js: initChatAoVivo() -->
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#555;font-size:.9rem;">
+                Carregando Chat ao Vivo...
+            </div>
         </div>
 
         <!-- MENSAGENS IA VIEW (MILA ASSISTANT) -->
@@ -4447,6 +4464,7 @@
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="/birthdays.js?v=20260402v1"></script>
+    <script src="/hub-chat.js?v=20260404v1"></script>
 </body>
 
 </html>
