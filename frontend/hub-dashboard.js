@@ -597,8 +597,8 @@
             const navFinGlobal = document.getElementById('nav-rel-financeiro-global');
             if (navFinGlobal) navFinGlobal.style.display = (rank >= 2) ? '' : 'none';
             // Desenvolvedor — only master (rank>=3)
-            const navDev = document.getElementById('nav-desenvolvedor');
-            if (navDev) navDev.style.display = (rank >= 3) ? '' : 'none';
+            const navDev = document.getElementById('nav-admin-logs');
+            if (navDev) navDev.style.display = (rank >= 3) ? 'flex' : 'none';
         };
 
         // ─── REGIONAL VIEW ───────────────────────────────────────────────

@@ -166,13 +166,25 @@ ${kbString}
                 if (call.name === 'open_support_ticket') {
                     const args = call.args;
 
+                    // Extract attached files
+                    const urlRegex = /(https:\/\/uyseheucqikgcorrygzc\.supabase\.co\/storage\/v1\/object\/public\/app_files\/[^\s\]]+)/g;
+                    const urls = [];
+                    let match;
+                    while ((match = urlRegex.exec(message)) !== null) urls.push(match[1]);
+                    if (history) {
+                        for (const h of history) {
+                            while ((match = urlRegex.exec(h.content)) !== null) urls.push(match[1]);
+                        }
+                    }
+                    const uniqueUrls = [...new Set(urls)];
+
                     // 1. Inserir no banco de dados para a página do Desenvolvedor
                     const { data: logData, error: logError } = await supabase
                         .from('app_logs')
                         .insert({
                             type: 'bug',
                             title: args.title,
-                            description: args.description,
+                            description: args.description + (uniqueUrls.length > 0 ? '\n\nAnexos: ' + uniqueUrls.join(', ') : ''),
                             status: 'pending',
                             submitted_by: userData.id
                         }).select().single();
@@ -182,6 +194,21 @@ ${kbString}
                     // 2. Disparar email em formato High-End
                     const phone = userData.phone || "";
                     const waLink = phone ? "https://wa.me/" + phone.replace(/[^0-9]/g, "") : "#";
+                    
+                    let attachmentsHtml = '';
+                    if (uniqueUrls.length > 0) {
+                        attachmentsHtml = "<h4 style=\"color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px;\">Anexos</h4><div style=\"margin-bottom: 25px;\">";
+                        for (const u of uniqueUrls) {
+                            const isImage = u.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                            if (isImage) {
+                                attachmentsHtml += `<a href="${u}" target="_blank"><img src="${u}" style="max-width: 100%; border-radius: 8px; border: 1px solid #eee; margin-bottom: 10px;" /></a><br>`;
+                            } else {
+                                attachmentsHtml += `<a href="${u}" target="_blank" style="color: #FFD700; text-decoration: none; font-weight: bold;">📎 Abrir Anexo</a><br>`;
+                            }
+                        }
+                        attachmentsHtml += "</div>";
+                    }
+
                     const niceHtml = "" + 
                     "<div style=\"font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eaeaec;\">" +
                         "<div style=\"background: #111; color: #FFF; padding: 25px 30px; text-align: center; border-bottom: 4px solid #FFD700;\">" +
@@ -194,6 +221,7 @@ ${kbString}
                             "<div style=\"background: #f9f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-bottom: 25px;\">" +
                                 "<p style=\"margin: 0; font-size: 15px; color: #444; line-height: 1.6;\">" + args.description.replace(/\\n/g, '<br>') + "</p>" +
                             "</div>" +
+                            attachmentsHtml +
                             "<h4 style=\"color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px;\">Dados do Autor</h4>" +
                             "<table style=\"width: 100%; border-collapse: collapse; margin-bottom: 25px;\">" +
                                 "<tr>" +
@@ -238,7 +266,11 @@ ${kbString}
                         console.log("Resend API Email triggered success.");
                     } catch (e) { console.error("Error triggering resend via mila-chat: ", e); }
 
-                    if (!resultText) resultText = "Entendido! Já compilei todas as nossas informações e submeti um protocolo de manutenção técnica urgente no radar dos engenheiros. Seu chamado é o #" + logId.substring(0,4) + ". Ah... só pra constar: enviei a eles até algumas anotações minhas como IA para ajudá-los! Mais alguma coisa que eu possa auxiliar?";
+                    if (resultText) {
+                        resultText += "\n\n✅ Protocolo de manutenção #" + logId.substring(0,4) + " foi registrado e enviado com sucesso à equipe técnica de engenharia! Posso ajudar com algo mais?";
+                    } else {
+                        resultText = "Entendido! Já compilei todas as nossas informações e submeti um protocolo de manutenção técnica urgente no radar dos engenheiros. Seu chamado é o #" + logId.substring(0,4) + ". Ah... só pra constar: enviei a eles até algumas anotações minhas como IA para ajudá-los! Mais alguma coisa que eu possa auxiliar?";
+                    }
                 }
 
                 if (call.name === 'update_knowledge_base') {
