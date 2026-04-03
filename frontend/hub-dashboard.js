@@ -8343,7 +8343,10 @@ async function sendMilaMessage() {
     } catch (e) {
         document.getElementById('mila-thinking')?.remove();
         console.error(e);
-        if (typeof hubToast !== 'undefined') hubToast("Erro de comunicação com a Mila.", "error");
+        if (typeof hubToast !== 'undefined') {
+            const errMsg = e.message ? e.message : 'Erro genérico';
+            hubToast("Mila Offline: " + errMsg, "error");
+        }
     }
     
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
