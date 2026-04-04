@@ -45,17 +45,21 @@ async function initChatAoVivo() {
   }
 
   // Get current user & workspace
-  if (!window._sb) { console.error('[Chat] Supabase not initialized'); return; }
-  const { data: { session } } = await window._sb.auth.getSession();
+  // Use the global supabaseClient set by hub-dashboard.js
+  const _sb = window.supabaseClient || window._sb;
+  if (!_sb) { console.error('[Chat] Supabase not initialized (supabaseClient not found)'); return; }
+  // Assign to window._sb for backward compat with rest of file
+  window._sb = _sb;
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
-  const { data: userData } = await window._sb.from('users').select('id, name, workspace_id, role').eq('id', session.user.id).maybeSingle();
+  const { data: userData } = await _sb.from('users').select('id, name, workspace_id, role').eq('id', session.user.id).maybeSingle();
   if (!userData) return;
 
   chatState.currentUser = userData;
-  chatState.workspaceId = userData.workspace_id;
+  // For master_admin, workspace_id may be null in users table — use the globally selected workspace
+  chatState.workspaceId = userData.workspace_id || window.currentWorkspaceId || sessionStorage.getItem('ws_id');
 
   container.innerHTML = buildChatLayout();
-  container.style.display = 'block';
   attachChatEvents();
   await loadKPIs();
   await loadLeads();

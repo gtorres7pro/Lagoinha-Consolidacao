@@ -8298,44 +8298,55 @@ function loadMilaHistory() {
     var _chatInitialized = false;
     window.switchTab = function(tabName) {
         if (tabName === 'chat-ao-vivo') {
-            // Hide all view-sections
+            // Use classList only — no inline style — to be compatible with hub.css:
+            // .view-section.active { display: flex !important }
             document.querySelectorAll('.view-section').forEach(function(v) {
-                v.style.display = 'none';
+                v.classList.remove('active');
             });
-            
-            // Ensure container exists synchronously BEFORE trying to show it
+
+            // Ensure container exists in the DOM
             var chatView = document.getElementById('view-chat-ao-vivo');
             if (!chatView) {
                 chatView = document.createElement('div');
                 chatView.id = 'view-chat-ao-vivo';
                 chatView.className = 'view-section';
-                chatView.style.cssText = 'padding:0; height:100%; overflow:hidden; display:none;';
-                var mainContent = document.querySelector('.main-content') || document.querySelector('main') || document.body;
-                mainContent.appendChild(chatView);
+                chatView.style.cssText = 'padding:0; height:100%; overflow:hidden;';
+                var mainArea = document.querySelector('.main') || document.querySelector('main') || document.body;
+                mainArea.appendChild(chatView);
             }
-            
-            // Show our view
-            chatView.style.display = 'block';
 
-            // Deactivate all nav items, activate ours
-            document.querySelectorAll('nav li[id^="nav-"]').forEach(function(el) { el.classList.remove('active'); });
+            // Activate via classList (.view-section.active { display: flex !important })
+            chatView.classList.add('active');
+
+            // Sync nav highlight
+            document.querySelectorAll('.nav li').forEach(function(el) { el.classList.remove('active'); });
             var navEl = document.getElementById('nav-chat-ao-vivo');
             if (navEl) navEl.classList.add('active');
 
-            // Lazy init
+            // Lazy init — run only once on first open
             if (!_chatInitialized) {
                 _chatInitialized = true;
-                setTimeout(function() {
-                    if (typeof window.initChatAoVivo === 'function') {
-                        window.initChatAoVivo();
-                    }
-                }, 50);
+                if (typeof window.initChatAoVivo === 'function') {
+                    window.initChatAoVivo();
+                } else {
+                    var attempts = 0;
+                    var iv = setInterval(function() {
+                        attempts++;
+                        if (typeof window.initChatAoVivo === 'function') {
+                            clearInterval(iv);
+                            window.initChatAoVivo();
+                        } else if (attempts > 50) {
+                            clearInterval(iv);
+                            console.error('[Chat] initChatAoVivo never became available');
+                        }
+                    }, 100);
+                }
             }
         } else {
-            // For other tabs, call original and hide our view
+            // Delegate to original switchTab and ensure chat view is hidden
             if (_prevSwitchTabChat) _prevSwitchTabChat(tabName);
             var chatView = document.getElementById('view-chat-ao-vivo');
-            if (chatView) chatView.style.display = 'none';
+            if (chatView) chatView.classList.remove('active');
         }
     };
 })();
