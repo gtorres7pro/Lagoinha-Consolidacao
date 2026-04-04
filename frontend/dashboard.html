@@ -2169,8 +2169,8 @@
         <div id="view-desenvolvedor" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>🛠️ Desenvolvedor</h1>
-                    <p>Gestão global do sistema — workspaces, regionais e métricas</p>
+                    <h1>🛠️ Dev Hub</h1>
+                    <p>Tarefas · Roadmap · Bugs · Workspaces globais</p>
                 </div>
                 <div class="actions" style="display:flex;gap:10px;">
                     <button class="btn-outline" onclick="openCreateRegionalModal()" style="font-size:.85rem;padding:8px 16px;">+ Regional</button>
@@ -2200,10 +2200,32 @@
                     <div class="kpi-label">Msgs IA (30d)</div>
                     <div class="kpi-value" id="dkpi-ai-msgs">—</div>
                 </div>
+                <div class="kpi-box" style="border-top:2px solid #EF4444;">
+                    <div class="kpi-label">Tickets Abertos</div>
+                    <div class="kpi-value" id="dkpi-tickets">—</div>
+                </div>
             </div>
 
-            <!-- Workspaces Table -->
-            <div style="padding:24px 32px;">
+            <!-- Dev Hub Tabs -->
+            <div style="padding:24px 32px 0;">
+                <div style="display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;">
+                    <button id="devtab-btn-workspaces" onclick="switchDevTab('workspaces')"
+                        style="padding:10px 18px;background:none;border:none;border-bottom:2px solid #FFD700;color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                        🏛️ Workspaces
+                    </button>
+                    <button id="devtab-btn-tickets" onclick="switchDevTab('tickets')"
+                        style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                        🎫 Tickets <span id="devtab-ticket-count" style="display:none;background:#EF4444;color:#fff;font-size:.6rem;padding:1px 6px;border-radius:10px;margin-left:4px;font-weight:800;"></span>
+                    </button>
+                    <button id="devtab-btn-roadmap" onclick="switchDevTab('roadmap')"
+                        style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                        🗺️ Roadmap
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB: Workspaces -->
+            <div id="devtab-workspaces" style="padding:0 32px 32px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                     <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Workspaces</h2>
                     <input id="dev-ws-search" type="text" placeholder="Buscar..." oninput="filterDevWorkspaces()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 14px;color:#fff;font-size:.82rem;outline:none;width:200px;">
@@ -2226,6 +2248,127 @@
                             <tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Carregando...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- TAB: Tickets -->
+            <div id="devtab-tickets" style="padding:0 32px 32px;display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+                    <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Tickets da Mila</h2>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button id="tkt-filter-all" onclick="filterDevTickets('all')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,215,0,.4);background:rgba(255,215,0,.12);color:#FFD700;font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--font);">Todos</button>
+                        <button id="tkt-filter-bug" onclick="filterDevTickets('bug')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(255,255,255,.45);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--font);">🐛 Bug</button>
+                        <button id="tkt-filter-feature_request" onclick="filterDevTickets('feature_request')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(255,255,255,.45);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--font);">💡 Sugestão</button>
+                        <button id="tkt-filter-update" onclick="filterDevTickets('update')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(255,255,255,.45);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--font);">🆕 Update</button>
+                        <button id="tkt-filter-pending" onclick="filterDevTickets('pending_status')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(255,255,255,.45);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--font);">⏳ Pendente</button>
+                    </div>
+                    <input id="tkt-search" type="text" placeholder="🔍 Buscar ticket..." oninput="renderDevTickets()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 14px;color:#fff;font-size:.82rem;outline:none;width:200px;">
+                </div>
+                <div id="devtab-tickets-list" style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Carregando tickets...</div>
+                </div>
+            </div>
+
+            <!-- TAB: Roadmap -->
+            <div id="devtab-roadmap" style="padding:0 32px 32px;display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+                    <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Roadmap do Sistema</h2>
+                    <button onclick="openNewRoadmapItemModal()" style="padding:8px 18px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.8rem;cursor:pointer;">+ Novo Item</button>
+                </div>
+                <!-- Kanban Columns -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
+                    <!-- Planejando -->
+                    <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;">
+                        <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#8B5CF6;display:inline-block;"></span>
+                                <span style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.7);">Planejando</span>
+                            </div>
+                            <span id="rm-count-planned" style="font-size:.7rem;background:rgba(139,92,246,.15);color:#8B5CF6;padding:2px 8px;border-radius:20px;font-weight:700;">0</span>
+                        </div>
+                        <div id="roadmap-col-planned" style="padding:12px;display:flex;flex-direction:column;gap:8px;min-height:120px;">
+                            <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.8rem;padding:24px 0;">Nenhum item</div>
+                        </div>
+                    </div>
+                    <!-- Em Breve -->
+                    <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;">
+                        <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
+                                <span style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.7);">Em Breve</span>
+                            </div>
+                            <span id="rm-count-in_progress" style="font-size:.7rem;background:rgba(245,158,11,.15);color:#F59E0B;padding:2px 8px;border-radius:20px;font-weight:700;">0</span>
+                        </div>
+                        <div id="roadmap-col-in_progress" style="padding:12px;display:flex;flex-direction:column;gap:8px;min-height:120px;">
+                            <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.8rem;padding:24px 0;">Nenhum item</div>
+                        </div>
+                    </div>
+                    <!-- Lançado -->
+                    <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden;">
+                        <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="width:8px;height:8px;border-radius:50%;background:#34D399;display:inline-block;"></span>
+                                <span style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.7);">Lançado</span>
+                            </div>
+                            <span id="rm-count-published" style="font-size:.7rem;background:rgba(52,211,153,.15);color:#34D399;padding:2px 8px;border-radius:20px;font-weight:700;">0</span>
+                        </div>
+                        <div id="roadmap-col-published" style="padding:12px;display:flex;flex-direction:column;gap:8px;min-height:120px;">
+                            <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.8rem;padding:24px 0;">Nenhum item</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roadmap New Item Modal -->
+            <div id="roadmap-item-modal" onclick="if(event.target===this)closeNewRoadmapItemModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);z-index:9300;align-items:center;justify-content:center;">
+                <div style="background:#111;border:1px solid rgba(255,215,0,.18);border-radius:20px;width:100%;max-width:480px;margin:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.7);">
+                    <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,transparent);"></div>
+                    <div style="padding:22px 24px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+                        <h3 style="font-size:1rem;font-weight:800;margin:0;" id="roadmap-modal-title">🗺️ Novo Item do Roadmap</h3>
+                        <button onclick="closeNewRoadmapItemModal()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+                        <input type="hidden" id="roadmap-edit-id">
+                        <div>
+                            <label style="font-size:.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Título</label>
+                            <input id="roadmap-input-title" type="text" placeholder="Descreva a funcionalidade ou melhoria..." style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.88rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                        </div>
+                        <div>
+                            <label style="font-size:.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição detalhada</label>
+                            <textarea id="roadmap-input-desc" rows="3" placeholder="Como vai funcionar? O que resolve?" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.85rem;outline:none;font-family:var(--font);resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(251,191,36,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Status</label>
+                                <select id="roadmap-input-status" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);">
+                                    <option value="planned">🔮 Planejando</option>
+                                    <option value="in_progress">⚡ Em Breve</option>
+                                    <option value="published">✅ Lançado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:.72rem;color:var(--text-dim);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Tipo</label>
+                                <select id="roadmap-input-type" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);">
+                                    <option value="feature">✨ Feature</option>
+                                    <option value="improvement">🔧 Melhoria</option>
+                                    <option value="fix">🐛 Correção</option>
+                                    <option value="update">🆕 Update</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:12px 16px;cursor:pointer;" onclick="document.getElementById('roadmap-input-public').click()">
+                            <div>
+                                <div style="font-size:.84rem;font-weight:700;">🌐 Tornar Público</div>
+                                <div style="font-size:.72rem;color:var(--text-dim);margin-top:2px;">Aparece no painel dos usuários</div>
+                            </div>
+                            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="event.stopPropagation()">
+                                <input type="checkbox" id="roadmap-input-public" onchange="updateRoadmapToggleUI()" style="opacity:0;width:0;height:0;">
+                                <span style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:24px;transition:.3s;" id="roadmap-toggle-track"></span>
+                                <span style="position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.3s;" id="roadmap-toggle-thumb"></span>
+                            </label>
+                        </div>
+                        <button onclick="saveRoadmapItem()" style="background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.88rem;border:none;border-radius:12px;padding:12px;cursor:pointer;font-family:var(--font);">Salvar Item</button>
+                    </div>
                 </div>
             </div>
 

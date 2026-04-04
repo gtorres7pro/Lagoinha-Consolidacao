@@ -6665,6 +6665,332 @@ window.initFaseG = function(user) {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// DEV HUB — Tab Switching
+// ═══════════════════════════════════════════════════════════════════
+let _devCurrentTab = 'workspaces';
+
+window.switchDevTab = function(tab) {
+    _devCurrentTab = tab;
+    const tabs = ['workspaces', 'tickets', 'roadmap'];
+    tabs.forEach(t => {
+        const panel = document.getElementById('devtab-' + t);
+        const btn   = document.getElementById('devtab-btn-' + t);
+        if (panel) panel.style.display = (t === tab) ? '' : 'none';
+        if (btn) {
+            btn.style.borderBottomColor = (t === tab) ? '#FFD700' : 'transparent';
+            btn.style.color             = (t === tab) ? '#FFD700' : 'rgba(255,255,255,.4)';
+            btn.style.fontWeight        = (t === tab) ? '700' : '600';
+        }
+    });
+    if (tab === 'tickets')  loadDevTickets();
+    if (tab === 'roadmap')  loadRoadmap();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DEV HUB — Tickets (app_logs from Mila)
+// ═══════════════════════════════════════════════════════════════════
+let _devTicketsAll      = [];
+let _devTicketFilter    = 'all';
+let _devTicketsUserMap  = {};
+
+window.loadDevTickets = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const list = document.getElementById('devtab-tickets-list');
+    if (list) list.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">⏳ Carregando tickets...</div>';
+
+    try {
+        // Load tickets + users in parallel
+        const [ticketsRes, usersRes] = await Promise.all([
+            sb.from('app_logs').select('*').order('created_at', { ascending: false }),
+            sb.from('users').select('id,name,email,phone,workspace_id'),
+        ]);
+
+        // Build user map
+        _devTicketsUserMap = {};
+        (usersRes.data || []).forEach(u => { _devTicketsUserMap[u.id] = u; });
+
+        _devTicketsAll = ticketsRes.data || [];
+
+        // Update ticket KPI
+        const openCount = _devTicketsAll.filter(t => t.status === 'pending').length;
+        const kpiEl = document.getElementById('dkpi-tickets');
+        if (kpiEl) kpiEl.textContent = openCount;
+
+        // Update badge on tab
+        const badge = document.getElementById('devtab-ticket-count');
+        if (badge) {
+            badge.textContent = openCount;
+            badge.style.display = openCount > 0 ? 'inline-block' : 'none';
+        }
+
+        renderDevTickets();
+    } catch(e) {
+        console.error('loadDevTickets error', e);
+        if (list) list.innerHTML = `<div style="padding:20px;color:#EF4444;">❌ Erro: ${e.message}</div>`;
+    }
+};
+
+window.filterDevTickets = function(filter) {
+    _devTicketFilter = filter;
+    // Update filter button styles
+    ['all','bug','feature_request','update','pending'].forEach(f => {
+        const btnId = 'tkt-filter-' + f;
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        const isActive = f === filter;
+        btn.style.background   = isActive ? 'rgba(255,215,0,.12)' : 'none';
+        btn.style.borderColor  = isActive ? 'rgba(255,215,0,.4)'  : 'rgba(255,255,255,.1)';
+        btn.style.color        = isActive ? '#FFD700'             : 'rgba(255,255,255,.45)';
+        btn.style.fontWeight   = isActive ? '700' : '600';
+    });
+    renderDevTickets();
+};
+
+window.renderDevTickets = function() {
+    const list = document.getElementById('devtab-tickets-list');
+    if (!list) return;
+    const q = (document.getElementById('tkt-search')?.value || '').toLowerCase();
+
+    let filtered = _devTicketsAll;
+    if (_devTicketFilter === 'pending') {
+        filtered = filtered.filter(t => t.status === 'pending');
+    } else if (_devTicketFilter !== 'all') {
+        filtered = filtered.filter(t => t.type === _devTicketFilter);
+    }
+    if (q) {
+        filtered = filtered.filter(t =>
+            (t.title || '').toLowerCase().includes(q) ||
+            (t.description || '').toLowerCase().includes(q)
+        );
+    }
+
+    if (!filtered.length) {
+        list.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Nenhum ticket encontrado.</div>';
+        return;
+    }
+
+    const typeCfg = {
+        update:          { icon: '🆕', color: '#34D399', label: 'Atualização' },
+        bug:             { icon: '🐛', color: '#EF4444', label: 'Bug' },
+        feature_request: { icon: '💡', color: '#FFD700', label: 'Sugestão' },
+    };
+    const statusCfg = {
+        published:   { color: '#34D399', label: '✅ Resolvido' },
+        in_progress: { color: '#F59E0B', label: '⚡ Em Progresso' },
+        pending:     { color: '#8696a0', label: '⏳ Pendente' },
+    };
+
+    list.innerHTML = filtered.map(ticket => {
+        const cfg  = typeCfg[ticket.type]   || { icon: '📋', color: '#8696a0', label: ticket.type };
+        const sCfg = statusCfg[ticket.status] || { color: '#8696a0', label: ticket.status };
+        const date = ticket.created_at
+            ? new Date(ticket.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' })
+            : '—';
+        const user = _devTicketsUserMap[ticket.submitted_by];
+        const wsName = ticket.workspace_name || (user?.workspaces?.name) || '—';
+        const wsId   = ticket.workspace_id ? `<span style="font-size:.65rem;opacity:.5;font-family:monospace;">${ticket.workspace_id.slice(0,8)}…</span>` : '—';
+        const userName  = user?.name  || '—';
+        const userEmail = user?.email || '—';
+        const userPhone = user?.phone ? `<a href="https://wa.me/${user.phone.replace(/\D/g,'')}" target="_blank" rel="noopener" style="color:#25D366;text-decoration:none;font-size:.78rem;" title="Abrir WhatsApp">📱 ${user.phone}</a>` : '<span style="opacity:.4;font-size:.78rem;">Sem telefone</span>';
+
+        return `
+        <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 20px;border-left:3px solid ${cfg.color};transition:border-color .2s;" onmouseover="this.style.borderColor='${cfg.color}'" onmouseout="this.style.borderColor='${cfg.color}'">
+            <!-- Header row -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <span style="font-size:1rem;">${cfg.icon}</span>
+                <span style="background:${cfg.color}20;color:${cfg.color};font-size:.68rem;font-weight:800;padding:2px 9px;border-radius:6px;border:1px solid ${cfg.color}30;text-transform:uppercase;letter-spacing:.04em;">${cfg.label}</span>
+                <span style="font-weight:700;font-size:.9rem;flex:1;min-width:160px;">${ticket.title || '(sem título)'}</span>
+                <span style="color:rgba(255,255,255,.28);font-size:.72rem;flex-shrink:0;">${date}</span>
+                <span style="background:${sCfg.color}18;color:${sCfg.color};font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid ${sCfg.color}30;">${sCfg.label}</span>
+                ${ticket.status === 'pending' ? `<button onclick="resolveDevTicket('${ticket.id}')" style="background:#34D399;color:#000;border:none;border-radius:7px;padding:4px 12px;font-size:.72rem;font-weight:800;cursor:pointer;font-family:var(--font);">✔ Resolver</button>` : ''}
+            </div>
+            <!-- Description -->
+            ${ticket.description ? `<div style="color:rgba(255,255,255,.55);font-size:.84rem;line-height:1.55;margin-bottom:12px;">${ticket.description}</div>` : ''}
+            <!-- Meta grid -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;background:rgba(0,0,0,.2);border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.04);">
+                <div>
+                    <div style="font-size:.62rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Workspace</div>
+                    <div style="font-size:.8rem;font-weight:600;">${wsName}</div>
+                    <div>${wsId}</div>
+                </div>
+                <div>
+                    <div style="font-size:.62rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Solicitante</div>
+                    <div style="font-size:.82rem;font-weight:600;">${userName}</div>
+                    <div style="font-size:.75rem;color:rgba(255,255,255,.4);">${userEmail}</div>
+                </div>
+                <div>
+                    <div style="font-size:.62rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">WhatsApp</div>
+                    ${userPhone}
+                </div>
+                ${ticket.is_public ? `
+                <div>
+                    <div style="font-size:.62rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Visibilidade</div>
+                    <span style="font-size:.72rem;color:#34D399;font-weight:700;">🌐 Público</span>
+                </div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.resolveDevTicket = async function(ticketId) {
+    const note = prompt('Nota técnica para o usuário (opcional):');
+    if (note === null) return;
+    try {
+        hubToast && hubToast('Marcando como resolvido...', 'info');
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        const resp = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/resolve-ticket', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({ ticketId, resolutionText: note })
+        });
+        if (!resp.ok) throw new Error('API error');
+        hubToast && hubToast('Ticket resolvido! ✅', 'success');
+        loadDevTickets();
+    } catch(e) {
+        hubToast && hubToast('Erro: ' + e.message, 'error');
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DEV HUB — Roadmap
+// ═══════════════════════════════════════════════════════════════════
+let _roadmapAll = [];
+
+window.loadRoadmap = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    ['planned','in_progress','published'].forEach(s => {
+        const col = document.getElementById('roadmap-col-' + s);
+        if (col) col.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);font-size:.8rem;padding:24px 0;">⏳ Carregando...</div>';
+    });
+    try {
+        const { data, error } = await sb.from('roadmap').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        _roadmapAll = data || [];
+        renderRoadmap();
+    } catch(e) {
+        console.error('loadRoadmap error', e);
+    }
+};
+
+function renderRoadmap() {
+    const cols = { planned: [], in_progress: [], published: [] };
+    _roadmapAll.forEach(item => {
+        if (cols[item.status]) cols[item.status].push(item);
+    });
+
+    const typeIcons  = { feature: '✨', improvement: '🔧', fix: '🐛', update: '🆕' };
+    const colColors  = { planned: '#8B5CF6', in_progress: '#F59E0B', published: '#34D399' };
+
+    Object.entries(cols).forEach(([status, items]) => {
+        const col = document.getElementById('roadmap-col-' + status);
+        const cnt = document.getElementById('rm-count-' + status);
+        if (cnt) cnt.textContent = items.length;
+        if (!col) return;
+        if (!items.length) {
+            col.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);font-size:.8rem;padding:24px 0;">Nenhum item</div>';
+            return;
+        }
+        col.innerHTML = items.map(item => {
+            const icon = typeIcons[item.type] || '📋';
+            const isPublic = item.is_public;
+            return `
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .2s;position:relative;"
+                 onmouseover="this.style.borderColor='${colColors[status]}50';this.style.background='rgba(255,255,255,.06)'"
+                 onmouseout="this.style.borderColor='rgba(255,255,255,.08)';this.style.background='rgba(255,255,255,.04)'"
+                 onclick="editRoadmapItem('${item.id}')">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+                    <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0;">
+                        <span style="font-size:.85rem;">${icon}</span>
+                        <span style="font-size:.84rem;font-weight:700;line-height:1.3;">${item.title}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                        ${isPublic ? '<span style="font-size:.6rem;color:#34D399;font-weight:800;background:rgba(52,211,153,.12);padding:1px 6px;border-radius:4px;border:1px solid rgba(52,211,153,.2);">🌐 PUB</span>' : '<span style="font-size:.6rem;color:rgba(255,255,255,.2);font-weight:600;background:rgba(255,255,255,.04);padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,.06);">PRIV</span>'}
+                    </div>
+                </div>
+                ${item.description ? `<div style="font-size:.77rem;color:rgba(255,255,255,.4);line-height:1.45;margin-top:4px;">${item.description.slice(0,100)}${item.description.length > 100 ? '…' : ''}</div>` : ''}
+                <div style="margin-top:8px;font-size:.65rem;color:rgba(255,255,255,.2);">${new Date(item.created_at).toLocaleDateString('pt-BR')}</div>
+            </div>`;
+        }).join('');
+    });
+}
+
+window.openNewRoadmapItemModal = function() {
+    document.getElementById('roadmap-edit-id').value = '';
+    document.getElementById('roadmap-input-title').value = '';
+    document.getElementById('roadmap-input-desc').value = '';
+    document.getElementById('roadmap-input-status').value = 'planned';
+    document.getElementById('roadmap-input-type').value = 'feature';
+    document.getElementById('roadmap-input-public').checked = false;
+    document.getElementById('roadmap-modal-title').textContent = '🗺️ Novo Item do Roadmap';
+    updateRoadmapToggleUI();
+    const modal = document.getElementById('roadmap-item-modal');
+    if (modal) { modal.style.display = 'flex'; }
+};
+
+window.editRoadmapItem = function(id) {
+    const item = _roadmapAll.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById('roadmap-edit-id').value = id;
+    document.getElementById('roadmap-input-title').value = item.title || '';
+    document.getElementById('roadmap-input-desc').value = item.description || '';
+    document.getElementById('roadmap-input-status').value = item.status || 'planned';
+    document.getElementById('roadmap-input-type').value = item.type || 'feature';
+    document.getElementById('roadmap-input-public').checked = !!item.is_public;
+    document.getElementById('roadmap-modal-title').textContent = '✏️ Editar Item';
+    updateRoadmapToggleUI();
+    const modal = document.getElementById('roadmap-item-modal');
+    if (modal) { modal.style.display = 'flex'; }
+};
+
+window.closeNewRoadmapItemModal = function() {
+    const modal = document.getElementById('roadmap-item-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.updateRoadmapToggleUI = function() {
+    const checked = document.getElementById('roadmap-input-public')?.checked;
+    const track = document.getElementById('roadmap-toggle-track');
+    const thumb = document.getElementById('roadmap-toggle-thumb');
+    if (track) track.style.background = checked ? '#FFD700' : 'rgba(255,255,255,.1)';
+    if (thumb) thumb.style.left = checked ? '23px' : '3px';
+};
+
+window.saveRoadmapItem = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const editId = document.getElementById('roadmap-edit-id')?.value;
+    const title = document.getElementById('roadmap-input-title')?.value?.trim();
+    if (!title) { hubToast && hubToast('Título é obrigatório.', 'error'); return; }
+
+    const payload = {
+        title,
+        description: document.getElementById('roadmap-input-desc')?.value?.trim() || null,
+        status:      document.getElementById('roadmap-input-status')?.value || 'planned',
+        type:        document.getElementById('roadmap-input-type')?.value   || 'feature',
+        is_public:   document.getElementById('roadmap-input-public')?.checked || false,
+        updated_at:  new Date().toISOString(),
+    };
+
+    try {
+        let error;
+        if (editId) {
+            ({ error } = await sb.from('roadmap').update(payload).eq('id', editId));
+        } else {
+            payload.created_by = (await sb.auth.getUser()).data?.user?.id;
+            ({ error } = await sb.from('roadmap').insert(payload));
+        }
+        if (error) throw error;
+        hubToast && hubToast(editId ? 'Item atualizado! ✅' : 'Item criado! ✅', 'success');
+        closeNewRoadmapItemModal();
+        loadRoadmap();
+    } catch(e) {
+        hubToast && hubToast('Erro: ' + e.message, 'error');
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // DESENVOLVEDOR — Panel Logic
 // ═══════════════════════════════════════════════════════════════════
 let _devWorkspacesAll = [];
