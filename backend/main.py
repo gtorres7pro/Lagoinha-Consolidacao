@@ -247,8 +247,10 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
         phone = data.phone
         if not phone and data.lead_id:
             lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).maybe_single().execute()
-            if lead_res.data:
+            if lead_res is not None and hasattr(lead_res, 'data') and lead_res.data:
                 phone = lead_res.data["phone"]
+            elif isinstance(lead_res, dict) and "phone" in lead_res:
+                phone = lead_res["phone"]
         if not phone:
             return {"error": "Telefone não encontrado"}
 
