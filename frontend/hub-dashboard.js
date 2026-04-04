@@ -8298,13 +8298,24 @@ function loadMilaHistory() {
     var _chatInitialized = false;
     window.switchTab = function(tabName) {
         if (tabName === 'chat-ao-vivo') {
-            // Hide all view-sections (the original switchTab won't know about ours)
+            // Hide all view-sections
             document.querySelectorAll('.view-section').forEach(function(v) {
                 v.style.display = 'none';
             });
-            // Show our view
+            
+            // Ensure container exists synchronously BEFORE trying to show it
             var chatView = document.getElementById('view-chat-ao-vivo');
-            if (chatView) chatView.style.display = 'block';
+            if (!chatView) {
+                chatView = document.createElement('div');
+                chatView.id = 'view-chat-ao-vivo';
+                chatView.className = 'view-section';
+                chatView.style.cssText = 'padding:0; height:100%; overflow:hidden; display:none;';
+                var mainContent = document.querySelector('.main-content') || document.querySelector('main') || document.body;
+                mainContent.appendChild(chatView);
+            }
+            
+            // Show our view
+            chatView.style.display = 'block';
 
             // Deactivate all nav items, activate ours
             document.querySelectorAll('nav li[id^="nav-"]').forEach(function(el) { el.classList.remove('active'); });
