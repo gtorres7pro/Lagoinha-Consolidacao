@@ -334,14 +334,14 @@
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status').order('name');
+                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, credentials').order('name');
                     if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
                     if (userRow?.workspace_id) {
-                        const { data } = await sb.from('workspaces').select('id, name, slug, status').eq('id', userRow.workspace_id);
+                        const { data } = await sb.from('workspaces').select('id, name, slug, status, credentials').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
@@ -383,6 +383,13 @@
                     // Update sidebar brand sub-label to show city/workspace name
                     const sidebarLabel = document.getElementById('sidebar-workspace-name');
                     if (sidebarLabel) sidebarLabel.textContent = displayWsName(initial.name);
+
+                    // Toggle Chat ao Vivo based on WhatsApp connection
+                    const navChat = document.getElementById('nav-chat-ao-vivo');
+                    if (navChat) {
+                        const hasWhatsApp = initial.credentials && initial.credentials.whatsapp_token && initial.credentials.whatsapp_token.trim() !== '';
+                        navChat.style.display = hasWhatsApp ? 'flex' : 'none';
+                    }
                 } else {
                     const pillName = document.getElementById('ws-pill-name');
                     if (pillName) pillName.textContent = 'N/D';
@@ -462,6 +469,14 @@
             const dd = document.getElementById('ws-dropdown');
             if (dd) dd.classList.remove('open');
             renderWsDropdown();
+            
+            // Toggle Chat ao Vivo based on WhatsApp connection
+            const navChat = document.getElementById('nav-chat-ao-vivo');
+            if (navChat) {
+                const hasWhatsApp = ws.credentials && ws.credentials.whatsapp_token && ws.credentials.whatsapp_token.trim() !== '';
+                navChat.style.display = hasWhatsApp ? 'flex' : 'none';
+            }
+
             showToast('🏛 ' + ws.name, 2000);
             // Call fetchLiveLeads directly (initEngine is in a different scope)
             if (window.fetchLiveLeads) {

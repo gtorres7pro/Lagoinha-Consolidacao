@@ -303,25 +303,12 @@ def get_whatsapp_templates(workspace_id: str):
 
         creds = res.data[0]["credentials"]
         access_token = creds.get("whatsapp_token")
-        waba_id = creds.get("waba_id")
+        # In current setups, 'business_id' often holds the WABA ID
+        waba_id = creds.get("waba_id") or creds.get("business_id")
         phone_id = creds.get("phone_id")
 
         if not access_token:
             return {"error": "Token de acesso não configurado", "templates": []}
-
-        # If waba_id is missing, try to derive it from Meta using the phone_id
-        if not waba_id and phone_id:
-            try:
-                import requests as req
-                ph_res = req.get(
-                    f"https://graph.facebook.com/v22.0/{phone_id}",
-                    params={"fields": "id,name,account_id", "access_token": access_token},
-                    timeout=8
-                )
-                if ph_res.ok:
-                    waba_id = ph_res.json().get("account_id")
-            except Exception:
-                pass
 
         if not waba_id:
             return {"error": "WABA ID não configurado. Configure em Configurações > WhatsApp.", "templates": []}

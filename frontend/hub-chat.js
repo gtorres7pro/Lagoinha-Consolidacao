@@ -56,8 +56,8 @@ async function initChatAoVivo() {
   if (!userData) return;
 
   chatState.currentUser = userData;
-  // For master_admin, workspace_id may be null in users table — use the globally selected workspace
-  chatState.workspaceId = userData.workspace_id || window.currentWorkspaceId || sessionStorage.getItem('ws_id');
+  // Use the globally selected workspace first, then fallback to user's assigned workspace
+  chatState.workspaceId = window.currentWorkspaceId || sessionStorage.getItem('ws_id') || userData.workspace_id;
 
   container.innerHTML = buildChatLayout();
   attachChatEvents();
