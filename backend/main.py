@@ -232,7 +232,8 @@ def handle_meta_message_logic(msg_obj: dict, contact_name: str):
 # --- WHATSAPP INTERNAL PROXY EXTENSION ---
 
 class SendWAMessagePayload(BaseModel):
-    phone: str
+    phone: str = None
+    lead_id: str = None
     text: str
     workspace_id: str
 
@@ -240,25 +241,128 @@ class SendWAMessagePayload(BaseModel):
 def process_send_whatsapp_message(data: SendWAMessagePayload):
     from tools.db_tool import supabase
     from tools.whatsapp_tool import send_whatsapp_message
-    
-    # 1. Fetch credentials from DB dynamically
+
+    # Resolve phone from lead_id if not provided directly
+    phone = data.phone
+    if not phone and data.lead_id:
+        lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).single().execute()
+        if lead_res.data:
+            phone = lead_res.data["phone"]
+    if not phone:
+        return {"error": "Telefone não encontrado"}
+
+    # Fetch credentials from DB dynamically
     res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
     if not res.data or not res.data[0].get("credentials"):
         return {"error": "Credenciais Meta não encontradas no Workspace"}
-        
+
     credentials = res.data[0]["credentials"]
     access_token = credentials.get("whatsapp_token")
     phone_id = credentials.get("phone_id")
-    
+
     if not access_token or not phone_id:
         return {"error": "Sem Acesso (Falta Token ou Phone ID)"}
-        
-    # 2. Fire to Meta Directly
-    result = send_whatsapp_message(phone_id, access_token, data.phone, data.text)
-    
+
+    # Fire to Meta Directly
+    result = send_whatsapp_message(phone_id, access_token, phone, data.text)
+
     if "error" in result:
         return {"status": "failed", "details": result}
-    return {"status": "success", "meta_response": result}
+
+    # Log the sent message
+    if data.lead_id:
+        supabase.table("messages").insert({
+            "lead_id": data.lead_id,
+            "workspace_id": data.workspace_id,
+            "direction": "outbound",
+            "content": data.text,
+            "type": "text",
+            "automated": False
+        }).execute()
+
+    return {"status": "success", "ok": True}
+
+
+# --- LIST META APPROVED TEMPLATES ---
+
+@app.get("/whatsapp/templates")
+def get_whatsapp_templates(workspace_id: str):
+    from tools.db_tool import supabase
+    from tools.whatsapp_tool import list_whatsapp_templates
+
+    res = supabase.table("workspaces").select("credentials").eq("id", workspace_id).execute()
+    if not res.data or not res.data[0].get("credentials"):
+        return {"error": "Credenciais não encontradas", "templates": []}
+
+    creds = res.data[0]["credentials"]
+    access_token = creds.get("whatsapp_token")
+    waba_id = creds.get("waba_id")
+
+    if not access_token or not waba_id:
+        return {"error": "Token ou WABA ID não configurados", "templates": []}
+
+    templates = list_whatsapp_templates(waba_id, access_token)
+    return {"templates": templates}
+
+
+# --- SEND META APPROVED TEMPLATE ---
+
+class SendTemplatePayload(BaseModel):
+    lead_id: str
+    workspace_id: str
+    template_name: str
+    language_code: str = "pt_BR"
+    variables: list = []  # list of strings to replace {{1}}, {{2}}, etc.
+
+@app.post("/whatsapp/send-template")
+def send_template_message(data: SendTemplatePayload):
+    from tools.db_tool import supabase
+    from tools.whatsapp_tool import send_whatsapp_template
+
+    # Get lead phone
+    lead_res = supabase.table("leads").select("phone, name").eq("id", data.lead_id).single().execute()
+    if not lead_res.data:
+        return {"error": "Lead não encontrado"}
+    phone = lead_res.data["phone"]
+    lead_name = lead_res.data.get("name", "")
+
+    # Get workspace credentials
+    ws_res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
+    if not ws_res.data or not ws_res.data[0].get("credentials"):
+        return {"error": "Credenciais não encontradas"}
+
+    creds = ws_res.data[0]["credentials"]
+    access_token = creds.get("whatsapp_token")
+    phone_id = creds.get("phone_id")
+
+    if not access_token or not phone_id:
+        return {"error": "Token ou Phone ID não configurados"}
+
+    # Build Meta template components from variables
+    components = []
+    if data.variables:
+        params = [{"type": "text", "text": v} for v in data.variables]
+        components = [{"type": "body", "parameters": params}]
+
+    result = send_whatsapp_template(phone_id, access_token, phone, data.template_name, data.language_code, components)
+
+    if "error" in result:
+        return {"status": "failed", "details": result}
+
+    # Log the sent template message
+    var_preview = " / ".join(data.variables) if data.variables else ""
+    supabase.table("messages").insert({
+        "lead_id": data.lead_id,
+        "workspace_id": data.workspace_id,
+        "direction": "outbound",
+        "content": f"[Template: {data.template_name}] {var_preview}",
+        "type": "text",
+        "automated": False
+    }).execute()
+
+    return {"status": "success", "ok": True}
+
+
 
 
 # --- WHATSAPP EMBEDDED SIGNUP (META OAUTH) ---

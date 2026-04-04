@@ -690,7 +690,7 @@ async function loadMessages(leadId) {
     .select('id, direction, type, content, automated, created_at')
     .eq('lead_id', leadId)
     .order('created_at', { ascending: true })
-    .limit(100);
+    .limit(500);
 
   chatState.messages = msgs ?? [];
   renderMessages();
@@ -796,22 +796,22 @@ async function sendManualMessage() {
   sendBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20m-7-7 7 7 7-7"/></svg>';
 
   try {
-    const { data: { session } } = await window._sb.auth.getSession();
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-send`, {
+    const res = await fetch('https://api.consolidacao.7pro.tech/whatsapp/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ lead_id: chatState.selectedLeadId, message })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: chatState.selectedLeadId,
+        text: message,
+        workspace_id: chatState.workspaceId
+      })
     });
     const result = await res.json();
     if (result.ok) {
       input.value = '';
       input.style.height = '';
-      // Update lock UI with new lock_until
+      // Update human lock UI
       const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
-      if (lead) {
+      if (lead && result.lock_until) {
         lead.llm_lock_until = result.lock_until;
         updateLockUI(lead);
       }
@@ -821,14 +821,12 @@ async function sendManualMessage() {
         content: message, automated: false, created_at: new Date().toISOString()
       });
       renderMessages();
-    } else if (result.error === 'window_closed') {
-      showChatToast('⚠️ Janela de 24h encerrada. Use um Template aprovado.', 'warn');
     } else {
-      showChatToast('Erro ao enviar mensagem. Tente novamente.', 'error');
+      showChatToast(`❌ ${result.error || 'Erro ao enviar mensagem.'}`, 'error');
     }
   } catch (e) {
     console.error('[Chat] Send error:', e);
-    showChatToast('Erro de conexão.', 'error');
+    showChatToast('❌ Erro de conexão com o servidor.', 'error');
   } finally {
     sendBtn.disabled = false;
     sendBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
@@ -990,68 +988,87 @@ function showChatToast(msg, type = 'info') {
   setTimeout(() => toast.remove(), 3500);
 }
 
-// ─── TEMPLATES ────────────────────────────────────────────────────────────────
-const CHAT_TEMPLATES = [
-  {
-    id: 'saudacao',
-    name: '👋 Saudação Inicial',
-    preview: 'Oi, {nome}! Tudo bem? Sou da equipe da Lagoinha Orlando. Ficamos felizes com sua visita! Como posso te ajudar?'
-  },
-  {
-    id: 'culto',
-    name: '⛪ Convite para Culto',
-    preview: 'Oi, {nome}! Esta semana teremos nosso culto com uma palavra poderosa. Você consegue nos visitar? Te esperamos! 🙏'
-  },
-  {
-    id: 'acompanhamento',
-    name: '📞 Acompanhamento',
-    preview: 'Oi, {nome}! Estamos pensando em você. Como você está? Gostaríamos de saber como tem sido sua caminhada. ❤️'
-  },
-  {
-    id: 'start',
-    name: '🎓 Convite para Start',
-    preview: 'Oi, {nome}! Temos uma turma do curso Start começando em breve — um passo incrível na fé! Você toparia participar?'
-  },
-  {
-    id: 'batismo',
-    name: '🌊 Convite para Batismo',
-    preview: 'Oi, {nome}! Soubemos que você tomou uma decisão de fé — que alegria! Já pensou em dar o próximo passo? Nosso próximo batismo está chegando. 💙'
-  }
-];
+// ─── TEMPLATES ─────────────────────────────────────────────────────────────
+const BACKEND_URL = 'https://api.consolidacao.7pro.tech';
 
-let _selectedTemplateId = null;
+let _selectedTemplate = null; // { name, language_code, body_text, variables_count }
 
-function openTemplateModal() {
+// Extract readable body text from a Meta template's component array
+function extractTemplateBody(components) {
+  const body = (components || []).find(c => c.type === 'BODY');
+  return body?.text || '';
+}
+
+// Count how many {{N}} variables exist in the template body
+function countTemplateVars(text) {
+  const matches = text.match(/\{\{\d+\}\}/g);
+  return matches ? matches.length : 0;
+}
+
+// Interpolate variable placeholders for preview (replaces {{1}} with actual value)
+function interpolatePreview(text, vars) {
+  let out = text;
+  (vars || []).forEach((v, i) => { out = out.replace(`{{${i + 1}}}`, v); });
+  return out;
+}
+
+async function openTemplateModal() {
   if (!chatState.selectedLeadId) return;
   const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
-  _selectedTemplateId = null;
+  _selectedTemplate = null;
 
-  // Set lead name
+  // Populate lead name label
   const nameEl = document.getElementById('tpl-lead-name');
   if (nameEl) nameEl.textContent = `Para: ${lead?.name || 'Lead'}`;
 
-  // Render template cards
+  // Reset send button
+  const sendBtn = document.getElementById('chat-tpl-send-btn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviar Template ✓'; }
+
   const listEl = document.getElementById('chat-template-list');
-  if (listEl) {
-    listEl.innerHTML = CHAT_TEMPLATES.map(t => `
-      <div class="chat-tpl-card" id="tpl-card-${t.id}" onclick="selectTemplate('${t.id}')">
-        <div class="chat-tpl-name">${t.name}</div>
-        <div class="chat-tpl-preview">${(lead?.name ? t.preview.replace('{nome}', lead.name.split(' ')[0]) : t.preview)}</div>
-      </div>
-    `).join('');
-  }
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#666;font-size:.82rem;">Carregando templates...</div>';
 
-  const btn = document.getElementById('chat-tpl-send-btn');
-  if (btn) btn.disabled = true;
-
+  // Show overlay
   const overlay = document.getElementById('chat-template-overlay');
   if (overlay) overlay.style.display = 'flex';
+
+  // Fetch real templates from Meta via backend
+  try {
+    const res = await fetch(`${BACKEND_URL}/whatsapp/templates?workspace_id=${chatState.workspaceId}`);
+    const data = await res.json();
+
+    if (data.error || !data.templates?.length) {
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:24px;color:#f87171;font-size:.82rem;">❌ ${data.error || 'Nenhum template aprovado encontrado'}<br><span style="color:#666;font-size:.75rem;">Verifique seus templates aprovados no Meta Business Manager</span></div>`;
+      return;
+    }
+
+    const firstName = lead?.name?.split(' ')[0] || lead?.name || 'Amigo';
+
+    if (listEl) {
+      listEl.innerHTML = data.templates.map(t => {
+        const bodyText = extractTemplateBody(t.components);
+        const varCount = countTemplateVars(bodyText);
+        // For preview: fill {{1}} with lead first name
+        const previewVars = Array(varCount).fill('').map((_, i) => i === 0 ? firstName : '...');
+        const preview = interpolatePreview(bodyText, previewVars);
+        const lang = t.language || 'pt_BR';
+        return `<div class="chat-tpl-card" id="tpl-card-${t.name}" onclick="selectTemplate('${t.name}', '${lang}', ${varCount})">
+          <div class="chat-tpl-name">${t.name.replace(/_/g, ' ')}</div>
+          <div class="chat-tpl-preview">${escapeHtml(preview)}</div>
+          <div style="font-size:.68rem;color:#555;margin-top:4px;">${lang} • ${varCount} variável${varCount !== 1 ? 'is' : ''}</div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:24px;color:#f87171;font-size:.82rem;">❌ Erro ao carregar templates: ${e.message}</div>`;
+  }
 }
 
-function selectTemplate(id) {
-  _selectedTemplateId = id;
+
+function selectTemplate(name, languageCode, varCount) {
+  _selectedTemplate = { name, language_code: languageCode, variables_count: varCount };
   document.querySelectorAll('.chat-tpl-card').forEach(c => c.classList.remove('selected'));
-  const card = document.getElementById(`tpl-card-${id}`);
+  const card = document.getElementById(`tpl-card-${name}`);
   if (card) card.classList.add('selected');
   const btn = document.getElementById('chat-tpl-send-btn');
   if (btn) btn.disabled = false;
@@ -1060,83 +1077,106 @@ function selectTemplate(id) {
 function closeTemplateModal() {
   const overlay = document.getElementById('chat-template-overlay');
   if (overlay) overlay.style.display = 'none';
-  _selectedTemplateId = null;
+  _selectedTemplate = null;
 }
 
 async function sendSelectedTemplate() {
-  if (!_selectedTemplateId || !chatState.selectedLeadId) return;
+  if (!_selectedTemplate || !chatState.selectedLeadId) return;
   const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
-  const tpl = CHAT_TEMPLATES.find(t => t.id === _selectedTemplateId);
-  if (!lead || !tpl) return;
 
   const sendBtn = document.getElementById('chat-tpl-send-btn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
 
-  const firstName = lead.name?.split(' ')[0] || lead.name || '';
-  const text = tpl.preview.replace('{nome}', firstName);
+  const firstName = lead?.name?.split(' ')[0] || lead?.name || '';
+  const variables = [];
+  if (_selectedTemplate.variables_count > 0) variables.push(firstName);
+  for (let i = 1; i < _selectedTemplate.variables_count; i++) variables.push('');
 
   try {
-    const { data: { session } } = await window._sb.auth.getSession();
-    const resp = await fetch('https://api.consolidacao.7pro.tech/send-message', {
+    const res = await fetch(`${BACKEND_URL}/whatsapp/send-template`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-      body: JSON.stringify({ lead_id: chatState.selectedLeadId, message: text, is_template: true })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: chatState.selectedLeadId,
+        workspace_id: chatState.workspaceId,
+        template_name: _selectedTemplate.name,
+        language_code: _selectedTemplate.language_code,
+        variables
+      })
     });
-    if (!resp.ok) throw new Error(await resp.text());
-    closeTemplateModal();
-    showChatToast('✅ Template enviado com sucesso!', 'success');
-    // Reload messages
-    await loadMessages(chatState.selectedLeadId);
+    const result = await res.json();
+    if (result.ok) {
+      closeTemplateModal();
+      showChatToast('\u2705 Template enviado com sucesso!', 'success');
+      chatState.messages.push({
+        id: crypto.randomUUID(), direction: 'outbound', type: 'text',
+        content: `\ud83d\udce8 Template: ${_selectedTemplate.name}`,
+        automated: false, created_at: new Date().toISOString()
+      });
+      renderMessages();
+    } else {
+      const errMsg = result.details?.error?.message || result.error || 'Erro desconhecido';
+      showChatToast(`\u274c ${errMsg}`, 'error');
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
+    }
   } catch(e) {
-    showChatToast(`❌ Erro ao enviar template: ${e.message}`, 'error');
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
+    showChatToast(`\u274c Erro de conex\u00e3o: ${e.message}`, 'error');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
   }
 }
 
-// ─── FILE ATTACHMENT ───────────────────────────────────────────────────────────
+// ─── FILE ATTACHMENT ─────────────────────────────────────────────────────
 async function handleChatFileAttach(event) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file || !chatState.selectedLeadId) return;
 
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 10MB.', 'error'); return; }
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) { showChatToast('\u274c Arquivo muito grande. M\u00e1ximo 10MB.', 'error'); return; }
 
-  showChatToast('📎 Fazendo upload...', 'info');
+  showChatToast('\ud83d\udcce Fazendo upload...', 'info');
 
   try {
     const ext = file.name.split('.').pop();
-    const path = `chat-attachments/${chatState.selectedLeadId}/${Date.now()}.${ext}`;
+    const path = `chat/${chatState.selectedLeadId}/${Date.now()}.${ext}`;
 
     const { error: upErr } = await window._sb.storage
-      .from('attachments')
+      .from('app_files')
       .upload(path, file, { cacheControl: '3600', upsert: false });
     if (upErr) throw upErr;
 
-    const { data: { publicUrl } } = window._sb.storage.from('attachments').getPublicUrl(path);
+    const { data: urlData } = window._sb.storage.from('app_files').getPublicUrl(path);
+    const publicUrl = urlData?.publicUrl;
 
-    // Send via backend
-    const { data: { session } } = await window._sb.auth.getSession();
     const isImage = file.type.startsWith('image/');
-    const resp = await fetch('https://api.consolidacao.7pro.tech/send-message', {
+    const res = await fetch(`${BACKEND_URL}/whatsapp/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         lead_id: chatState.selectedLeadId,
-        message: publicUrl,
-        type: isImage ? 'image' : 'document',
-        filename: file.name
+        text: publicUrl,
+        workspace_id: chatState.workspaceId
       })
     });
-    if (!resp.ok) throw new Error(await resp.text());
-    showChatToast('✅ Arquivo enviado!', 'success');
-    await loadMessages(chatState.selectedLeadId);
+    const result = await res.json();
+    if (result.ok || result.status === 'success') {
+      showChatToast('\u2705 Arquivo enviado!', 'success');
+      chatState.messages.push({
+        id: crypto.randomUUID(), direction: 'outbound',
+        type: isImage ? 'image' : 'document',
+        content: `[${isImage ? 'Imagem' : 'Arquivo'}: ${file.name}] ${publicUrl}`,
+        automated: false, created_at: new Date().toISOString()
+      });
+      renderMessages();
+    } else {
+      throw new Error(result.error || 'Erro no envio');
+    }
   } catch(e) {
-    showChatToast(`❌ Erro no envio: ${e.message}`, 'error');
+    showChatToast(`\u274c Erro no envio: ${e.message}`, 'error');
   }
 }
 
-// ─── EXPOSE ───────────────────────────────────────────────────────────────────
+// ─── EXPOSE ─────────────────────────────────────────────────────────────
 window.initChatAoVivo = initChatAoVivo;
 window.selectLead = selectLead;
 window.setChatFilter = setChatFilter;
@@ -1153,4 +1193,3 @@ window.closeTemplateModal = closeTemplateModal;
 window.selectTemplate = selectTemplate;
 window.sendSelectedTemplate = sendSelectedTemplate;
 window.handleChatFileAttach = handleChatFileAttach;
-
