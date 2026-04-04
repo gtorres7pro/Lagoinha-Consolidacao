@@ -752,10 +752,6 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
                             <span class="nav-label">Rel. Financeiro</span>
                         </li>
-                        <li id="nav-admin-logs" onclick="switchTab('logs')" class="nav-item-row master-admin-only" style="display:none;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:10px;transition:background .15s;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-9 5 18 3-9h6"/></svg></span>
-                            <span class="nav-label">Desenvolvedor</span>
-                        </li>
                     </ul>
                 </div>
             </li>
@@ -820,7 +816,6 @@
                     </svg>
                 </span>
                 <span class="nav-label" style="font-weight:700;">Mila | Suporte</span>
-                <span style="font-size:0.55rem;margin-left:auto;font-weight:800;background:rgba(255,215,0,.15);color:#FFD700;padding:2px 6px;border-radius:4px;text-transform:uppercase;">Beta</span>
             </li>
 
             <!-- 8. Relatórios — clickable header, fixed submenus (no collapse) -->
@@ -954,15 +949,14 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
                             <span class="nav-label">Planos</span>
                         </li>
+                        <!-- Dev Hub — master_admin only -->
+                        <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')" class="nav-item-row master-admin-only" style="display:none;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:10px;transition:background .15s;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+                            <span class="nav-label">Dev Hub</span>
+                            <span style="font-size:.55rem;background:rgba(255,215,0,.15);color:#FFD700;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">DEV</span>
+                        </li>
                     </ul>
                 </div>
-            </li>
-
-            <!-- Desenvolvedor — master_admin only -->
-            <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')" style="display:none;">
-                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-                <span class="nav-label">Desenvolvedor</span>
-                <span style="font-size:.6rem; background:rgba(255,215,0,.15); color:#FFD700; padding:1px 5px; border-radius:4px; margin-left:auto; font-weight:700;">DEV</span>
             </li>
 
         </ul>
