@@ -707,7 +707,7 @@
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="main-sidebar">
         <div class="brand">
             <div class="brand-icon">
                 <!-- Abstract H mark -->
@@ -719,6 +719,12 @@
                 Zelo Pro
                 <div class="sub-brand" id="sidebar-workspace-name">Workspace</div>
             </div>
+            <!-- Desktop collapse toggle -->
+            <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="toggleMainSidebar()" title="Recolher menu">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
         </div>
         <ul class="nav" id="sidebar">
             <!-- 1. Início -->

@@ -72,8 +72,20 @@ function buildChatLayout() {
   return `
   <div id="chat-root" class="chat-root">
 
-    <!-- KPI BAR -->
+    <!-- KPI BAR — Em Destaque primeiro (urgência), depois volume -->
     <div class="chat-kpi-bar" id="chat-kpi-bar">
+      <div class="chat-kpi-card highlighted" id="kpi-highlighted">
+        <span class="kpi-icon">🔴</span>
+        <div><span class="kpi-value" id="kv-highlighted">—</span><span class="kpi-label">Em Destaque</span></div>
+      </div>
+      <div class="chat-kpi-card" id="kpi-leads-responded">
+        <span class="kpi-icon">✅</span>
+        <div><span class="kpi-value" id="kv-responded">—</span><span class="kpi-label">Responderam</span></div>
+      </div>
+      <div class="chat-kpi-card" id="kpi-ai-initiated">
+        <span class="kpi-icon">⚡</span>
+        <div><span class="kpi-value" id="kv-ai-initiated">—</span><span class="kpi-label">Iniciados pela IA</span></div>
+      </div>
       <div class="chat-kpi-card" id="kpi-total-msgs">
         <span class="kpi-icon">💬</span>
         <div><span class="kpi-value" id="kv-total">—</span><span class="kpi-label">Total Mensagens</span></div>
@@ -85,18 +97,6 @@ function buildChatLayout() {
       <div class="chat-kpi-card" id="kpi-human-msgs">
         <span class="kpi-icon">👤</span>
         <div><span class="kpi-value" id="kv-human">—</span><span class="kpi-label">Enviadas pela Equipe</span></div>
-      </div>
-      <div class="chat-kpi-card" id="kpi-leads-responded">
-        <span class="kpi-icon">✅</span>
-        <div><span class="kpi-value" id="kv-responded">—</span><span class="kpi-label">Responderam</span></div>
-      </div>
-      <div class="chat-kpi-card highlighted" id="kpi-highlighted">
-        <span class="kpi-icon">🔴</span>
-        <div><span class="kpi-value" id="kv-highlighted">—</span><span class="kpi-label">Em Destaque</span></div>
-      </div>
-      <div class="chat-kpi-card" id="kpi-ai-initiated">
-        <span class="kpi-icon">⚡</span>
-        <div><span class="kpi-value" id="kv-ai-initiated">—</span><span class="kpi-label">Iniciados pela IA</span></div>
       </div>
     </div>
 
@@ -167,9 +167,12 @@ function buildChatLayout() {
             <a id="chat-task-link" href="#" onclick="goToLinkedTask(event)">Ver tarefa →</a>
           </div>
 
-          <!-- Window warning -->
+          <!-- Window warning: 24h closed — show template button -->
           <div class="chat-window-warning" id="chat-window-warning" style="display:none;">
-            ⚠️ Janela de 24h encerrada. Somente Templates aprovados podem ser enviados agora.
+            <span>⚠️ Janela de 24h encerrada.</span>
+            <button class="chat-template-warn-btn" onclick="openTemplateModal()">
+              📨 Enviar Template
+            </button>
           </div>
 
           <!-- Messages -->
@@ -177,10 +180,37 @@ function buildChatLayout() {
 
           <!-- Bottom Bar -->
           <div class="chat-bottom-bar" id="chat-bottom-bar">
+            <!-- Attach file (only within 24h window) -->
+            <button class="chat-attach-btn" id="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Enviar arquivo">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="file" id="chat-file-input" style="display:none;" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" onchange="handleChatFileAttach(event)">
+            <!-- Template button (within window) -->
+            <button class="chat-template-btn" id="chat-template-btn" onclick="openTemplateModal()" title="Enviar template">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+            </button>
             <textarea id="chat-input" placeholder="Digite uma mensagem..." rows="1" onkeydown="handleChatKeydown(event)" oninput="autoresizeTextarea(this)"></textarea>
             <button class="chat-send-btn" id="chat-send-btn" onclick="sendManualMessage()">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
+          </div>
+
+          <!-- Template Modal -->
+          <div class="chat-template-overlay" id="chat-template-overlay" style="display:none;" onclick="if(event.target===this)closeTemplateModal()">
+            <div class="chat-template-modal">
+              <div class="chat-template-modal-header">
+                <span>📨 Enviar Template WhatsApp</span>
+                <button onclick="closeTemplateModal()">✕</button>
+              </div>
+              <div class="chat-template-modal-body">
+                <p class="chat-template-lead-name" id="tpl-lead-name"></p>
+                <div class="chat-template-list" id="chat-template-list"></div>
+              </div>
+              <div class="chat-template-modal-footer">
+                <button class="chat-tpl-cancel" onclick="closeTemplateModal()">Cancelar</button>
+                <button class="chat-tpl-send" id="chat-tpl-send-btn" onclick="sendSelectedTemplate()" disabled>Enviar Template ✓</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -398,6 +428,72 @@ function buildChatLayout() {
     .chat-send-btn:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(255,215,0,.3); }
     .chat-send-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
 
+    /* ── ATTACH & TEMPLATE BTNS ── */
+    .chat-attach-btn, .chat-template-btn {
+      width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.06); color:#888; cursor:pointer; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; transition:all .15s;
+    }
+    .chat-attach-btn:hover { background:rgba(255,255,255,.12); color:#ccc; }
+    .chat-template-btn:hover { background:rgba(255,215,0,.12); color:#FFD700; border-color:rgba(255,215,0,.3); }
+    .chat-attach-btn:disabled, .chat-template-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+    /* ── WINDOW WARNING TEMPLATE BTN ── */
+    .chat-window-warning { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .chat-template-warn-btn {
+      margin-left:auto; background:rgba(255,215,0,.15); border:1px solid rgba(255,215,0,.3);
+      color:#FFD700; font-size:.75rem; font-weight:700; padding:5px 12px; border-radius:8px;
+      cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .chat-template-warn-btn:hover { background:rgba(255,215,0,.25); }
+
+    /* ── TEMPLATE MODAL ── */
+    .chat-template-overlay {
+      position:absolute; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
+      z-index:100; display:flex; align-items:center; justify-content:center; border-radius:inherit;
+    }
+    .chat-template-modal {
+      background:#141414; border:1px solid rgba(255,215,0,.2); border-radius:20px;
+      width:100%; max-width:440px; margin:16px; overflow:hidden;
+      box-shadow:0 24px 64px rgba(0,0,0,.7);
+    }
+    .chat-template-modal-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px; border-bottom:1px solid rgba(255,255,255,.07);
+      font-weight:700; font-size:.95rem; color:#fff;
+    }
+    .chat-template-modal-header button {
+      background:none; border:none; color:#666; font-size:1.1rem; cursor:pointer;
+      line-height:1; padding:2px 6px; border-radius:6px; transition:all .15s;
+    }
+    .chat-template-modal-header button:hover { color:#fff; background:rgba(255,255,255,.08); }
+    .chat-template-modal-body { padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .chat-template-lead-name { font-size:.8rem; color:#888; margin:0 0 4px; }
+    .chat-template-list { display:flex; flex-direction:column; gap:8px; max-height:320px; overflow-y:auto; }
+    .chat-tpl-card {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09);
+      border-radius:12px; padding:12px 14px; cursor:pointer; transition:all .15s;
+    }
+    .chat-tpl-card:hover { background:rgba(255,215,0,.07); border-color:rgba(255,215,0,.25); }
+    .chat-tpl-card.selected { background:rgba(255,215,0,.12); border-color:rgba(255,215,0,.5); }
+    .chat-tpl-name { font-weight:700; font-size:.85rem; color:#fff; margin-bottom:4px; }
+    .chat-tpl-preview { font-size:.78rem; color:#888; line-height:1.45; white-space:pre-wrap; }
+    .chat-template-modal-footer {
+      padding:14px 20px; border-top:1px solid rgba(255,255,255,.07);
+      display:flex; gap:8px; justify-content:flex-end;
+    }
+    .chat-tpl-cancel {
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      color:#888; padding:8px 16px; border-radius:10px; cursor:pointer; font-size:.82rem;
+    }
+    .chat-tpl-send {
+      background:linear-gradient(135deg,#FFD700,#f59e0b); border:none; color:#111;
+      font-weight:700; padding:8px 18px; border-radius:10px; cursor:pointer; font-size:.82rem;
+      transition:all .15s;
+    }
+    .chat-tpl-send:disabled { opacity:.4; cursor:not-allowed; }
+    .chat-tpl-send:not(:disabled):hover { transform:scale(1.02); box-shadow:0 4px 12px rgba(255,215,0,.3); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .chat-list-panel { width: 100%; max-width:100%; position:absolute; z-index:10; height:100%; }
@@ -515,7 +611,7 @@ function buildLeadCard(lead) {
 // ─── SELECT LEAD ─────────────────────────────────────────────────────────────
 async function selectLead(leadId) {
   chatState.selectedLeadId = leadId;
-  const lead = chatState.leads.find(l => l.id === leadId);
+  let lead = chatState.leads.find(l => l.id === leadId);
   if (!lead) return;
 
   // Update active state
@@ -531,7 +627,7 @@ async function selectLead(leadId) {
   const initials = (lead.name || 'V').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   document.getElementById('chat-header-avatar').textContent = initials;
   document.getElementById('chat-header-name').textContent = lead.name || 'Visitante';
-  document.getElementById('chat-header-sub').textContent = lead.phone || '';
+  document.getElementById('chat-header-sub').textContent = `${lead.phone || ''}`;
 
   // On mobile, collapse list
   if (window.innerWidth <= 768) {
@@ -542,14 +638,26 @@ async function selectLead(leadId) {
   // Human lock
   updateLockUI(lead);
 
-  // Window warning
-  const windowOpen = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
-  const warnEl = document.getElementById('chat-window-warning');
-  warnEl.style.display = windowOpen ? 'none' : 'block';
-  const inputEl = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('chat-send-btn');
-  inputEl.disabled = !windowOpen;
-  sendBtn.disabled = !windowOpen;
+  // ── Refresh wa_window_expires_at from DB (cache may be stale after inbound message) ──
+  try {
+    const { data: freshLead } = await window._sb
+      .from('leads')
+      .select('wa_window_expires_at, llm_lock_until, inbox_status')
+      .eq('id', leadId)
+      .maybeSingle();
+    if (freshLead) {
+      // Merge fresh data into in-memory lead
+      lead = Object.assign(lead, freshLead);
+      // Also update leads array
+      const idx = chatState.leads.findIndex(l => l.id === leadId);
+      if (idx >= 0) chatState.leads[idx] = Object.assign(chatState.leads[idx], freshLead);
+      // Re-eval lock UI with fresh data
+      updateLockUI(lead);
+    }
+  } catch(e) { /* non-fatal */ }
+
+  // Window warning / input toggle
+  applyWindowUI(lead);
 
   // Load messages
   await loadMessages(leadId);
@@ -559,6 +667,21 @@ async function selectLead(leadId) {
 
   // Subscribe to realtime for this lead
   subscribeToLead(leadId);
+}
+
+function applyWindowUI(lead) {
+  const windowOpen = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
+  const warnEl = document.getElementById('chat-window-warning');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send-btn');
+  const attachBtn = document.getElementById('chat-attach-btn');
+  const tplBtn = document.getElementById('chat-template-btn');
+
+  warnEl.style.display = windowOpen ? 'none' : 'flex';
+  inputEl.disabled = !windowOpen;
+  sendBtn.disabled = !windowOpen;
+  if (attachBtn) attachBtn.disabled = !windowOpen;
+  if (tplBtn) tplBtn.style.display = windowOpen ? 'flex' : 'none'; // template in bar only when window open
 }
 
 async function loadMessages(leadId) {
@@ -605,8 +728,9 @@ function buildMessageBubble(msg) {
 
   let content = escapeHtml(msg.content || '');
   if (isAudio) {
+    // Show full transcription — no truncation
     const audioText = msg.content?.replace(/^\[ÁUDIO GERADO\]: /, '') || '';
-    content = `<div class="msg-audio-indicator">${escapeHtml(audioText.substring(0, 100))}${audioText.length > 100 ? '...' : ''}</div>`;
+    content = `<div class="msg-audio-indicator" style="white-space:pre-wrap;">${escapeHtml(audioText)}</div>`;
   }
 
   const badge = isManual
@@ -866,6 +990,152 @@ function showChatToast(msg, type = 'info') {
   setTimeout(() => toast.remove(), 3500);
 }
 
+// ─── TEMPLATES ────────────────────────────────────────────────────────────────
+const CHAT_TEMPLATES = [
+  {
+    id: 'saudacao',
+    name: '👋 Saudação Inicial',
+    preview: 'Oi, {nome}! Tudo bem? Sou da equipe da Lagoinha Orlando. Ficamos felizes com sua visita! Como posso te ajudar?'
+  },
+  {
+    id: 'culto',
+    name: '⛪ Convite para Culto',
+    preview: 'Oi, {nome}! Esta semana teremos nosso culto com uma palavra poderosa. Você consegue nos visitar? Te esperamos! 🙏'
+  },
+  {
+    id: 'acompanhamento',
+    name: '📞 Acompanhamento',
+    preview: 'Oi, {nome}! Estamos pensando em você. Como você está? Gostaríamos de saber como tem sido sua caminhada. ❤️'
+  },
+  {
+    id: 'start',
+    name: '🎓 Convite para Start',
+    preview: 'Oi, {nome}! Temos uma turma do curso Start começando em breve — um passo incrível na fé! Você toparia participar?'
+  },
+  {
+    id: 'batismo',
+    name: '🌊 Convite para Batismo',
+    preview: 'Oi, {nome}! Soubemos que você tomou uma decisão de fé — que alegria! Já pensou em dar o próximo passo? Nosso próximo batismo está chegando. 💙'
+  }
+];
+
+let _selectedTemplateId = null;
+
+function openTemplateModal() {
+  if (!chatState.selectedLeadId) return;
+  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  _selectedTemplateId = null;
+
+  // Set lead name
+  const nameEl = document.getElementById('tpl-lead-name');
+  if (nameEl) nameEl.textContent = `Para: ${lead?.name || 'Lead'}`;
+
+  // Render template cards
+  const listEl = document.getElementById('chat-template-list');
+  if (listEl) {
+    listEl.innerHTML = CHAT_TEMPLATES.map(t => `
+      <div class="chat-tpl-card" id="tpl-card-${t.id}" onclick="selectTemplate('${t.id}')">
+        <div class="chat-tpl-name">${t.name}</div>
+        <div class="chat-tpl-preview">${(lead?.name ? t.preview.replace('{nome}', lead.name.split(' ')[0]) : t.preview)}</div>
+      </div>
+    `).join('');
+  }
+
+  const btn = document.getElementById('chat-tpl-send-btn');
+  if (btn) btn.disabled = true;
+
+  const overlay = document.getElementById('chat-template-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function selectTemplate(id) {
+  _selectedTemplateId = id;
+  document.querySelectorAll('.chat-tpl-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById(`tpl-card-${id}`);
+  if (card) card.classList.add('selected');
+  const btn = document.getElementById('chat-tpl-send-btn');
+  if (btn) btn.disabled = false;
+}
+
+function closeTemplateModal() {
+  const overlay = document.getElementById('chat-template-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _selectedTemplateId = null;
+}
+
+async function sendSelectedTemplate() {
+  if (!_selectedTemplateId || !chatState.selectedLeadId) return;
+  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  const tpl = CHAT_TEMPLATES.find(t => t.id === _selectedTemplateId);
+  if (!lead || !tpl) return;
+
+  const sendBtn = document.getElementById('chat-tpl-send-btn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
+
+  const firstName = lead.name?.split(' ')[0] || lead.name || '';
+  const text = tpl.preview.replace('{nome}', firstName);
+
+  try {
+    const { data: { session } } = await window._sb.auth.getSession();
+    const resp = await fetch('https://api.consolidacao.7pro.tech/send-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ lead_id: chatState.selectedLeadId, message: text, is_template: true })
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    closeTemplateModal();
+    showChatToast('✅ Template enviado com sucesso!', 'success');
+    // Reload messages
+    await loadMessages(chatState.selectedLeadId);
+  } catch(e) {
+    showChatToast(`❌ Erro ao enviar template: ${e.message}`, 'error');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
+  }
+}
+
+// ─── FILE ATTACHMENT ───────────────────────────────────────────────────────────
+async function handleChatFileAttach(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file || !chatState.selectedLeadId) return;
+
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 10MB.', 'error'); return; }
+
+  showChatToast('📎 Fazendo upload...', 'info');
+
+  try {
+    const ext = file.name.split('.').pop();
+    const path = `chat-attachments/${chatState.selectedLeadId}/${Date.now()}.${ext}`;
+
+    const { error: upErr } = await window._sb.storage
+      .from('attachments')
+      .upload(path, file, { cacheControl: '3600', upsert: false });
+    if (upErr) throw upErr;
+
+    const { data: { publicUrl } } = window._sb.storage.from('attachments').getPublicUrl(path);
+
+    // Send via backend
+    const { data: { session } } = await window._sb.auth.getSession();
+    const isImage = file.type.startsWith('image/');
+    const resp = await fetch('https://api.consolidacao.7pro.tech/send-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({
+        lead_id: chatState.selectedLeadId,
+        message: publicUrl,
+        type: isImage ? 'image' : 'document',
+        filename: file.name
+      })
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    showChatToast('✅ Arquivo enviado!', 'success');
+    await loadMessages(chatState.selectedLeadId);
+  } catch(e) {
+    showChatToast(`❌ Erro no envio: ${e.message}`, 'error');
+  }
+}
+
 // ─── EXPOSE ───────────────────────────────────────────────────────────────────
 window.initChatAoVivo = initChatAoVivo;
 window.selectLead = selectLead;
@@ -878,3 +1148,9 @@ window.autoresizeTextarea = autoresizeTextarea;
 window.reactivateAI = reactivateAI;
 window.archiveCurrentLead = archiveCurrentLead;
 window.goToLinkedTask = goToLinkedTask;
+window.openTemplateModal = openTemplateModal;
+window.closeTemplateModal = closeTemplateModal;
+window.selectTemplate = selectTemplate;
+window.sendSelectedTemplate = sendSelectedTemplate;
+window.handleChatFileAttach = handleChatFileAttach;
+

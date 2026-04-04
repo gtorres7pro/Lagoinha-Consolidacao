@@ -1084,4 +1084,55 @@ body {
 .hub-table-wrap { border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; }
 .hub-field-label { display:block; font-size:.75rem; font-weight:600; color:var(--text-dim,#7a7a8c); margin-bottom:6px; letter-spacing:.02em; }
 
+/* ─────────────────────────────────────────────
+   Sidebar Colapsável — Desktop (Item 1)
+─────────────────────────────────────────────── */
+.sidebar-collapse-btn { display: none; }
+
+@media (min-width: 768px) {
+  /* Toggle button shown on desktop */
+  .sidebar-collapse-btn {
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px; color: #888; cursor: pointer;
+    width: 28px; height: 28px; padding: 0; flex-shrink: 0;
+    transition: all .15s; margin-left: auto;
+  }
+  .sidebar-collapse-btn:hover { background: rgba(255,215,0,.12); color: #FFD700; border-color: rgba(255,215,0,.3); }
+
+  /* Sidebar transition */
+  aside.sidebar { transition: width .28s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+
+  /* Collapsed state */
+  aside.sidebar.sidebar-collapsed {
+    width: 64px !important;
+    min-width: 64px !important;
+  }
+  aside.sidebar.sidebar-collapsed .nav-label,
+  aside.sidebar.sidebar-collapsed .brand-text,
+  aside.sidebar.sidebar-collapsed .sub-brand,
+  aside.sidebar.sidebar-collapsed .ws-switcher,
+  aside.sidebar.sidebar-collapsed .user-info,
+  aside.sidebar.sidebar-collapsed .hub-btn-plans,
+  aside.sidebar.sidebar-collapsed .nav-submenu-wrap,
+  aside.sidebar.sidebar-collapsed .ws-pill-name,
+  aside.sidebar.sidebar-collapsed .ws-pill-arrow,
+  aside.sidebar.sidebar-collapsed .ws-plan-badge { display: none !important; }
+
+  aside.sidebar.sidebar-collapsed li,
+  aside.sidebar.sidebar-collapsed .nav-item-row {
+    justify-content: center !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    gap: 0 !important;
+  }
+  aside.sidebar.sidebar-collapsed .brand { justify-content: center; padding: 18px 8px; }
+  aside.sidebar.sidebar-collapsed .user { justify-content: center; padding: 12px 8px; gap: 0; }
+  aside.sidebar.sidebar-collapsed .sidebar-collapse-btn { margin: 0 auto; }
+
+  /* Main content expands */
+  body.sidebar-collapsed .main { margin-left: 64px !important; transition: margin-left .28s cubic-bezier(.4,0,.2,1); }
+}
+
+
 

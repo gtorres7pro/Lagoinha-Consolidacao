@@ -3397,6 +3397,38 @@
         });
     });
 
+    // ─── DESKTOP SIDEBAR COLLAPSE ─────────────────────────────────────
+    window.toggleMainSidebar = function() {
+        const sidebar = document.getElementById('main-sidebar');
+        const btn = document.getElementById('sidebar-collapse-btn');
+        const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+        document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+
+        // Rotate arrow icon
+        const svg = btn?.querySelector('path');
+        if (svg) {
+            svg.setAttribute('d', isCollapsed ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6');
+        }
+
+        // Persist preference
+        try { localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0'); } catch(e) {}
+    };
+
+    // Restore sidebar collapse preference on load
+    (function restoreSidebarState() {
+        try {
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                const sidebar = document.getElementById('main-sidebar');
+                const btn = document.getElementById('sidebar-collapse-btn');
+                sidebar?.classList.add('sidebar-collapsed');
+                document.body.classList.add('sidebar-collapsed');
+                const svg = btn?.querySelector('path');
+                if (svg) svg.setAttribute('d', 'M9 18l6-6-6-6');
+            }
+        } catch(e) {}
+    })();
+
+
 
     // ─── Lead Drawer Logic ────────────────────────────────────────────
     let _drawerLeadId = null;
