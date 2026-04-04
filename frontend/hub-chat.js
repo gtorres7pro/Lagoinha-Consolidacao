@@ -30,10 +30,22 @@ let chatState = {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 async function initChatAoVivo() {
-  const container = document.getElementById('view-chat-ao-vivo');
-  if (!container) return;
+  let container = document.getElementById('view-chat-ao-vivo');
+
+  // If the container doesn't exist in the DOM (cached old HTML), create it dynamically
+  if (!container) {
+    console.log('[Chat] view-chat-ao-vivo not found — creating dynamically');
+    container = document.createElement('div');
+    container.id = 'view-chat-ao-vivo';
+    container.className = 'view-section';
+    container.style.cssText = 'padding:0; height:100%; overflow:hidden; display:none;';
+    // Append to the main content area
+    const mainContent = document.querySelector('.main-content') || document.querySelector('main') || document.querySelector('#main') || document.body;
+    mainContent.appendChild(container);
+  }
 
   // Get current user & workspace
+  if (!window._sb) { console.error('[Chat] Supabase not initialized'); return; }
   const { data: { session } } = await window._sb.auth.getSession();
   if (!session) return;
   const { data: userData } = await window._sb.from('users').select('id, name, workspace_id, role').eq('id', session.user.id).maybeSingle();
@@ -43,6 +55,7 @@ async function initChatAoVivo() {
   chatState.workspaceId = userData.workspace_id;
 
   container.innerHTML = buildChatLayout();
+  container.style.display = 'block';
   attachChatEvents();
   await loadKPIs();
   await loadLeads();
