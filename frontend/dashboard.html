@@ -2254,7 +2254,10 @@
             <!-- TAB: Tickets -->
             <div id="devtab-tickets" style="padding:0 32px 32px;display:none;">
                 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
-                    <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Tickets da Mila</h2>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Tickets</h2>
+                        <button onclick="openNewTicketModal()" style="padding:6px 14px;border:none;border-radius:9px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.75rem;cursor:pointer;font-family:var(--font);white-space:nowrap;">+ Novo Ticket</button>
+                    </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <button id="tkt-filter-all" onclick="filterDevTickets('all')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,215,0,.4);background:rgba(255,215,0,.12);color:#FFD700;font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--font);">Todos</button>
                         <button id="tkt-filter-bug" onclick="filterDevTickets('bug')" style="padding:5px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:none;color:rgba(255,255,255,.45);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--font);">🐛 Bug</button>
@@ -2266,6 +2269,86 @@
                 </div>
                 <div id="devtab-tickets-list" style="display:flex;flex-direction:column;gap:10px;">
                     <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">Carregando tickets...</div>
+                </div>
+            </div>
+
+            <!-- Manual Ticket Modal -->
+            <div id="new-ticket-modal" onclick="if(event.target===this)closeNewTicketModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);z-index:9400;align-items:center;justify-content:center;">
+                <div style="background:#111;border:1px solid rgba(255,215,0,.2);border-radius:22px;width:100%;max-width:520px;margin:16px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.8);">
+                    <div style="height:3px;background:linear-gradient(90deg,#EF4444,#FFD700,transparent);"></div>
+                    <div style="padding:22px 26px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:800;margin:0;">🎫 Novo Ticket Manual</h3>
+                            <p style="font-size:.72rem;color:rgba(255,255,255,.35);margin:3px 0 0;">Registre um ticket diretamente sem passar pela Mila</p>
+                        </div>
+                        <button onclick="closeNewTicketModal()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+                    </div>
+                    <div style="padding:20px 26px 24px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow-y:auto;">
+                        <!-- Title -->
+                        <div>
+                            <label style="font-size:.68rem;color:rgba(255,255,255,.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Título *</label>
+                            <input id="ntkt-title" type="text" placeholder="Resumo do problema ou solicitação..." style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.88rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                        </div>
+                        <!-- Description -->
+                        <div>
+                            <label style="font-size:.68rem;color:rgba(255,255,255,.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição *</label>
+                            <textarea id="ntkt-description" rows="4" placeholder="Detalhe o problema, como reproduzir, o que acontece..." style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+                        </div>
+                        <!-- Type + Status -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:.68rem;color:rgba(255,255,255,.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Tipo</label>
+                                <select id="ntkt-type" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);cursor:pointer;">
+                                    <option value="bug">🐛 Bug</option>
+                                    <option value="feature_request">💡 Sugestão</option>
+                                    <option value="update">🆕 Update</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:.68rem;color:rgba(255,255,255,.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Status</label>
+                                <select id="ntkt-status" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);cursor:pointer;">
+                                    <option value="pending">⏳ Pendente</option>
+                                    <option value="in_progress">⚡ Em Progresso</option>
+                                    <option value="published">✅ Resolvido</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Resolution suggestion -->
+                        <div>
+                            <label style="font-size:.68rem;color:rgba(255,255,255,.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Sugestão de resolução <span style="opacity:.5;font-weight:400;">(opcional)</span></label>
+                            <textarea id="ntkt-suggestion" rows="2" placeholder="Como pretende resolver? Qual a abordagem?" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.84rem;outline:none;font-family:var(--font);resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></textarea>
+                        </div>
+                        <!-- Separator -->
+                        <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:14px;">
+                            <div style="font-size:.68rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Informações do Solicitante <span style="opacity:.6;font-weight:400;">(opcional)</span></div>
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                    <div>
+                                        <label style="font-size:.65rem;color:rgba(255,255,255,.3);display:block;margin-bottom:4px;">Nome</label>
+                                        <input id="ntkt-requester-name" type="text" placeholder="Nome do solicitante" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:.65rem;color:rgba(255,255,255,.3);display:block;margin-bottom:4px;">E-mail</label>
+                                        <input id="ntkt-requester-email" type="email" placeholder="email@exemplo.com" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                    <div>
+                                        <label style="font-size:.65rem;color:rgba(255,255,255,.3);display:block;margin-bottom:4px;">WhatsApp</label>
+                                        <input id="ntkt-requester-phone" type="tel" placeholder="+55 11 99999-9999" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.08)'">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:.65rem;color:rgba(255,255,255,.3);display:block;margin-bottom:4px;">Workspace</label>
+                                        <select id="ntkt-workspace" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;font-family:var(--font);cursor:pointer;">
+                                            <option value="">— Nenhum —</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Save btn -->
+                        <button onclick="saveManualTicket()" id="ntkt-save-btn" style="background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.9rem;border:none;border-radius:12px;padding:13px;cursor:pointer;font-family:var(--font);margin-top:4px;transition:opacity .2s;">Criar Ticket</button>
+                    </div>
                 </div>
             </div>
 

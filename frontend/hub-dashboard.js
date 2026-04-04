@@ -6853,6 +6853,112 @@ window.resolveDevTicket = async function(ticketId) {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// DEV HUB — Manual Ticket Creation
+// ═══════════════════════════════════════════════════════════════════
+window.openNewTicketModal = async function() {
+    const modal = document.getElementById('new-ticket-modal');
+    if (!modal) return;
+
+    // Reset fields
+    ['ntkt-title','ntkt-description','ntkt-suggestion','ntkt-requester-name','ntkt-requester-email','ntkt-requester-phone']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const typeEl   = document.getElementById('ntkt-type');
+    const statusEl = document.getElementById('ntkt-status');
+    if (typeEl)   typeEl.value   = 'bug';
+    if (statusEl) statusEl.value = 'pending';
+
+    // Populate workspace dropdown
+    const wsSelect = document.getElementById('ntkt-workspace');
+    if (wsSelect) {
+        wsSelect.innerHTML = '<option value="">— Nenhum —</option>';
+        const existing = window._devWorkspacesAll || [];
+        if (existing.length) {
+            existing.forEach(ws => {
+                const opt = document.createElement('option');
+                opt.value = ws.id;
+                opt.dataset.name = ws.name;
+                opt.textContent = ws.name;
+                wsSelect.appendChild(opt);
+            });
+        } else {
+            try {
+                const { data } = await window.supabaseClient.from('workspaces').select('id,name').order('name');
+                (data || []).forEach(ws => {
+                    const opt = document.createElement('option');
+                    opt.value = ws.id;
+                    opt.dataset.name = ws.name;
+                    opt.textContent = ws.name;
+                    wsSelect.appendChild(opt);
+                });
+            } catch(_) {}
+        }
+    }
+
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('ntkt-title')?.focus(), 100);
+};
+
+window.closeNewTicketModal = function() {
+    const modal = document.getElementById('new-ticket-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.saveManualTicket = async function() {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+
+    const title       = document.getElementById('ntkt-title')?.value?.trim();
+    const description = document.getElementById('ntkt-description')?.value?.trim();
+    if (!title)       { hubToast && hubToast('Título é obrigatório.', 'error'); return; }
+    if (!description) { hubToast && hubToast('Descrição é obrigatória.', 'error'); return; }
+
+    const type       = document.getElementById('ntkt-type')?.value     || 'bug';
+    const status     = document.getElementById('ntkt-status')?.value   || 'pending';
+    const suggestion = document.getElementById('ntkt-suggestion')?.value?.trim() || null;
+    const reqName    = document.getElementById('ntkt-requester-name')?.value?.trim();
+    const reqEmail   = document.getElementById('ntkt-requester-email')?.value?.trim();
+    const reqPhone   = document.getElementById('ntkt-requester-phone')?.value?.trim();
+
+    const wsSelect = document.getElementById('ntkt-workspace');
+    const wsId     = wsSelect?.value || null;
+    const wsName   = wsId ? (wsSelect.options[wsSelect.selectedIndex]?.dataset?.name || null) : null;
+
+    // Build full description with extras
+    let fullDesc = description;
+    if (suggestion) fullDesc += `\n\n💡 Sugestão de resolução: ${suggestion}`;
+    if (reqName || reqEmail || reqPhone) {
+        fullDesc += '\n\n👤 Solicitante (informado manualmente):';
+        if (reqName)  fullDesc += `\n• Nome: ${reqName}`;
+        if (reqEmail) fullDesc += `\n• Email: ${reqEmail}`;
+        if (reqPhone) fullDesc += `\n• WhatsApp: ${reqPhone}`;
+    }
+
+    const btn = document.getElementById('ntkt-save-btn');
+    if (btn) { btn.textContent = 'Salvando...'; btn.style.opacity = '.7'; btn.disabled = true; }
+
+    try {
+        const { data: { user } } = await sb.auth.getUser();
+        const { error } = await sb.from('app_logs').insert({
+            type:           type,
+            title:          title,
+            description:    fullDesc,
+            status:         status,
+            submitted_by:   user?.id || null,
+            workspace_id:   wsId,
+            workspace_name: wsName,
+        });
+        if (error) throw error;
+        hubToast && hubToast('Ticket criado! 🎫', 'success');
+        closeNewTicketModal();
+        loadDevTickets();
+    } catch(e) {
+        hubToast && hubToast('Erro ao salvar: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.textContent = 'Criar Ticket'; btn.style.opacity = '1'; btn.disabled = false; }
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // DEV HUB — Roadmap
 // ═══════════════════════════════════════════════════════════════════
 let _roadmapAll = [];
