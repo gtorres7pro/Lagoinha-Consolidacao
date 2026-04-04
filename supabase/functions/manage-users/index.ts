@@ -150,7 +150,7 @@ serve(async (req) => {
                     
                     <!-- Button -->
                     <div style="text-align: center;">
-                      <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
+                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
                         Acessar o Painel
                       </a>
                     </div>
@@ -279,7 +279,7 @@ serve(async (req) => {
                     
                     <!-- Button -->
                     <div style="text-align: center;">
-                      <a href="https://hub.7pro.tech/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
+                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
                         Acessar o Painel Agora
                       </a>
                     </div>

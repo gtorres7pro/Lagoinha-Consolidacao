@@ -326,7 +326,7 @@ Deno.serve(async (req: Request) => {
       <p style="margin:0;color:#666;font-size:12px;text-transform:uppercase">Mensagem:</p>
       <p style="margin:8px 0 0;font-style:italic">"${userTextCombined.replace(/\n/g, "<br>")}"</p>
     </div>
-    <a href="https://hub.7pro.tech" style="display:inline-block;background:#FFD700;color:#111;padding:14px 32px;border-radius:8px;font-weight:700;text-decoration:none">Acessar Painel HUB</a>
+    <a href="https://zelo.7prolabs.com" style="display:inline-block;background:#FFD700;color:#111;padding:14px 32px;border-radius:8px;font-weight:700;text-decoration:none">Acessar Painel HUB</a>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px;text-align:center;border-top:1px solid #eee">
     <p style="margin:0;color:#888;font-size:12px">Alerta automático — <b>Zelo Pro</b></p>

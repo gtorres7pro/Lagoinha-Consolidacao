@@ -244,7 +244,7 @@ ${kbString}
                                 "</tr>" +
                             "</table>" +
                             "<div style=\"text-align: center; margin-top: 35px;\">" +
-                                "<a href=\"https://hub.7pro.tech/\" style=\"background: #111; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 24px; font-weight: 700; font-size: 15px; display: inline-block;\">Ver no Painel do Desenvolvedor</a>" +
+                                "<a href=\"https://zelo.7prolabs.com/\" style=\"background: #111; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 24px; font-weight: 700; font-size: 15px; display: inline-block;\">Ver no Painel do Desenvolvedor</a>" +
                             "</div>" +
                         "</div>" +
                     "</div>";

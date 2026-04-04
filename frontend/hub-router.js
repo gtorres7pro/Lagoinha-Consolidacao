@@ -2,9 +2,9 @@
  * HUB Workspace Router
  * Reads workspace slug from URL path and resolves workspace_id from Supabase.
  * 
- * URL pattern: hub.7pro.tech/[slug]/[page]
- * Example:     hub.7pro.tech/orlando/dashboard
- *              hub.7pro.tech/braga/form-visitantes
+ * URL pattern: zelo.7prolabs.com/[slug]/[page]
+ * Example:     zelo.7prolabs.com/orlando/dashboard
+ *              zelo.7prolabs.com/braga/form-visitantes
  */
 
 const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
