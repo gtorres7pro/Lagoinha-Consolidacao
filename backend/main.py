@@ -1,239 +1,272 @@
 import os
-import requests as http_requests
-from fastapi import FastAPI, Request, BackgroundTasks
+import json
+import datetime
+from datetime import datetime
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from typing import Optional, List
 
-from tools.db_tool import create_lead, log_message
-from tools.llm_tool import generate_response
+app = FastAPI()
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
-load_dotenv(env_path)
-
-app = FastAPI(title="Lagoinha Consolidação - Orquestrador API")
-
-# --- CORS Settings (Allows Frontend Dashboard to talk to this API) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to https://app.consolidacao.7pro.tech
-    allow_credentials=False,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- 1. JSON Data Schemas (Pydantic Models matching gemini.md) ---
-class LeadInput(BaseModel):
-    workspace_id: str
-    first_name: str
-    last_name: str
-    phone: str
-    email: str
-    preferred_language: str
-    type: str  # 'saved' or 'visitor'
-    baptized: str
-    gc_status: str
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
-# --- 2. Endpoints (Navigation Layer) ---
+def _row(res) -> Optional[dict]:
+    """Return first row from a .execute() result, or None. Safe for single/maybe_single."""
+    if res is None:
+        return None
+    # maybe_single returns SingleAPIResponse or None
+    if hasattr(res, 'data'):
+        d = res.data
+        if d is None:
+            return None
+        if isinstance(d, list):
+            return d[0] if d else None
+        if isinstance(d, dict):
+            return d
+    return None
 
-@app.get("/")
-def health_check():
-    return {"status": "online", "message": "Lagoinha API is running ⚡", "version": "v2.1-hardcoded-keys"}
+def _rows(res) -> list:
+    """Return list of rows from a .execute() result."""
+    if res is None:
+        return []
+    if hasattr(res, 'data'):
+        d = res.data
+        if isinstance(d, list):
+            return d
+    return []
 
-@app.get("/debug")
-def debug_info():
-    from tools.db_tool import supabase
+
+# ── AI / Response Generation ─────────────────────────────────────────────────
+
+def generate_response(lead_id: str, lead_name: str, workspace_id: str, incoming_message: str) -> str:
     try:
-        res = supabase.table("workspaces").select("id, name").execute()
-        workspaces = [w.get("name") for w in (res.data or [])]
-        return {"supabase": "connected ✅", "workspaces": workspaces, "version": "v2.1-hardcoded-keys"}
+        from tools.db_tool import supabase
+        import google.generativeai as genai
+
+        GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+        if not GEMINI_API_KEY:
+            return None
+
+        genai.configure(api_key=GEMINI_API_KEY)
+
+        ws = supabase.table("workspaces").select("knowledge_base, name").eq("id", workspace_id).execute()
+        ws_row = _row(ws)
+        kb = ws_row.get("knowledge_base", {}) if ws_row else {}
+        church_name = ws_row.get("name", "Igreja") if ws_row else "Igreja"
+
+        history_res = supabase.table("messages") \
+            .select("direction, content") \
+            .eq("lead_id", lead_id) \
+            .order("created_at", desc=False) \
+            .limit(20) \
+            .execute()
+        history = _rows(history_res)
+
+        events = kb.get("events", [])
+        address = kb.get("address", "")
+        pastors = kb.get("pastors", [])
+        extra_info = kb.get("extra_info", "")
+
+        events_text = "\n".join([f"- {e}" for e in events]) if events else "Não informado."
+        pastors_text = ", ".join(pastors) if pastors else "Não informado."
+
+        system_prompt = f"""Você é Ju, a assistente virtual da {church_name}. 
+Responda em português, seja acolhedora, calorosa e concisa. 
+
+INFORMAÇÕES DA IGREJA:
+- Nome: {church_name}
+- Endereço: {address or 'Não informado'}
+- Pastores: {pastors_text}
+- Eventos/Cultos:
+{events_text}
+{f'- Info Extra: {extra_info}' if extra_info else ''}
+
+Regras:
+- Máximo 2 parágrafos curtos por resposta
+- Use emojis com moderação
+- Se não souber algo, diga que um humano pode ajudar
+- NÃO mencione que é uma IA ou robô, apenas diga que é Ju
+- Se quiser enviar múltiplas mensagens separadas, use || entre elas"""
+
+        conversation = []
+        for msg in history[-10:]:
+            role = "user" if msg["direction"] == "inbound" else "model"
+            conversation.append({"role": role, "parts": [msg["content"]]})
+
+        conversation.append({"role": "user", "parts": [incoming_message]})
+
+        model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system_prompt)
+        chat = model.start_chat(history=conversation[:-1])
+        response = chat.send_message(incoming_message)
+
+        return response.text.strip()
     except Exception as e:
-        return {"supabase": f"error ❌: {str(e)}", "version": "v2.1-hardcoded-keys"}
-
-@app.post("/webhook/new_lead")
-async def process_new_lead(lead: LeadInput, background_tasks: BackgroundTasks):
-    """
-    This webhook catches the POST from the Visitor/Saved Form.
-    """
-    print(f"✅ New Lead Received: {lead.first_name} ({lead.type})")
-    
-    # We use "BackgroundTasks" so the form submits instantly without making the user wait 
-    # for the database insert or the WhatsApp message to actually send.
-    background_tasks.add_task(handle_lead_logic, lead)
-    
-    return {"status": "processing", "lead_id": lead.phone}
-
-@app.get("/webhook/meta")
-def verify_meta_webhook(request: Request):
-    """
-    Meta Developer Portal Webhook Verification Endpoint.
-    When you configure the webhook in the Meta App, it sends a GET request here 
-    with a hub.challenge and hub.verify_token.
-    """
-    mode = request.query_params.get("hub.mode")
-    verify_token = request.query_params.get("hub.verify_token")
-    challenge = request.query_params.get("hub.challenge")
-
-    # The token must exactly match what you paste in the Meta Developer Portal
-    if mode == "subscribe" and verify_token == "lagoinhazxcvbnm1234":
-        from fastapi.responses import PlainTextResponse
-        print("✅ Meta Webhook Verified Successfully!")
-        return PlainTextResponse(str(challenge))
-    return {"status": "error", "message": "Invalid verification token"}
+        print(f"AI generate_response error: {e}")
+        return None
 
 
-@app.post("/webhook/meta")
-async def process_meta_webhook(request: Request, background_tasks: BackgroundTasks):
-    """
-    Catches incoming real-time WhatsApp messages sent directly from Meta Servers.
-    """
-    try:
-        payload = await request.json()
-    except Exception:
-        return {"status": "error"}
-        
-    # Check if this is a WhatsApp Business Account webhook
-    if payload.get("object") == "whatsapp_business_account":
-        for entry in payload.get("entry", []):
-            for change in entry.get("changes", []):
-                value = change.get("value", {})
-                
-                # We only care about user messages, not status updates for now
-                if "messages" in value:
-                    for msg in value["messages"]:
-                        # Extract sender contact name if available
-                        contacts = value.get("contacts", [])
-                        contact_name = contacts[0].get("profile", {}).get("name", "Desconhecido") if contacts else "Desconhecido"
-                        
-                        background_tasks.add_task(handle_meta_message_logic, msg, contact_name)
-    
-    # Meta requires a 200 OK instantly, otherwise it retries.
-    return {"status": "success"}
+# ── Webhook: Meta WhatsApp Inbound ────────────────────────────────────────────
+
+@app.get("/webhook")
+def verify_webhook(request: Request):
+    params = dict(request.query_params)
+    if params.get("hub.verify_token") == "meu_token_secreto":
+        return int(params.get("hub.challenge", 0))
+    raise HTTPException(status_code=403, detail="Forbidden")
 
 
-def handle_meta_message_logic(msg_obj: dict, contact_name: str):
+@app.post("/webhook")
+async def receive_webhook(request: Request):
     from tools.db_tool import supabase
-    from datetime import datetime
 
-    phone = msg_obj.get("from", "")
-    msg_type = msg_obj.get("type", "unknown")
-    text_content = ""
-    
-    if msg_type == "text":
-        text_content = msg_obj.get("text", {}).get("body", "")
-    elif msg_type == "image":
-        # Meta sends a media ID, downloading it requires another Graph API call
-        text_content = "[Imagem Recebida]" 
-    elif msg_type == "audio":
-        text_content = "[Áudio Recebido]"
-    elif msg_type == "video":
-        text_content = "[Vídeo Recebido]"
-    elif msg_type == "document":
-        text_content = "[Documento Recebido]"
-    else:
-        text_content = f"[{msg_type} Recebido]"
+    body = await request.json()
+    try:
+        entry = body.get("entry", [])[0]
+        changes = entry.get("changes", [])[0]
+        value = changes.get("value", {})
 
-    print(f"📥 Meta Message from {phone} ({contact_name}): {text_content}")
+        wa_business_phone_id = value.get("metadata", {}).get("phone_number_id", "")
+        messages = value.get("messages", [])
+        contacts = value.get("contacts", [])
 
-    # Normalize phone: strip + and non-digits, search by last 10 digits to handle country code variants
-    phone_digits = ''.join(filter(str.isdigit, phone))
-    search_phone = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
-    
-    res = supabase.table("leads").select("*").ilike("phone", f"%{search_phone}%").order("last_interaction", desc=True).execute()
-    
-    lead_id = None
-    workspace_id = "9c4e23cf-26e3-4632-addb-f28325aedac3"  # Default workspace
-    
-    if res.data and len(res.data) > 0:
-        # Use the most recently interacted lead (avoids duplicates from old test entries)
-        lead_id = res.data[0]["id"]
-        workspace_id = res.data[0].get("workspace_id", workspace_id)
-        supabase.table("leads").update({"last_interaction": datetime.now().isoformat()}).eq("id", lead_id).execute()
-    else:
-        # Create new lead with normalized phone (no + prefix)
-        new_lead = supabase.table("leads").insert({
-            "workspace_id": workspace_id,
-            "name": contact_name,
-            "phone": phone_digits,  # Normalized: digits only
-            "type": "visitor",
-            "last_interaction": datetime.now().isoformat()
-        }).execute()
-        
-        if new_lead.data:
-            lead_id = new_lead.data[0]["id"]
-            
-    if lead_id:
-        supabase.table("messages").insert({
-            "lead_id": lead_id,
-            "workspace_id": workspace_id,
-            "direction": "inbound",
-            "content": text_content,
-            "type": msg_type if msg_type in ['text', 'image', 'audio', 'video', 'document'] else 'text',
-            "automated": False
-        }).execute()
-        print(f"✅ Meta Message logically saved to DB for lead {lead_id}!")
+        if not messages:
+            return {"status": "no_messages"}
 
-        # --- JU AI AUTO-REPLY ---
-        # Only reply to text messages and only if the AI lock is not active
-        if msg_type == "text" and text_content:
-            lead_row = supabase.table("leads").select("llm_lock_until, name").eq("id", lead_id).single().execute()
-            lead_data = lead_row.data or {}
-            
-            lock_until = lead_data.get("llm_lock_until")
-            is_locked = False
-            if lock_until:
-                try:
-                    from datetime import timezone
-                    lock_dt = datetime.fromisoformat(lock_until.replace("Z", "+00:00"))
-                    is_locked = datetime.now(timezone.utc) < lock_dt
-                except Exception:
-                    pass
+        msg = messages[0]
+        phone = msg["from"]
+        msg_type = msg.get("type", "text")
+        text_content = ""
 
-            if not is_locked:
-                try:
-                    ai_reply = generate_response(
-                        lead_id=lead_id,
-                        lead_name=lead_data.get("name", contact_name),
-                        workspace_id=workspace_id,
-                        incoming_message=text_content
-                    )
-                    
-                    if ai_reply:
-                        # Support multi-part replies split by ||
-                        parts = [p.strip() for p in ai_reply.split("||") if p.strip()]
-                        
-                        # Fetch credentials for this workspace
-                        ws = supabase.table("workspaces").select("credentials").eq("id", workspace_id).single().execute()
-                        creds = ws.data.get("credentials", {}) if ws.data else {}
-                        access_token = creds.get("whatsapp_token")
-                        phone_id = creds.get("phone_id")
-                        
-                        if access_token and phone_id:
-                            from tools.whatsapp_tool import send_whatsapp_message
-                            for part in parts:
-                                send_whatsapp_message(phone_id, access_token, phone, part)
-                                supabase.table("messages").insert({
-                                    "lead_id": lead_id,
-                                    "workspace_id": workspace_id,
-                                    "direction": "outbound",
-                                    "content": part,
-                                    "type": "text",
-                                    "automated": True
-                                }).execute()
-                            print(f"🤖 Ju replied to {phone} with {len(parts)} message(s).")
-                        else:
-                            print("⚠️ Ju AI: No WhatsApp credentials configured for this workspace.")
-                except Exception as e:
-                    print(f"❌ Ju AI Error: {e}")
-            else:
-                print(f"🔒 AI locked until {lock_until} — skipping Ju reply.")
+        if msg_type == "text":
+            text_content = msg.get("text", {}).get("body", "")
+        elif msg_type == "audio":
+            text_content = f"[ÁUDIO TRANSCRITO] \"{msg.get('audio', {}).get('id', 'audio')}\""
+        elif msg_type == "image":
+            text_content = "[Imagem recebida]"
+        elif msg_type == "video":
+            text_content = "[Video recebido]"
+        elif msg_type == "document":
+            text_content = "[Documento recebido]"
+
+        contact_name = contacts[0].get("profile", {}).get("name", phone) if contacts else phone
+
+        # --- Match workspace by phone_id ---
+        ws_all = supabase.table("workspaces").select("id, credentials").execute()
+        workspace_id = None
+        for ws in _rows(ws_all):
+            creds = ws.get("credentials") or {}
+            if creds.get("phone_id") == wa_business_phone_id:
+                workspace_id = ws["id"]
+                break
+
+        if not workspace_id:
+            print(f"⚠️ No workspace for phone_id {wa_business_phone_id}")
+            return {"status": "workspace_not_found"}
+
+        phone_digits = phone.lstrip("+")
+
+        # --- Find or create lead ---
+        lead_res = supabase.table("leads").select("id, workspace_id").eq("phone", phone_digits).eq("workspace_id", workspace_id).execute()
+        lead_rows = _rows(lead_res)
+        lead_id = None
+
+        if lead_rows:
+            lead_id = lead_rows[0]["id"]
+            workspace_id = lead_rows[0].get("workspace_id", workspace_id)
+            supabase.table("leads").update({
+                "last_interaction": datetime.now().isoformat(),
+                "inbox_status": "highlighted",
+                "wa_window_expires_at": (datetime.now() + datetime.timedelta(hours=24)).isoformat()
+            }).eq("id", lead_id).execute()
+        else:
+            new_lead = supabase.table("leads").insert({
+                "workspace_id": workspace_id,
+                "name": contact_name,
+                "phone": phone_digits,
+                "type": "visitor",
+                "last_interaction": datetime.now().isoformat(),
+                "wa_window_expires_at": (datetime.now() + datetime.timedelta(hours=24)).isoformat()
+            }).execute()
+            if _rows(new_lead):
+                lead_id = _rows(new_lead)[0]["id"]
+
+        if lead_id:
+            supabase.table("messages").insert({
+                "lead_id": lead_id,
+                "workspace_id": workspace_id,
+                "direction": "inbound",
+                "content": text_content,
+                "type": msg_type if msg_type in ['text', 'image', 'audio', 'video', 'document'] else 'text',
+                "automated": False
+            }).execute()
+            print(f"✅ Message saved for lead {lead_id}")
+
+            if msg_type == "text" and text_content:
+                lead_lock_res = supabase.table("leads").select("llm_lock_until, name").eq("id", lead_id).execute()
+                lead_data = (_rows(lead_lock_res)[0]) if _rows(lead_lock_res) else {}
+
+                lock_until = lead_data.get("llm_lock_until")
+                is_locked = False
+                if lock_until:
+                    try:
+                        from datetime import timezone
+                        lock_dt = datetime.fromisoformat(lock_until.replace("Z", "+00:00"))
+                        is_locked = datetime.now(timezone.utc) < lock_dt
+                    except Exception:
+                        pass
+
+                if not is_locked:
+                    try:
+                        ai_reply = generate_response(
+                            lead_id=lead_id,
+                            lead_name=lead_data.get("name", contact_name),
+                            workspace_id=workspace_id,
+                            incoming_message=text_content
+                        )
+                        if ai_reply:
+                            parts = [p.strip() for p in ai_reply.split("||") if p.strip()]
+                            ws_row = supabase.table("workspaces").select("credentials").eq("id", workspace_id).execute()
+                            creds = (_rows(ws_row)[0] or {}).get("credentials", {}) if _rows(ws_row) else {}
+                            wa_token = creds.get("whatsapp_token")
+                            wa_phone_id = creds.get("phone_id")
+                            if wa_token and wa_phone_id:
+                                from tools.whatsapp_tool import send_whatsapp_message
+                                for part in parts:
+                                    send_whatsapp_message(wa_phone_id, wa_token, phone, part)
+                                    supabase.table("messages").insert({
+                                        "lead_id": lead_id,
+                                        "workspace_id": workspace_id,
+                                        "direction": "outbound",
+                                        "content": part,
+                                        "type": "text",
+                                        "automated": True
+                                    }).execute()
+                    except Exception as e:
+                        print(f"❌ AI Error: {e}")
+                else:
+                    print(f"🔒 AI locked until {lock_until}")
+
+    except Exception as e:
+        import traceback
+        print(f"[webhook ERROR] {traceback.format_exc()}")
+
+    return {"status": "ok"}
 
 
-# --- WHATSAPP INTERNAL PROXY EXTENSION ---
+# ── /whatsapp/send — Manual Message from Dashboard ────────────────────────────
 
 class SendWAMessagePayload(BaseModel):
-    phone: str = None
-    lead_id: str = None
+    phone: Optional[str] = None
+    lead_id: Optional[str] = None
     text: str
     workspace_id: str
 
@@ -241,38 +274,43 @@ class SendWAMessagePayload(BaseModel):
 def process_send_whatsapp_message(data: SendWAMessagePayload):
     from tools.db_tool import supabase
     from tools.whatsapp_tool import send_whatsapp_message
+    from datetime import timezone, timedelta
 
     try:
-        # Resolve phone from lead_id if not provided directly
+        # Resolve phone
         phone = data.phone
         if not phone and data.lead_id:
-            lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).maybe_single().execute()
-            if lead_res is not None and hasattr(lead_res, 'data') and lead_res.data:
-                phone = lead_res.data["phone"]
-            elif isinstance(lead_res, dict) and "phone" in lead_res:
-                phone = lead_res["phone"]
+            lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).execute()
+            lead_row = _row(lead_res)
+            if lead_row:
+                phone = lead_row["phone"]
+
         if not phone:
-            return {"error": "Telefone não encontrado"}
+            return {"error": "Telefone não encontrado", "ok": False}
 
-        # Fetch credentials from DB dynamically
-        res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
-        if not res.data or not res.data[0].get("credentials"):
-            return {"error": "Credenciais Meta não encontradas no Workspace"}
+        # Strip + from phone
+        phone = phone.lstrip("+")
 
-        credentials = res.data[0]["credentials"]
+        # Fetch workspace credentials
+        ws_res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
+        ws_row = _row(ws_res)
+        if not ws_row or not ws_row.get("credentials"):
+            return {"error": "Credenciais Meta não encontradas no Workspace", "ok": False}
+
+        credentials = ws_row["credentials"]
         access_token = credentials.get("whatsapp_token")
         phone_id = credentials.get("phone_id")
 
         if not access_token or not phone_id:
-            return {"error": "Sem Acesso (Falta Token ou Phone ID)"}
+            return {"error": "Sem Acesso (Falta Token ou Phone ID)", "ok": False}
 
-        # Fire to Meta Directly
+        # Send via Meta API
         result = send_whatsapp_message(phone_id, access_token, phone, data.text)
 
         if "error" in result:
-            return {"status": "failed", "details": result}
+            return {"status": "failed", "details": result, "ok": False}
 
-        # Log the sent message
+        # Log the message
         if data.lead_id:
             supabase.table("messages").insert({
                 "lead_id": data.lead_id,
@@ -283,7 +321,11 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
                 "automated": False
             }).execute()
 
-        return {"status": "success", "ok": True}
+            # Set human lock (30 min)
+            lock_until = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            supabase.table("leads").update({"llm_lock_until": lock_until}).eq("id", data.lead_id).execute()
+
+        return {"status": "success", "ok": True, "lock_until": lock_until if data.lead_id else None}
 
     except Exception as e:
         import traceback
@@ -291,7 +333,7 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
         return {"error": f"Erro interno: {str(e)}", "ok": False}
 
 
-# --- LIST META APPROVED TEMPLATES ---
+# ── /whatsapp/templates — List Approved Templates ─────────────────────────────
 
 @app.get("/whatsapp/templates")
 def get_whatsapp_templates(workspace_id: str):
@@ -299,15 +341,14 @@ def get_whatsapp_templates(workspace_id: str):
     from tools.whatsapp_tool import list_whatsapp_templates
 
     try:
-        res = supabase.table("workspaces").select("credentials").eq("id", workspace_id).execute()
-        if not res.data or not res.data[0].get("credentials"):
+        ws_res = supabase.table("workspaces").select("credentials").eq("id", workspace_id).execute()
+        ws_row = _row(ws_res)
+        if not ws_row or not ws_row.get("credentials"):
             return {"error": "Credenciais não encontradas", "templates": []}
 
-        creds = res.data[0]["credentials"]
+        creds = ws_row["credentials"]
         access_token = creds.get("whatsapp_token")
-        # In current setups, 'business_id' often holds the WABA ID
         waba_id = creds.get("waba_id") or creds.get("business_id")
-        phone_id = creds.get("phone_id")
 
         if not access_token:
             return {"error": "Token de acesso não configurado", "templates": []}
@@ -324,14 +365,14 @@ def get_whatsapp_templates(workspace_id: str):
         return {"error": f"Erro interno: {str(e)}", "templates": []}
 
 
-# --- SEND META APPROVED TEMPLATE ---
+# ── /whatsapp/send-template — Send Approved Template ─────────────────────────
 
 class SendTemplatePayload(BaseModel):
     lead_id: str
     workspace_id: str
     template_name: str
     language_code: str = "pt_BR"
-    variables: list = []  # list of strings to replace {{1}}, {{2}}, etc.
+    variables: List[str] = []
 
 @app.post("/whatsapp/send-template")
 def send_template_message(data: SendTemplatePayload):
@@ -340,25 +381,28 @@ def send_template_message(data: SendTemplatePayload):
 
     try:
         # Get lead phone
-        lead_res = supabase.table("leads").select("phone, name").eq("id", data.lead_id).maybe_single().execute()
-        if not lead_res.data:
-            return {"error": "Lead não encontrado"}
-        phone = lead_res.data["phone"]
-        lead_name = lead_res.data.get("name", "")
+        lead_res = supabase.table("leads").select("phone, name").eq("id", data.lead_id).execute()
+        lead_row = _row(lead_res)
+        if not lead_row:
+            return {"error": "Lead não encontrado", "ok": False}
+
+        phone = lead_row["phone"].lstrip("+")
+        lead_name = lead_row.get("name", "")
 
         # Get workspace credentials
         ws_res = supabase.table("workspaces").select("credentials").eq("id", data.workspace_id).execute()
-        if not ws_res.data or not ws_res.data[0].get("credentials"):
-            return {"error": "Credenciais não encontradas"}
+        ws_row = _row(ws_res)
+        if not ws_row or not ws_row.get("credentials"):
+            return {"error": "Credenciais não encontradas", "ok": False}
 
-        creds = ws_res.data[0]["credentials"]
+        creds = ws_row["credentials"]
         access_token = creds.get("whatsapp_token")
         phone_id = creds.get("phone_id")
 
         if not access_token or not phone_id:
-            return {"error": "Token ou Phone ID não configurados"}
+            return {"error": "Token ou Phone ID não configurados", "ok": False}
 
-        # Build Meta template components from variables
+        # Build components (only if variables provided)
         components = []
         if data.variables:
             params = [{"type": "text", "text": v} for v in data.variables]
@@ -367,15 +411,15 @@ def send_template_message(data: SendTemplatePayload):
         result = send_whatsapp_template(phone_id, access_token, phone, data.template_name, data.language_code, components)
 
         if "error" in result:
-            return {"status": "failed", "details": result}
+            return {"status": "failed", "details": result, "ok": False}
 
-        # Log the sent template message
+        # Log to messages table
         var_preview = " / ".join(data.variables) if data.variables else ""
         supabase.table("messages").insert({
             "lead_id": data.lead_id,
             "workspace_id": data.workspace_id,
             "direction": "outbound",
-            "content": f"[Template: {data.template_name}] {var_preview}",
+            "content": f"[Template: {data.template_name}] {var_preview}".strip(),
             "type": "text",
             "automated": False
         }).execute()
@@ -388,9 +432,7 @@ def send_template_message(data: SendTemplatePayload):
         return {"error": f"Erro interno: {str(e)}", "ok": False}
 
 
-
-
-# --- WHATSAPP EMBEDDED SIGNUP (META OAUTH) ---
+# ── Meta Embedded Signup (OAuth) ──────────────────────────────────────────────
 
 META_APP_ID = os.environ.get("META_APP_ID", "934037612918640")
 META_APP_SECRET = os.environ.get("META_APP_SECRET", "")
@@ -398,182 +440,34 @@ META_APP_SECRET = os.environ.get("META_APP_SECRET", "")
 class WAShortTokenPayload(BaseModel):
     short_lived_token: str
 
-class WAAuthSavePayload(BaseModel):
-    workspace_id: str
-    phone_id: str
-    waba_id: str
-    access_token: str
-    phone_display: str
-
-@app.post("/whatsapp/auth/exchange")
-def exchange_wa_token(data: WAShortTokenPayload):
-    """
-    Exchange a short-lived Facebook user token for a long-lived one (~60 days).
-    Requires META_APP_SECRET environment variable.
-    """
-    if not META_APP_SECRET:
-        return {"error": "META_APP_SECRET not configured on server. Set it in Coolify environment variables."}
-    
-    res = http_requests.get(
-        "https://graph.facebook.com/v22.0/oauth/access_token",
-        params={
+@app.post("/whatsapp/exchange-token")
+async def exchange_whatsapp_token(payload: WAShortTokenPayload):
+    import requests as req
+    try:
+        # Step 1: Exchange short for long lived token
+        r = req.get("https://graph.facebook.com/v22.0/oauth/access_token", params={
             "grant_type": "fb_exchange_token",
             "client_id": META_APP_ID,
             "client_secret": META_APP_SECRET,
-            "fb_exchange_token": data.short_lived_token
-        }
-    )
-    result = res.json()
-    if "access_token" in result:
-        return {"long_lived_token": result["access_token"], "expires_in": result.get("expires_in")}
-    print(f"Token exchange error: {result}")
-    return {"error": result.get("error", {}).get("message", "Token exchange failed")}
+            "fb_exchange_token": payload.short_lived_token,
+        })
+        data = r.json()
+        if "access_token" not in data:
+            return {"error": f"Could not exchange token: {data}"}
 
-@app.post("/whatsapp/auth/fetch-accounts")
-def fetch_wa_accounts(data: WAShortTokenPayload):
-    """
-    Fetch all WhatsApp Business Accounts + phone numbers for a given user token.
-    Used after Embedded Signup to let the user pick their WABA.
-    """
-    token = data.short_lived_token
-    accounts = []
-    
-    try:
-        # 1. Get user's Business portfolio
-        biz_res = http_requests.get(
-            "https://graph.facebook.com/v22.0/me/businesses",
-            params={"access_token": token, "fields": "id,name"}
-        )
-        businesses = biz_res.json().get("data", [])
-        
-        for biz in businesses:
-            # 2. Get WABAs for each business
-            waba_res = http_requests.get(
-                f"https://graph.facebook.com/v22.0/{biz['id']}/whatsapp_business_accounts",
-                params={"access_token": token, "fields": "id,name"}
-            )
-            wabas = waba_res.json().get("data", [])
-            
-            for waba in wabas:
-                # 3. Get phone numbers for each WABA
-                phones_res = http_requests.get(
-                    f"https://graph.facebook.com/v22.0/{waba['id']}/phone_numbers",
-                    params={"access_token": token, "fields": "id,display_phone_number,verified_name,quality_rating"}
-                )
-                phones = phones_res.json().get("data", [])
-                
-                for phone in phones:
-                    accounts.append({
-                        "waba_id": waba["id"],
-                        "waba_name": waba.get("name", ""),
-                        "phone_id": phone["id"],
-                        "phone_display": phone.get("display_phone_number", ""),
-                        "verified_name": phone.get("verified_name", ""),
-                        "quality": phone.get("quality_rating", "UNKNOWN")
-                    })
-        
-        if not accounts:
-            return {"accounts": [], "warning": "No WhatsApp Business accounts found for this Facebook user."}
-        
-        return {"accounts": accounts}
+        long_token = data["access_token"]
+
+        # Step 2: Get WABA & Phone details
+        me = req.get(f"https://graph.facebook.com/v22.0/me", params={
+            "access_token": long_token,
+            "fields": "id,name,businesses"
+        }).json()
+
+        return {"access_token": long_token, "meta_info": me}
     except Exception as e:
-        print(f"Fetch accounts error: {e}")
         return {"error": str(e)}
 
-@app.post("/whatsapp/auth/save")
-def save_wa_credentials(data: WAAuthSavePayload):
-    """
-    Save fetched WhatsApp credentials to Supabase for a given workspace.
-    Called after the user selects their phone number from the Embedded Signup flow.
-    """
-    from tools.db_tool import supabase
-    
-    res = supabase.table("workspaces").update({
-        "credentials": {
-            "phone_id": data.phone_id,
-            "waba_id": data.waba_id,
-            "whatsapp_token": data.access_token,
-            "phone_display": data.phone_display
-        }
-    }).eq("id", data.workspace_id).execute()
-    
-    if res.data:
-        print(f"✅ WhatsApp credentials saved for workspace {data.workspace_id}: {data.phone_display}")
-        return {"status": "saved", "phone_display": data.phone_display}
-    return {"error": "Failed to save credentials to database"}
 
-
-# --- EMAIL ENDPOINTS (RESEND) ---
-from tools.email_tool import send_credentials_email, send_reset_password_email, send_report_email
-
-class EmailCredentials(BaseModel):
-    user_email: str
-    user_name: str
-    temp_password: str
-
-@app.post("/api/email/send-credentials")
-def api_send_credentials(data: EmailCredentials):
-    return send_credentials_email(data.user_email, data.user_name, data.temp_password)
-
-class EmailReset(BaseModel):
-    user_email: str
-    reset_link: str
-
-@app.post("/api/email/forgot-password")
-def api_send_forgot_password(data: EmailReset):
-    return send_reset_password_email(data.user_email, data.reset_link)
-
-class EmailReport(BaseModel):
-    user_email: str
-    report_type: str
-    total_count: int
-    csv_link: str
-    leads: list = []
-    kpis: dict = {}
-
-@app.post("/api/email/send-report")
-def api_send_report(data: EmailReport):
-    return send_report_email(data.user_email, data.report_type, data.total_count, data.csv_link, data.leads, data.kpis)
-
-
-# --- 3. Business Logic Orchestrators ---
-
-def handle_lead_logic(lead: LeadInput):
-    """
-    1. Insert into Supabase 'leads' table.
-    2. Tell Evolution API to send the Welcome Message.
-    """
-    full_name = f"{lead.first_name} {lead.last_name}"
-    print(f"--> [DB] Inserting {full_name} into Supabase...")
-    
-    # Insert into database
-    lead_id = create_lead(
-        workspace_id=lead.workspace_id,
-        first_name=lead.first_name,
-        last_name=lead.last_name,
-        phone=lead.phone,
-        preferred_lang=lead.preferred_language,
-        lead_type=lead.type
-    )
-    
-    print(f"--> [WHATSAPP] Sending Welcome Template to {lead.phone}...")
-    
-    # Trigger Meta API
-    welcome_msg = f"Olá {lead.first_name}, seja bem-vindo(a) à Lagoinha!"
-    process_send_whatsapp_message(SendWAMessagePayload(
-        phone=lead.phone,
-        text=welcome_msg,
-        workspace_id=lead.workspace_id
-    ))
-    
-    # Log the outbound message to the database
-    if lead_id:
-        log_message(
-            workspace_id=lead.workspace_id,
-            lead_id=lead_id,
-            direction='outbound',
-            content="[Template enviado / apertando janela 24h]",
-            is_automated=True
-        )
-    
-    print("✅ Lead Logic Completed.")
+@app.get("/")
+def root():
+    return {"status": "Zelo Pro API running", "version": "2.1.0"}
