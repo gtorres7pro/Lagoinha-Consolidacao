@@ -677,11 +677,22 @@ function applyWindowUI(lead) {
   const attachBtn = document.getElementById('chat-attach-btn');
   const tplBtn = document.getElementById('chat-template-btn');
 
-  warnEl.style.display = windowOpen ? 'none' : 'flex';
-  inputEl.disabled = !windowOpen;
-  sendBtn.disabled = !windowOpen;
-  if (attachBtn) attachBtn.disabled = !windowOpen;
-  if (tplBtn) tplBtn.style.display = windowOpen ? 'flex' : 'none'; // template in bar only when window open
+  // Always show the template button — templates RE-OPEN the 24h window
+  if (tplBtn) tplBtn.style.display = 'flex';
+
+  if (windowOpen) {
+    // 24h window is open: full input available
+    warnEl.style.display = 'none';
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+    if (attachBtn) attachBtn.disabled = false;
+  } else {
+    // 24h window closed: show warning + template button, disable free-text input
+    warnEl.style.display = 'flex';
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+    if (attachBtn) attachBtn.disabled = true;
+  }
 }
 
 async function loadMessages(leadId) {
