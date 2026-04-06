@@ -396,6 +396,28 @@
                 }
 
                 renderWsDropdown();
+
+                // ── Apply workspace-specific labels (e.g. Orlando "Welcome to the New") ──
+                if (initial && initial.knowledge_base) {
+                    const startLabel = initial.knowledge_base.start_label || 'Start';
+                    // Sidebar nav
+                    const navStartEl = document.querySelector('#nav-start .nav-label');
+                    if (navStartEl) navStartEl.textContent = startLabel;
+                    // KPI on Jornada board
+                    const jKpiH3 = document.querySelector('#jornada-kpi-start')?.previousElementSibling;
+                    if (jKpiH3) jKpiH3.textContent = startLabel;
+                    // View title
+                    const viewH1 = document.querySelector('#view-start h1');
+                    if (viewH1) viewH1.textContent = startLabel;
+                    // Task checkbox label
+                    document.querySelectorAll('.task-checkbox').forEach(cb => {
+                        if (cb.dataset.taskName === 'Convidar p/ Start') {
+                            const span = cb.nextElementSibling;
+                            if (span) span.textContent = `Convidar p/ ${startLabel}`;
+                        }
+                    });
+                    window._wsStartLabel = startLabel;
+                }
                 // CRITICAL: Trigger data load for the initial workspace.
                 // initEngine() is defined inside DOMContentLoaded (different scope),
                 // so we can't call it directly here. Instead, call window.fetchLiveLeads
@@ -2029,6 +2051,17 @@
                                 return startTag;
                             })()}
                             ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
+                            ${lead.melhor_horario ? `<span style="background:rgba(255,255,255,.04);color:#a1a1aa;border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:0.65rem;display:inline-flex;align-items:center;gap:4px;">🕐 ${lead.melhor_horario}</span>` : ''}
+                        </div>
+
+                        <!-- Tags -->
+                        <div id="lead-tags-${lead.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(lead.tags||[]).length?'8':'0'}px;">
+                            ${(lead.tags||[]).map(tag => {
+                                const wt = (window._wsTags||[]).find(t=>t.name===tag);
+                                const color = wt?.color||'#FFD700';
+                                return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover tag">${tag} ×</span>`;
+                            }).join('')}
+                            <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;font-size:0.6rem;color:#777;cursor:pointer;" onclick="openTagPicker('${lead.id}')" title="Adicionar tag">+ Tag</span>
                         </div>
 
                         ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
@@ -9593,3 +9626,264 @@ async function sendMilaMessage() {
 
 })();
 // ── End Módulo Relatório Público ───────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════════
+// MÓDULO — SISTEMA DE TAGS
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+    'use strict';
+
+    window._wsTags = []; // Cache: [{id, name, color}]
+
+    // ── Load workspace tags ────────────────────────────────────────
+    window.loadWsTags = async function() {
+        const sb  = window.supabaseClient;
+        const wsId = window.currentWorkspaceId;
+        if (!sb || !wsId) return;
+        const { data } = await sb.from('workspace_tags').select('id,name,color').eq('workspace_id', wsId).order('name');
+        window._wsTags = data || [];
+        renderTagFilterBar();
+    };
+
+    // ── Render tag filter pills in consolidation header ─────────────
+    function renderTagFilterBar() {
+        let bar = document.getElementById('tag-filter-bar');
+        if (!bar) {
+            // Insert after .ops-filters or before leads-container
+            const ref = document.getElementById('leads-container');
+            if (!ref) return;
+            bar = document.createElement('div');
+            bar.id = 'tag-filter-bar';
+            bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0 4px;';
+            ref.parentElement.insertBefore(bar, ref);
+        }
+        const active = window._activeTagFilter || '';
+        bar.innerHTML = `
+            <span style="font-size:.65rem;color:#666;text-transform:uppercase;letter-spacing:.8px;font-weight:700;">Tags:</span>
+            <span class="tag-pill${!active?'--active':''}" onclick="setTagFilter('')" style="background:${!active?'rgba(255,215,0,.12)':'rgba(255,255,255,.05)'};border:1px solid ${!active?'rgba(255,215,0,.3)':'rgba(255,255,255,.1)'};color:${!active?'#FFD700':'#777'};padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer;">Todas</span>
+            ${window._wsTags.map(t => {
+                const isA = active === t.name;
+                return `<span onclick="setTagFilter('${t.name}')" style="background:${t.color}${isA?'25':'10'};border:1px solid ${t.color}${isA?'60':'25'};color:${t.color};padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer;">${t.name}</span>`;
+            }).join('')}
+            <span onclick="openManageTags()" title="Gerenciar Tags" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#555;padding:3px 10px;border-radius:20px;font-size:.68rem;cursor:pointer;"> ⚙ Gerenciar</span>
+        `;
+    }
+
+    window.setTagFilter = function(tagName) {
+        window._activeTagFilter = tagName;
+        renderTagFilterBar();
+        if (window.fetchLiveLeads) window.fetchLiveLeads();
+    };
+
+    // ── Tag Picker Modal ───────────────────────────────────────────
+    window.openTagPicker = function(leadId) {
+        let modal = document.getElementById('tag-picker-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'tag-picker-modal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.onclick = e => { if (e.target===modal) modal.remove(); };
+            document.body.appendChild(modal);
+        }
+
+        const lead = (window.globalLeads||[]).find(l=>l.id===leadId);
+        const existing = lead?.tags||[];
+        const available = (window._wsTags||[]).filter(t=>!existing.includes(t.name));
+
+        modal.innerHTML = `
+            <div style="background:#111;border:1px solid rgba(255,215,0,.15);border-radius:20px;padding:28px;width:100%;max-width:380px;box-shadow:0 30px 80px rgba(0,0,0,.8);">
+                <h3 style="font-size:.9rem;font-weight:800;color:#fff;margin-bottom:6px;">🏷️ Tags — ${lead?.name||''}</h3>
+                <p style="font-size:.75rem;color:#666;margin-bottom:18px;">Clique para adicionar uma tag</p>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;">
+                    ${available.length ? available.map(t=>`
+                        <span onclick="addTagToLead('${leadId}','${t.name}')" style="background:${t.color}15;color:${t.color};border:1px solid ${t.color}35;padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;">${t.name}</span>
+                    `).join('') : '<span style="color:#555;font-size:.8rem;">Nenhuma tag disponível</span>'}
+                </div>
+                <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
+                    <p style="font-size:.68rem;color:#666;margin-bottom:8px;">ou crie uma nova tag:</p>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="new-tag-input" type="text" placeholder="Nome da tag..." maxlength="30" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;font-family:Inter,sans-serif;outline:none;">
+                        <input id="new-tag-color" type="color" value="#FFD700" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px;">
+                        <button onclick="createAndAddTag('${leadId}')" style="background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:#FFD700;border-radius:10px;padding:9px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+ Criar</button>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('tag-picker-modal').remove()" style="margin-top:18px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px;color:#666;font-size:.8rem;cursor:pointer;font-family:Inter,sans-serif;">Fechar</button>
+            </div>
+        `;
+    };
+
+    // ── Add tag to lead ────────────────────────────────────────────
+    window.addTagToLead = async function(leadId, tagName) {
+        const sb = window.supabaseClient;
+        if (!sb) return;
+        const lead = (window.globalLeads||[]).find(l=>l.id===leadId);
+        const existing = lead?.tags||[];
+        if (existing.includes(tagName)) { document.getElementById('tag-picker-modal')?.remove(); return; }
+        const newTags = [...existing, tagName];
+        await sb.from('leads').update({tags: newTags}).eq('id', leadId);
+        if (lead) lead.tags = newTags;
+        document.getElementById('tag-picker-modal')?.remove();
+        refreshLeadTagsUI(leadId, newTags);
+        if (typeof showToast === 'function') showToast(`✅ Tag "${tagName}" adicionada`);
+    };
+
+    // ── Remove tag from lead ───────────────────────────────────────
+    window.removeTagFromLead = async function(leadId, tagName) {
+        const sb = window.supabaseClient;
+        if (!sb) return;
+        const lead = (window.globalLeads||[]).find(l=>l.id===leadId);
+        const newTags = (lead?.tags||[]).filter(t=>t!==tagName);
+        await sb.from('leads').update({tags: newTags}).eq('id', leadId);
+        if (lead) lead.tags = newTags;
+        refreshLeadTagsUI(leadId, newTags);
+    };
+
+    // ── Create new tag + add to lead ───────────────────────────────
+    window.createAndAddTag = async function(leadId) {
+        const sb    = window.supabaseClient;
+        const wsId  = window.currentWorkspaceId;
+        const name  = document.getElementById('new-tag-input')?.value.trim();
+        const color = document.getElementById('new-tag-color')?.value || '#FFD700';
+        if (!name || !sb || !wsId) return;
+
+        // Upsert tag in workspace
+        const { data: tagData, error: tagErr } = await sb.from('workspace_tags')
+            .upsert({ workspace_id: wsId, name, color }, { onConflict: 'workspace_id,name' })
+            .select().single();
+
+        if (!tagErr && tagData) {
+            if (!window._wsTags.find(t=>t.name===name)) window._wsTags.push(tagData);
+        }
+
+        await window.addTagToLead(leadId, name);
+        renderTagFilterBar();
+    };
+
+    // ── Refresh tag chips on card without re-rendering ─────────────
+    function refreshLeadTagsUI(leadId, tags) {
+        const container = document.getElementById(`lead-tags-${leadId}`);
+        if (!container) return;
+        container.innerHTML = tags.map(tag => {
+            const wt = (window._wsTags||[]).find(t=>t.name===tag);
+            const color = wt?.color||'#FFD700';
+            return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${leadId}','${tag}')" title="Remover tag">${tag} ×</span>`;
+        }).join('') + `<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;font-size:0.6rem;color:#777;cursor:pointer;" onclick="openTagPicker('${leadId}')" title="Adicionar tag">+ Tag</span>`;
+    }
+
+    // ── Manage Tags Modal ──────────────────────────────────────────
+    window.openManageTags = function() {
+        let modal = document.getElementById('manage-tags-modal');
+        if (modal) { modal.remove(); return; }
+        modal = document.createElement('div');
+        modal.id = 'manage-tags-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;';
+        modal.onclick = e => { if (e.target===modal) modal.remove(); };
+        document.body.appendChild(modal);
+
+        renderManageTagsContent(modal);
+    };
+
+    function renderManageTagsContent(modal) {
+        modal.innerHTML = `
+            <div style="background:#111;border:1px solid rgba(255,215,0,.15);border-radius:20px;padding:28px;width:100%;max-width:460px;box-shadow:0 30px 80px rgba(0,0,0,.8);max-height:90vh;overflow-y:auto;">
+                <h3 style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:6px;">⚙️ Gerenciar Tags</h3>
+                <p style="font-size:.75rem;color:#666;margin-bottom:20px;">Tags disponíveis para este workspace</p>
+
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                    ${window._wsTags.length ? window._wsTags.map(t=>`
+                        <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px 14px;">
+                            <div style="width:14px;height:14px;border-radius:50%;background:${t.color};flex-shrink:0;"></div>
+                            <span style="flex:1;font-size:.82rem;font-weight:600;color:#fff;">${t.name}</span>
+                            <button onclick="deleteTag('${t.id}','${t.name}')" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);color:#f87171;border-radius:8px;padding:4px 10px;font-size:.7rem;cursor:pointer;font-family:Inter,sans-serif;">Excluir</button>
+                        </div>
+                    `).join('') : '<p style="color:#555;font-size:.8rem;text-align:center;padding:20px;">Nenhuma tag criada ainda.</p>'}
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
+                    <p style="font-size:.72rem;color:#888;margin-bottom:10px;font-weight:600;">Criar nova tag:</p>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="mgmt-tag-name" type="text" placeholder="Nome da tag..." maxlength="30" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;font-family:Inter,sans-serif;outline:none;">
+                        <input id="mgmt-tag-color" type="color" value="#FFD700" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px;">
+                        <button onclick="createStandaloneTag()" style="background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:#FFD700;border-radius:10px;padding:9px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+ Criar</button>
+                    </div>
+                </div>
+
+                <button onclick="document.getElementById('manage-tags-modal').remove()" style="margin-top:18px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;color:#666;font-size:.8rem;cursor:pointer;font-family:Inter,sans-serif;">Fechar</button>
+            </div>
+        `;
+    }
+
+    window.createStandaloneTag = async function() {
+        const sb   = window.supabaseClient;
+        const wsId = window.currentWorkspaceId;
+        const name  = document.getElementById('mgmt-tag-name')?.value.trim();
+        const color = document.getElementById('mgmt-tag-color')?.value || '#FFD700';
+        if (!name || !sb || !wsId) return;
+
+        const { data, error } = await sb.from('workspace_tags')
+            .upsert({ workspace_id: wsId, name, color }, { onConflict: 'workspace_id,name' })
+            .select().single();
+
+        if (!error && data) {
+            if (!window._wsTags.find(t=>t.name===name)) window._wsTags.push(data);
+            renderTagFilterBar();
+            const modal = document.getElementById('manage-tags-modal');
+            if (modal) renderManageTagsContent(modal);
+            if (typeof showToast === 'function') showToast(`✅ Tag "${name}" criada!`);
+        }
+    };
+
+    window.deleteTag = async function(tagId, tagName) {
+        if (!confirm(`Excluir tag "${tagName}"? Isso removerá a tag de todos os leads.`)) return;
+        const sb = window.supabaseClient;
+        if (!sb) return;
+        await sb.from('workspace_tags').delete().eq('id', tagId);
+        window._wsTags = window._wsTags.filter(t=>t.id!==tagId);
+        renderTagFilterBar();
+        const modal = document.getElementById('manage-tags-modal');
+        if (modal) renderManageTagsContent(modal);
+        if (typeof showToast === 'function') showToast(`🗑️ Tag "${tagName}" excluída`);
+    };
+
+    // ── Hook: load tags after fetchLiveLeads ───────────────────────
+    const _origFetch = window.fetchLiveLeads;
+    if (_origFetch) {
+        window.fetchLiveLeads = async function(...args) {
+            await _origFetch.apply(this, args);
+            await window.loadWsTags();
+        };
+    } else {
+        // Retry if not yet defined
+        const waitForFetch = setInterval(() => {
+            if (window.fetchLiveLeads && window.fetchLiveLeads !== waitForFetchProxy) {
+                clearInterval(waitForFetch);
+                const orig = window.fetchLiveLeads;
+                const waitForFetchProxy = window.fetchLiveLeads = async function(...args) {
+                    await orig.apply(this, args);
+                    await window.loadWsTags();
+                };
+            }
+        }, 500);
+        var waitForFetchProxy = null;
+    }
+
+    // ── Hook filter: filter by active tag ─────────────────────────
+    const _origApplyFilters = window.applyFilters;
+    window.applyFilters = function(...args) {
+        if (_origApplyFilters) _origApplyFilters.apply(this, args);
+        // Apply tag filter on top
+        const tagFilter = window._activeTagFilter;
+        if (!tagFilter) return;
+        // Filter cards visually
+        const cards = document.querySelectorAll('[data-lead-id]');
+        cards.forEach(card => {
+            const leadId = card.dataset.leadId;
+            const lead = (window.globalLeads||[]).find(l=>l.id===leadId);
+            if (!lead) return;
+            const hasTags = (lead.tags||[]).includes(tagFilter);
+            card.style.display = hasTags ? '' : 'none';
+        });
+    };
+
+})();
+// ── End Módulo Tags ─────────────────────────────────────────────────

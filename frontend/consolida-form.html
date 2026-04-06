@@ -520,6 +520,17 @@
                     </div>
                 </div>
 
+                <!-- Melhor Horário -->
+                <div class="form-group">
+                    <label data-i18n="best_time">Melhor horário para contato? *</label>
+                    <div class="radio-group" id="radio-best-time">
+                        <label class="radio-option"><input type="radio" name="best_time" value="Manhã" data-val-i18n="time_morning" required> <span data-i18n="time_morning">Manhã</span></label>
+                        <label class="radio-option"><input type="radio" name="best_time" value="Tarde" data-val-i18n="time_afternoon"> <span data-i18n="time_afternoon">Tarde</span></label>
+                        <label class="radio-option"><input type="radio" name="best_time" value="Noite" data-val-i18n="time_evening"> <span data-i18n="time_evening">Noite</span></label>
+                        <label class="radio-option"><input type="radio" name="best_time" value="Qualquer Horário" data-val-i18n="time_anytime"> <span data-i18n="time_anytime">Qualquer Horário</span></label>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label data-i18n="country">País de Residência *</label>
                     <select id="country" required onchange="handleCountryChange()">
@@ -979,6 +990,11 @@
                 gc_yes: "Sim",
                 gc_want: "Quero participar",
                 gc_no: "Não",
+                best_time: "Melhor horário para contato? *",
+                time_morning: "Manhã",
+                time_afternoon: "Tarde",
+                time_evening: "Noite",
+                time_anytime: "Qualquer Horário",
                 submit: "Enviar Formulário",
                 success_title: "Obrigado!",
                 success_sub: "Seus dados foram enviados com sucesso.",
@@ -1040,6 +1056,11 @@
                 gc_yes: "Yes",
                 gc_want: "I want to join",
                 gc_no: "No",
+                best_time: "Best time to reach you? *",
+                time_morning: "Morning",
+                time_afternoon: "Afternoon",
+                time_evening: "Evening",
+                time_anytime: "Anytime",
                 submit: "Submit Form",
                 success_title: "Thank You!",
                 success_sub: "Your information has been successfully submitted.",
@@ -1101,6 +1122,11 @@
                 gc_yes: "Sí",
                 gc_want: "Quiero participar",
                 gc_no: "No",
+                best_time: "¿Mejor horario de contacto? *",
+                time_morning: "Mañana",
+                time_afternoon: "Tarde",
+                time_evening: "Noche",
+                time_anytime: "Cualquier Hora",
                 submit: "Enviar Formulario",
                 success_title: "¡Gracias!",
                 success_sub: "Sus datos han sido enviados con éxito.",
@@ -1236,6 +1262,7 @@
                     culto: document.getElementById('service').value,
                     pais: country,
                     gc_status: Array.from(document.getElementsByName('gc')).find(r => r.checked)?.value || "Não Informado",
+                    melhor_horario: Array.from(document.getElementsByName('best_time')).find(r => r.checked)?.value || null,
                     tasks: [{ "task_name": "Boas Vindas", "status": "pending", "assigned_to": "ai" }]
                 };
 
