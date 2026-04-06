@@ -199,6 +199,77 @@ window.setTasksView = function (view) {
     filterTasksView();
 };
 
+// ── Inline Update Helpers ──────────────────────────────────────────
+window.quickUpdateTask = async function(taskId, field, value) {
+    const task = _tasksAll.find(t => t.id === taskId);
+    if (!task) return;
+
+    let oldVal = task[field];
+    if (oldVal == value) return;
+    
+    if (field === 'assignee_id' && value === 'unassigned') value = null;
+    if (field === 'due_date' && !value) value = null;
+
+    if (oldVal === value) return;
+
+    task[field] = value;
+    if (field === 'assignee_id') {
+        if (!value) task.assignee_name = null;
+        else {
+            const wsm = (window.teamsApi?.members || []).find(m => (m.user?.user_id||m.id) === value);
+            task.assignee_name = wsm ? wsm.user?.name : 'Corrigindo...';
+        }
+    }
+    filterTasksView();
+
+    const sb = window.supabaseClient;
+    if (sb) {
+        const payload = { [field]: value };
+        const { error } = await sb.from('tasks').update(payload).eq('id', taskId);
+        if (error) {
+            if (typeof hubToast !== 'undefined') hubToast('Erro ao atualizar: ' + error.message, 'error');
+            await loadTaskManager();
+        } else {
+            if (typeof hubToast !== 'undefined') hubToast('Salvo ✅', 'success');
+            if (field === 'assignee_id') await loadTaskManager();
+        }
+    }
+};
+
+function renderSelectBox(taskId, field, currentVal, optionsObj, defColor = '#94A3B8') {
+    let curr = optionsObj[currentVal] || { emoji: '❓', label: 'Indefinido', color: defColor };
+    let color = curr.color;
+    let optsHtml = Object.keys(optionsObj).map(k => `<option value="${k}" ${k===currentVal?'selected':''}>${optionsObj[k].emoji} ${optionsObj[k].label}</option>`).join('');
+    return `<select onchange="quickUpdateTask('${taskId}', '${field}', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:${color}15;color:${color};border:1px solid ${color}30;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;outline:none;cursor:pointer;text-align:center;font-family:inherit;">${optsHtml}</select>`;
+}
+
+function renderAssigneeSelect(taskId, currentId, currentName) {
+    let color = currentId ? '#60A5FA' : '#94A3B8';
+    let members = window.teamsApi?.members || [];
+    let needsFallback = currentId && !members.some(m => (m.user?.user_id || m.id) === currentId);
+    let fallbackHtml = needsFallback ? `<option value="${currentId}" selected>👤 ${(currentName||'Membro').split(' ')[0]}</option>` : '';
+    
+    let optsHtml = `<option value="unassigned">👻 S/ Responsável</option>` + fallbackHtml +
+        members.map(m => {
+            const uid = m.user?.user_id || m.id;
+            return `<option value="${uid}" ${uid===currentId?'selected':''}>👤 ${(m.user?.name||'').split(' ')[0]}</option>`;
+        }).join('');
+        
+    return `<select onchange="quickUpdateTask('${taskId}', 'assignee_id', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:${color}15;color:${color};border:1px solid ${color}30;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;outline:none;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;">
+        ${optsHtml}
+    </select>`;
+}
+
+function renderDateSelect(taskId, dateStr) {
+    const rawVal = dateStr ? dateStr.substring(0,10) : '';
+    const due = dateStr ? new Date(dateStr) : null;
+    const now = new Date();
+    const overdue = due && due < now && rawVal !== now.toISOString().substring(0,10);
+    const color = rawVal ? (overdue ? '#EF4444' : 'rgba(255,255,255,.7)') : 'rgba(255,255,255,.3)';
+    
+    return `<input type="date" value="${rawVal}" onchange="quickUpdateTask('${taskId}', 'due_date', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:transparent;color:${color};border:1px dashed ${color}50;border-radius:8px;padding:3px 6px;font-size:.68rem;font-weight:600;outline:none;cursor:text;max-width:115px;font-family:inherit;line-height:1.2;">`;
+}
+
 // ── List View ──────────────────────────────────────────────────────
 function renderTasksList(tasks) {
     const tbody = document.getElementById('tasks-list-tbody');
@@ -226,28 +297,19 @@ function renderTasksList(tasks) {
                 ${t.description ? `<div style="font-size:.74rem;color:rgba(255,255,255,.35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${t.description}</div>` : ''}
             </td>
             <td data-label="Status" style="padding:13px 16px;">
-                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:${st.color}20;color:${st.color};border:1px solid ${st.color}35;white-space:nowrap;">
-                    ${st.emoji} ${st.label}
-                </span>
+                ${renderSelectBox(t.id, 'status', t.status, TASK_STATUS)}
             </td>
             <td data-label="Prioridade" style="padding:13px 16px;">
-                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:${pr.color}20;color:${pr.color};border:1px solid ${pr.color}35;white-space:nowrap;">
-                    ${pr.emoji} ${pr.label}
-                </span>
+                ${renderSelectBox(t.id, 'priority', t.priority, TASK_PRIORITY)}
             </td>
             <td data-label="Dept." style="padding:13px 16px;font-size:.8rem;color:rgba(255,255,255,.55);">
-                ${t.department_icon ? t.department_icon + ' ' : ''}${t.department_name || '—'}
+                ${t.department_icon ? t.department_icon + ' ' : ''}${t.department_name || 'Geral'}
             </td>
             <td data-label="Responsável" style="padding:13px 16px;">
-                ${t.assignee_name
-                    ? `<div style="display:flex;align-items:center;gap:7px;">
-                           <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA000);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;color:#000;flex-shrink:0;">${(t.assignee_name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
-                           <span style="font-size:.8rem;color:rgba(255,255,255,.7);">${t.assignee_name}</span>
-                       </div>`
-                    : '<span style="color:rgba(255,255,255,.25);font-size:.8rem;">—</span>'}
+                ${renderAssigneeSelect(t.id, t.assignee_id, t.assignee_name)}
             </td>
-            <td data-label="Data Ref." style="padding:13px 16px;text-align:center;font-size:.8rem;font-weight:600;color:${dueClr};">
-                ${overdue ? '⚠️ ' : ''}${dueStr}
+            <td data-label="Data Ref." style="padding:13px 16px;">
+                ${renderDateSelect(t.id, t.due_date)}
             </td>
             <td data-label="Logs" style="padding:13px 16px;text-align:center;font-size:.8rem;color:rgba(255,255,255,.4);">
                 ${t.comment_count > 0 ? `<span style="color:rgba(255,255,255,.6);">${t.comment_count}</span>` : '—'}
@@ -448,29 +510,27 @@ function buildKanbanCard(t) {
          style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px 14px 18px;cursor:grab;transition:all .2s;user-select:none;position:relative;overflow:hidden;"
          onmouseover="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,215,0,.2)'"
          onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='rgba(255,255,255,.08)'">
-        <!-- Priority bar -->
-        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${pr.color};border-radius:14px 0 0 14px;opacity:.85;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:.62rem;font-weight:800;color:${pr.color};letter-spacing:.02em;">${pr.emoji} ${pr.label}</span>
-            <div style="display:flex;align-items:center;gap:6px;">
+        <!-- Status and Priority (Actionable) -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+            ${renderSelectBox(t.id, 'status', t.status, TASK_STATUS)}
+            ${renderSelectBox(t.id, 'priority', t.priority, TASK_PRIORITY)}
+            <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
                 ${t.recurrence ? '<span style="font-size:.65rem;color:#A78BFA;opacity:.8;" title="Recorrente">🔄</span>' : ''}
                 ${isPublic ? '<span style="font-size:.65rem;color:#FFD700;opacity:.75;" title="Form público">📥</span>' : ''}
                 ${t.comment_count > 0 ? `<span style="font-size:.7rem;color:rgba(255,255,255,.3);">💬 ${t.comment_count}</span>` : ''}
             </div>
         </div>
-        <div style="font-weight:700;font-size:.85rem;margin-bottom:${t.description ? '4px' : '8px'};line-height:1.35;">${t.title || 'Sem título'}</div>
-        ${t.description ? `<div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${t.description}</div>` : ''}
-        ${t.department_name ? `<div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:6px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
-        ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tagsHtml}</div>` : ''}
+
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:${t.description ? '4px' : '8px'};line-height:1.35;color:#fff;">${t.title || 'Sem título'}</div>
+        ${t.description ? `<div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:10px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${t.description}</div>` : ''}
+        ${t.department_name ? `<div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:8px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
+        ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">${tagsHtml}</div>` : ''}
         ${subBar}
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-            ${t.assignee_name
-                ? `<div style="display:flex;align-items:center;gap:5px;">
-                       <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA000);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;color:#000;">${(t.assignee_name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
-                       <span style="font-size:.7rem;color:rgba(255,255,255,.45);">${t.assignee_name.split(' ')[0]}</span>
-                   </div>`
-                : '<span></span>'}
-            ${dueStr ? `<span style="font-size:.7rem;font-weight:600;color:${overdue ? '#EF4444' : 'rgba(255,255,255,.35)'};">${overdue ? '⚠️ ' : '⏰ '}${dueStr}</span>` : ''}
+
+        <!-- Bottom row (Assignee and Date Actionable) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;border-top:1px solid rgba(255,255,255,.05);padding-top:12px;">
+            ${renderAssigneeSelect(t.id, t.assignee_id, t.assignee_name)}
+            ${renderDateSelect(t.id, t.due_date)}
         </div>
     </div>`;
 }
