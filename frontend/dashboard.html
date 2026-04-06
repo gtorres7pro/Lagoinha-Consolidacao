@@ -2773,6 +2773,12 @@
                         onmouseover="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.8)'" onmouseout="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.5)'">
                         👤 Minhas Tarefas
                     </button>
+                    <!-- Kanban Groupby -->
+                    <select id="tasks-kanban-groupby" onchange="filterTasksView()" style="display:none;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:8px 12px;color:#FFD700;font-size:.8rem;font-weight:700;outline:none;cursor:pointer;">
+                        <option value="status">🗂️ Agrupar: Status</option>
+                        <option value="assignee">👤 Agrupar: Membro</option>
+                        <option value="priority">🔥 Agrupar: Prioridade</option>
+                    </select>
                 </div>
                 <!-- View Toggle -->
                 <div class="view-toggles" style="display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:4px;">

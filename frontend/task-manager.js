@@ -181,17 +181,20 @@ window.setTasksView = function (view) {
     const kv = document.getElementById('tasks-kanban-view');
     const lb = document.getElementById('tasks-view-list');
     const kb = document.getElementById('tasks-view-kanban');
+    const gb = document.getElementById('tasks-kanban-groupby');
 
     if (view === 'list') {
         if (lv) lv.style.display = '';
         if (kv) kv.style.display = 'none';
         if (lb) { lb.style.background = 'rgba(255,215,0,.15)'; lb.style.color = '#FFD700'; }
         if (kb) { kb.style.background = 'transparent';         kb.style.color = 'rgba(255,255,255,.4)'; }
+        if (gb) gb.style.display = 'none';
     } else {
         if (lv) lv.style.display = 'none';
         if (kv) kv.style.display = '';
         if (lb) { lb.style.background = 'transparent';         lb.style.color = 'rgba(255,255,255,.4)'; }
         if (kb) { kb.style.background = 'rgba(255,215,0,.15)'; kb.style.color = '#FFD700'; }
+        if (gb) gb.style.display = '';
     }
     filterTasksView();
 };
@@ -258,35 +261,72 @@ function renderTasksKanban(tasks) {
     const board = document.getElementById('tasks-kanban-board');
     if (!board) return;
 
-    const columns = ['backlog', 'todo', 'in_progress', 'review', 'done'];
-    const byStatus = {};
-    columns.forEach(s => byStatus[s] = []);
-    tasks.forEach(t => {
-        if (byStatus[t.status]) byStatus[t.status].push(t);
-        else byStatus.backlog.push(t);
-    });
+    const groupBy = document.getElementById('tasks-kanban-groupby')?.value || 'status';
+    let columnsData = [];
 
-    board.innerHTML = columns.map(colStatus => {
-        const st       = TASK_STATUS[colStatus];
-        const colTasks = byStatus[colStatus];
-        const cards    = colTasks.map(buildKanbanCard).join('');
+    if (groupBy === 'status') {
+        const statuses = ['backlog', 'todo', 'in_progress', 'review', 'done'];
+        columnsData = statuses.map(s => {
+            const st = TASK_STATUS[s];
+            return {
+                id: s,
+                label: st.label,
+                emoji: st.emoji,
+                color: st.color,
+                tasks: tasks.filter(t => t.status === s || (s === 'backlog' && !t.status))
+            };
+        });
+    } else if (groupBy === 'priority') {
+        const priorities = ['urgent', 'high', 'medium', 'low'];
+        columnsData = priorities.map(p => {
+            const pr = TASK_PRIORITY[p];
+            return {
+                id: p,
+                label: pr.label,
+                emoji: pr.emoji,
+                color: pr.color,
+                tasks: tasks.filter(t => t.priority === p || (p === 'medium' && !t.priority))
+            };
+        });
+    } else if (groupBy === 'assignee') {
+        const map = new Map();
+        tasks.forEach(t => { if (t.assignee_name) map.set(t.assignee_id, t.assignee_name); });
+        columnsData = Array.from(map.entries()).map(([id, name]) => ({
+            id: id,
+            label: name.split(' ')[0],
+            emoji: '👤',
+            color: '#60A5FA',
+            tasks: tasks.filter(t => t.assignee_id === id)
+        }));
+        columnsData.push({
+            id: 'unassigned',
+            label: 'Sem Responsável',
+            emoji: '👻',
+            color: '#94A3B8',
+            tasks: tasks.filter(t => !t.assignee_id)
+        });
+    }
 
-        return `<div data-kanban-col="${colStatus}"
-             style="width:280px;flex-shrink:0;"
-             ondragover="kanbanDragOver(event,'${colStatus}')"
-             ondragenter="kanbanDragEnter(event,'${colStatus}')"
+    board.innerHTML = columnsData.map(col => {
+        const cards = col.tasks.map(buildKanbanCard).join('');
+        return `<div data-kanban-col="${col.id}"
+             style="width:280px;flex-shrink:0;position:relative;"
+             ondragover="kanbanDragOver(event,'${col.id}')"
+             ondragenter="kanbanDragEnter(event,'${col.id}')"
              ondragleave="kanbanDragLeave(event)"
-             ondrop="kanbanDrop(event,'${colStatus}')">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;">
-                <span style="font-size:1rem;">${st.emoji}</span>
-                <span style="font-weight:700;font-size:.85rem;flex:1;">${st.label}</span>
-                <span style="padding:2px 8px;border-radius:20px;background:${st.color}20;color:${st.color};font-size:.7rem;font-weight:800;">${colTasks.length}</span>
-                <button onclick="openTaskModal(null,'${colStatus}')" title="Nova tarefa"
+             ondrop="kanbanDrop(event,'${col.id}','${groupBy}')">
+            
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(18,18,18,0.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.07);border-radius:12px;position:sticky;top:0;z-index:10;margin-bottom:12px;">
+                <span style="font-size:1rem;">${col.emoji}</span>
+                <span style="font-weight:700;font-size:.85rem;flex:1;">${col.label}</span>
+                <span style="padding:2px 8px;border-radius:20px;background:${col.color}20;color:${col.color};font-size:.7rem;font-weight:800;">${col.tasks.length}</span>
+                <button onclick="openTaskModal(null,'${groupBy === 'status' ? col.id : 'todo'}')" title="Nova tarefa"
                         style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
                         onmouseover="this.style.background='rgba(255,215,0,.15)';this.style.color='#FFD700'"
                         onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.4)'">+</button>
             </div>
-            <div data-kanban-cards="${colStatus}" style="display:flex;flex-direction:column;gap:10px;min-height:80px;padding:2px;border-radius:12px;transition:background .2s;">
+            
+            <div data-kanban-cards="${col.id}" style="display:flex;flex-direction:column;gap:10px;min-height:80px;padding:2px;border-radius:12px;transition:background .2s;">
                 ${cards || `<div style="text-align:center;padding:24px 12px;border:1px dashed rgba(255,255,255,.07);border-radius:12px;color:rgba(255,255,255,.2);font-size:.78rem;">Vazia</div>`}
             </div>
         </div>`;
@@ -306,37 +346,64 @@ function kanbanDragOver(e, colStatus) {
     e.dataTransfer.dropEffect = 'move';
 }
 function kanbanDragLeave(e) {
-    // Only clear if leaving the whole column wrapper
     const related = e.relatedTarget;
     if (!related || !e.currentTarget.contains(related)) {
         const col = e.currentTarget.querySelector('[data-kanban-cards]');
         if (col) col.classList.remove('kanban-col-drop-target');
     }
 }
-async function kanbanDrop(e, newStatus) {
+async function kanbanDrop(e, newVal, groupBy = 'status') {
     e.preventDefault();
-    // Clear all highlights
     document.querySelectorAll('[data-kanban-cards]').forEach(c => c.classList.remove('kanban-col-drop-target'));
 
     const taskId = _draggedTaskId || e.dataTransfer.getData('text/plain');
     if (!taskId) return;
 
     const task = _tasksAll.find(t => t.id === taskId);
-    if (!task || task.status === newStatus) return;
+    if (!task) return;
 
-    // Optimistic update
-    task.status = newStatus;
+    let dbField = 'status';
+    let oldVal  = task.status;
+    let msg     = 'Status atualizado ✅';
+
+    if (groupBy === 'priority') {
+        dbField = 'priority';
+        oldVal  = task.priority;
+        msg     = 'Prioridade atualizada ✅';
+    } else if (groupBy === 'assignee') {
+        dbField = 'assignee_id';
+        oldVal  = task.assignee_id || 'unassigned';
+        msg     = 'Responsável atualizado ✅';
+    }
+
+    if (oldVal === newVal) return;
+
+    // Optimistic Update
+    if (groupBy === 'assignee') {
+        if (newVal === 'unassigned') {
+            task.assignee_id = null;
+            task.assignee_name = null;
+        } else {
+            task.assignee_id = newVal;
+            task.assignee_name = 'Atualizando...';
+        }
+    } else {
+        task[dbField] = newVal;
+    }
     filterTasksView();
 
     // Persist
     const sb = window.supabaseClient;
     if (sb) {
-        const { error } = await sb.from('tasks').update({ status: newStatus }).eq('id', taskId);
+        const payload = {};
+        payload[dbField] = newVal === 'unassigned' ? null : newVal;
+        const { error } = await sb.from('tasks').update(payload).eq('id', taskId);
         if (error) {
             if (typeof hubToast !== 'undefined') hubToast('Erro ao mover: ' + error.message, 'error');
             await loadTaskManager(); // revert
         } else {
-            if (typeof hubToast !== 'undefined') hubToast(`Status → ${TASK_STATUS[newStatus]?.label || newStatus} ✅`, 'success');
+            if (typeof hubToast !== 'undefined') hubToast(msg, 'success');
+            if (groupBy === 'assignee') await loadTaskManager();
         }
     }
     _draggedTaskId = null;
