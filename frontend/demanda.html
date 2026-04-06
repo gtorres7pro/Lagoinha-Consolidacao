@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Manutenção — Lagoinha Orlando</title>
+  <meta name="description" content="Relate um problema de manutenção em nossa igreja. Seu reporte ajuda a manter nosso espaço em ordem.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: #0a0a0a;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      padding: 48px 24px 36px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,215,0,.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .logo-ring {
+      width: 76px; height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,215,0,.15), rgba(255,160,0,.05));
+      border: 1.5px solid rgba(255,215,0,.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2rem;
+      backdrop-filter: blur(8px);
+    }
+    .hero h1 { font-size: 1.55rem; font-weight: 900; line-height: 1.2; margin-bottom: 8px; }
+    .hero h1 span { color: #FFD700; }
+    .hero p { font-size: .9rem; color: rgba(255,255,255,.45); line-height: 1.55; max-width: 320px; margin: 0 auto; }
+
+    /* ── FORM CARD ──────────────────────────────────────────────── */
+    .form-card {
+      margin: 0 16px 32px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 24px;
+      padding: 28px 22px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    /* ── FIELD ──────────────────────────────────────────────────── */
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: rgba(255,255,255,.4);
+      margin-bottom: 8px;
+    }
+    .field label .req { color: #FFD700; }
+
+    .field input[type="text"],
+    .field input[type="tel"],
+    .field textarea {
+      width: 100%;
+      background: rgba(255,255,255,.06);
+      border: 1.5px solid rgba(255,255,255,.09);
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #fff;
+      font-size: 1rem;
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+      transition: border-color .2s, background .2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .field input:focus,
+    .field textarea:focus {
+      border-color: rgba(255,215,0,.5);
+      background: rgba(255,255,255,.08);
+    }
+    .field input::placeholder,
+    .field textarea::placeholder { color: rgba(255,255,255,.25); }
+    .field textarea { resize: none; min-height: 110px; line-height: 1.5; }
+
+    /* ── PHOTO UPLOAD ───────────────────────────────────────────── */
+    .upload-zone {
+      position: relative;
+      border: 1.5px dashed rgba(255,215,0,.25);
+      border-radius: 14px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      background: rgba(255,215,0,.03);
+    }
+    .upload-zone:hover, .upload-zone.has-files {
+      border-color: rgba(255,215,0,.5);
+      background: rgba(255,215,0,.06);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    .upload-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .upload-label { font-size: .88rem; font-weight: 700; color: #FFD700; margin-bottom: 4px; }
+    .upload-hint { font-size: .75rem; color: rgba(255,255,255,.3); }
+    .preview-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+    }
+    .preview-thumb {
+      width: 72px; height: 72px; border-radius: 10px; overflow: hidden;
+      border: 1px solid rgba(255,215,0,.2); flex-shrink: 0;
+      position: relative;
+    }
+    .preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-thumb .remove-btn {
+      position: absolute; top: 3px; right: 3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(0,0,0,.7); border: none;
+      color: #fff; font-size: .6rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .file-item {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 10px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      font-size: .78rem; color: rgba(255,255,255,.6);
+    }
+
+    /* ── DIVIDER ────────────────────────────────────────────────── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 4px 0 20px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: rgba(255,255,255,.07);
+    }
+    .divider span { font-size: .7rem; color: rgba(255,255,255,.2); white-space: nowrap; }
+
+    /* ── SUBMIT BUTTON ──────────────────────────────────────────── */
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #FFD700, #FFA000);
+      color: #000;
+      font-weight: 900;
+      font-size: 1.05rem;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-submit:active { transform: scale(.97); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── THANK YOU / ERROR ──────────────────────────────────────── */
+    #msg-error {
+      display: none; margin-bottom: 16px;
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+      border-radius: 12px; padding: 12px 16px;
+      font-size: .85rem; color: #FCA5A5;
+    }
+
+    /* ── GRATITUDE NOTE ─────────────────────────────────────────── */
+    .gratitude {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,215,0,.06); border: 1px solid rgba(255,215,0,.15);
+      border-radius: 16px; padding: 16px;
+      margin-bottom: 24px;
+    }
+    .gratitude .g-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .gratitude p { font-size: .85rem; color: rgba(255,255,255,.55); line-height: 1.5; }
+    .gratitude strong { color: #FFD700; }
+
+    /* ── FOOTER ─────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 12px 24px 40px;
+      font-size: .72rem;
+      color: rgba(255,255,255,.18);
+    }
+    footer a { color: rgba(255,215,0,.35); text-decoration: none; }
+    footer a:hover { color: #FFD700; }
+
+    /* ── SPINNER ─────────────────────────────────────────────────── */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(0,0,0,.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Mobile safe area */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      footer { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="logo-ring">🔧</div>
+    <h1>Reporte de <span>Manutenção</span></h1>
+    <p>Encontrou algo que precisa de atenção? Reporte aqui — sua ajuda mantém nossa casa em ordem!</p>
+  </div>
+
+  <!-- FORM -->
+  <form id="maint-form" class="form-card" onsubmit="handleSubmit(event)" novalidate>
+
+    <!-- Gratitude note -->
+    <div class="gratitude">
+      <div class="g-icon">🙏</div>
+      <p><strong>Obrigado por nos ajudar!</strong> Cada reporte contribui para que possamos servir melhor a todos. Nossa equipe receberá sua solicitação imediatamente.</p>
+    </div>
+
+    <!-- Error msg -->
+    <div id="msg-error"></div>
+
+    <!-- Título -->
+    <div class="field">
+      <label>O que precisa de atenção? <span class="req">*</span></label>
+      <input type="text" id="f-title" placeholder="Ex: Banheiro masculino com torneira vazando..." autocomplete="off" inputmode="text" maxlength="120" required>
+    </div>
+
+    <!-- Descrição -->
+    <div class="field">
+      <label>Descrição detalhada <span style="opacity:.5;font-weight:400;">(opcional)</span></label>
+      <textarea id="f-desc" placeholder="Descreva melhor o problema — localização exata, quando percebeu..."></textarea>
+    </div>
+
+    <!-- Foto -->
+    <div class="field">
+      <label>📷 Foto do problema <span style="opacity:.5;font-weight:400;">(opcional)</span></label>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="f-file" accept="image/*,video/*,application/pdf" multiple capture="environment" onchange="handleFileChange(this)">
+        <div class="upload-icon">📷</div>
+        <div class="upload-label">Toque para tirar foto</div>
+        <div class="upload-hint">ou selecionar da galeria</div>
+        <div class="preview-grid" id="preview-grid"></div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"><span>Seus dados (opcional)</span></div>
+
+    <!-- Nome -->
+    <div class="field">
+      <label>Seu nome</label>
+      <input type="text" id="f-name" placeholder="Como podemos te chamar?" autocomplete="name" inputmode="text" maxlength="80">
+    </div>
+
+    <!-- Telefone -->
+    <div class="field">
+      <label>WhatsApp</label>
+      <input type="tel" id="f-phone" placeholder="+1 (...)  000-0000" autocomplete="tel" inputmode="tel" maxlength="25">
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="btn-submit" id="btn-submit">
+      <div class="spinner" id="spinner"></div>
+      <span id="btn-label">📤 Enviar Solicitação</span>
+    </button>
+
+  </form>
+
+  <footer>
+    Desenvolvido por <a href="https://www.7prolabs.com" target="_blank">7Pro Labs</a> &nbsp;·&nbsp; <a href="https://www.7prolabs.com" target="_blank">www.7prolabs.com</a>
+  </footer>
+
+  <!-- SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    // ── Config ────────────────────────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMTAxNzIsImV4cCI6MjA1Nzg4NjE3Mn0.2BCnL6PmIvU6ePXeqSv484iqiknJNi_9ZC0bJdXM8N4';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // ── Workspace from URL slug ───────────────────────────────────────────────
+    // URL pattern: /{slug}/demanda.html  OR /demanda.html?ws={slug}
+    let WORKSPACE_ID = null;
+    let DEPT_ID      = null;
+
+    async function initForm() {
+      // Get workspace slug from URL path or query param
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      const qp        = new URLSearchParams(window.location.search);
+      const slug      = qp.get('ws') || (pathParts.length >= 2 ? pathParts[0] : null);
+
+      if (!slug) {
+        // No slug — try to detect from first workspace (fallback for QR codes without slug)
+        showError('Configuração incompleta. Use o link gerado pelo painel.');
+        return;
+      }
+
+      // Fetch workspace
+      const { data: ws } = await sb.from('workspaces').select('id').eq('slug', slug).maybeSingle();
+      if (!ws) {
+        showError('Workspace não encontrado. Verifique o link do QR code.');
+        return;
+      }
+      WORKSPACE_ID = ws.id;
+
+      // Fetch or create "Manutenção" department for this workspace
+      const { data: depts } = await sb
+        .from('task_departments')
+        .select('id, name')
+        .eq('workspace_id', WORKSPACE_ID)
+        .ilike('name', '%manuten%');
+
+      if (depts && depts.length > 0) {
+        DEPT_ID = depts[0].id;
+      }
+      // If no dept found, tasks will be created without dept (still works)
+    }
+
+    // ── File Preview ──────────────────────────────────────────────────────────
+    let _selectedFiles = [];
+
+    function handleFileChange(input) {
+      const newFiles = Array.from(input.files || []);
+      _selectedFiles = [..._selectedFiles, ...newFiles];
+      renderPreviews();
+      // Reset input so same file can be re-selected if needed
+      input.value = '';
+      if (_selectedFiles.length > 0) {
+        document.getElementById('upload-zone').classList.add('has-files');
+      }
+    }
+
+    function renderPreviews() {
+      const grid = document.getElementById('preview-grid');
+      grid.innerHTML = _selectedFiles.map((f, i) => {
+        if (f.type.startsWith('image/')) {
+          const url = URL.createObjectURL(f);
+          return `<div class="preview-thumb">
+            <img src="${url}" alt="Preview">
+            <button class="remove-btn" type="button" onclick="removeFile(${i})">✕</button>
+          </div>`;
+        } else {
+          return `<div class="file-item">📎 ${f.name.substring(0,20)}</div>`;
+        }
+      }).join('');
+    }
+
+    function removeFile(idx) {
+      _selectedFiles.splice(idx, 1);
+      renderPreviews();
+      if (_selectedFiles.length === 0) {
+        document.getElementById('upload-zone').classList.remove('has-files');
+      }
+    }
+
+    // ── Upload to Supabase Storage ─────────────────────────────────────────────
+    async function uploadFiles(taskId) {
+      const uploaded = [];
+      for (const file of _selectedFiles) {
+        const ext  = file.name.split('.').pop() || 'bin';
+        const path = `${WORKSPACE_ID}/${taskId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error } = await sb.storage
+          .from('task-attachments')
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+        if (error) { console.warn('Upload error:', error.message); continue; }
+        const { data: urlData } = sb.storage.from('task-attachments').getPublicUrl(path);
+        uploaded.push(urlData.publicUrl);
+      }
+      return uploaded;
+    }
+
+    // ── Submit ────────────────────────────────────────────────────────────────
+    async function handleSubmit(e) {
+      e.preventDefault();
+      if (!WORKSPACE_ID) { showError('Workspace não configurado.'); return; }
+
+      const title  = document.getElementById('f-title').value.trim();
+      const desc   = document.getElementById('f-desc').value.trim();
+      const name   = document.getElementById('f-name').value.trim();
+      const phone  = document.getElementById('f-phone').value.trim();
+
+      if (!title) {
+        showError('Por favor, descreva o que precisa de atenção.');
+        document.getElementById('f-title').focus();
+        return;
+      }
+
+      setLoading(true);
+      hideError();
+
+      try {
+        // 1. Insert task
+        const payload = {
+          workspace_id:   WORKSPACE_ID,
+          title,
+          description:    desc || null,
+          status:         'todo',
+          priority:       'medium',
+          source:         'public_form',
+          requester_name: name  || null,
+          requester_phone:phone || null,
+          department_id:  DEPT_ID  || null,
+          created_by:     null,
+        };
+
+        const { data: task, error: taskErr } = await sb
+          .from('tasks')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (taskErr) throw taskErr;
+
+        // 2. Upload files (if any)
+        if (_selectedFiles.length > 0 && task?.id) {
+          const urls = await uploadFiles(task.id);
+          if (urls.length > 0) {
+            await sb.from('tasks').update({ attachments: urls }).eq('id', task.id);
+          }
+        }
+
+        // 3. Redirect to thank you
+        window.location.href = 'demanda-obrigado.html';
+
+      } catch (err) {
+        console.error(err);
+        showError('Erro ao enviar. Tente novamente. (' + (err.message || err) + ')');
+        setLoading(false);
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function setLoading(on) {
+      const btn     = document.getElementById('btn-submit');
+      const spinner = document.getElementById('spinner');
+      const label   = document.getElementById('btn-label');
+      btn.disabled         = on;
+      spinner.style.display = on ? 'block' : 'none';
+      label.textContent    = on ? 'Enviando...' : '📤 Enviar Solicitação';
+    }
+    function showError(msg) {
+      const el = document.getElementById('msg-error');
+      el.textContent   = '⚠️ ' + msg;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function hideError() {
+      document.getElementById('msg-error').style.display = 'none';
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    initForm();
+  </script>
+</body>
+</html>

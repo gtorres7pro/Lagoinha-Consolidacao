@@ -141,6 +141,12 @@
             background: linear-gradient(to bottom, rgba(251,191,36,0.25), transparent);
             border-radius: 1px;
         }
+        @keyframes badgePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,.5); }
+            50%       { box-shadow: 0 0 0 5px rgba(255,215,0,0); }
+        }
+        .kanban-col-drop-target { outline: 2px dashed rgba(255,215,0,.5) !important; background: rgba(255,215,0,.04) !important; }
+        .kanban-card-dragging   { opacity: .4; cursor: grabbing !important; }
         .nav-submenu-wrap ul li {
             padding-left: 4px;
         }
@@ -744,6 +750,7 @@
                         <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                     </span>
                     <span class="nav-label" style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;flex:1;">Administrativo</span>
+                    <span id="admin-tasks-badge" style="display:none;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-size:.58rem;font-weight:900;align-items:center;justify-content:center;animation:badgePulse 2s ease infinite;">0</span>
                 </div>
                 <!-- Fixed open submenu — no collapse -->
                 <div class="nav-submenu-wrap" id="admin-submenu-wrap" style="display:flex;">
@@ -2616,19 +2623,22 @@
                     <h1>🗂️ Tarefas</h1>
                     <p id="tasks-subtitle">Gestão de tarefas administrativa</p>
                 </div>
-                <div class="actions" style="display:flex;gap:10px;align-items:center;">
+                <div class="actions" style="display:flex;gap:8px;align-items:center;">
                     <!-- Notification Bell -->
                     <button id="tasks-notif-btn" onclick="openTaskNotifications()" style="position:relative;width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
                         🔔
                         <span id="tasks-notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#EF4444;color:#fff;font-size:.6rem;font-weight:900;align-items:center;justify-content:center;">0</span>
                     </button>
-                    <!-- Public Requests -->
-                    <button onclick="openPublicRequestsDrawer()" style="padding:9px 16px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
-                        📥 Demandas
-                        <span id="tasks-requests-badge" style="display:none;padding:1px 7px;border-radius:20px;background:#FFD700;color:#000;font-size:.65rem;font-weight:900;">0</span>
+                    <!-- Settings gear -->
+                    <button onclick="openTaskSettings()" title="Configurações" style="width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)';this.style.color='#FFD700'" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.color='rgba(255,255,255,.5)'">
+                        ⚙️
+                    </button>
+                    <!-- Copy Public Form Link -->
+                    <button onclick="copyPublicFormLink()" style="padding:9px 14px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
+                        🔗 Copiar Form Público
                     </button>
                     <!-- New Task -->
-                    <button onclick="openTaskModal()" style="padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                    <button onclick="openTaskModal()" style="padding:10px 18px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Nova Tarefa
                     </button>
@@ -2736,25 +2746,27 @@
 
         <!-- ════ Task Detail Modal ════ -->
         <div id="task-modal-overlay" onclick="if(event.target===this)closeTaskModal()"
-             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:9500;justify-content:flex-end;">
-            <div id="task-modal-panel" style="background:#0d0f1e;border-left:1px solid rgba(255,215,0,.1);width:min(680px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
-                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FFA000,transparent);flex-shrink:0;"></div>
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(14px);z-index:9500;justify-content:flex-end;">
+            <div id="task-modal-panel" style="background:linear-gradient(180deg,#0f1120 0%,#0a0c17 100%);border-left:1.5px solid rgba(255,215,0,.12);width:min(680px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .38s cubic-bezier(.4,0,.2,1);">
+                <!-- Gold accent bar -->
+                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,transparent);flex-shrink:0;"></div>
 
                 <!-- Modal Header -->
-                <div style="padding:24px 28px 0;display:flex;align-items:flex-start;gap:12px;">
+                <div style="padding:24px 26px 18px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid rgba(255,255,255,.05);">
                     <div style="flex:1;">
                         <div id="task-modal-source-badge" style="display:none;margin-bottom:10px;"></div>
                         <input id="task-modal-title" type="text" placeholder="Título da tarefa..."
-                               style="width:100%;font-size:1.2rem;font-weight:800;background:transparent;border:none;outline:none;color:#fff;padding:0;line-height:1.3;">
+                               style="width:100%;font-size:1.25rem;font-weight:900;background:transparent;border:none;outline:none;color:#fff;padding:0;line-height:1.3;letter-spacing:-.01em;">
+                        <div id="task-modal-created-row" style="margin-top:6px;font-size:.72rem;color:rgba(255,255,255,.25);">Criada em: <span id="task-modal-created">—</span></div>
                     </div>
-                    <button onclick="closeTaskModal()" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;font-size:.85rem;">✕</button>
+                    <button onclick="closeTaskModal()" style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;font-size:.85rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">✕</button>
                 </div>
 
-                <!-- Meta fields row -->
-                <div style="padding:16px 28px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Status</label>
-                        <select id="task-modal-status" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                <!-- Status + Priority pill row -->
+                <div style="padding:16px 26px 0;display:flex;gap:8px;flex-wrap:wrap;">
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+                        <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Status</label>
+                        <select id="task-modal-status" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.85rem;outline:none;cursor:pointer;font-family:inherit;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
                             <option value="backlog">📋 Backlog</option>
                             <option value="todo">🔵 A Fazer</option>
                             <option value="in_progress">🟡 Em Andamento</option>
@@ -2763,54 +2775,54 @@
                             <option value="cancelled">⛔ Cancelada</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Prioridade</label>
-                        <select id="task-modal-priority" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+                        <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Prioridade</label>
+                        <select id="task-modal-priority" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.85rem;outline:none;cursor:pointer;font-family:inherit;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
                             <option value="low">🔵 Baixa</option>
                             <option value="medium" selected>🟡 Média</option>
                             <option value="high">🟠 Alta</option>
                             <option value="urgent">🔴 Urgente</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Departamento</label>
-                        <select id="task-modal-dept" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                </div>
+
+                <!-- Dept + Assignee + Due -->
+                <div style="padding:12px 26px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Departamento</label>
+                        <select id="task-modal-dept" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;font-family:inherit;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
                             <option value="">— Nenhum —</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Responsável</label>
-                        <select id="task-modal-assignee" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;">
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Responsável</label>
+                        <select id="task-modal-assignee" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;font-family:inherit;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
                             <option value="">— Sem responsável —</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Data de Vencimento</label>
-                        <input id="task-modal-due" type="date" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Criado em</label>
-                        <div id="task-modal-created" style="padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:.8rem;color:rgba(255,255,255,.4);">—</div>
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Vencimento</label>
+                        <input id="task-modal-due" type="date" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.82rem;outline:none;cursor:pointer;font-family:inherit;box-sizing:border-box;width:100%;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.4)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
                     </div>
                 </div>
 
                 <!-- Description -->
-                <div style="padding:0 28px 16px;">
-                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Descrição</label>
-                    <textarea id="task-modal-desc" rows="4" placeholder="Adicione uma descrição detalhada..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;color:#fff;font-size:.85rem;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                <div style="padding:18px 26px 0;">
+                    <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px;">📝 Descrição</label>
+                    <textarea id="task-modal-desc" rows="4" placeholder="Adicione uma descrição detalhada..." style="width:100%;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:14px;color:#fff;font-size:.88rem;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.55;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.3)'" onblur="this.style.borderColor='rgba(255,255,255,.08)'"></textarea>
                 </div>
 
                 <!-- Notes -->
-                <div style="padding:0 28px 16px;">
-                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:6px;">Notas Internas</label>
-                    <textarea id="task-modal-notes" rows="3" placeholder="Notas internas (não visíveis externamente)..." style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;color:rgba(255,255,255,.7);font-size:.82rem;outline:none;resize:vertical;font-family:inherit;font-style:italic;box-sizing:border-box;"></textarea>
+                <div style="padding:14px 26px 0;">
+                    <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px;">🔒 Notas Internas</label>
+                    <textarea id="task-modal-notes" rows="2" placeholder="Notas internas não visíveis externamente..." style="width:100%;background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.06);border-radius:14px;padding:12px 14px;color:rgba(255,255,255,.6);font-size:.84rem;outline:none;resize:vertical;font-family:inherit;font-style:italic;box-sizing:border-box;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(255,215,0,.2)'" onblur="this.style.borderColor='rgba(255,255,255,.06)'"></textarea>
                 </div>
 
                 <!-- File Attachments -->
-                <div style="padding:0 28px 16px;">
-                    <label style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:8px;">📎 Anexos</label>
+                <div style="padding:14px 26px 0;">
+                    <label style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px;">📎 Anexos</label>
                     <div id="task-modal-attachments-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
-                    <label style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;border:1px dashed rgba(255,255,255,.15);background:rgba(255,255,255,.03);cursor:pointer;font-size:.8rem;color:rgba(255,255,255,.5);transition:all .2s;" onmouseover="this.style.borderColor='rgba(255,215,0,.4)';this.style.color='#FFD700'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(255,255,255,.5)'">
+                    <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:12px;border:1.5px dashed rgba(255,215,0,.2);background:rgba(255,215,0,.03);cursor:pointer;font-size:.82rem;color:rgba(255,255,255,.45);transition:all .2s;" onmouseover="this.style.borderColor='rgba(255,215,0,.5)';this.style.color='#FFD700';this.style.background='rgba(255,215,0,.07)'" onmouseout="this.style.borderColor='rgba(255,215,0,.2)';this.style.color='rgba(255,255,255,.45)';this.style.background='rgba(255,215,0,.03)'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         Fazer upload de arquivo
                         <input id="task-modal-file-input" type="file" accept="image/*,application/pdf,video/*" multiple style="display:none;" onchange="uploadTaskFiles(this)">
@@ -2819,34 +2831,34 @@
                 </div>
 
                 <!-- Divider -->
-                <div style="border-top:1px solid rgba(255,255,255,.06);margin:0 28px;"></div>
+                <div style="border-top:1px solid rgba(255,255,255,.05);margin:18px 26px 0;"></div>
 
                 <!-- Comments Section -->
-                <div style="padding:16px 28px;flex:1;">
-                    <div style="font-size:.68rem;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">💬 Comentários</div>
-                    <div id="task-modal-comments" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;max-height:320px;overflow-y:auto;"></div>
+                <div style="padding:16px 26px;flex:1;">
+                    <div style="font-size:.62rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">💬 Comentários</div>
+                    <div id="task-modal-comments" style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;max-height:280px;overflow-y:auto;padding-right:2px;"></div>
                     <!-- Comment input -->
-                    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;">
-                        <textarea id="task-comment-input" rows="3" placeholder="Escreva um comentário... Use @nome para mencionar alguém" style="width:100%;background:transparent;border:none;padding:12px;color:#fff;font-size:.85rem;outline:none;resize:none;font-family:inherit;box-sizing:border-box;"></textarea>
+                    <div style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;transition:border-color .2s;" onfocusin="this.style.borderColor='rgba(255,215,0,.3)'" onfocusout="this.style.borderColor='rgba(255,255,255,.08)'">
+                        <textarea id="task-comment-input" rows="2" placeholder="Escreva um comentário... Use @nome para mencionar" style="width:100%;background:transparent;border:none;padding:12px 14px;color:#fff;font-size:.88rem;outline:none;resize:none;font-family:inherit;box-sizing:border-box;"></textarea>
                         <div id="task-mention-suggestions" style="display:none;border-top:1px solid rgba(255,255,255,.08);padding:6px;"></div>
-                        <div style="padding:8px 12px;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.06);">
-                            <button onclick="submitTaskComment()" style="padding:7px 18px;border-radius:9px;border:none;background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.25)'" onmouseout="this.style.background='rgba(255,215,0,.15)'">
-                                Comentar
+                        <div style="padding:8px 12px;display:flex;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);">
+                            <button onclick="submitTaskComment()" style="padding:7px 20px;border-radius:10px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.22)'" onmouseout="this.style.background='rgba(255,215,0,.12)'">
+                                ✉️ Comentar
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div style="padding:16px 28px 28px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;">
+                <div style="padding:16px 26px 28px;display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;background:rgba(0,0,0,.2);">
                     <button onclick="saveTaskModal()" id="btn-save-task"
-                            style="flex:1;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.88rem;cursor:pointer;transition:opacity .2s;"
+                            style="flex:1;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:900;font-size:.92rem;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px;"
                             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                         💾 Salvar Tarefa
                     </button>
                     <button id="btn-delete-task" onclick="deleteTaskModal()"
-                            style="padding:13px 16px;border:1px solid rgba(239,68,68,.2);border-radius:12px;background:rgba(239,68,68,.06);color:rgba(239,68,68,.7);cursor:pointer;font-size:.88rem;transition:all .2s;"
-                            onmouseover="this.style.background='rgba(239,68,68,.15)';this.style.color='#EF4444'" onmouseout="this.style.background='rgba(239,68,68,.06)';this.style.color='rgba(239,68,68,.7)'">
+                            style="padding:14px 16px;border:1.5px solid rgba(239,68,68,.2);border-radius:14px;background:rgba(239,68,68,.05);color:rgba(239,68,68,.7);cursor:pointer;font-size:.88rem;transition:all .2s;"
+                            onmouseover="this.style.background='rgba(239,68,68,.15)';this.style.color='#EF4444';this.style.borderColor='rgba(239,68,68,.4)'" onmouseout="this.style.background='rgba(239,68,68,.05)';this.style.color='rgba(239,68,68,.7)';this.style.borderColor='rgba(239,68,68,.2)'">
                         🗑️
                     </button>
                 </div>
@@ -2869,57 +2881,60 @@
             </div>
         </div>
 
-        <!-- ════ Public Requests Drawer ════ -->
-        <div id="public-requests-overlay" onclick="if(event.target===this)closePublicRequestsDrawer()"
-             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9400;justify-content:flex-end;">
-            <div id="public-requests-panel" style="background:#0d0f1e;border-left:1px solid rgba(255,215,0,.1);width:min(520px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
-                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FFA000,transparent);flex-shrink:0;"></div>
-                <div style="padding:24px 28px;display:flex;align-items:center;justify-content:space-between;">
+        <!-- ════ Task Settings Drawer ════ -->
+        <div id="task-settings-overlay" onclick="if(event.target===this)closeTaskSettings()"
+             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);z-index:9600;justify-content:flex-end;">
+            <div id="task-settings-panel" style="background:linear-gradient(180deg,#0f1120 0%,#0a0c17 100%);border-left:1.5px solid rgba(255,215,0,.12);width:min(480px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);">
+                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,transparent);flex-shrink:0;"></div>
+                <div style="padding:24px 26px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.05);">
                     <div>
-                        <h2 style="font-size:1.1rem;font-weight:800;margin:0 0 3px;">📥 Demandas Públicas</h2>
-                        <p style="font-size:.78rem;color:rgba(255,255,255,.4);margin:0;">Solicitações recebidas do formulário público</p>
+                        <h2 style="font-size:1.05rem;font-weight:900;margin:0 0 3px;">⚙️ Configurações</h2>
+                        <p style="font-size:.75rem;color:rgba(255,255,255,.35);margin:0;">Tarefas e departamentos deste workspace</p>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <button onclick="copyPublicFormLink()" style="padding:7px 14px;border-radius:10px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-size:.78rem;font-weight:700;cursor:pointer;">🔗 Copiar Link</button>
-                        <button onclick="closePublicRequestsDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.3rem;">✕</button>
+                    <button onclick="closeTaskSettings()" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;font-size:.85rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">✕</button>
+                </div>
+
+                <!-- ── Section: Departments ────────────────────────────────── -->
+                <div style="padding:20px 26px;border-bottom:1px solid rgba(255,255,255,.05);">
+                    <div style="font-size:.68rem;color:rgba(255,215,0,.7);font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">🏷️ Departamentos</div>
+                    <div id="settings-dept-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+                    <!-- Add dept -->
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                        <input id="new-dept-icon" type="text" placeholder="🏷️" maxlength="2" style="width:48px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:9px;color:#fff;font-size:1rem;outline:none;text-align:center;">
+                        <input id="new-dept-name" type="text" placeholder="Nome do departamento..." style="flex:1;min-width:100px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;font-family:inherit;">
+                        <input id="new-dept-color" type="color" value="#FFD700" style="width:40px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;padding:4px;">
+                        <button onclick="addNewDepartment()" style="padding:9px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;">+ Adicionar</button>
                     </div>
                 </div>
-                <!-- Filter -->
-                <div style="padding:0 28px 16px;display:flex;gap:8px;">
-                    <select id="requests-filter-status" onchange="filterPublicRequests()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 12px;color:rgba(255,255,255,.7);font-size:.78rem;outline:none;cursor:pointer;">
-                        <option value="">Todos</option>
-                        <option value="pending">⏳ Pendentes</option>
-                        <option value="converted">✅ Convertidas</option>
-                        <option value="rejected">❌ Rejeitadas</option>
-                    </select>
+
+                <!-- ── Section: Form Público ───────────────────────────────── -->
+                <div style="padding:20px 26px;border-bottom:1px solid rgba(255,255,255,.05);">
+                    <div style="font-size:.68rem;color:rgba(255,215,0,.7);font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;">🔗 Form Público de Manutenção</div>
+                    <p style="font-size:.8rem;color:rgba(255,255,255,.4);line-height:1.55;margin-bottom:14px;">Gere o link do form público para usar em QR codes espalhados pela igreja. Qualquer pessoa pode reportar um problema de manutenção sem precisar fazer login.</p>
+                    <div id="settings-form-link" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;font-size:.78rem;color:rgba(255,255,255,.4);font-family:monospace;margin-bottom:12px;word-break:break-all;">—</div>
+                    <button onclick="copyPublicFormLink()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid rgba(255,215,0,.25);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(255,215,0,.14)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">🔗 Copiar Link do Form</button>
                 </div>
-                <div id="public-requests-list" style="flex:1;padding:0 28px 28px;display:flex;flex-direction:column;gap:10px;">
-                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.2);">Carregando...</div>
+
+                <!-- ── Section: Email Alerts ───────────────────────────────── -->
+                <div style="padding:20px 26px;">
+                    <div style="font-size:.68rem;color:rgba(255,215,0,.7);font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;">📧 Notificações</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;">
+                        <div>
+                            <div style="font-size:.88rem;font-weight:700;">Avisos por Email</div>
+                            <div style="font-size:.74rem;color:rgba(255,255,255,.35);margin-top:3px;">Notificar ao receber novas tarefas do form público</div>
+                        </div>
+                        <label style="position:relative;display:inline-block;width:46px;height:26px;cursor:pointer;flex-shrink:0;">
+                            <input type="checkbox" id="settings-email-notif" onchange="saveTaskEmailSetting()" style="opacity:0;width:0;height:0;">
+                            <span id="email-toggle-track" style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:26px;transition:.3s;"></span>
+                            <span id="email-toggle-thumb" style="position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.3s;"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ════ Department Manager Drawer ════ -->
-        <div id="dept-manager-overlay" onclick="if(event.target===this)closeDeptManager()"
-             style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9600;justify-content:center;align-items:center;">
-            <div style="background:#0d0f1e;border:1px solid rgba(255,215,0,.1);border-radius:20px;padding:28px;width:min(460px,95vw);max-height:80vh;overflow-y:auto;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-                    <h3 style="font-size:1rem;font-weight:800;margin:0;">🏷️ Gerenciar Departamentos</h3>
-                    <button onclick="closeDeptManager()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1.2rem;">✕</button>
-                </div>
-                <div id="dept-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
-                <!-- Add dept form -->
-                <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:16px;">
-                    <p style="font-size:.75rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin:0 0 12px;">Adicionar Departamento</p>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <input id="new-dept-icon" type="text" placeholder="🏷️" maxlength="2" style="width:52px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px;color:#fff;font-size:1rem;outline:none;text-align:center;">
-                        <input id="new-dept-name" type="text" placeholder="Nome do departamento" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;">
-                        <input id="new-dept-color" type="color" value="#FFD700" style="width:44px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;padding:4px;">
-                        <button onclick="addNewDepartment()" style="padding:9px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.82rem;cursor:pointer;">+ Adicionar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- ════ Dept Manager (legacy overlay kept for compat) ════ -->
+        <div id="dept-manager-overlay" style="display:none;"></div>
 
         <!-- ════════════════════════════════════════════════════════
              View: Administrativo — Relatório Financeiro

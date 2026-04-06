@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Obrigado! — Lagoinha Orlando</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0a0a0a;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      animation: fadeUp .6s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .icon-wrap {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FFD700, #FFA000);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 2.6rem;
+      box-shadow: 0 0 40px rgba(255, 215, 0, .3);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,.3); }
+      50%       { box-shadow: 0 0 60px rgba(255,215,0,.5); }
+    }
+    h1 { font-size: 1.8rem; font-weight: 900; margin-bottom: 10px; }
+    p { font-size: 1rem; color: rgba(255,255,255,.55); line-height: 1.6; margin-bottom: 32px; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 16px;
+      background: linear-gradient(135deg, #FFD700, #FFA000);
+      color: #000; font-weight: 800; font-size: .95rem;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .back-btn:hover { opacity: .85; }
+    footer {
+      position: fixed; bottom: 20px; left: 0; right: 0;
+      text-align: center;
+      font-size: .72rem; color: rgba(255,255,255,.2);
+    }
+    footer a { color: rgba(255,215,0,.4); text-decoration: none; }
+    footer a:hover { color: #FFD700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-wrap">✅</div>
+    <h1>Obrigado pela ajuda!</h1>
+    <p>Sua solicitação foi recebida e nossa equipe já foi notificada. Cuidaremos disso o mais rápido possível. Sua colaboração é essencial para manter nossa casa em ordem. 🙏</p>
+    <a href="javascript:window.close()" class="back-btn" onclick="tryClose()">
+      Fechar
+    </a>
+  </div>
+
+  <footer>
+    Desenvolvido por <a href="https://www.7prolabs.com" target="_blank">7Pro Labs</a> · www.7prolabs.com
+  </footer>
+
+  <script>
+    function tryClose() {
+      window.close();
+      // If window.close didn't work (opened via URL, not link), go back
+      setTimeout(() => { history.back(); }, 100);
+    }
+  </script>
+</body>
+</html>

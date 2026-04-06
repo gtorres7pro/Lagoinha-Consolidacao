@@ -55,21 +55,20 @@ window.loadTaskManager = async function () {
 
     try {
         const userId = window._currentUser?.id;
-        const [tasksRes, deptsRes, usersRes, notifsRes, reqsRes] = await Promise.all([
+        const [tasksRes, deptsRes, usersRes, notifsRes] = await Promise.all([
             sb.from('tasks_full').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false }),
             sb.from('task_departments').select('*').eq('workspace_id', wsId).order('name'),
             sb.from('users').select('id,name,email').eq('workspace_id', wsId),
             userId
-                ? sb.from('task_notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)
+                ? sb.from('task_notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null)
                 : Promise.resolve({ count: 0 }),
-            sb.from('task_public_requests').select('id', { count: 'exact', head: true }).eq('workspace_id', wsId).eq('status', 'pending'),
         ]);
 
         _tasksAll   = tasksRes.data  || [];
         _tasksDepts = deptsRes.data  || [];
         _tasksUsers = usersRes.data  || [];
 
-        // Notification badge
+        // Notification bell badge
         const unread = notifsRes.count || 0;
         const notifBadge = document.getElementById('tasks-notif-badge');
         if (notifBadge) {
@@ -77,12 +76,13 @@ window.loadTaskManager = async function () {
             notifBadge.style.display  = unread > 0 ? 'flex' : 'none';
         }
 
-        // Requests badge
-        const pendingReqs = reqsRes.count || 0;
-        const reqBadge = document.getElementById('tasks-requests-badge');
-        if (reqBadge) {
-            reqBadge.textContent    = pendingReqs;
-            reqBadge.style.display  = pendingReqs > 0 ? 'inline-block' : 'none';
+        // Sidebar admin badge — tasks created in last 24h from public form
+        const yesterday = new Date(Date.now() - 86400000).toISOString();
+        const newPublic = _tasksAll.filter(t => t.source === 'public_form' && t.created_at > yesterday).length;
+        const adminBadge = document.getElementById('admin-tasks-badge');
+        if (adminBadge) {
+            adminBadge.textContent    = newPublic;
+            adminBadge.style.display  = newPublic > 0 ? 'inline-flex' : 'none';
         }
 
         populateTaskFilterDropdowns();
@@ -248,7 +248,12 @@ function renderTasksKanban(tasks) {
         const colTasks = byStatus[colStatus];
         const cards    = colTasks.map(buildKanbanCard).join('');
 
-        return `<div style="width:280px;flex-shrink:0;">
+        return `<div data-kanban-col="${colStatus}"
+             style="width:280px;flex-shrink:0;"
+             ondragover="kanbanDragOver(event,'${colStatus}')"
+             ondragenter="kanbanDragEnter(event,'${colStatus}')"
+             ondragleave="kanbanDragLeave(event)"
+             ondrop="kanbanDrop(event,'${colStatus}')">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;">
                 <span style="font-size:1rem;">${st.emoji}</span>
                 <span style="font-weight:700;font-size:.85rem;flex:1;">${st.label}</span>
@@ -258,12 +263,62 @@ function renderTasksKanban(tasks) {
                         onmouseover="this.style.background='rgba(255,215,0,.15)';this.style.color='#FFD700'"
                         onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='rgba(255,255,255,.4)'">+</button>
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;min-height:80px;">
+            <div data-kanban-cards="${colStatus}" style="display:flex;flex-direction:column;gap:10px;min-height:80px;padding:2px;border-radius:12px;transition:background .2s;">
                 ${cards || `<div style="text-align:center;padding:24px 12px;border:1px dashed rgba(255,255,255,.07);border-radius:12px;color:rgba(255,255,255,.2);font-size:.78rem;">Vazia</div>`}
             </div>
         </div>`;
     }).join('');
 }
+
+// ── Drag & Drop Handlers ───────────────────────────────────────────
+let _draggedTaskId = null;
+
+function kanbanDragEnter(e, colStatus) {
+    e.preventDefault();
+    const col = document.querySelector(`[data-kanban-cards="${colStatus}"]`);
+    if (col) col.classList.add('kanban-col-drop-target');
+}
+function kanbanDragOver(e, colStatus) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+function kanbanDragLeave(e) {
+    // Only clear if leaving the whole column wrapper
+    const related = e.relatedTarget;
+    if (!related || !e.currentTarget.contains(related)) {
+        const col = e.currentTarget.querySelector('[data-kanban-cards]');
+        if (col) col.classList.remove('kanban-col-drop-target');
+    }
+}
+async function kanbanDrop(e, newStatus) {
+    e.preventDefault();
+    // Clear all highlights
+    document.querySelectorAll('[data-kanban-cards]').forEach(c => c.classList.remove('kanban-col-drop-target'));
+
+    const taskId = _draggedTaskId || e.dataTransfer.getData('text/plain');
+    if (!taskId) return;
+
+    const task = _tasksAll.find(t => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    // Optimistic update
+    task.status = newStatus;
+    filterTasksView();
+
+    // Persist
+    const sb = window.supabaseClient;
+    if (sb) {
+        const { error } = await sb.from('tasks').update({ status: newStatus }).eq('id', taskId);
+        if (error) {
+            if (typeof hubToast !== 'undefined') hubToast('Erro ao mover: ' + error.message, 'error');
+            await loadTaskManager(); // revert
+        } else {
+            if (typeof hubToast !== 'undefined') hubToast(`Status → ${TASK_STATUS[newStatus]?.label || newStatus} ✅`, 'success');
+        }
+    }
+    _draggedTaskId = null;
+}
+
 
 function buildKanbanCard(t) {
     const pr      = TASK_PRIORITY[t.priority] || TASK_PRIORITY.medium;
@@ -271,14 +326,22 @@ function buildKanbanCard(t) {
     const due     = t.due_date ? new Date(t.due_date) : null;
     const overdue = due && due < now && !['done', 'cancelled'].includes(t.status);
     const dueStr  = due ? due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : null;
+    const isPublic = t.source === 'public_form';
 
     return `<div onclick="openTaskModal('${t.id}')"
-         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all .2s;"
+         draggable="true"
+         data-task-id="${t.id}"
+         ondragstart="_draggedTaskId='${t.id}';this.classList.add('kanban-card-dragging');event.dataTransfer.setData('text/plain','${t.id}')"
+         ondragend="this.classList.remove('kanban-card-dragging')"
+         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;cursor:grab;transition:all .2s;user-select:none;"
          onmouseover="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,215,0,.2)'"
          onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='rgba(255,255,255,.08)'">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${pr.color}18;color:${pr.color};">${pr.emoji} ${pr.label}</span>
-            ${t.comment_count > 0 ? `<span style="font-size:.7rem;color:rgba(255,255,255,.3);">💬 ${t.comment_count}</span>` : ''}
+            <div style="display:flex;align-items:center;gap:6px;">
+                ${isPublic ? '<span style="font-size:.65rem;color:#FFD700;opacity:.75;" title="Enviado pelo form público">📥</span>' : ''}
+                ${t.comment_count > 0 ? `<span style="font-size:.7rem;color:rgba(255,255,255,.3);">💬 ${t.comment_count}</span>` : ''}
+            </div>
         </div>
         <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;line-height:1.35;">${t.title || 'Sem título'}</div>
         ${t.department_name ? `<div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:8px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
@@ -289,10 +352,11 @@ function buildKanbanCard(t) {
                        <span style="font-size:.7rem;color:rgba(255,255,255,.45);">${t.assignee_name.split(' ')[0]}</span>
                    </div>`
                 : '<span></span>'}
-            ${dueStr ? `<span style="font-size:.7rem;font-weight:600;color:${overdue ? '#EF4444' : 'rgba(255,255,255,.35)'};">${overdue ? '⚠️ ' : ''}${dueStr}</span>` : ''}
+            ${dueStr ? `<span style="font-size:.7rem;font-weight:600;color:${overdue ? '#EF4444' : 'rgba(255,255,255,.35)'};">${overdue ? '⚠️ ' : '⏰ '}${dueStr}</span>` : ''}
         </div>
     </div>`;
 }
+
 
 // ── Task Modal ─────────────────────────────────────────────────────
 window.openTaskModal = async function (taskId, defaultStatus) {
@@ -378,6 +442,11 @@ window.saveTaskModal = async function () {
 
     const getVal = id => document.getElementById(id)?.value?.trim() || null;
 
+    const prevTask    = _tasksAll.find(t => t.id === _currentTaskId);
+    const prevAssignee = prevTask?.assignee_id || null;  // tasks_full view uses assignee_id
+    const newAssignee  = document.getElementById('task-modal-assignee')?.value || null;
+
+
     const payload = {
         workspace_id: wsId,
         title:        getVal('task-modal-title') || 'Sem título',
@@ -387,10 +456,11 @@ window.saveTaskModal = async function () {
         priority:     document.getElementById('task-modal-priority')?.value || 'medium',
         due_date:     document.getElementById('task-modal-due')?.value      || null,
         department_id:document.getElementById('task-modal-dept')?.value     || null,
-        assigned_to:  document.getElementById('task-modal-assignee')?.value || null,
+        assigned_to:  newAssignee || null,
     };
 
     try {
+        let savedId = _currentTaskId;
         let error;
         if (_currentTaskId) {
             ({ error } = await sb.from('tasks').update(payload).eq('id', _currentTaskId));
@@ -400,9 +470,22 @@ window.saveTaskModal = async function () {
                 created_by: window._currentUser?.id || null,
             }).select().single();
             error = err;
-            if (!error && newTask) _currentTaskId = newTask.id;
+            if (!error && newTask) { _currentTaskId = newTask.id; savedId = newTask.id; }
         }
         if (error) throw error;
+
+        // Notify newly assigned user
+        if (savedId && newAssignee && newAssignee !== prevAssignee) {
+            const me = window._currentUser;
+            await sb.from('task_notifications').insert({
+                user_id:    newAssignee,
+                workspace_id: wsId,
+                task_id:    savedId,
+                type:       'assigned',
+                content:    `${me?.name || 'Alguém'} atribuiu a tarefa "${payload.title}" a você.`,
+                created_by: me?.id || null,
+            });
+        }
 
         if (typeof hubToast !== 'undefined') hubToast('Tarefa salva ✅', 'success');
         closeTaskModal();
@@ -467,8 +550,9 @@ async function loadTaskComments(taskId) {
     }
 
     el.innerHTML = comments.map(c => {
-        const isMe   = c.user_id === window._currentUser?.id;
-        const u      = _tasksUsers.find(x => x.id === c.user_id);
+        const authorId = c.author_id; // correct column name
+        const isMe   = authorId === window._currentUser?.id;
+        const u      = _tasksUsers.find(x => x.id === authorId);
         const name   = u?.name || 'Usuário';
         const init   = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
         const date   = new Date(c.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -477,7 +561,7 @@ async function loadTaskComments(taskId) {
             <div style="width:30px;height:30px;border-radius:50%;background:${isMe ? 'linear-gradient(135deg,#FFD700,#FFA000)' : 'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;color:${isMe ? '#000' : '#fff'};flex-shrink:0;">${init}</div>
             <div style="flex:1;${isMe ? 'text-align:right;' : ''}">
                 <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:4px;">${name} · ${date}</div>
-                <div style="display:inline-block;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 12px;font-size:.83rem;text-align:left;max-width:90%;">${body}</div>
+                <div style="display:inline-block;background:${isMe ? 'rgba(255,215,0,.1)' : 'rgba(255,255,255,.06)'};border-radius:12px;padding:8px 13px;font-size:.83rem;text-align:left;max-width:90%;border:1px solid ${isMe ? 'rgba(255,215,0,.15)' : 'rgba(255,255,255,.06)'}">${body}</div>
             </div>
         </div>`;
     }).join('');
@@ -493,8 +577,9 @@ window.submitTaskComment = async function () {
 
     input.value = '';
     const { error } = await sb.from('task_comments').insert({
-        task_id: taskId,
-        user_id: window._currentUser?.id,
+        task_id:      taskId,
+        author_id:    window._currentUser?.id,  // correct column
+        workspace_id: window.currentWorkspaceId,
         content,
     });
     if (error) {
@@ -625,14 +710,15 @@ window.openTaskNotifications = async function () {
         const task    = _tasksAll.find(t => t.id === n.task_id);
         const title   = task?.title || 'Tarefa';
         const dateStr = new Date(n.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const alphaBg = n.read ? '.02' : '.06';
-        const alphaBd = n.read ? '.06' : '.12';
+        const isRead  = !!n.read_at;
+        const alphaBg = isRead ? '.02' : '.06';
+        const alphaBd = isRead ? '.06' : '.12';
         return `<div onclick="handleNotifClick('${n.id}','${n.task_id}')"
                      style="padding:12px 14px;border-radius:12px;cursor:pointer;border:1px solid rgba(255,255,255,${alphaBd});background:rgba(255,255,255,${alphaBg});transition:all .2s;"
                      onmouseover="this.style.background='rgba(255,255,255,.08)'"
                      onmouseout="this.style.background='rgba(255,255,255,${alphaBg})'">
             <div style="display:flex;align-items:flex-start;gap:10px;">
-                ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#818CF8;flex-shrink:0;margin-top:5px;"></div>' : '<div style="width:7px;"></div>'}
+                ${!isRead ? '<div style="width:7px;height:7px;border-radius:50%;background:#818CF8;flex-shrink:0;margin-top:5px;"></div>' : '<div style="width:7px;"></div>'}
                 <div style="flex:1;">
                     <div style="font-size:.8rem;font-weight:600;margin-bottom:3px;">${typeLabel[n.type] || '🔔 Notificação'}</div>
                     <div style="font-size:.75rem;color:rgba(255,255,255,.5);">"${title}"</div>
@@ -652,7 +738,8 @@ window.closeTaskNotifications = function () {
 
 window.handleNotifClick = async function (notifId, taskId) {
     const sb = window.supabaseClient;
-    if (sb && notifId) await sb.from('task_notifications').update({ read: true }).eq('id', notifId);
+    // read_at is the correct column (not 'read')
+    if (sb && notifId) await sb.from('task_notifications').update({ read_at: new Date().toISOString() }).eq('id', notifId);
     closeTaskNotifications();
     if (taskId) openTaskModal(taskId);
 };
@@ -661,7 +748,7 @@ window.markAllNotifsRead = async function () {
     const sb     = window.supabaseClient;
     const userId = window._currentUser?.id;
     if (!sb || !userId) return;
-    await sb.from('task_notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+    await sb.from('task_notifications').update({ read_at: new Date().toISOString() }).eq('user_id', userId).is('read_at', null);
     const badge = document.getElementById('tasks-notif-badge');
     if (badge) badge.style.display = 'none';
     openTaskNotifications();
@@ -779,31 +866,102 @@ window.rejectPublicRequest = async function (rid) {
 };
 
 window.copyPublicFormLink = function () {
-    const ws   = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId);
+    const ws   = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)
+              || { slug: window._currentWorkspaceSlug || '' };
     const slug = ws?.slug || '';
-    const url  = window.location.origin + (slug ? '/' + slug + '/demanda.html' : '/demanda.html');
-    navigator.clipboard.writeText(url).then(() => {
+    const url  = window.location.origin + (slug ? '/' + slug + '/demanda.html' : '/demanda.html') + (slug ? '' : `?ws=${slug}`);
+    const finalUrl = slug
+        ? `${window.location.origin}/${slug}/demanda.html`
+        : `${window.location.origin}/demanda.html`;
+
+    // Show in settings panel if open
+    const linkEl = document.getElementById('settings-form-link');
+    if (linkEl) linkEl.textContent = finalUrl;
+
+    navigator.clipboard.writeText(finalUrl).then(() => {
         if (typeof hubToast !== 'undefined') hubToast('Link copiado! 🔗', 'success');
     });
 };
 
-// ── Department Manager ─────────────────────────────────────────────
-window.openDeptManager = function () {
-    const o = document.getElementById('dept-manager-overlay');
-    if (o) o.style.display = 'flex';
-    renderDeptList();
+// ── Task Settings Panel ───────────────────────────────────────────
+window.openTaskSettings = function () {
+    const overlay = document.getElementById('task-settings-overlay');
+    const panel   = document.getElementById('task-settings-panel');
+    if (overlay && panel) {
+        overlay.style.display = 'flex';
+        requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; }));
+    }
+    renderSettingsDeptList();
+    copyPublicFormLink(); // populate form link field
+    // Load email setting from workspace knowledge_base
+    const wb = window._currentWorkspaceData?.knowledge_base || {};
+    const toggle = document.getElementById('settings-email-notif');
+    if (toggle) toggle.checked = wb.task_email_notif !== false;
+    updateEmailToggleUI();
 };
-window.closeDeptManager = function () {
-    const o = document.getElementById('dept-manager-overlay');
-    if (o) o.style.display = 'none';
+
+window.closeTaskSettings = function () {
+    const overlay = document.getElementById('task-settings-overlay');
+    const panel   = document.getElementById('task-settings-panel');
+    if (panel) panel.style.transform = 'translateX(100%)';
+    setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 360);
 };
-function renderDeptList() {
-    const el = document.getElementById('dept-list');
+
+function renderSettingsDeptList() {
+    const el = document.getElementById('settings-dept-list');
     if (!el) return;
     el.innerHTML = _tasksDepts.length
-        ? _tasksDepts.map(d => `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;"><span style="font-size:1.1rem;">${d.icon || '🏷️'}</span><span style="flex:1;font-weight:600;font-size:.85rem;">${d.name}</span><div style="width:14px;height:14px;border-radius:50%;background:${d.color || '#FFD700'};flex-shrink:0;"></div></div>`).join('')
-        : '<div style="color:rgba(255,255,255,.3);font-size:.82rem;text-align:center;padding:12px;">Nenhum departamento</div>';
+        ? _tasksDepts.map(d => `
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;">
+                <span style="font-size:1.1rem;">${d.icon || '🏷️'}</span>
+                <span style="flex:1;font-weight:600;font-size:.85rem;">${d.name}</span>
+                <div style="width:12px;height:12px;border-radius:50%;background:${d.color || '#FFD700'};flex-shrink:0;"></div>
+                <button onclick="deleteDepartment('${d.id}','${d.name}')"
+                    style="width:24px;height:24px;border-radius:8px;border:none;background:rgba(239,68,68,.08);color:rgba(239,68,68,.6);cursor:pointer;font-size:.75rem;transition:all .2s;"
+                    onmouseover="this.style.background='rgba(239,68,68,.2)';this.style.color='#EF4444'"
+                    onmouseout="this.style.background='rgba(239,68,68,.08)';this.style.color='rgba(239,68,68,.6)'">✕</button>
+            </div>`).join('')
+        : '<div style="color:rgba(255,255,255,.3);font-size:.82rem;text-align:center;padding:12px;">Nenhum departamento ainda</div>';
 }
+
+window.deleteDepartment = async function (deptId, name) {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+    const { error } = await sb.from('task_departments').delete().eq('id', deptId);
+    if (error) { if (typeof hubToast !== 'undefined') hubToast('Erro: ' + error.message, 'error'); return; }
+    if (typeof hubToast !== 'undefined') hubToast(`"${name}" removido`, 'success');
+    await loadTaskManager();
+    renderSettingsDeptList();
+};
+
+window.saveTaskEmailSetting = async function () {
+    const sb   = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!sb || !wsId) return;
+    const toggle  = document.getElementById('settings-email-notif');
+    const checked = toggle?.checked || false;
+
+    // Merge into knowledge_base JSONB
+    const ws = window._currentWorkspaceData || {};
+    const kb = { ...(ws.knowledge_base || {}), task_email_notif: checked };
+    await sb.from('workspaces').update({ knowledge_base: kb }).eq('id', wsId);
+    updateEmailToggleUI();
+    if (typeof hubToast !== 'undefined') hubToast(checked ? 'Avisos ativados ✅' : 'Avisos desativados', 'success');
+};
+
+function updateEmailToggleUI() {
+    const toggle = document.getElementById('settings-email-notif');
+    const track  = document.getElementById('email-toggle-track');
+    const thumb  = document.getElementById('email-toggle-thumb');
+    if (!toggle || !track || !thumb) return;
+    const on = toggle.checked;
+    track.style.background = on ? 'linear-gradient(135deg,#FFD700,#FFA000)' : 'rgba(255,255,255,.1)';
+    thumb.style.transform  = on ? 'translateX(20px)' : 'translateX(0)';
+}
+
+// ── Department Manager (simplified, now inside settings) ───────────
+window.openDeptManager = openTaskSettings;  // alias for any legacy calls
+window.closeDeptManager = closeTaskSettings;
 window.addNewDepartment = async function () {
     const sb   = window.supabaseClient;
     const wsId = window.currentWorkspaceId;
@@ -818,5 +976,5 @@ window.addNewDepartment = async function () {
     if (nameEl) nameEl.value = '';
     if (typeof hubToast !== 'undefined') hubToast(`Departamento "${name}" criado ✅`, 'success');
     await loadTaskManager();
-    renderDeptList();
+    renderSettingsDeptList();
 };
