@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Relatório de Consolidação · Zelo Pro</title>
 <meta name="description" content="Relatório público de consolidação em tempo real.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><path d='M4 4h10L4 14h10' stroke='%23FFD700' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
@@ -16,7 +16,7 @@
     --surface2: #181818;
     --border: rgba(255,255,255,0.07);
     --text: #f0f0f0;
-    --text-dim: #888;
+    --text-dim: #777;
     --radius: 16px;
     --font: 'Inter', sans-serif;
     --saved-color: #4ade80;
@@ -27,208 +27,173 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
+  html, body {
     font-family: var(--font);
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     line-height: 1.5;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   /* ── Password Gate ────────────────────────────────────── */
   #gate {
     position: fixed; inset: 0; z-index: 9999;
-    background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.08) 0%, #080808 60%);
+    background: radial-gradient(ellipse at 50% -20%, rgba(255,215,0,0.12) 0%, #080808 55%);
     display: flex; align-items: center; justify-content: center; padding: 20px;
   }
   #gate-card {
-    background: rgba(20,20,20,0.95);
-    border: 1px solid rgba(255,215,0,0.15);
+    background: rgba(18,18,18,0.98);
+    border: 1px solid rgba(255,215,0,0.12);
     border-radius: 24px;
-    padding: 48px 40px;
-    width: 100%; max-width: 420px;
-    box-shadow: 0 32px 96px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,215,0,0.06);
-    backdrop-filter: blur(20px);
+    padding: 44px 36px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,215,0,0.05);
+    backdrop-filter: blur(24px);
     text-align: center;
   }
-  #gate-logo {
-    display: inline-flex; align-items: center; gap: 10px;
-    margin-bottom: 32px;
+  .gate-logo {
+    display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px;
   }
-  #gate-logo .z-mark {
-    width: 44px; height: 44px;
-    background: var(--accent);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
+  .gate-logo .z-mark {
+    width: 44px; height: 44px; background: var(--accent);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
   }
-  #gate-logo span {
-    font-size: 1.1rem; font-weight: 800; color: var(--text);
-    letter-spacing: -0.5px;
+  .gate-logo span { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+  .gate-badge {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent); margin-bottom: 10px;
   }
-  #gate-card h2 {
-    font-size: 1.4rem; font-weight: 800; color: #fff;
-    margin-bottom: 8px;
-  }
-  #gate-card p {
-    font-size: 0.85rem; color: var(--text-dim); margin-bottom: 32px;
-  }
-  #gate-church {
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 2px; color: var(--accent); margin-bottom: 6px;
-  }
+  #gate-card h2 { font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  #gate-card p  { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 28px; line-height: 1.6; }
 
-  .gate-input-wrap {
-    position: relative; margin-bottom: 16px;
-  }
-  .gate-input-wrap svg {
-    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-    color: var(--text-dim);
-  }
+  .gate-input-wrap { position: relative; margin-bottom: 12px; }
+  .gate-input-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #444; pointer-events: none; }
   .gate-input {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
     padding: 13px 14px 13px 42px;
-    color: #fff; font-size: 0.9rem; font-family: var(--font);
-    outline: none; transition: border-color 0.2s, background 0.2s;
+    color: #fff; font-size: 0.9rem; font-family: var(--font); outline: none;
+    transition: border-color 0.2s;
   }
-  .gate-input:focus {
-    border-color: rgba(255,215,0,0.4);
-    background: rgba(255,215,0,0.03);
-  }
+  .gate-input:focus { border-color: rgba(255,215,0,0.35); background: rgba(255,215,0,0.02); }
   .gate-btn {
-    width: 100%;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #000; border: none; border-radius: 12px;
-    padding: 14px; font-size: 0.95rem; font-weight: 800;
-    cursor: pointer; transition: opacity 0.2s, transform 0.15s;
-    letter-spacing: 0.01em; margin-top: 4px;
+    width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000; border: none; border-radius: 12px; padding: 14px;
+    font-size: 0.93rem; font-weight: 800; cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s; margin-top: 4px; font-family: var(--font);
   }
   .gate-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-  .gate-btn:active { transform: translateY(0); }
   #gate-error {
-    display: none;
-    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 10px; padding: 10px 14px; font-size: 0.82rem;
-    color: #f87171; margin-top: 12px;
+    display: none; background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.8rem; color: #f87171; margin-top: 12px;
   }
-  .gate-footer {
-    margin-top: 28px; font-size: 0.7rem; color: #444;
-  }
+  .gate-footer { margin-top: 24px; font-size: 0.68rem; color: #333; }
 
-  /* ── App Shell ────────────────────────────────────────── */
+  /* ── App ──────────────────────────────────────────────── */
   #app { display: none; }
 
   /* ── Header ───────────────────────────────────────────── */
   .pub-header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(8,8,8,0.9);
-    backdrop-filter: blur(20px) saturate(1.8);
+    background: rgba(8,8,8,0.92); backdrop-filter: blur(20px) saturate(1.8);
     border-bottom: 1px solid var(--border);
-    padding: 0 32px;
-    height: 64px;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 0 16px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
   }
-  .pub-header-left {
-    display: flex; align-items: center; gap: 12px;
-  }
+  .pub-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .pub-logo {
-    width: 36px; height: 36px;
-    background: var(--accent);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    width: 34px; height: 34px; background: var(--accent); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .pub-church-name {
-    font-size: 1rem; font-weight: 800; color: #fff;
+    font-size: 0.95rem; font-weight: 800; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
   }
   .pub-badge {
-    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1.5px; background: rgba(255,215,0,0.1);
-    border: 1px solid rgba(255,215,0,0.25); color: var(--accent);
-    padding: 3px 9px; border-radius: 20px;
+    font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+    background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.22);
+    color: var(--accent); padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
   }
-  .pub-header-right {
-    display: flex; align-items: center; gap: 8px;
-  }
+  .pub-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .live-dot {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 0.7rem; font-weight: 600; color: var(--saved-color);
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--saved-color); white-space: nowrap;
   }
   .live-dot::before {
-    content: ''; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--saved-color);
-    animation: pulse-live 2s ease-in-out infinite;
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--saved-color); animation: pulse-live 2s ease-in-out infinite;
   }
   @keyframes pulse-live {
     0%,100% { opacity:1; transform:scale(1); }
-    50% { opacity:.4; transform:scale(1.3); }
+    50% { opacity:.35; transform:scale(1.4); }
   }
 
-  /* ── Main Content ─────────────────────────────────────── */
-  .pub-main { max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; }
+  /* ── Main ─────────────────────────────────────────────── */
+  .pub-main { padding: 20px 16px 80px; }
 
-  /* ── Period + Filter bar ──────────────────────────────── */
-  .filter-bar {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    margin-bottom: 28px;
-  }
+  /* ── Filter bar ───────────────────────────────────────── */
+  .filter-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .filter-row1 { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+  .filter-row2 { display: flex; align-items: center; gap: 8px; }
+
   .period-group {
-    display: flex; gap: 4px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 4px;
+    display: flex; gap: 3px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 12px; padding: 3px; flex-shrink: 0;
   }
   .period-btn {
-    background: none; border: none;
-    color: var(--text-dim); font-size: 0.78rem; font-weight: 600;
-    padding: 6px 14px; border-radius: 8px; cursor: pointer;
-    transition: all 0.18s; font-family: var(--font);
+    background: none; border: none; color: var(--text-dim); font-size: 0.78rem;
+    font-weight: 600; padding: 6px 13px; border-radius: 8px; cursor: pointer;
+    transition: all 0.18s; font-family: var(--font); white-space: nowrap;
   }
   .period-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
-  .period-btn.active {
-    background: var(--accent); color: #000; font-weight: 800;
-  }
-  .filter-search {
-    flex: 1; min-width: 200px; max-width: 320px;
-    background: var(--surface);
-    border: 1px solid var(--border); border-radius: 12px;
-    padding: 8px 14px 8px 36px;
-    color: var(--text); font-size: 0.85rem; font-family: var(--font);
-    outline: none; transition: border-color 0.2s;
-    position: relative;
-  }
-  .filter-search:focus { border-color: rgba(255,215,0,0.3); }
-  .search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
-  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
-  .filter-select {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 8px 14px; color: var(--text);
-    font-size: 0.82rem; font-family: var(--font); outline: none;
-    cursor: pointer; transition: border-color 0.2s;
-  }
-  .filter-select:focus { border-color: rgba(255,215,0,0.3); }
+  .period-btn.active { background: var(--accent); color: #000; font-weight: 800; }
+
   .filter-count {
-    margin-left: auto; font-size: 0.78rem; color: var(--text-dim);
-    white-space: nowrap;
+    margin-left: auto; font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; flex-shrink: 0;
   }
   .filter-count span { color: var(--accent); font-weight: 700; }
+
+  .search-wrap { position: relative; flex: 1; min-width: 0; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-dim); pointer-events: none; }
+  .filter-search {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 9px 12px 9px 34px;
+    color: var(--text); font-size: 0.83rem; font-family: var(--font); outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-search:focus { border-color: rgba(255,215,0,0.3); }
+
+  .filter-select {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 9px 12px; color: var(--text);
+    font-size: 0.8rem; font-family: var(--font); outline: none; cursor: pointer;
+    flex-shrink: 0; max-width: 160px;
+  }
+  .filter-select:focus { border-color: rgba(255,215,0,0.3); }
 
   /* ── KPI Grid ────────────────────────────────────────── */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 28px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
   }
+  @media (min-width: 600px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+
   .kpi-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
-    position: relative; overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 16px; position: relative;
+    overflow: hidden; transition: border-color 0.2s, transform 0.2s;
   }
   .kpi-card:hover { border-color: rgba(255,215,0,0.2); transform: translateY(-2px); }
   .kpi-card::before {
@@ -242,12 +207,11 @@
   .kpi-card.teal::before   { background: linear-gradient(90deg, #2dd4bf, transparent); }
 
   .kpi-label {
-    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px;
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.3;
   }
   .kpi-value {
-    font-size: 2rem; font-weight: 900; line-height: 1;
-    letter-spacing: -1px;
+    font-size: 1.9rem; font-weight: 900; line-height: 1; letter-spacing: -1px;
   }
   .kpi-card.yellow .kpi-value { color: var(--accent); }
   .kpi-card.green  .kpi-value { color: var(--saved-color); }
@@ -255,142 +219,159 @@
   .kpi-card.purple .kpi-value { color: var(--baptism-color); }
   .kpi-card.orange .kpi-value { color: var(--gc-color); }
   .kpi-card.teal   .kpi-value { color: #2dd4bf; }
-  .kpi-sub {
-    font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;
-  }
-  .kpi-icon {
-    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    font-size: 1.6rem; opacity: 0.12;
-  }
+  .kpi-sub { font-size: 0.67rem; color: var(--text-dim); margin-top: 4px; }
+  .kpi-icon { position: absolute; right: 12px; bottom: 10px; font-size: 1.4rem; opacity: 0.1; }
 
-  /* ── Cards Grid ──────────────────────────────────────── */
+  /* ── Leads Grid ──────────────────────────────────────── */
   .leads-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
+  @media (min-width: 600px) {
+    .leads-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .leads-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
   .lead-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
     transition: border-color 0.2s, transform 0.15s;
     animation: fadeUp 0.3s ease both;
   }
-  .lead-card:hover {
-    border-color: rgba(255,215,0,0.2);
-    transform: translateY(-2px);
-  }
+  .lead-card:hover { border-color: rgba(255,215,0,0.18); transform: translateY(-2px); }
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+  /* Card top: avatar + name + type badge */
   .lead-top {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 11px; margin-bottom: 12px;
   }
   .lead-avatar {
-    width: 40px; height: 40px; border-radius: 11px;
+    width: 40px; height: 40px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 0.9rem; flex-shrink: 0;
+    font-weight: 800; font-size: 0.95rem; flex-shrink: 0;
   }
-  .lead-avatar.saved {
-    background: rgba(74,222,128,0.12); color: var(--saved-color);
-    border: 1px solid rgba(74,222,128,0.2);
-  }
-  .lead-avatar.visitor {
-    background: rgba(96,165,250,0.12); color: var(--visitor-color);
-    border: 1px solid rgba(96,165,250,0.2);
-  }
+  .lead-avatar.saved   { background: rgba(74,222,128,0.10); color: var(--saved-color);   border: 1px solid rgba(74,222,128,0.18); }
+  .lead-avatar.visitor { background: rgba(96,165,250,0.10); color: var(--visitor-color); border: 1px solid rgba(96,165,250,0.18); }
+
   .lead-name {
-    font-weight: 700; font-size: 0.95rem; color: #fff;
+    font-weight: 700; font-size: 0.9rem; color: #fff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
   }
-  .lead-date {
-    font-size: 0.7rem; color: var(--text-dim); margin-top: 1px;
-  }
-  .lead-type-badge {
-    margin-left: auto; font-size: 0.6rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.8px;
+  .lead-date { font-size: 0.68rem; color: var(--text-dim); margin-top: 1px; }
+
+  .type-badge {
+    font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
     padding: 3px 8px; border-radius: 20px; flex-shrink: 0;
   }
-  .lead-type-badge.saved {
-    background: rgba(74,222,128,0.1); color: var(--saved-color);
-    border: 1px solid rgba(74,222,128,0.2);
+  .type-badge.saved   { background: rgba(74,222,128,0.08);  color: var(--saved-color);   border: 1px solid rgba(74,222,128,0.18); }
+  .type-badge.visitor { background: rgba(96,165,250,0.08);  color: var(--visitor-color); border: 1px solid rgba(96,165,250,0.18); }
+
+  /* Card meta rows */
+  .lead-meta { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .meta-row {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.75rem; color: #bbb;
   }
-  .lead-type-badge.visitor {
-    background: rgba(96,165,250,0.1); color: var(--visitor-color);
-    border: 1px solid rgba(96,165,250,0.2);
+  .meta-row .meta-icon {
+    font-size: 0.85rem; width: 16px; text-align: center; flex-shrink: 0;
   }
-  .lead-tasks {
-    display: flex; flex-wrap: wrap; gap: 5px;
+  .meta-row .meta-val {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .task-chip {
-    font-size: 0.65rem; font-weight: 600;
-    padding: 3px 8px; border-radius: 6px;
-    border: 1px solid transparent;
-  }
-  .task-chip.pending {
-    background: rgba(251,191,36,0.08); color: #fbbf24;
-    border-color: rgba(251,191,36,0.2);
-  }
-  .task-chip.completed {
-    background: rgba(74,222,128,0.08); color: #4ade80;
-    border-color: rgba(74,222,128,0.2); text-decoration: line-through;
-    opacity: 0.7;
+  .meta-row .meta-label {
+    color: var(--text-dim); font-size: 0.68rem; flex-shrink: 0; margin-right: 2px;
   }
 
-  /* ── Empty state ─────────────────────────────────────── */
-  .empty-state {
-    text-align: center; padding: 80px 20px; color: var(--text-dim);
+  /* Contact buttons */
+  .lead-actions { display: flex; gap: 7px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 7px 12px; border-radius: 9px; border: 1px solid; cursor: pointer;
+    font-size: 0.72rem; font-weight: 600; font-family: var(--font);
+    text-decoration: none; transition: opacity 0.18s, transform 0.15s;
+    white-space: nowrap; flex-shrink: 0;
   }
-  .empty-state svg { opacity: 0.2; margin-bottom: 16px; }
+  .action-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+  .action-btn.whatsapp {
+    background: rgba(37,211,102,0.08); border-color: rgba(37,211,102,0.25);
+    color: #25d366;
+  }
+  .action-btn.email-btn {
+    background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.2);
+    color: var(--visitor-color); flex: 1; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Separator inside card */
+  .lead-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 10px 0; }
+
+  /* GC chip */
+  .gc-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.65rem; font-weight: 600; padding: 3px 9px; border-radius: 6px;
+  }
+  .gc-chip.yes  { background: rgba(251,146,60,0.08); color: var(--gc-color); border: 1px solid rgba(251,146,60,0.2); }
+  .gc-chip.no   { background: rgba(255,255,255,0.04); color: #555; border: 1px solid rgba(255,255,255,0.07); }
+  .gc-chip.unk  { background: rgba(255,255,255,0.03); color: #444; border: 1px solid rgba(255,255,255,0.05); }
+
+  /* Decision badge */
+  .decisao-chip {
+    display: inline-block; font-size: 0.65rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 6px; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .decisao-chip.primary   { background: rgba(255,215,0,0.08); color: var(--accent); border: 1px solid rgba(255,215,0,0.2); }
+  .decisao-chip.secondary { background: rgba(167,139,250,0.08); color: var(--baptism-color); border: 1px solid rgba(167,139,250,0.2); }
+  .decisao-chip.muted     { background: rgba(255,255,255,0.04); color: #666; border: 1px solid rgba(255,255,255,0.07); }
 
   /* ── Section header ──────────────────────────────────── */
   .section-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .section-title {
-    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1.5px; color: var(--text-dim);
   }
 
-  /* ── Loading ─────────────────────────────────────────── */
+  /* ── Spinner ─────────────────────────────────────────── */
   .spinner {
-    width: 36px; height: 36px; border-radius: 50%;
-    border: 3px solid rgba(255,215,0,0.15);
-    border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite;
-    margin: 60px auto;
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid rgba(255,215,0,0.12); border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite; margin: 60px auto;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Empty state ─────────────────────────────────────── */
+  .empty-state { text-align: center; padding: 64px 20px; color: var(--text-dim); }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.3; }
 
   /* ── Footer ──────────────────────────────────────────── */
   .pub-footer {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(8,8,8,0.95); backdrop-filter: blur(12px);
+    background: rgba(8,8,8,0.96); backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
-    padding: 10px 32px;
+    padding: 10px 16px;
     display: flex; align-items: center; justify-content: space-between;
-    font-size: 0.7rem; color: #333;
+    font-size: 0.68rem; color: #333;
   }
   .pub-footer a { color: #444; text-decoration: none; }
-
-  /* ── Responsive ──────────────────────────────────────── */
-  @media (max-width: 768px) {
-    .pub-header { padding: 0 16px; }
-    .pub-main { padding: 20px 16px 80px; }
-    .pub-church-name { display: none; }
-    .filter-bar { gap: 8px; }
-  }
+  .pub-footer strong { color: #555; }
 </style>
 </head>
 <body>
 
-<!-- ══ Password Gate ═══════════════════════════════════════ -->
+<!-- ══ Gate ════════════════════════════════════════════════ -->
 <div id="gate">
   <div id="gate-card">
-    <div id="gate-logo">
+    <div class="gate-logo">
       <div class="z-mark">
         <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
           <path d="M4 4h10L4 14h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -398,18 +379,15 @@
       </div>
       <span>Zelo Pro</span>
     </div>
-    <div id="gate-church">Relatório de Consolidação</div>
+    <div class="gate-badge">Relatório de Consolidação</div>
     <h2>Acesso Restrito</h2>
-    <p>Este relatório é protegido por senha. Entre com as credenciais da sua equipe para visualizar os dados em tempo real.</p>
-
+    <p>Este relatório é protegido por senha. Entre com as credenciais fornecidas pela equipe para visualizar os dados em tempo real.</p>
     <div class="gate-input-wrap">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      <input class="gate-input" type="password" id="gate-password" placeholder="Digite a senha do relatório" onkeydown="if(event.key==='Enter')verifyPassword()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input class="gate-input" type="password" id="gate-password" placeholder="Senha do relatório" onkeydown="if(event.key==='Enter')verifyPassword()">
     </div>
-    <button class="gate-btn" onclick="verifyPassword()" id="gate-btn">
-      Acessar Relatório
-    </button>
-    <div id="gate-error">Senha incorreta. Tente novamente.</div>
+    <button class="gate-btn" onclick="verifyPassword()" id="gate-btn">Acessar Relatório</button>
+    <div id="gate-error">Senha incorreta. Verifique e tente novamente.</div>
     <div class="gate-footer">Powered by Zelo Pro · 7Pro Labs</div>
   </div>
 </div>
@@ -419,48 +397,50 @@
   <header class="pub-header">
     <div class="pub-header-left">
       <div class="pub-logo">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <svg width="17" height="17" viewBox="0 0 18 18" fill="none">
           <path d="M4 4h10L4 14h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div>
-        <div class="pub-church-name" id="header-church-name">Carregando...</div>
-      </div>
+      <div class="pub-church-name" id="header-church-name">Carregando…</div>
       <span class="pub-badge">Consolidação</span>
     </div>
     <div class="pub-header-right">
       <span class="live-dot">Tempo Real</span>
-      <span id="header-last-update" style="font-size:0.7rem;color:#444;margin-left:4px;"></span>
     </div>
   </header>
 
   <main class="pub-main">
+
     <!-- Filter Bar -->
     <div class="filter-bar">
-      <div class="period-group" id="period-group">
-        <button class="period-btn active" data-days="7" onclick="setPeriod(7, this)">7d</button>
-        <button class="period-btn" data-days="30" onclick="setPeriod(30, this)">30d</button>
-        <button class="period-btn" data-days="90" onclick="setPeriod(90, this)">90d</button>
-        <button class="period-btn" data-days="0" onclick="setPeriod(0, this)">Todos</button>
+      <div class="filter-row1">
+        <div class="period-group">
+          <button class="period-btn active" onclick="setPeriod(7, this)">7d</button>
+          <button class="period-btn" onclick="setPeriod(30, this)">30d</button>
+          <button class="period-btn" onclick="setPeriod(90, this)">90d</button>
+          <button class="period-btn" onclick="setPeriod(0, this)">Todos</button>
+        </div>
+        <div class="filter-count">Exibindo <span id="pub-count">0</span> pessoas</div>
       </div>
-      <div class="search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input class="filter-search" type="text" id="pub-search" placeholder="Buscar pessoa..." oninput="filterLeads()">
+      <div class="filter-row2">
+        <div class="search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="filter-search" type="search" id="pub-search" placeholder="Buscar por nome ou telefone…" oninput="filterLeads()">
+        </div>
+        <select class="filter-select" id="pub-filter-type" onchange="filterLeads()">
+          <option value="all">Todos</option>
+          <option value="saved">Salvos</option>
+          <option value="visitor">Visitantes</option>
+        </select>
       </div>
-      <select class="filter-select" id="pub-filter-type" onchange="filterLeads()">
-        <option value="all">Todos os tipos</option>
-        <option value="saved">Salvos</option>
-        <option value="visitor">Visitantes</option>
-      </select>
-      <div class="filter-count">Exibindo <span id="pub-count">0</span> pessoas</div>
     </div>
 
     <!-- KPI Grid -->
-    <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-grid">
       <div class="kpi-card yellow">
-        <div class="kpi-label">Total de Pessoas</div>
+        <div class="kpi-label">Total</div>
         <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-sub">no período selecionado</div>
+        <div class="kpi-sub">no período</div>
         <div class="kpi-icon">👥</div>
       </div>
       <div class="kpi-card green">
@@ -476,40 +456,39 @@
         <div class="kpi-icon">👋</div>
       </div>
       <div class="kpi-card purple">
-        <div class="kpi-label">Interesse em Batismo</div>
+        <div class="kpi-label">Batismo</div>
         <div class="kpi-value" id="kpi-batismo">—</div>
-        <div class="kpi-sub">solicitações</div>
+        <div class="kpi-sub">interesse</div>
         <div class="kpi-icon">🕊️</div>
       </div>
       <div class="kpi-card orange">
-        <div class="kpi-label">Interesse em GC</div>
+        <div class="kpi-label">Grupos (GC)</div>
         <div class="kpi-value" id="kpi-gc">—</div>
-        <div class="kpi-sub">grupos de comunidade</div>
+        <div class="kpi-sub">comunidade</div>
         <div class="kpi-icon">🏠</div>
       </div>
       <div class="kpi-card teal">
-        <div class="kpi-label">Interesse em Start</div>
+        <div class="kpi-label">Start</div>
         <div class="kpi-value" id="kpi-start">—</div>
-        <div class="kpi-sub">curso de discipulado</div>
+        <div class="kpi-sub">discipulado</div>
         <div class="kpi-icon">🚀</div>
       </div>
     </div>
 
-    <!-- Leads Section -->
+    <!-- Leads -->
     <div class="section-header">
       <div class="section-title">Pessoas</div>
     </div>
-
     <div id="leads-loading" class="spinner"></div>
     <div id="leads-grid" class="leads-grid" style="display:none;"></div>
     <div id="leads-empty" class="empty-state" style="display:none;">
-      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <div class="empty-icon">🔍</div>
       <p>Nenhuma pessoa encontrada para este período.</p>
     </div>
   </main>
 
   <footer class="pub-footer">
-    <span>Relatório gerado por <strong style="color:#555;">Zelo Pro</strong></span>
+    <span>Relatório por <strong>Zelo Pro</strong></span>
     <a href="https://zelo.7prolabs.com" target="_blank">zelo.7prolabs.com</a>
   </footer>
 </div>
@@ -518,15 +497,15 @@
 const SUPABASE_FN_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1/public-report';
 const SESSION_KEY = 'pub_report_auth';
 
-// Get workspace slug from URL path: /orlando/relatorio-publico.html
+// Workspace slug from URL: e.g. /orlando/relatorio-publico.html → "orlando"
 const pathParts = window.location.pathname.split('/').filter(Boolean);
-const WORKSPACE_SLUG = pathParts.length > 1 ? pathParts[pathParts.length - 2] : 'orlando';
+const WORKSPACE_SLUG = pathParts.length > 1 ? pathParts[pathParts.length - 2] : (pathParts[0] || 'orlando');
 
 let _allLeads = [];
 let _currentDays = 7;
 let _password = '';
 
-// ── Check existing session ────────────────────────────
+// ── Restore session ────────────────────────────────────
 const saved = sessionStorage.getItem(SESSION_KEY);
 if (saved) {
   try {
@@ -538,17 +517,13 @@ if (saved) {
   } catch(e) {}
 }
 
-// ── Verify Password ───────────────────────────────────
+// ── Verify password ────────────────────────────────────
 async function verifyPassword() {
   const pw = document.getElementById('gate-password').value.trim();
   if (!pw) return;
-
   const btn = document.getElementById('gate-btn');
-  btn.textContent = 'Verificando...';
-  btn.disabled = true;
-
-  const err = document.getElementById('gate-error');
-  err.style.display = 'none';
+  btn.textContent = 'Verificando…'; btn.disabled = true;
+  document.getElementById('gate-error').style.display = 'none';
 
   try {
     const res = await fetch(SUPABASE_FN_URL, {
@@ -558,45 +533,32 @@ async function verifyPassword() {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    // Store session
     _password = pw;
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ slug: WORKSPACE_SLUG, password: pw }));
-
-    // Animate gate out
-    const gate = document.getElementById('gate');
-    gate.style.transition = 'opacity 0.4s ease';
-    gate.style.opacity = '0';
-    setTimeout(() => gate.remove(), 400);
-
+    animateGateOut();
     bootApp(data);
   } catch(e) {
-    err.textContent = e.message?.includes('Senha') ? 'Senha incorreta. Tente novamente.' : 'Erro ao conectar. Verifique sua conexão.';
-    err.style.display = 'block';
+    const msg = e.message?.toLowerCase().includes('senha') ? 'Senha incorreta. Tente novamente.' : 'Erro de conexão. Tente novamente.';
+    document.getElementById('gate-error').textContent = msg;
+    document.getElementById('gate-error').style.display = 'block';
   } finally {
-    btn.textContent = 'Acessar Relatório';
-    btn.disabled = false;
+    btn.textContent = 'Acessar Relatório'; btn.disabled = false;
   }
+}
+
+function animateGateOut() {
+  const gate = document.getElementById('gate');
+  gate.style.transition = 'opacity 0.35s ease';
+  gate.style.opacity = '0';
+  setTimeout(() => { if (gate) gate.remove(); }, 350);
 }
 
 // ── Boot App ──────────────────────────────────────────
 function bootApp(initialData) {
-  document.getElementById('gate').style.transition = 'opacity 0.4s';
-  document.getElementById('gate').style.opacity = '0';
-  setTimeout(() => {
-    const g = document.getElementById('gate');
-    if (g) g.remove();
-  }, 400);
-
+  animateGateOut();
   document.getElementById('app').style.display = 'block';
-
-  if (initialData) {
-    renderData(initialData);
-  } else {
-    loadData();
-  }
-
-  // Auto-refresh every 60s
+  if (initialData) renderData(initialData);
+  else loadData();
   setInterval(loadData, 60000);
 }
 
@@ -606,78 +568,57 @@ async function loadData() {
     const res = await fetch(SUPABASE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workspace_slug: WORKSPACE_SLUG,
-        password: _password,
-        date_days: String(_currentDays)
-      })
+      body: JSON.stringify({ workspace_slug: WORKSPACE_SLUG, password: _password, date_days: String(_currentDays) })
     });
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    renderData(data);
-  } catch(e) {
-    console.error(e);
-  }
+    if (!data.error) renderData(data);
+  } catch(e) { console.error(e); }
 }
 
 // ── Render Data ───────────────────────────────────────
 function renderData(data) {
-  // Church name
   const nameEl = document.getElementById('header-church-name');
   if (nameEl) nameEl.textContent = data.workspace?.name || 'Relatório';
   document.title = `${data.workspace?.name || 'Relatório'} · Consolidação · Zelo Pro`;
 
-  // Last update
-  const upd = document.getElementById('header-last-update');
-  if (upd) upd.textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  animKpi('kpi-total',      data.kpis?.totalLeads ?? 0);
+  animKpi('kpi-salvos',     data.kpis?.salvos ?? 0);
+  animKpi('kpi-visitantes', data.kpis?.visitantes ?? 0);
+  animKpi('kpi-batismo',    data.kpis?.batismoCount ?? 0);
+  animKpi('kpi-gc',         data.kpis?.gcCount ?? 0);
+  animKpi('kpi-start',      data.kpis?.startCount ?? 0);
 
-  // KPIs
-  setKpi('kpi-total',     data.kpis?.totalLeads ?? 0);
-  setKpi('kpi-salvos',    data.kpis?.salvos ?? 0);
-  setKpi('kpi-visitantes',data.kpis?.visitantes ?? 0);
-  setKpi('kpi-batismo',   data.kpis?.batismoCount ?? 0);
-  setKpi('kpi-gc',        data.kpis?.gcCount ?? 0);
-  setKpi('kpi-start',     data.kpis?.startCount ?? 0);
-
-  // Leads
   _allLeads = data.leads || [];
   filterLeads();
 }
 
-function setKpi(id, val) {
+function animKpi(id, end) {
   const el = document.getElementById(id);
   if (!el) return;
-  // Animate counting up
   const start = parseInt(el.textContent) || 0;
-  const end   = parseInt(val) || 0;
   if (start === end) { el.textContent = end; return; }
-  const dur = 600, step = 16;
-  const inc = (end - start) / (dur / step);
-  let cur = start;
+  const steps = 20, intervalMs = 600 / steps;
+  const inc = (end - start) / steps;
+  let cur = start, n = 0;
   const t = setInterval(() => {
-    cur += inc;
-    if ((inc > 0 && cur >= end) || (inc < 0 && cur <= end)) {
-      clearInterval(t); el.textContent = end;
-    } else {
-      el.textContent = Math.round(cur);
-    }
-  }, step);
+    n++; cur += inc;
+    el.textContent = n >= steps ? end : Math.round(cur);
+    if (n >= steps) clearInterval(t);
+  }, intervalMs);
 }
 
-// ── Filter Leads ──────────────────────────────────────
+// ── Filter ────────────────────────────────────────────
 function filterLeads() {
-  const search = document.getElementById('pub-search')?.value.toLowerCase() || '';
+  const search = (document.getElementById('pub-search')?.value || '').toLowerCase();
   const type   = document.getElementById('pub-filter-type')?.value || 'all';
-
   let filtered = _allLeads;
   if (search) filtered = filtered.filter(l =>
-    l.name?.toLowerCase().includes(search) ||
-    l.phone?.includes(search));
+    (l.name || '').toLowerCase().includes(search) ||
+    (l.phone || '').includes(search) ||
+    (l.email || '').toLowerCase().includes(search));
   if (type !== 'all') filtered = filtered.filter(l => l.type === type);
-
-  const count = document.getElementById('pub-count');
-  if (count) count.textContent = filtered.length;
-
+  const el = document.getElementById('pub-count');
+  if (el) el.textContent = filtered.length;
   renderLeads(filtered);
 }
 
@@ -688,58 +629,134 @@ function renderLeads(leads) {
   const empty   = document.getElementById('leads-empty');
   if (loading) loading.style.display = 'none';
 
-  if (!leads || leads.length === 0) {
+  if (!leads?.length) {
     if (grid) grid.style.display = 'none';
     if (empty) empty.style.display = 'block';
     return;
   }
   if (empty) empty.style.display = 'none';
-  if (grid) grid.style.display = 'grid';
-
+  grid.style.display = 'grid';
   grid.innerHTML = '';
+
   leads.forEach((l, idx) => {
-    const initial = (l.name || '?').charAt(0).toUpperCase();
+    const initial   = (l.name || '?').charAt(0).toUpperCase();
     const typeClass = l.type === 'saved' ? 'saved' : 'visitor';
     const typeLabel = l.type === 'saved' ? 'Salvo' : 'Visitante';
     const dateStr   = l.created_at
-      ? new Date(l.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'})
+      ? new Date(l.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
       : '—';
-    const tasks = Array.isArray(l.tasks) ? l.tasks : [];
-    const taskChips = tasks.slice(0, 4).map(t =>
-      `<span class="task-chip ${t.status === 'completed' ? 'completed' : 'pending'}">${t.task_name || ''}</span>`
-    ).join('');
+
+    // ── Decision chip ──────────────────────────────────
+    const dec = (l.decisao || '').trim();
+    let decClass = 'muted';
+    if (dec && dec.toLowerCase() !== 'não informado' && dec !== '') {
+      const low = dec.toLowerCase();
+      if (low.includes('aceit') || low.includes('salv') || low.includes('jesus') || low.includes('entregou')) decClass = 'primary';
+      else decClass = 'secondary';
+    }
+    const decHtml = dec && dec !== 'Não Informado'
+      ? `<span class="decisao-chip ${decClass}" title="${e(dec)}">${e(truncate(dec, 28))}</span>`
+      : '';
+
+    // ── GC chip ────────────────────────────────────────
+    const gc = (l.gc_status || '').trim();
+    const gcLow = gc.toLowerCase();
+    let gcClass = 'unk', gcLabel = 'GC: Não inf.';
+    if (gcLow === 'sim' || gcLow === 'yes' || gcLow.includes('sim') || gcLow.includes('gostaria')) {
+      gcClass = 'yes'; gcLabel = '✓ Quer entrar no GC';
+    } else if (gcLow === 'não' || gcLow === 'nao' || gcLow === 'no' || gcLow.includes('não')) {
+      gcClass = 'no'; gcLabel = '✗ Não quer GC';
+    } else if (gc) {
+      gcClass = 'yes'; gcLabel = gc;
+    }
+
+    // ── Meta rows ──────────────────────────────────────
+    const culto  = l.culto  ? `<div class="meta-row"><span class="meta-icon">⛪</span><span class="meta-label">Culto</span><span class="meta-val">${e(l.culto)}</span></div>` : '';
+    const pais   = l.pais   ? `<div class="meta-row"><span class="meta-icon">🌎</span><span class="meta-label">País</span><span class="meta-val">${e(l.pais)}</span></div>` : '';
+
+    // ── WhatsApp ───────────────────────────────────────
+    const phone    = (l.phone || '').replace(/\D/g, '');
+    const waHref   = phone ? `https://wa.me/${phone}` : '#';
+    const waHtml   = phone
+      ? `<a class="action-btn whatsapp" href="${waHref}" target="_blank" rel="noopener">
+           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+           ${formatPhone(l.phone)}
+         </a>`
+      : '';
+
+    // ── Email ──────────────────────────────────────────
+    const emailHtml = l.email
+      ? `<a class="action-btn email-btn" href="mailto:${e(l.email)}" title="${e(l.email)}">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+           ${e(truncate(l.email, 22))}
+         </a>`
+      : '';
 
     const card = document.createElement('div');
     card.className = 'lead-card';
-    card.style.animationDelay = `${Math.min(idx * 0.03, 0.5)}s`;
+    card.style.animationDelay = `${Math.min(idx * 0.025, 0.4)}s`;
     card.innerHTML = `
       <div class="lead-top">
         <div class="lead-avatar ${typeClass}">${initial}</div>
         <div style="flex:1;min-width:0;">
-          <div class="lead-name">${l.name || 'Sem nome'}</div>
+          <div class="lead-name">${e(l.name || 'Sem nome')}</div>
           <div class="lead-date">📅 ${dateStr}</div>
         </div>
-        <span class="lead-type-badge ${typeClass}">${typeLabel}</span>
+        <span class="type-badge ${typeClass}">${typeLabel}</span>
       </div>
-      <div class="lead-tasks">${taskChips || '<span style="font-size:0.72rem;color:#444;">Sem tarefas registradas</span>'}</div>
+
+      ${(decHtml || culto || pais) ? `
+      <div class="lead-meta">
+        ${decHtml ? `<div class="meta-row" style="flex-wrap:wrap;gap:5px;">${decHtml}</div>` : ''}
+        ${culto}
+        ${pais}
+      </div>` : ''}
+
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:${(waHtml || emailHtml) ? '10px' : '0'}">
+        <span class="gc-chip ${gcClass}">${gcLabel}</span>
+      </div>
+
+      ${(waHtml || emailHtml) ? `
+      <div class="lead-divider"></div>
+      <div class="lead-actions" style="flex-wrap:wrap;">
+        ${waHtml}
+        ${emailHtml}
+      </div>` : ''}
     `;
     grid.appendChild(card);
   });
 }
 
-// ── Period Filter ─────────────────────────────────────
+// ── Period ────────────────────────────────────────────
 function setPeriod(days, btn) {
   _currentDays = days;
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  // Show loading
-  const grid = document.getElementById('leads-grid');
-  const loading = document.getElementById('leads-loading');
-  if (grid) grid.style.display = 'none';
-  if (loading) loading.style.display = 'block';
-
+  const g = document.getElementById('leads-grid');
+  const s = document.getElementById('leads-loading');
+  if (g) g.style.display = 'none';
+  if (s) s.style.display = 'block';
   loadData();
+}
+
+// ── Helpers ───────────────────────────────────────────
+function e(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function truncate(str, n) {
+  return str && str.length > n ? str.slice(0, n) + '…' : str;
+}
+function formatPhone(raw) {
+  const d = (raw || '').replace(/\D/g,'');
+  if (!d) return '';
+  // Format last 10 digits as (XX) X XXXX-XXXX
+  if (d.length >= 10) {
+    const local = d.slice(-10);
+    return `(${local.slice(0,2)}) ${local.slice(2,3)} ${local.slice(3,7)}-${local.slice(7)}`;
+  }
+  return d;
 }
 </script>
 </body>
