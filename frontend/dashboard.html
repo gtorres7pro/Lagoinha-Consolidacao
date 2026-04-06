@@ -2634,8 +2634,8 @@
                         ⚙️
                     </button>
                     <!-- Copy Public Form Link -->
-                    <button onclick="copyPublicFormLink()" style="padding:9px 14px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
-                        🔗 Copiar Form Público
+                    <button onclick="copyPublicFormLink()" title="Copiar Form Público" style="padding:9px 14px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
+                        🔗<span class="hub-hide-mobile"> Copiar Form</span>
                     </button>
                     <!-- New Task -->
                     <button onclick="openTaskModal()" style="padding:10px 18px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;">
@@ -2652,11 +2652,6 @@
                 .tasks-bottom-padding {
                     padding-bottom: 40px;
                 }
-                .tasks-kpi-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-                    gap: 12px;
-                }
                 .tasks-toolbar {
                     display: flex;
                     align-items: center;
@@ -2668,129 +2663,131 @@
                     border-collapse: collapse;
                     font-size: .82rem;
                 }
+                /* Hidden elements by default unless toggled */
+                #tasks-filters-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    flex: 1;
+                }
+                .mob-filter-toggle { display: none; }
+                .hub-hide-mobile { display: inline; }
+                
                 @media (max-width: 768px) {
                     .tasks-wrapper-padding { padding: 12px 16px 0; }
                     .tasks-bottom-padding { padding-bottom: 24px; }
+                    .hub-hide-mobile { display: none !important; }
                     
-                    /* KPIs 3 per row instead of stacking to 1, or 2 per row */
-                    .tasks-kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-                    
-                    /* Toolbar filters full width */
-                    .tasks-toolbar input, .tasks-toolbar select, .tasks-toolbar button { flex: 1 1 100%; width: 100%; }
-                    
-                    /* But keep view toggle side by side */
-                    .tasks-toolbar .view-toggles { flex: 1 1 100%; justify-content: center; margin-top: 8px; margin-left: 0 !important; }
-                    .tasks-toolbar .view-toggles button { flex: 1; }
+                    /* Filters */
+                    #tasks-filters-container {
+                        display: none; /* hidden until toggled */
+                        flex-direction: column;
+                        width: 100%;
+                        margin-top: 10px;
+                    }
+                    #tasks-filters-container.show { display: flex; }
+                    #tasks-filters-container input, #tasks-filters-container select, #tasks-filters-container button { width: 100%; }
+                    .mob-filter-toggle {
+                        display: flex;
+                        padding: 8px 12px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(255,255,255,.1);
+                        background: rgba(255,255,255,.05);
+                        color: #fff;
+                        font-size: .8rem;
+                        cursor: pointer;
+                        align-items: center;
+                        gap: 6px;
+                    }
 
-                    /* Responsive Table -> Cards */
+                    /* Responsive Table -> Clean Flex Cards */
                     .task-responsive-table thead { display: none; }
+                    .task-responsive-table, .task-responsive-table tbody { display: block; width: 100%; }
                     .task-responsive-table tr { 
                         display: flex; 
-                        flex-direction: column; 
-                        padding: 12px 0; 
-                        border-bottom: 1px solid rgba(255,255,255,.05); 
+                        flex-wrap: wrap;
+                        padding: 16px; 
+                        background: rgba(255,255,255,.02);
+                        border: 1px solid rgba(255,255,255,.06);
+                        border-radius: 12px;
+                        margin-bottom: 12px;
                         position: relative;
+                        align-items: center;
                     }
                     .task-responsive-table td { 
-                        padding: 4px 16px !important; 
+                        padding: 0 !important; 
+                        display: flex;
                         align-items: center;
-                        text-align: left !important;
+                        border: none !important;
                     }
-                    /* Reorder some info and hide empty labels, make labels inline block */
-                    .task-responsive-table td::before { 
-                        content: attr(data-label); 
-                        font-weight: 700; 
-                        color: rgba(255,255,255,.3); 
-                        text-transform: uppercase; 
-                        font-size: .65rem; 
-                        margin-right: 8px; 
-                        display: inline-block;
-                        width: 80px;
-                    }
-                    /* First column (Title/Desc) needs no prefix and is main focus */
-                    .task-responsive-table td:first-child::before { display: none; }
-                    .task-responsive-table td:first-child { padding-bottom: 8px !important; }
+                    /* Layout mapping */
+                    .task-responsive-table td:nth-child(1) { width: 100%; margin-bottom: 12px; align-items: flex-start; flex-direction: column; }
+                    .task-responsive-table td:nth-child(2) { margin-right: 8px; margin-bottom: 12px; }
+                    .task-responsive-table td:nth-child(3) { margin-right: auto; margin-bottom: 12px; }
+                    .task-responsive-table td:nth-child(4) { width: 100%; margin-bottom: 12px; }
+                    .task-responsive-table td:nth-child(5) { margin-right: auto; }
+                    .task-responsive-table td:nth-child(6) { margin-right: 12px; }
+                    .task-responsive-table td:nth-child(7) { }
+                    .task-responsive-table td::before { display: none !important; }
                 }
             </style>
 
-            <!-- KPI Row -->
-            <div class="tasks-wrapper-padding tasks-kpi-grid">
-                <div class="kpi-box" style="border-top:2px solid rgba(255,255,255,.15);">
-                    <div class="kpi-label">Total</div>
-                    <div class="kpi-value" id="tkpi-total">—</div>
-                </div>
-                <div class="kpi-box" style="border-top:2px solid #60A5FA;">
-                    <div class="kpi-label">A Fazer</div>
-                    <div class="kpi-value" id="tkpi-todo" style="color:#60A5FA;">—</div>
-                </div>
-                <div class="kpi-box" style="border-top:2px solid #F59E0B;">
-                    <div class="kpi-label">Em Andamento</div>
-                    <div class="kpi-value" id="tkpi-progress" style="color:#F59E0B;">—</div>
-                </div>
-                <div class="kpi-box" style="border-top:2px solid #A78BFA;">
-                    <div class="kpi-label">Em Revisão</div>
-                    <div class="kpi-value" id="tkpi-review" style="color:#A78BFA;">—</div>
-                </div>
-                <div class="kpi-box" style="border-top:2px solid #34D399;">
-                    <div class="kpi-label">Concluídas</div>
-                    <div class="kpi-value" id="tkpi-done" style="color:#34D399;">—</div>
-                </div>
-                <div class="kpi-box" style="border-top:2px solid #F87171;">
-                    <div class="kpi-label">Atrasadas</div>
-                    <div class="kpi-value" id="tkpi-overdue" style="color:#F87171;">—</div>
-                </div>
-            </div>
-
             <!-- Toolbar: filters + view toggle -->
             <div class="tasks-wrapper-padding tasks-toolbar">
-                <!-- Search -->
-                <input id="tasks-search" type="text" placeholder="🔍 Buscar tarefas..." oninput="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;color:#fff;font-size:.82rem;outline:none;min-width:200px;">
-                <!-- Status filter -->
-                <select id="tasks-filter-status" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
-                    <option value="">Todos os status</option>
-                    <option value="backlog">📋 Backlog</option>
-                    <option value="todo">🔵 A Fazer</option>
-                    <option value="in_progress">🟡 Em Andamento</option>
-                    <option value="review">🟣 Em Revisão</option>
-                    <option value="done">🟢 Concluída</option>
-                    <option value="cancelled">⛔ Cancelada</option>
-                </select>
-                <!-- Priority filter -->
-                <select id="tasks-filter-priority" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
-                    <option value="">Todas as prioridades</option>
-                    <option value="urgent">🔴 Urgente</option>
-                    <option value="high">🟠 Alta</option>
-                    <option value="medium">🟡 Média</option>
-                    <option value="low">🔵 Baixa</option>
-                </select>
-                <!-- Department filter -->
-                <select id="tasks-filter-dept" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
-                    <option value="">Todos os dept.</option>
-                </select>
-                <!-- Assignee filter -->
-                <select id="tasks-filter-assignee" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
-                    <option value="">Todos os membros</option>
-                </select>
-                <!-- My Tasks Toggle -->
-                <button id="btn-my-tasks" onclick="toggleMyTasks()" title="Mostrar apenas minhas tarefas"
-                    style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;white-space:nowrap;"
-                    onmouseover="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.8)'" onmouseout="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.5)'">
-                    👤 Minhas Tarefas
+                <button class="mob-filter-toggle" onclick="document.getElementById('tasks-filters-container').classList.toggle('show')">
+                    🔍 Filtrar
                 </button>
+                <div id="tasks-filters-container">
+                    <!-- Search -->
+                    <input id="tasks-search" type="text" placeholder="🔍 Buscar tarefas..." oninput="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;color:#fff;font-size:.82rem;outline:none;min-width:180px;">
+                    <!-- Status filter -->
+                    <select id="tasks-filter-status" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                        <option value="">Todos os status</option>
+                        <option value="backlog">📋 Backlog</option>
+                        <option value="todo">🔵 A Fazer</option>
+                        <option value="in_progress">🟡 Em Andamento</option>
+                        <option value="review">🟣 Em Revisão</option>
+                        <option value="done">🟢 Concluída</option>
+                        <option value="cancelled">⛔ Cancelada</option>
+                    </select>
+                    <!-- Priority filter -->
+                    <select id="tasks-filter-priority" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                        <option value="">Todas as prioridades</option>
+                        <option value="urgent">🔴 Urgente</option>
+                        <option value="high">🟠 Alta</option>
+                        <option value="medium">🟡 Média</option>
+                        <option value="low">🔵 Baixa</option>
+                    </select>
+                    <!-- Department filter -->
+                    <select id="tasks-filter-dept" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                        <option value="">Todos os dept.</option>
+                    </select>
+                    <!-- Assignee filter -->
+                    <select id="tasks-filter-assignee" onchange="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:rgba(255,255,255,.7);font-size:.8rem;outline:none;cursor:pointer;">
+                        <option value="">Todos os membros</option>
+                    </select>
+                    <!-- My Tasks Toggle -->
+                    <button id="btn-my-tasks" onclick="toggleMyTasks()" title="Mostrar apenas minhas tarefas"
+                        style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;white-space:nowrap;"
+                        onmouseover="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.8)'" onmouseout="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.5)'">
+                        👤 Minhas Tarefas
+                    </button>
+                </div>
                 <!-- View Toggle -->
                 <div class="view-toggles" style="display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:4px;">
-                    <button id="tasks-view-list" onclick="setTasksView('list')" style="padding:7px 16px;border-radius:9px;border:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;background:rgba(255,215,0,.15);color:#FFD700;">
-                        ☰ Lista
+                    <button id="tasks-view-list" onclick="setTasksView('list')" title="Lista" style="padding:7px;border-radius:9px;border:none;font-size:1.1rem;cursor:pointer;transition:all .2s;background:rgba(255,215,0,.15);color:#FFD700;display:flex;align-items:center;">
+                        ☰
                     </button>
-                    <button id="tasks-view-kanban" onclick="setTasksView('kanban')" style="padding:7px 16px;border-radius:9px;border:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:rgba(255,255,255,.4);">
-                        ⊞ Kanban
+                    <button id="tasks-view-kanban" onclick="setTasksView('kanban')" title="Kanban" style="padding:7px;border-radius:9px;border:none;font-size:1.1rem;cursor:pointer;transition:all .2s;background:transparent;color:rgba(255,255,255,.4);display:flex;align-items:center;">
+                        ⊞
                     </button>
                 </div>
             </div>
 
             <!-- LIST VIEW -->
-            <div id="tasks-list-view" class="tasks-wrapper-padding tasks-bottom-padding">
-                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
+            <div id="tasks-list-view" class="tasks-wrapper-padding tasks-bottom-padding" style="margin-top:16px;">
+                <div style="background:transparent;">
                     <table class="task-responsive-table">
                         <thead>
                             <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
@@ -2811,8 +2808,8 @@
             </div>
 
             <!-- KANBAN VIEW (hidden by default) -->
-            <div id="tasks-kanban-view" style="display:none;" class="tasks-wrapper-padding tasks-bottom-padding">
-                <div id="tasks-kanban-board" style="display:flex;gap:16px;min-width:max-content;align-items:flex-start;overflow-x:auto;">
+            <div id="tasks-kanban-view" style="display:none;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:16px;" class="tasks-bottom-padding">
+                <div id="tasks-kanban-board" style="display:flex;gap:16px;min-width:max-content;align-items:flex-start;padding:0 32px;">
                     <!-- Populated dynamically -->
                 </div>
             </div>
