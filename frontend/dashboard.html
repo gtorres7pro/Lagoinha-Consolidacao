@@ -816,6 +816,14 @@
                 <span id="chat-unread-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#f87171;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:none;align-items:center;justify-content:center;line-height:1;">0</span>
             </li>
 
+            <!-- 6.7 Transmissão -->
+            <li id="nav-transmissao" onclick="switchTab('transmissao')" title="Transmissão — Envio em Massa por E-mail">
+                <span class="nav-icon" style="color:#a78bfa;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>
+                </span>
+                <span class="nav-label" style="font-weight:700;">Transmissão</span>
+            </li>
+
             <!-- 7. Assistente Mila -->
             <li id="nav-mila" onclick="switchTab('mila')" title="Assistente Virtual Mila">
                 <span class="nav-icon" style="color: #FFD700;">
@@ -4809,6 +4817,214 @@
     </div>
   </div>
 </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- VIEW: TRANSMISSÃO                              -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div id="view-transmissao" class="view-section" style="display:none;">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Transmissão</h1>
+                <p>Envio em massa por e-mail a partir de listas CSV</p>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="openBroadcastWizard()" id="btn-nova-transmissao">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nova Transmissão
+                </button>
+            </div>
+        </header>
+
+        <!-- KPIs -->
+        <div class="kpi-row" id="bc-kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+            <div class="kpi-box"><div class="kpi-title">Total</div><div class="kpi-number" id="bc-kpi-total">—</div></div>
+            <div class="kpi-box"><div class="kpi-title">Enviadas</div><div class="kpi-number" id="bc-kpi-sent" style="color:#4ade80;">—</div></div>
+            <div class="kpi-box"><div class="kpi-title">Rascunhos</div><div class="kpi-number" id="bc-kpi-draft" style="color:#fbbf24;">—</div></div>
+            <div class="kpi-box"><div class="kpi-title">Contatos Alcançados</div><div class="kpi-number" id="bc-kpi-reached" style="color:#a78bfa;">—</div></div>
+        </div>
+
+        <!-- List -->
+        <div style="padding:24px 32px 40px;">
+            <div id="bc-list-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--text-dim);">
+                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:12px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>
+                <p style="font-size:0.9rem;">Nenhuma transmissão ainda. Crie a sua primeira!</p>
+            </div>
+            <div id="bc-list-container" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- WIZARD: NOVA TRANSMISSÃO (fullscreen overlay)  -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div id="bc-wizard-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:9100;overflow-y:auto;">
+        <div style="max-width:900px;margin:40px auto 60px;padding:0 16px;">
+
+            <!-- Wizard Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+                <div>
+                    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#a78bfa;margin-bottom:4px;">Nova Transmissão</div>
+                    <h2 id="bc-wizard-step-title" style="font-size:1.4rem;font-weight:800;color:#fff;margin:0;">Passo 1 — Upload do CSV</h2>
+                </div>
+                <button onclick="closeBroadcastWizard()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">✕</button>
+            </div>
+
+            <!-- Step Indicators -->
+            <div style="display:flex;gap:8px;margin-bottom:32px;align-items:center;">
+                <div class="bc-step-dot active" id="bc-step-dot-1" style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);padding:6px 14px;border-radius:20px;">① CSV</div>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+                <div class="bc-step-dot" id="bc-step-dot-2" style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;color:#555;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:6px 14px;border-radius:20px;">② Contatos</div>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+                <div class="bc-step-dot" id="bc-step-dot-3" style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;color:#555;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:6px 14px;border-radius:20px;">③ E-mail</div>
+                <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+                <div class="bc-step-dot" id="bc-step-dot-4" style="display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;color:#555;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:6px 14px;border-radius:20px;">④ Enviar</div>
+            </div>
+
+            <!-- Step 1: CSV Upload -->
+            <div id="bc-step-1" class="bc-step">
+                <div style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;">
+                    <div style="margin-bottom:20px;">
+                        <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);display:block;margin-bottom:6px;">Nome da Transmissão</label>
+                        <input id="bc-name" type="text" placeholder="Ex: Carteirinha — Abril 2026" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 16px;color:#fff;font-size:0.9rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(167,139,250,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+                    </div>
+                    <!-- Drop Zone -->
+                    <div id="bc-dropzone" onclick="document.getElementById('bc-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#a78bfa'" ondragleave="this.style.borderColor='rgba(167,139,250,0.25)'" ondrop="handleBcDrop(event)"
+                        style="border:2px dashed rgba(167,139,250,0.25);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:0.2s;background:rgba(167,139,250,0.03);"
+                        onmouseover="this.style.borderColor='rgba(167,139,250,0.5)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.25)'">
+                        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#a78bfa" stroke-width="1.5" style="margin-bottom:12px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                        <div style="font-weight:700;color:#fff;margin-bottom:6px;">Arraste um arquivo CSV aqui</div>
+                        <div style="font-size:0.82rem;color:var(--text-dim);">ou clique para selecionar</div>
+                        <input type="file" id="bc-file-input" accept=".csv" style="display:none;" onchange="handleBcFile(this.files[0])">
+                    </div>
+                    <div id="bc-file-info" style="display:none;margin-top:16px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span id="bc-file-name" style="font-size:0.85rem;color:#a78bfa;font-weight:600;flex:1;"></span>
+                        <span id="bc-file-rows" style="font-size:0.78rem;color:var(--text-dim);"></span>
+                    </div>
+                    <!-- Columns preview -->
+                    <div id="bc-columns-preview" style="display:none;margin-top:20px;">
+                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:8px;">Colunas detectadas</div>
+                        <div id="bc-columns-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+                    <button onclick="bcGoStep(2)" id="bc-btn-step1-next" disabled style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:12px;font-weight:700;cursor:pointer;opacity:0.4;transition:0.2s;font-size:0.88rem;" onmouseover="if(!this.disabled)this.style.opacity='.85'" onmouseout="if(!this.disabled)this.style.opacity='1'">Próximo →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Contact selection -->
+            <div id="bc-step-2" class="bc-step" style="display:none;">
+                <div style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+                        <div>
+                            <div style="font-weight:700;font-size:1rem;color:#fff;">Selecionar Contatos</div>
+                            <div id="bc-sel-count" style="font-size:0.8rem;color:var(--text-dim);margin-top:2px;">0 selecionados</div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="bcSelectAll(true)" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;">Selecionar todos</button>
+                            <button onclick="bcSelectAll(false)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#aaa;padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;">Desmarcar todos</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                        <table id="bc-contacts-table" style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                            <thead id="bc-contacts-thead" style="background:rgba(255,255,255,0.04);"></thead>
+                            <tbody id="bc-contacts-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:20px;">
+                    <button onclick="bcGoStep(1)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:12px 24px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.88rem;">← Voltar</button>
+                    <button onclick="bcGoStep(3)" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:12px;font-weight:700;cursor:pointer;font-size:0.88rem;">Próximo →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Email config -->
+            <div id="bc-step-3" class="bc-step" style="display:none;">
+                <div style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:18px;">
+                    <div>
+                        <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);display:block;margin-bottom:6px;">Remetente (fixo)</label>
+                        <input type="text" value="Lagoinha &lt;equipe@7pro.tech&gt;" disabled style="width:100%;background:#0d0d0d;border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:11px 16px;color:#555;font-size:0.88rem;font-family:var(--font);box-sizing:border-box;cursor:not-allowed;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);display:block;margin-bottom:6px;">Reply-To (opcional)</label>
+                        <input id="bc-reply-to" type="email" placeholder="pastor@lagoinha.com" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 16px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(167,139,250,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+                    </div>
+                    <div>
+                        <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);display:block;margin-bottom:6px;">Assunto do E-mail</label>
+                        <input id="bc-subject" type="text" placeholder="Ex: Completando sua carteirinha 📋" style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:11px 16px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);box-sizing:border-box;" onfocus="this.style.borderColor='rgba(167,139,250,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'">
+                    </div>
+                    <div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                            <label style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);">Corpo do E-mail</label>
+                            <button onclick="bcImproveWithAI()" id="bc-btn-ai" style="display:flex;align-items:center;gap:6px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:#fbbf24;padding:5px 12px;border-radius:8px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(251,191,36,0.18)'" onmouseout="this.style.background='rgba(251,191,36,0.1)'">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                ✨ Melhorar com IA
+                            </button>
+                        </div>
+                        <textarea id="bc-body" rows="8" placeholder="Escreva o texto do e-mail aqui...&#10;&#10;Dica: você pode usar {{Nome}} para personalizar com dados do CSV." style="width:100%;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;color:#fff;font-size:0.88rem;outline:none;font-family:var(--font);resize:vertical;line-height:1.6;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(167,139,250,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"></textarea>
+                        <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">💡 Use <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;">{{Nome}}</code> para personalizar com dados do CSV. Ex: <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;">{{First Name}}</code></div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:20px;">
+                    <button onclick="bcGoStep(2)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:12px 24px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.88rem;">← Voltar</button>
+                    <button onclick="bcGoStep(4)" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:12px;font-weight:700;cursor:pointer;font-size:0.88rem;">Revisar e Enviar →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Review & Send -->
+            <div id="bc-step-4" class="bc-step" style="display:none;">
+                <div style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:16px;">
+                    <h3 style="font-size:1rem;font-weight:700;color:#fff;margin:0 0 4px;">Revisão Final</h3>
+                    <div id="bc-review-box" style="background:#0d0d0d;border-radius:12px;padding:18px;font-size:0.85rem;line-height:1.8;"></div>
+                    <!-- Progress bar -->
+                    <div id="bc-send-progress" style="display:none;">
+                        <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;" id="bc-send-status">Enviando...</div>
+                        <div style="background:rgba(255,255,255,0.06);border-radius:6px;overflow:hidden;height:6px;">
+                            <div id="bc-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width 0.3s;border-radius:6px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:20px;gap:12px;">
+                    <button onclick="bcGoStep(3)" id="bc-btn-back-4" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:12px 24px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.88rem;">← Editar</button>
+                    <button onclick="bcSaveDraft()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:12px 20px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.88rem;">💾 Salvar Rascunho</button>
+                    <button onclick="bcSendNow()" id="bc-btn-send" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:12px;font-weight:700;cursor:pointer;font-size:0.88rem;display:flex;align-items:center;gap:8px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Disparar Agora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- MODAL: AI IMPROVEMENT APPROVAL                 -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div id="bc-ai-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:9200;align-items:center;justify-content:center;">
+        <div style="background:#111;border:1px solid rgba(167,139,250,0.2);border-radius:20px;width:100%;max-width:680px;margin:20px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.7);">
+            <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;">
+                <div style="width:36px;height:36px;background:rgba(251,191,36,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;">✨</div>
+                <div>
+                    <div style="font-weight:700;color:#fff;font-size:1rem;">Sugestão da IA</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);">Tom amigável e pastoral — revise e decida</div>
+                </div>
+                <button onclick="closeBcAiModal()" style="margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px;">✕</button>
+            </div>
+            <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px;">Original</div>
+                    <div id="bc-ai-original" style="background:#0d0d0d;border-radius:10px;padding:14px;font-size:0.83rem;color:#aaa;line-height:1.7;min-height:160px;white-space:pre-wrap;"></div>
+                </div>
+                <div>
+                    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fbbf24;margin-bottom:8px;">✨ Versão IA</div>
+                    <div id="bc-ai-improved" style="background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:14px;font-size:0.83rem;color:#fff;line-height:1.7;min-height:160px;white-space:pre-wrap;"></div>
+                </div>
+            </div>
+            <div style="padding:16px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.06);">
+                <button onclick="closeBcAiModal()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:10px 18px;border-radius:10px;font-weight:600;cursor:pointer;font-size:0.82rem;">Manter original</button>
+                <button onclick="bcEditAiText()" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;padding:10px 18px;border-radius:10px;font-weight:600;cursor:pointer;font-size:0.82rem;">✏️ Editar versão IA</button>
+                <button onclick="bcApplyAiText()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.82rem;">✨ Usar versão IA</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/hub-dashboard.js?v=20260404v2"></script>
     <script src="/hub-start.js?v=1"></script>

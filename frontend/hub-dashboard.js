@@ -8997,3 +8997,485 @@ async function sendMilaMessage() {
     
     milaChatWindow.scrollTop = milaChatWindow.scrollHeight;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO TRANSMISSÃO — Broadcast por E-mail
+// ══════════════════════════════════════════════════════════════════
+(function() {
+    // ── State ──────────────────────────────────────────────────────
+    let _bcData    = [];     // parsed CSV rows (array of objects)
+    let _bcCols    = [];     // detected column names
+    let _bcAiText  = '';     // AI-improved text (pending approval)
+    let _currentBroadcastId = null; // active broadcast for edit/send
+
+    const BC_STEPS = {
+        1: 'Passo 1 — Upload do CSV',
+        2: 'Passo 2 — Selecionar Contatos',
+        3: 'Passo 3 — Configurar E-mail',
+        4: 'Passo 4 — Revisão e Envio'
+    };
+
+    // ── switchTab hook ─────────────────────────────────────────────
+    const _prevSwitchTabBc = window.switchTab;
+    window.switchTab = function(tab) {
+        if (tab === 'transmissao') {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const v = document.getElementById('view-transmissao');
+            if (v) v.classList.add('active');
+            document.querySelectorAll('.nav li').forEach(el => el.classList.remove('active'));
+            const n = document.getElementById('nav-transmissao');
+            if (n) n.classList.add('active');
+            loadBroadcasts();
+        } else {
+            if (_prevSwitchTabBc) _prevSwitchTabBc(tab);
+            const bcView = document.getElementById('view-transmissao');
+            if (bcView) bcView.classList.remove('active');
+        }
+    };
+
+    // ── Load broadcast list ────────────────────────────────────────
+    window.loadBroadcasts = async function() {
+        const sb = window.supabaseClient;
+        if (!sb || !window.currentWorkspaceId) return;
+
+        const { data: list } = await sb
+            .from('broadcasts')
+            .select('*')
+            .eq('workspace_id', window.currentWorkspaceId)
+            .order('created_at', { ascending: false });
+
+        const container = document.getElementById('bc-list-container');
+        const empty     = document.getElementById('bc-list-empty');
+        if (!container) return;
+
+        // KPIs
+        const total   = list?.length || 0;
+        const sent    = list?.filter(b => b.status === 'sent').length || 0;
+        const draft   = list?.filter(b => b.status === 'draft').length || 0;
+        const reached = list?.reduce((a, b) => a + (b.sent_count || 0), 0) || 0;
+        const setKpi  = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setKpi('bc-kpi-total',   total);
+        setKpi('bc-kpi-sent',    sent);
+        setKpi('bc-kpi-draft',   draft);
+        setKpi('bc-kpi-reached', reached);
+
+        if (!list || list.length === 0) {
+            container.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        container.innerHTML = '';
+
+        list.forEach(b => {
+            const statusColor = b.status === 'sent' ? '#4ade80' : b.status === 'draft' ? '#fbbf24' : '#94a3b8';
+            const statusLabel = b.status === 'sent' ? 'Enviada' : b.status === 'draft' ? 'Rascunho' : b.status;
+            const sentDate    = b.sent_at    ? new Date(b.sent_at).toLocaleDateString('pt-BR')    : '—';
+            const createdDate = b.created_at ? new Date(b.created_at).toLocaleDateString('pt-BR') : '—';
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 22px;display:flex;align-items:center;gap:16px;transition:border-color 0.2s;';
+            card.onmouseenter = () => card.style.borderColor = 'rgba(167,139,250,0.25)';
+            card.onmouseleave = () => card.style.borderColor = 'rgba(255,255,255,0.07)';
+            card.innerHTML = `
+                <div style="width:40px;height:40px;background:rgba(167,139,250,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#a78bfa" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72 19.79 19.79 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 19.79 19.79 0 0 0 2.81.7 2 2 0 0 1 1.72 2.03z"/></svg>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#fff;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name}</div>
+                    <div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;display:flex;gap:14px;flex-wrap:wrap;">
+                        <span>📧 ${b.channel || 'email'}</span>
+                        <span>👥 ${b.total_contacts || 0} contatos</span>
+                        ${b.status === 'sent' ? `<span>✅ ${b.sent_count || 0} enviados · ${sentDate}</span>` : `<span>📅 Criada: ${createdDate}</span>`}
+                        ${b.email_subject ? `<span style="opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">Assunto: ${b.email_subject}</span>` : ''}
+                    </div>
+                </div>
+                <span style="font-size:0.68rem;font-weight:700;color:${statusColor};background:${statusColor}22;border:1px solid ${statusColor}44;padding:3px 10px;border-radius:20px;white-space:nowrap;">${statusLabel}</span>
+                ${b.status === 'draft' ? `<button onclick="deleteBroadcast('${b.id}')" title="Excluir rascunho" style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:rgba(239,68,68,0.6);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:0.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='rgba(239,68,68,0.14)';this.style.color='#ef4444'" onmouseout="this.style.background='rgba(239,68,68,0.06)';this.style.color='rgba(239,68,68,0.6)'">🗑️</button>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    };
+
+    // ── Delete draft ───────────────────────────────────────────────
+    window.deleteBroadcast = async function(id) {
+        if (!confirm('Excluir este rascunho de transmissão? Esta ação não pode ser desfeita.')) return;
+        const sb = window.supabaseClient;
+        const { error } = await sb.from('broadcasts').delete().eq('id', id).eq('status', 'draft');
+        if (error) { showToast('Erro ao excluir: ' + error.message); return; }
+        showToast('🗑️ Rascunho excluído', 1500);
+        loadBroadcasts();
+    };
+
+    // ── Open / Close Wizard ────────────────────────────────────────
+    window.openBroadcastWizard = function() {
+        _bcData = []; _bcCols = []; _bcAiText = ''; _currentBroadcastId = null;
+        // Reset inputs
+        ['bc-name','bc-reply-to','bc-subject','bc-body'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+        const drop = document.getElementById('bc-dropzone');
+        if (drop) { drop.style.borderColor = 'rgba(167,139,250,0.25)'; }
+        document.getElementById('bc-file-info').style.display = 'none';
+        document.getElementById('bc-columns-preview').style.display = 'none';
+        const btn = document.getElementById('bc-btn-step1-next');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
+        document.getElementById('bc-wizard-overlay').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        bcGoStep(1);
+    };
+
+    window.closeBroadcastWizard = function() {
+        document.getElementById('bc-wizard-overlay').style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    // ── Step navigation ────────────────────────────────────────────
+    window.bcGoStep = function(step) {
+        // Validate before going forward
+        if (step === 2 && _bcData.length === 0) {
+            showToast('⚠️ Carregue um arquivo CSV primeiro.'); return;
+        }
+        if (step === 4) {
+            const subj = document.getElementById('bc-subject')?.value.trim();
+            const body = document.getElementById('bc-body')?.value.trim();
+            if (!subj || !body) { showToast('⚠️ Preencha o assunto e o corpo do e-mail.'); return; }
+            renderBcReview();
+        }
+
+        // Hide all steps
+        document.querySelectorAll('.bc-step').forEach(el => el.style.display = 'none');
+        const target = document.getElementById('bc-step-' + step);
+        if (target) target.style.display = '';
+
+        // Update title
+        const title = document.getElementById('bc-wizard-step-title');
+        if (title) title.textContent = BC_STEPS[step];
+
+        // Update indicators
+        for (let i = 1; i <= 4; i++) {
+            const dot = document.getElementById('bc-step-dot-' + i);
+            if (!dot) continue;
+            if (i < step) {
+                dot.style.color = '#4ade80'; dot.style.background = 'rgba(74,222,128,0.1)'; dot.style.borderColor = 'rgba(74,222,128,0.3)';
+            } else if (i === step) {
+                dot.style.color = '#a78bfa'; dot.style.background = 'rgba(167,139,250,0.1)'; dot.style.borderColor = 'rgba(167,139,250,0.3)';
+            } else {
+                dot.style.color = '#555'; dot.style.background = 'rgba(255,255,255,0.04)'; dot.style.borderColor = 'rgba(255,255,255,0.06)';
+            }
+        }
+
+        // Scroll wizard to top
+        const overlay = document.getElementById('bc-wizard-overlay');
+        if (overlay) overlay.scrollTop = 0;
+
+        // If going to step 2, refresh selection count
+        if (step === 2) bcUpdateCount();
+    };
+
+    // ── CSV File handling ──────────────────────────────────────────
+    window.handleBcDrop = function(ev) {
+        ev.preventDefault();
+        const file = ev.dataTransfer?.files?.[0];
+        if (file && file.name.endsWith('.csv')) handleBcFile(file);
+        else showToast('⚠️ Selecione um arquivo .CSV');
+        document.getElementById('bc-dropzone').style.borderColor = 'rgba(167,139,250,0.25)';
+    };
+
+    window.handleBcFile = function(file) {
+        if (!file) return;
+        if (typeof Papa === 'undefined') { showToast('❌ Biblioteca CSV não carregada. Recarregue a página.'); return; }
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                _bcData = results.data || [];
+                _bcCols = results.meta?.fields || [];
+
+                // Update UI
+                document.getElementById('bc-file-name').textContent = file.name;
+                document.getElementById('bc-file-rows').textContent = `${_bcData.length} registros`;
+                const info = document.getElementById('bc-file-info');
+                if (info) { info.style.display = 'flex'; }
+
+                // Columns chips
+                const chips = document.getElementById('bc-columns-chips');
+                if (chips) {
+                    chips.innerHTML = _bcCols.map(c => `<span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;">${c}</span>`).join('');
+                }
+                document.getElementById('bc-columns-preview').style.display = 'block';
+
+                // Enable next button
+                const btn = document.getElementById('bc-btn-step1-next');
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+
+                // Build contacts table
+                bcBuildContactsTable();
+            },
+            error: function(err) { showToast('❌ Erro ao ler CSV: ' + err.message); }
+        });
+    };
+
+    // ── Build contacts table (step 2) ──────────────────────────────
+    function bcBuildContactsTable() {
+        const thead = document.getElementById('bc-contacts-thead');
+        const tbody = document.getElementById('bc-contacts-tbody');
+        if (!thead || !tbody) return;
+
+        // Max 5 columns to display (avoid horizontal scroll overload)
+        const displayCols = _bcCols.slice(0, 6);
+
+        thead.innerHTML = `<tr>
+            <th style="padding:10px 14px;text-align:center;width:40px;"><input type="checkbox" id="bc-check-all" onchange="bcSelectAll(this.checked)" style="accent-color:#a78bfa;width:16px;height:16px;"></th>
+            ${displayCols.map(c => `<th style="padding:10px 14px;text-align:left;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);white-space:nowrap;">${c}</th>`).join('')}
+        </tr>`;
+
+        tbody.innerHTML = '';
+        _bcData.forEach((row, i) => {
+            const tr = document.createElement('tr');
+            tr.style.cssText = 'border-top:1px solid rgba(255,255,255,0.04);transition:background 0.15s;';
+            tr.onmouseenter = () => tr.style.background = 'rgba(255,255,255,0.02)';
+            tr.onmouseleave = () => tr.style.background = '';
+            tr.innerHTML = `
+                <td style="padding:10px 14px;text-align:center;">
+                    <input type="checkbox" class="bc-row-check" checked data-idx="${i}" onchange="bcUpdateCount()" style="accent-color:#a78bfa;width:16px;height:16px;">
+                </td>
+                ${displayCols.map(c => `<td style="padding:10px 14px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="${(row[c]||'').replace(/"/g,'&quot;')}">${row[c] || '—'}</td>`).join('')}
+            `;
+            tbody.appendChild(tr);
+        });
+        bcUpdateCount();
+    }
+
+    window.bcSelectAll = function(checked) {
+        document.querySelectorAll('.bc-row-check').forEach(cb => { cb.checked = checked; });
+        const all = document.getElementById('bc-check-all');
+        if (all) all.checked = checked;
+        bcUpdateCount();
+    };
+
+    window.bcUpdateCount = function() {
+        const total    = document.querySelectorAll('.bc-row-check').length;
+        const selected = document.querySelectorAll('.bc-row-check:checked').length;
+        const el = document.getElementById('bc-sel-count');
+        if (el) el.textContent = `${selected} de ${total} selecionados`;
+    };
+
+    // ── AI Text Improvement ────────────────────────────────────────
+    window.bcImproveWithAI = async function() {
+        const text = document.getElementById('bc-body')?.value.trim();
+        if (!text) { showToast('⚠️ Escreva o texto antes de melhorar com IA.'); return; }
+
+        const btn = document.getElementById('bc-btn-ai');
+        if (btn) { btn.textContent = '⏳ Processando...'; btn.disabled = true; }
+
+        try {
+            const sb = window.supabaseClient;
+            const { data: { session } } = await sb.auth.getSession();
+            const supabaseUrl = sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
+            const res = await fetch(`${supabaseUrl}/functions/v1/broadcast-email`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'improve_text', raw_text: text })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            _bcAiText = data.improved_text;
+            document.getElementById('bc-ai-original').textContent  = text;
+            document.getElementById('bc-ai-improved').textContent  = _bcAiText;
+
+            // Show modal
+            const modal = document.getElementById('bc-ai-modal');
+            if (modal) modal.style.display = 'flex';
+        } catch(e) {
+            showToast('❌ Erro na IA: ' + e.message);
+        } finally {
+            if (btn) { btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> ✨ Melhorar com IA'; btn.disabled = false; }
+        }
+    };
+
+    window.closeBcAiModal = function() {
+        const modal = document.getElementById('bc-ai-modal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.bcApplyAiText = function() {
+        const el = document.getElementById('bc-body');
+        if (el) el.value = _bcAiText;
+        closeBcAiModal();
+        showToast('✨ Texto da IA aplicado!', 1500);
+    };
+
+    window.bcEditAiText = function() {
+        const el = document.getElementById('bc-body');
+        if (el) el.value = _bcAiText;
+        closeBcAiModal();
+        // Focus the textarea for editing
+        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    };
+
+    // ── Review panel (step 4) ──────────────────────────────────────
+    function renderBcReview() {
+        const name      = document.getElementById('bc-name')?.value.trim() || 'Sem nome';
+        const replyTo   = document.getElementById('bc-reply-to')?.value.trim() || '—';
+        const subject   = document.getElementById('bc-subject')?.value.trim();
+        const body      = document.getElementById('bc-body')?.value.trim();
+        const selected  = document.querySelectorAll('.bc-row-check:checked').length;
+
+        const box = document.getElementById('bc-review-box');
+        if (!box) return;
+        box.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Transmissão:</span><span style="color:#fff;font-weight:700;">${name}</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Canal:</span><span style="color:#fff;">📧 E-mail</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Remetente:</span><span style="color:#fff;">equipe@7pro.tech</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Reply-To:</span><span style="color:#fff;">${replyTo}</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Assunto:</span><span style="color:#fff;">${subject}</span></div>
+                <div style="display:flex;gap:8px;"><span style="color:var(--text-dim);min-width:130px;font-size:0.8rem;">Contatos:</span><span style="color:#a78bfa;font-weight:700;">📬 ${selected} selecionados</span></div>
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:4px 0;">
+                <div style="background:#0a0a0a;border-radius:8px;padding:12px;font-size:0.82rem;color:#ccc;line-height:1.7;white-space:pre-wrap;max-height:160px;overflow-y:auto;">${body}</div>
+            </div>`;
+    }
+
+    // ── Save Draft ─────────────────────────────────────────────────
+    window.bcSaveDraft = async function() {
+        const result = await bcPersistBroadcast('draft');
+        if (result) {
+            showToast('💾 Rascunho salvo!', 1800);
+            closeBroadcastWizard();
+            loadBroadcasts();
+        }
+    };
+
+    // ── Send Now ───────────────────────────────────────────────────
+    window.bcSendNow = async function() {
+        if (!confirm('Confirmar disparo? Os e-mails serão enviados agora para os contatos selecionados.')) return;
+
+        const btn = document.getElementById('bc-btn-send');
+        const backBtn = document.getElementById('bc-btn-back-4');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = 'Enviando...'; }
+        if (backBtn) backBtn.disabled = true;
+
+        const progress = document.getElementById('bc-send-progress');
+        const bar      = document.getElementById('bc-progress-bar');
+        const status   = document.getElementById('bc-send-status');
+        if (progress) progress.style.display = 'block';
+
+        // Simulate progress while waiting
+        let fake = 0;
+        const ticker = setInterval(() => {
+            fake = Math.min(fake + 2, 85);
+            if (bar) bar.style.width = fake + '%';
+        }, 300);
+
+        try {
+            // 1. Persist broadcast + contacts to DB
+            const broadcastId = await bcPersistBroadcast('draft');
+            if (!broadcastId) { clearInterval(ticker); return; }
+
+            if (status) status.textContent = 'Enviando e-mails...';
+
+            // 2. Call edge function to send
+            const sb = window.supabaseClient;
+            const { data: { session } } = await sb.auth.getSession();
+            const supabaseUrl = sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
+
+            const res = await fetch(`${supabaseUrl}/functions/v1/broadcast-email`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'send', broadcast_id: broadcastId })
+            });
+            const data = await res.json();
+
+            clearInterval(ticker);
+            if (bar) bar.style.width = '100%';
+
+            if (data.error) throw new Error(data.error);
+
+            if (status) {
+                status.textContent = `✅ ${data.sent} de ${data.total} e-mails enviados com sucesso!`;
+                status.style.color = '#4ade80';
+            }
+
+            setTimeout(() => {
+                closeBroadcastWizard();
+                loadBroadcasts();
+                showToast(`🚀 Transmissão concluída! ${data.sent}/${data.total} enviados.`, 3000);
+            }, 2000);
+
+        } catch(e) {
+            clearInterval(ticker);
+            if (bar) bar.style.width = '0%';
+            if (status) { status.textContent = '❌ Erro: ' + e.message; status.style.color = '#ef4444'; }
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Tentar novamente'; }
+            if (backBtn) backBtn.disabled = false;
+        }
+    };
+
+    // ── Persist broadcast + contacts to Supabase ───────────────────
+    async function bcPersistBroadcast(status) {
+        const sb = window.supabaseClient;
+        if (!sb || !window.currentWorkspaceId) return null;
+
+        const name      = document.getElementById('bc-name')?.value.trim();
+        const replyTo   = document.getElementById('bc-reply-to')?.value.trim() || null;
+        const subject   = document.getElementById('bc-subject')?.value.trim() || null;
+        const body      = document.getElementById('bc-body')?.value.trim() || null;
+        const { data: { user } } = await sb.auth.getUser();
+
+        // Get selected rows
+        const selectedRows = [];
+        document.querySelectorAll('.bc-row-check:checked').forEach(cb => {
+            const idx = parseInt(cb.getAttribute('data-idx'));
+            if (!isNaN(idx) && _bcData[idx]) selectedRows.push(_bcData[idx]);
+        });
+
+        if (!name) { showToast('⚠️ Dê um nome à transmissão.'); return null; }
+
+        // Upsert broadcast row
+        let broadcastId = _currentBroadcastId;
+        if (!broadcastId) {
+            const { data: bc, error: bcErr } = await sb.from('broadcasts').insert({
+                workspace_id: window.currentWorkspaceId,
+                name,
+                channel: 'email',
+                csv_columns: _bcCols,
+                status,
+                email_from: 'equipe@7pro.tech',
+                email_reply_to: replyTo,
+                email_subject: subject,
+                email_body: body,
+                total_contacts: selectedRows.length,
+                created_by: user?.id || null,
+            }).select('id').single();
+            if (bcErr) { showToast('❌ Erro ao salvar: ' + bcErr.message); return null; }
+            broadcastId = bc.id;
+            _currentBroadcastId = broadcastId;
+        } else {
+            await sb.from('broadcasts').update({
+                name, email_reply_to: replyTo, email_subject: subject,
+                email_body: body, total_contacts: selectedRows.length,
+                csv_columns: _bcCols, status
+            }).eq('id', broadcastId);
+            // Delete existing contacts before re-inserting
+            await sb.from('broadcast_contacts').delete().eq('broadcast_id', broadcastId);
+        }
+
+        // Insert contacts in batches of 50
+        if (selectedRows.length > 0) {
+            const chunks = [];
+            for (let i = 0; i < selectedRows.length; i += 50) chunks.push(selectedRows.slice(i, i + 50));
+            for (const chunk of chunks) {
+                await sb.from('broadcast_contacts').insert(
+                    chunk.map(row => ({ broadcast_id: broadcastId, data: row, selected: true }))
+                );
+            }
+        }
+
+        return broadcastId;
+    }
+
+})();
+// ── End Módulo Transmissão ─────────────────────────────────────────
