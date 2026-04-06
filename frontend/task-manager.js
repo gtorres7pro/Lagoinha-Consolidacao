@@ -9,6 +9,8 @@ let _tasksUsers    = [];
 let _tasksView     = 'list';
 let _currentTaskId = null;
 let _publicReqsAll = [];
+let _myTasksOnly   = false;
+let _workspaceTags = [];  // tag catalog
 
 // ── Status & Priority Configs ──────────────────────────────────────
 const TASK_STATUS = {
@@ -55,18 +57,20 @@ window.loadTaskManager = async function () {
 
     try {
         const userId = window._currentUser?.id;
-        const [tasksRes, deptsRes, usersRes, notifsRes] = await Promise.all([
+        const [tasksRes, deptsRes, usersRes, notifsRes, tagsRes] = await Promise.all([
             sb.from('tasks_full').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false }),
             sb.from('task_departments').select('*').eq('workspace_id', wsId).order('name'),
             sb.from('users').select('id,name,email').eq('workspace_id', wsId),
             userId
                 ? sb.from('task_notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null)
                 : Promise.resolve({ count: 0 }),
+            sb.from('task_tags').select('*').eq('workspace_id', wsId).order('name'),
         ]);
 
-        _tasksAll   = tasksRes.data  || [];
-        _tasksDepts = deptsRes.data  || [];
-        _tasksUsers = usersRes.data  || [];
+        _tasksAll      = tasksRes.data  || [];
+        _tasksDepts    = deptsRes.data  || [];
+        _tasksUsers    = usersRes.data  || [];
+        _workspaceTags = tagsRes.data   || [];
 
         // Notification bell badge
         const unread = notifsRes.count || 0;
@@ -94,6 +98,7 @@ window.loadTaskManager = async function () {
         if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="padding:60px;text-align:center;color:#EF4444;">Erro: ${e.message}</td></tr>`;
     }
 };
+
 
 // ── Populate Dropdowns ─────────────────────────────────────────────
 function populateTaskFilterDropdowns() {
@@ -141,6 +146,10 @@ window.filterTasksView = function () {
     const assignee = (document.getElementById('tasks-filter-assignee')?.value  || '');
 
     let list = _tasksAll;
+    if (_myTasksOnly) {
+        const me = window._currentUser?.id;
+        if (me) list = list.filter(t => t.assignee_id === me);
+    }
     if (search)   list = list.filter(t => (t.title || '').toLowerCase().includes(search) || (t.description || '').toLowerCase().includes(search));
     if (status)   list = list.filter(t => t.status      === status);
     if (priority) list = list.filter(t => t.priority    === priority);
@@ -150,6 +159,20 @@ window.filterTasksView = function () {
     if (_tasksView === 'list') renderTasksList(list);
     else renderTasksKanban(list);
 };
+
+// ── My Tasks Toggle ────────────────────────────────────────────────
+window.toggleMyTasks = function () {
+    _myTasksOnly = !_myTasksOnly;
+    const btn = document.getElementById('btn-my-tasks');
+    if (btn) {
+        btn.style.background = _myTasksOnly ? 'rgba(255,215,0,.18)' : 'rgba(255,255,255,.05)';
+        btn.style.color      = _myTasksOnly ? '#FFD700' : 'rgba(255,255,255,.5)';
+        btn.style.borderColor= _myTasksOnly ? 'rgba(255,215,0,.4)' : 'rgba(255,255,255,.1)';
+        btn.title = _myTasksOnly ? 'Mostrar todas as tarefas' : 'Mostrar apenas minhas tarefas';
+    }
+    filterTasksView();
+};
+
 
 // ── View Toggle ─────────────────────────────────────────────────────
 window.setTasksView = function (view) {
@@ -321,30 +344,57 @@ async function kanbanDrop(e, newStatus) {
 
 
 function buildKanbanCard(t) {
-    const pr      = TASK_PRIORITY[t.priority] || TASK_PRIORITY.medium;
-    const now     = new Date();
-    const due     = t.due_date ? new Date(t.due_date) : null;
-    const overdue = due && due < now && !['done', 'cancelled'].includes(t.status);
-    const dueStr  = due ? due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : null;
+    const pr       = TASK_PRIORITY[t.priority] || TASK_PRIORITY.medium;
+    const now      = new Date();
+    const due      = t.due_date ? new Date(t.due_date) : null;
+    const overdue  = due && due < now && !['done', 'cancelled'].includes(t.status);
+    const dueStr   = due ? due.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : null;
     const isPublic = t.source === 'public_form';
+
+    // Subtask progress
+    const subs     = Array.isArray(t.subtasks) ? t.subtasks : [];
+    const subDone  = subs.filter(s => s.done).length;
+    const subBar   = subs.length > 0
+        ? `<div style="margin-bottom:8px;">
+               <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                   <span style="font-size:.62rem;color:rgba(255,255,255,.35);">Subtarefas</span>
+                   <span style="font-size:.62rem;color:rgba(255,255,255,.35);">${subDone}/${subs.length}</span>
+               </div>
+               <div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;">
+                   <div style="height:100%;width:${Math.round((subDone/subs.length)*100)}%;background:linear-gradient(90deg,#34D399,#059669);border-radius:2px;transition:width .3s;"></div>
+               </div>
+           </div>`
+        : '';
+
+    // Tags
+    const tagsHtml = (t.tags || []).slice(0, 3).map(tag => {
+        const wt = _workspaceTags.find(x => x.name === tag);
+        const c  = wt?.color || '#94A3B8';
+        return `<span style="font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:8px;background:${c}22;color:${c};border:1px solid ${c}33;">${tag}</span>`;
+    }).join('');
 
     return `<div onclick="openTaskModal('${t.id}')"
          draggable="true"
          data-task-id="${t.id}"
          ondragstart="_draggedTaskId='${t.id}';this.classList.add('kanban-card-dragging');event.dataTransfer.setData('text/plain','${t.id}')"
          ondragend="this.classList.remove('kanban-card-dragging')"
-         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;cursor:grab;transition:all .2s;user-select:none;"
+         style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px 14px 18px;cursor:grab;transition:all .2s;user-select:none;position:relative;overflow:hidden;"
          onmouseover="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,215,0,.2)'"
          onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='rgba(255,255,255,.08)'">
+        <!-- Priority bar -->
+        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${pr.color};border-radius:14px 0 0 14px;opacity:.85;"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${pr.color}18;color:${pr.color};">${pr.emoji} ${pr.label}</span>
+            <span style="font-size:.62rem;font-weight:800;color:${pr.color};letter-spacing:.02em;">${pr.emoji} ${pr.label}</span>
             <div style="display:flex;align-items:center;gap:6px;">
-                ${isPublic ? '<span style="font-size:.65rem;color:#FFD700;opacity:.75;" title="Enviado pelo form público">📥</span>' : ''}
+                ${t.recurrence ? '<span style="font-size:.65rem;color:#A78BFA;opacity:.8;" title="Recorrente">🔄</span>' : ''}
+                ${isPublic ? '<span style="font-size:.65rem;color:#FFD700;opacity:.75;" title="Form público">📥</span>' : ''}
                 ${t.comment_count > 0 ? `<span style="font-size:.7rem;color:rgba(255,255,255,.3);">💬 ${t.comment_count}</span>` : ''}
             </div>
         </div>
         <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;line-height:1.35;">${t.title || 'Sem título'}</div>
-        ${t.department_name ? `<div style="font-size:.72rem;color:rgba(255,255,255,.35);margin-bottom:8px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
+        ${t.department_name ? `<div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:6px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
+        ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tagsHtml}</div>` : ''}
+        ${subBar}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
             ${t.assignee_name
                 ? `<div style="display:flex;align-items:center;gap:5px;">
@@ -356,6 +406,7 @@ function buildKanbanCard(t) {
         </div>
     </div>`;
 }
+
 
 
 // ── Task Modal ─────────────────────────────────────────────────────
@@ -402,6 +453,7 @@ window.openTaskModal = async function (taskId, defaultStatus) {
             setVal('task-modal-due',      task.due_date ? task.due_date.substring(0, 10) : '');
             setVal('task-modal-dept',     task.department_id || '');
             setVal('task-modal-assignee', task.assignee_id   || '');
+            setVal('task-modal-recurrence', task.recurrence || '');
             setText('task-modal-created', task.created_at
                 ? new Date(task.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
                 : '—');
@@ -412,8 +464,19 @@ window.openTaskModal = async function (taskId, defaultStatus) {
             }
 
             renderTaskAttachments(task.attachments || []);
+            renderSubtasks(taskId, task.subtasks || []);
+            renderTaskTags(taskId, task.tags || []);
             loadTaskComments(taskId);
+            loadTaskActivity(taskId);
         }
+    } else {
+        // New task — reset new-feature fields
+        const setVal2 = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+        setVal2('task-modal-recurrence', '');
+        renderSubtasks(null, []);
+        renderTaskTags(null, []);
+        const actEl = document.getElementById('task-modal-activity');
+        if (actEl) actEl.innerHTML = '';
     }
 
     const overlay = document.getElementById('task-modal-overlay');
@@ -423,6 +486,7 @@ window.openTaskModal = async function (taskId, defaultStatus) {
         requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; }));
     }
 };
+
 
 window.closeTaskModal = function () {
     const overlay = document.getElementById('task-modal-overlay');
@@ -457,7 +521,9 @@ window.saveTaskModal = async function () {
         due_date:     document.getElementById('task-modal-due')?.value      || null,
         department_id:document.getElementById('task-modal-dept')?.value     || null,
         assigned_to:  newAssignee || null,
+        recurrence:   document.getElementById('task-modal-recurrence')?.value || null,
     };
+
 
     try {
         let savedId = _currentTaskId;
@@ -488,6 +554,12 @@ window.saveTaskModal = async function () {
         }
 
         if (typeof hubToast !== 'undefined') hubToast('Tarefa salva ✅', 'success');
+
+        // Trigger recurrence cloning if task just became done
+        if (payload.status === 'done' && prevTask?.status !== 'done' && payload.recurrence) {
+            await handleRecurrenceOnDone({ ...prevTask, ...payload, assignee_id: newAssignee });
+        }
+
         closeTaskModal();
         await loadTaskManager();
     } catch (e) {
@@ -978,3 +1050,215 @@ window.addNewDepartment = async function () {
     await loadTaskManager();
     renderSettingsDeptList();
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// SUBTAREFAS
+// ═══════════════════════════════════════════════════════════════════
+
+function renderSubtasks(taskId, subtasks) {
+    const el = document.getElementById('task-modal-subtasks');
+    if (!el) return;
+    const total = subtasks.length;
+    const done  = subtasks.filter(s => s.done).length;
+    const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+    el.innerHTML = `
+        ${total > 0 ? `
+        <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:.72rem;color:rgba(255,255,255,.4);">${done}/${total} concluídas</span>
+                <span style="font-size:.72rem;color:rgba(255,255,255,.4);">${pct}%</span>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#34D399,#059669);border-radius:4px;transition:width .4s;"></div>
+            </div>
+        </div>` : ''}
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+            ${subtasks.map(s => `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;">
+                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${taskId}','${s.id}',this.checked)" style="width:16px;height:16px;accent-color:#FFD700;cursor:pointer;flex-shrink:0;">
+                <span style="flex:1;font-size:.83rem;color:rgba(255,255,255,${s.done ? '.3' : '.8'});text-decoration:${s.done ? 'line-through' : 'none'};">${s.title}</span>
+                <button onclick="deleteSubtask('${taskId}','${s.id}')" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(255,68,68,.1);color:#F87171;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;">
+            <input id="new-subtask-input" type="text" placeholder="Nova subtarefa..."
+                style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.83rem;outline:none;font-family:inherit;"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addSubtask('${taskId}');}">
+            <button onclick="addSubtask('${taskId}')" style="padding:9px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;">+ Add</button>
+        </div>`;
+}
+
+window.toggleSubtask = async function(taskId, subId, checked) {
+    if (!taskId) return;
+    const task = _tasksAll.find(t => t.id === taskId);
+    if (!task) return;
+    const subs = (task.subtasks || []).map(s => s.id === subId ? { ...s, done: checked } : s);
+    task.subtasks = subs;
+    await window.supabaseClient.from('tasks').update({ subtasks: subs }).eq('id', taskId);
+    renderSubtasks(taskId, subs);
+    await logActivity(taskId, checked ? 'subtask_done' : 'subtask_undone', null, subs.find(s => s.id === subId)?.title);
+};
+
+window.addSubtask = async function(taskId) {
+    const input = document.getElementById('new-subtask-input');
+    const title = input?.value?.trim();
+    if (!title) return;
+    const task = _tasksAll.find(t => t.id === taskId);
+    const subs = [...(task?.subtasks || []), { id: crypto.randomUUID(), title, done: false, created_at: new Date().toISOString() }];
+    if (task) task.subtasks = subs;
+    if (taskId) {
+        await window.supabaseClient.from('tasks').update({ subtasks: subs }).eq('id', taskId);
+        await logActivity(taskId, 'subtask_added', null, title);
+    }
+    if (input) input.value = '';
+    renderSubtasks(taskId, subs);
+};
+
+window.deleteSubtask = async function(taskId, subId) {
+    const task = _tasksAll.find(t => t.id === taskId);
+    if (!task) return;
+    const sub  = task.subtasks?.find(s => s.id === subId);
+    const subs = (task.subtasks || []).filter(s => s.id !== subId);
+    task.subtasks = subs;
+    await window.supabaseClient.from('tasks').update({ subtasks: subs }).eq('id', taskId);
+    await logActivity(taskId, 'subtask_removed', sub?.title, null);
+    renderSubtasks(taskId, subs);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ETIQUETAS / TAGS
+// ═══════════════════════════════════════════════════════════════════
+
+function renderTaskTags(taskId, tags) {
+    const el = document.getElementById('task-modal-tags');
+    if (!el) return;
+    const suggestions = _workspaceTags.filter(t => !tags.includes(t.name));
+    el.innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+            ${tags.map(tag => {
+                const wt = _workspaceTags.find(x => x.name === tag);
+                const c  = wt?.color || '#94A3B8';
+                return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;background:${c}20;color:${c};border:1px solid ${c}40;cursor:pointer;" onclick="removeTag('${taskId}','${tag}')">${tag} <span style="opacity:.6;">✕</span></span>`;
+            }).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input id="new-tag-input" type="text" placeholder="Nova etiqueta..." list="tag-suggestions"
+                style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;color:#fff;font-size:.8rem;outline:none;font-family:inherit;"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addTagToTask('${taskId}');}">
+            <datalist id="tag-suggestions">${suggestions.map(t => `<option value="${t.name}">`).join('')}</datalist>
+            <input id="new-tag-color" type="color" value="#FFD700" style="width:38px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;padding:3px;">
+            <button onclick="addTagToTask('${taskId}')" style="padding:8px 12px;border:none;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;font-size:.78rem;cursor:pointer;">+ Tag</button>
+        </div>
+        ${suggestions.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:5px;">${suggestions.slice(0,6).map(t => `<span style="font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:20px;background:${t.color}18;color:${t.color};border:1px solid ${t.color}30;cursor:pointer;" onclick="addTagToTaskDirect('${taskId}','${t.name}')">+ ${t.name}</span>`).join('')}</div>` : ''}`;
+}
+
+window.addTagToTask = async function(taskId) {
+    const input = document.getElementById('new-tag-input');
+    const color = document.getElementById('new-tag-color')?.value || '#FFD700';
+    const tag   = input?.value?.trim();
+    if (!tag) return;
+    const sb = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!_workspaceTags.find(t => t.name === tag)) {
+        const { data: newTag } = await sb.from('task_tags').insert({ workspace_id: wsId, name: tag, color }).select().single();
+        if (newTag) _workspaceTags.push(newTag);
+    }
+    const task = _tasksAll.find(t => t.id === taskId);
+    const tags = [...new Set([...(task?.tags || []), tag])];
+    if (task) task.tags = tags;
+    if (taskId) { await sb.from('tasks').update({ tags }).eq('id', taskId); await logActivity(taskId, 'tag_added', null, tag); }
+    if (input) input.value = '';
+    renderTaskTags(taskId, tags);
+};
+
+window.addTagToTaskDirect = async function(taskId, tag) {
+    const task = _tasksAll.find(t => t.id === taskId);
+    const tags = [...new Set([...(task?.tags || []), tag])];
+    if (task) task.tags = tags;
+    if (taskId) { await window.supabaseClient.from('tasks').update({ tags }).eq('id', taskId); await logActivity(taskId, 'tag_added', null, tag); }
+    renderTaskTags(taskId, tags);
+};
+
+window.removeTag = async function(taskId, tag) {
+    const task = _tasksAll.find(t => t.id === taskId);
+    const tags = (task?.tags || []).filter(t => t !== tag);
+    if (task) task.tags = tags;
+    await window.supabaseClient.from('tasks').update({ tags }).eq('id', taskId);
+    await logActivity(taskId, 'tag_removed', tag, null);
+    renderTaskTags(taskId, tags);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// RECORRÊNCIA
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleRecurrenceOnDone(task) {
+    if (!task?.recurrence || task.recurrence === 'none') return;
+    const baseDate = task.due_date ? new Date(task.due_date) : new Date();
+    const next = new Date(baseDate);
+    switch (task.recurrence) {
+        case 'daily':   next.setDate(next.getDate() + 1); break;
+        case 'weekly':  next.setDate(next.getDate() + 7); break;
+        case 'monthly': next.setMonth(next.getMonth() + 1); break;
+        case 'yearly':  next.setFullYear(next.getFullYear() + 1); break;
+    }
+    await window.supabaseClient.from('tasks').insert({
+        workspace_id: task.workspace_id,
+        title: task.title,
+        description: task.description,
+        department_id: task.department_id,
+        assigned_to: task.assignee_id,
+        priority: task.priority,
+        status: 'todo',
+        recurrence: task.recurrence,
+        due_date: next.toISOString().split('T')[0],
+        created_by: window._currentUser?.id || null,
+        source: task.source,
+    });
+    const labels = { daily: 'amanhã', weekly: 'em 7 dias', monthly: 'no próximo mês', yearly: 'no próximo ano' };
+    if (typeof hubToast !== 'undefined') hubToast(`🔄 Próxima ocorrência criada para ${labels[task.recurrence]}`, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIT LOG / ATIVIDADE
+// ═══════════════════════════════════════════════════════════════════
+
+async function logActivity(taskId, action, oldValue, newValue) {
+    const sb = window.supabaseClient;
+    const wsId = window.currentWorkspaceId;
+    if (!sb || !wsId || !taskId) return;
+    await sb.from('task_activity').insert({ task_id: taskId, workspace_id: wsId, user_id: window._currentUser?.id || null, action, old_value: oldValue || null, new_value: newValue || null });
+}
+
+async function loadTaskActivity(taskId) {
+    const el = document.getElementById('task-modal-activity');
+    if (!el) return;
+    el.innerHTML = '<div style="padding:12px 0;color:rgba(255,255,255,.25);font-size:.78rem;">Carregando...</div>';
+    const { data } = await window.supabaseClient.from('task_activity').select('*').eq('task_id', taskId).order('created_at', { ascending: false }).limit(30);
+    if (!data?.length) { el.innerHTML = '<div style="padding:12px 0;color:rgba(255,255,255,.2);font-size:.78rem;">Nenhuma atividade ainda.</div>'; return; }
+    const icons = { created:'✨', status_changed:'📌', priority_changed:'🔺', assigned:'👤', subtask_added:'➕', subtask_removed:'✂️', subtask_done:'✅', subtask_undone:'↩️', tag_added:'🏷️', tag_removed:'🗑️' };
+    const statusLabel = s => TASK_STATUS[s]?.label || s || '—';
+    const prioLabel   = p => TASK_PRIORITY[p]?.label || p || '—';
+    function describe(item) {
+        switch (item.action) {
+            case 'created':          return `Tarefa criada: <b>${item.new_value}</b>`;
+            case 'status_changed':   return `Status: <b>${statusLabel(item.old_value)}</b> → <b>${statusLabel(item.new_value)}</b>`;
+            case 'priority_changed': return `Prioridade: <b>${prioLabel(item.old_value)}</b> → <b>${prioLabel(item.new_value)}</b>`;
+            case 'assigned':         return `Responsável atualizado`;
+            case 'subtask_added':    return `Subtarefa adicionada: <b>${item.new_value}</b>`;
+            case 'subtask_removed':  return `Subtarefa removida: <b>${item.old_value}</b>`;
+            case 'subtask_done':     return `Subtarefa concluída: <b>${item.new_value}</b>`;
+            case 'subtask_undone':   return `Subtarefa reaberta: <b>${item.new_value}</b>`;
+            case 'tag_added':        return `Tag adicionada: <b>${item.new_value}</b>`;
+            case 'tag_removed':      return `Tag removida: <b>${item.old_value}</b>`;
+            default:                 return item.action;
+        }
+    }
+    el.innerHTML = data.map(item => {
+        const dateStr = new Date(item.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        return `<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+            <div style="width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.05);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;">${icons[item.action] || '•'}</div>
+            <div style="flex:1;"><div style="font-size:.78rem;color:rgba(255,255,255,.7);">${describe(item)}</div><div style="font-size:.68rem;color:rgba(255,255,255,.25);margin-top:2px;">${dateStr}</div></div>
+        </div>`;
+    }).join('');
+}
