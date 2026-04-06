@@ -661,11 +661,11 @@ async function selectLead(leadId) {
   // Human lock
   updateLockUI(lead);
 
-  // ── Refresh wa_window_expires_at from DB (cache may be stale after inbound message) ──
+  // ── Refresh wa fields from DB (cache may be stale after inbound message) ──
   try {
     const { data: freshLead } = await window._sb
       .from('leads')
-      .select('wa_window_expires_at, llm_lock_until, inbox_status')
+      .select('wa_window_expires_at, llm_lock_until, inbox_status, last_message_at, inbox_priority')
       .eq('id', leadId)
       .maybeSingle();
     if (freshLead) {
@@ -1111,16 +1111,20 @@ function extractTemplateBody(components) {
   return body?.text || '';
 }
 
-// Count how many {{N}} variables exist in the template body
+// Count how many {{N}} variables exist in the template body (proper Meta format)
+// Note: {{}} (without number) = 0 params per Meta API - NEVER pass variables for these
 function countTemplateVars(text) {
-  const matches = text.match(/\{\{\d+\}\}/g);
+  const matches = text.match(/\{\{[1-9]\d*\}\}/g);
   return matches ? matches.length : 0;
 }
 
-// Interpolate variable placeholders for preview (replaces {{1}} with actual value)
+// Interpolate variable placeholders for preview display only
 function interpolatePreview(text, vars) {
   let out = text;
+  // Replace proper {{1}}, {{2}}... style
   (vars || []).forEach((v, i) => { out = out.replace(`{{${i + 1}}}`, v); });
+  // Display {{}} as [nome] for preview purposes (but send 0 vars to Meta)
+  out = out.replace(/\{\{\}\}/g, vars?.[0] ? `[${vars[0]}]` : '[nome]');
   return out;
 }
 
@@ -1201,8 +1205,10 @@ async function sendSelectedTemplate() {
 
   const firstName = lead?.name?.split(' ')[0] || lead?.name || '';
   const variables = [];
-  if (_selectedTemplate.variables_count > 0) variables.push(firstName);
-  for (let i = 1; i < _selectedTemplate.variables_count; i++) variables.push('');
+  if (_selectedTemplate.variables_count > 0) {
+    variables.push(firstName || 'Amigo');
+    for (let i = 1; i < _selectedTemplate.variables_count; i++) variables.push('');
+  }
 
   try {
     const res = await fetch(`${BACKEND_URL}/whatsapp/send-template`, {
@@ -1227,12 +1233,21 @@ async function sendSelectedTemplate() {
       });
       renderMessages();
     } else {
-      const errMsg = result.details?.error?.message || result.error || 'Erro desconhecido';
+      // Parse detailed Meta error
+      let errMsg = result.error || 'Erro desconhecido';
+      try {
+        if (result.details?.details) {
+          const raw = JSON.parse(result.details.details);
+          errMsg = raw?.error?.message || errMsg;
+        }
+      } catch(_) {}
       showChatToast(`\u274c ${errMsg}`, 'error');
+      console.error('[Template Error]', result);
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
     }
   } catch(e) {
     showChatToast(`\u274c Erro de conex\u00e3o: ${e.message}`, 'error');
+    console.error('[Template Fetch Error]', e);
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
   }
 }
