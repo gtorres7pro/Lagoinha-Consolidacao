@@ -218,24 +218,24 @@ function renderTasksList(tasks) {
                     onclick="openTaskModal('${t.id}')"
                     onmouseover="this.style.background='rgba(255,215,0,.03)'"
                     onmouseout="this.style.background=''">
-            <td style="padding:13px 16px;">
+            <td data-label="Tarefa" style="padding:13px 16px;">
                 <div style="font-weight:600;color:#fff;font-size:.88rem;line-height:1.3;">${t.title || 'Sem título'}</div>
                 ${t.description ? `<div style="font-size:.74rem;color:rgba(255,255,255,.35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${t.description}</div>` : ''}
             </td>
-            <td style="padding:13px 16px;">
+            <td data-label="Status" style="padding:13px 16px;">
                 <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:${st.color}20;color:${st.color};border:1px solid ${st.color}35;white-space:nowrap;">
                     ${st.emoji} ${st.label}
                 </span>
             </td>
-            <td style="padding:13px 16px;">
+            <td data-label="Prioridade" style="padding:13px 16px;">
                 <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:${pr.color}20;color:${pr.color};border:1px solid ${pr.color}35;white-space:nowrap;">
                     ${pr.emoji} ${pr.label}
                 </span>
             </td>
-            <td style="padding:13px 16px;font-size:.8rem;color:rgba(255,255,255,.55);">
+            <td data-label="Dept." style="padding:13px 16px;font-size:.8rem;color:rgba(255,255,255,.55);">
                 ${t.department_icon ? t.department_icon + ' ' : ''}${t.department_name || '—'}
             </td>
-            <td style="padding:13px 16px;">
+            <td data-label="Responsável" style="padding:13px 16px;">
                 ${t.assignee_name
                     ? `<div style="display:flex;align-items:center;gap:7px;">
                            <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA000);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;color:#000;flex-shrink:0;">${(t.assignee_name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</div>
@@ -243,10 +243,10 @@ function renderTasksList(tasks) {
                        </div>`
                     : '<span style="color:rgba(255,255,255,.25);font-size:.8rem;">—</span>'}
             </td>
-            <td style="padding:13px 16px;text-align:center;font-size:.8rem;font-weight:600;color:${dueClr};">
+            <td data-label="Data Ref." style="padding:13px 16px;text-align:center;font-size:.8rem;font-weight:600;color:${dueClr};">
                 ${overdue ? '⚠️ ' : ''}${dueStr}
             </td>
-            <td style="padding:13px 16px;text-align:center;font-size:.8rem;color:rgba(255,255,255,.4);">
+            <td data-label="Logs" style="padding:13px 16px;text-align:center;font-size:.8rem;color:rgba(255,255,255,.4);">
                 ${t.comment_count > 0 ? `<span style="color:rgba(255,255,255,.6);">${t.comment_count}</span>` : '—'}
             </td>
         </tr>`;
@@ -391,7 +391,8 @@ function buildKanbanCard(t) {
                 ${t.comment_count > 0 ? `<span style="font-size:.7rem;color:rgba(255,255,255,.3);">💬 ${t.comment_count}</span>` : ''}
             </div>
         </div>
-        <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;line-height:1.35;">${t.title || 'Sem título'}</div>
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:${t.description ? '4px' : '8px'};line-height:1.35;">${t.title || 'Sem título'}</div>
+        ${t.description ? `<div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-bottom:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${t.description}</div>` : ''}
         ${t.department_name ? `<div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-bottom:6px;">${t.department_icon || ''} ${t.department_name}</div>` : ''}
         ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tagsHtml}</div>` : ''}
         ${subBar}

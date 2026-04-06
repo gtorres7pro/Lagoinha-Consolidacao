@@ -2645,8 +2645,76 @@
                 </div>
             </header>
 
+            <style>
+                .tasks-wrapper-padding {
+                    padding: 16px 32px 0;
+                }
+                .tasks-bottom-padding {
+                    padding-bottom: 40px;
+                }
+                .tasks-kpi-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                    gap: 12px;
+                }
+                .tasks-toolbar {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+                .task-responsive-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: .82rem;
+                }
+                @media (max-width: 768px) {
+                    .tasks-wrapper-padding { padding: 12px 16px 0; }
+                    .tasks-bottom-padding { padding-bottom: 24px; }
+                    
+                    /* KPIs 3 per row instead of stacking to 1, or 2 per row */
+                    .tasks-kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+                    
+                    /* Toolbar filters full width */
+                    .tasks-toolbar input, .tasks-toolbar select, .tasks-toolbar button { flex: 1 1 100%; width: 100%; }
+                    
+                    /* But keep view toggle side by side */
+                    .tasks-toolbar .view-toggles { flex: 1 1 100%; justify-content: center; margin-top: 8px; margin-left: 0 !important; }
+                    .tasks-toolbar .view-toggles button { flex: 1; }
+
+                    /* Responsive Table -> Cards */
+                    .task-responsive-table thead { display: none; }
+                    .task-responsive-table tr { 
+                        display: flex; 
+                        flex-direction: column; 
+                        padding: 12px 0; 
+                        border-bottom: 1px solid rgba(255,255,255,.05); 
+                        position: relative;
+                    }
+                    .task-responsive-table td { 
+                        padding: 4px 16px !important; 
+                        align-items: center;
+                        text-align: left !important;
+                    }
+                    /* Reorder some info and hide empty labels, make labels inline block */
+                    .task-responsive-table td::before { 
+                        content: attr(data-label); 
+                        font-weight: 700; 
+                        color: rgba(255,255,255,.3); 
+                        text-transform: uppercase; 
+                        font-size: .65rem; 
+                        margin-right: 8px; 
+                        display: inline-block;
+                        width: 80px;
+                    }
+                    /* First column (Title/Desc) needs no prefix and is main focus */
+                    .task-responsive-table td:first-child::before { display: none; }
+                    .task-responsive-table td:first-child { padding-bottom: 8px !important; }
+                }
+            </style>
+
             <!-- KPI Row -->
-            <div style="padding:20px 32px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
+            <div class="tasks-wrapper-padding tasks-kpi-grid">
                 <div class="kpi-box" style="border-top:2px solid rgba(255,255,255,.15);">
                     <div class="kpi-label">Total</div>
                     <div class="kpi-value" id="tkpi-total">—</div>
@@ -2674,7 +2742,7 @@
             </div>
 
             <!-- Toolbar: filters + view toggle -->
-            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="tasks-wrapper-padding tasks-toolbar">
                 <!-- Search -->
                 <input id="tasks-search" type="text" placeholder="🔍 Buscar tarefas..." oninput="filterTasksView()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;color:#fff;font-size:.82rem;outline:none;min-width:200px;">
                 <!-- Status filter -->
@@ -2705,12 +2773,12 @@
                 </select>
                 <!-- My Tasks Toggle -->
                 <button id="btn-my-tasks" onclick="toggleMyTasks()" title="Mostrar apenas minhas tarefas"
-                    style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;"
+                    style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;white-space:nowrap;"
                     onmouseover="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.8)'" onmouseout="if(!_myTasksOnly)this.style.color='rgba(255,255,255,.5)'">
                     👤 Minhas Tarefas
                 </button>
                 <!-- View Toggle -->
-                <div style="display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:4px;">
+                <div class="view-toggles" style="display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:4px;">
                     <button id="tasks-view-list" onclick="setTasksView('list')" style="padding:7px 16px;border-radius:9px;border:none;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;background:rgba(255,215,0,.15);color:#FFD700;">
                         ☰ Lista
                     </button>
@@ -2721,9 +2789,9 @@
             </div>
 
             <!-- LIST VIEW -->
-            <div id="tasks-list-view" style="padding:16px 32px 40px;">
+            <div id="tasks-list-view" class="tasks-wrapper-padding tasks-bottom-padding">
                 <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden;">
-                    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                    <table class="task-responsive-table">
                         <thead>
                             <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:35%;">Tarefa</th>
@@ -2743,8 +2811,8 @@
             </div>
 
             <!-- KANBAN VIEW (hidden by default) -->
-            <div id="tasks-kanban-view" style="display:none;padding:16px 32px 40px;overflow-x:auto;">
-                <div id="tasks-kanban-board" style="display:flex;gap:16px;min-width:max-content;align-items:flex-start;">
+            <div id="tasks-kanban-view" style="display:none;" class="tasks-wrapper-padding tasks-bottom-padding">
+                <div id="tasks-kanban-board" style="display:flex;gap:16px;min-width:max-content;align-items:flex-start;overflow-x:auto;">
                     <!-- Populated dynamically -->
                 </div>
             </div>
