@@ -245,14 +245,13 @@ function renderSelectBox(taskId, field, currentVal, optionsObj, defColor = '#94A
 
 function renderAssigneeSelect(taskId, currentId, currentName) {
     let color = currentId ? '#60A5FA' : '#94A3B8';
-    let members = window.teamsApi?.members || [];
-    let needsFallback = currentId && !members.some(m => (m.user?.user_id || m.id) === currentId);
+    let members = _tasksUsers;
+    let needsFallback = currentId && !members.some(m => m.id === currentId);
     let fallbackHtml = needsFallback ? `<option value="${currentId}" selected>👤 ${(currentName||'Membro').split(' ')[0]}</option>` : '';
     
-    let optsHtml = `<option value="unassigned">👻 S/ Responsável</option>` + fallbackHtml +
+    let optsHtml = `<option value="unassigned">⭕ S/ Responsável</option>` + fallbackHtml +
         members.map(m => {
-            const uid = m.user?.user_id || m.id;
-            return `<option value="${uid}" ${uid===currentId?'selected':''}>👤 ${(m.user?.name||'').split(' ')[0]}</option>`;
+            return `<option value="${m.id}" ${m.id===currentId?'selected':''}>👤 ${(m.name||'').split(' ')[0]}</option>`;
         }).join('');
         
     return `<select onchange="quickUpdateTask('${taskId}', 'assignee_id', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:${color}15;color:${color};border:1px solid ${color}30;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;outline:none;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;">
@@ -363,7 +362,7 @@ function renderTasksKanban(tasks) {
         columnsData.push({
             id: 'unassigned',
             label: 'Sem Responsável',
-            emoji: '👻',
+            emoji: '⭕',
             color: '#94A3B8',
             tasks: tasks.filter(t => !t.assignee_id)
         });
