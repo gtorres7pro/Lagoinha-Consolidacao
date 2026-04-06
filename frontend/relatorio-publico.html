@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório de Consolidação · Zelo Pro</title>
+<meta name="description" content="Relatório público de consolidação em tempo real.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><path d='M4 4h10L4 14h10' stroke='%23FFD700' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #FFD700;
+    --accent2: #FFA000;
+    --bg: #080808;
+    --surface: #111111;
+    --surface2: #181818;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f0;
+    --text-dim: #888;
+    --radius: 16px;
+    --font: 'Inter', sans-serif;
+    --saved-color: #4ade80;
+    --visitor-color: #60a5fa;
+    --baptism-color: #a78bfa;
+    --gc-color: #fb923c;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── Password Gate ────────────────────────────────────── */
+  #gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.08) 0%, #080808 60%);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  #gate-card {
+    background: rgba(20,20,20,0.95);
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 32px 96px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,215,0,0.06);
+    backdrop-filter: blur(20px);
+    text-align: center;
+  }
+  #gate-logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 32px;
+  }
+  #gate-logo .z-mark {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #gate-logo span {
+    font-size: 1.1rem; font-weight: 800; color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  #gate-card h2 {
+    font-size: 1.4rem; font-weight: 800; color: #fff;
+    margin-bottom: 8px;
+  }
+  #gate-card p {
+    font-size: 0.85rem; color: var(--text-dim); margin-bottom: 32px;
+  }
+  #gate-church {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--accent); margin-bottom: 6px;
+  }
+
+  .gate-input-wrap {
+    position: relative; margin-bottom: 16px;
+  }
+  .gate-input-wrap svg {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text-dim);
+  }
+  .gate-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 13px 14px 13px 42px;
+    color: #fff; font-size: 0.9rem; font-family: var(--font);
+    outline: none; transition: border-color 0.2s, background 0.2s;
+  }
+  .gate-input:focus {
+    border-color: rgba(255,215,0,0.4);
+    background: rgba(255,215,0,0.03);
+  }
+  .gate-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000; border: none; border-radius: 12px;
+    padding: 14px; font-size: 0.95rem; font-weight: 800;
+    cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+    letter-spacing: 0.01em; margin-top: 4px;
+  }
+  .gate-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .gate-btn:active { transform: translateY(0); }
+  #gate-error {
+    display: none;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px; padding: 10px 14px; font-size: 0.82rem;
+    color: #f87171; margin-top: 12px;
+  }
+  .gate-footer {
+    margin-top: 28px; font-size: 0.7rem; color: #444;
+  }
+
+  /* ── App Shell ────────────────────────────────────────── */
+  #app { display: none; }
+
+  /* ── Header ───────────────────────────────────────────── */
+  .pub-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(8,8,8,0.9);
+    backdrop-filter: blur(20px) saturate(1.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .pub-header-left {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .pub-logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pub-church-name {
+    font-size: 1rem; font-weight: 800; color: #fff;
+  }
+  .pub-badge {
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; background: rgba(255,215,0,0.1);
+    border: 1px solid rgba(255,215,0,0.25); color: var(--accent);
+    padding: 3px 9px; border-radius: 20px;
+  }
+  .pub-header-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .live-dot {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.7rem; font-weight: 600; color: var(--saved-color);
+  }
+  .live-dot::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--saved-color);
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+  @keyframes pulse-live {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:.4; transform:scale(1.3); }
+  }
+
+  /* ── Main Content ─────────────────────────────────────── */
+  .pub-main { max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; }
+
+  /* ── Period + Filter bar ──────────────────────────────── */
+  .filter-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .period-group {
+    display: flex; gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px;
+  }
+  .period-btn {
+    background: none; border: none;
+    color: var(--text-dim); font-size: 0.78rem; font-weight: 600;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.18s; font-family: var(--font);
+  }
+  .period-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .period-btn.active {
+    background: var(--accent); color: #000; font-weight: 800;
+  }
+  .filter-search {
+    flex: 1; min-width: 200px; max-width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 8px 14px 8px 36px;
+    color: var(--text); font-size: 0.85rem; font-family: var(--font);
+    outline: none; transition: border-color 0.2s;
+    position: relative;
+  }
+  .filter-search:focus { border-color: rgba(255,215,0,0.3); }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+  .filter-select {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 8px 14px; color: var(--text);
+    font-size: 0.82rem; font-family: var(--font); outline: none;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .filter-select:focus { border-color: rgba(255,215,0,0.3); }
+  .filter-count {
+    margin-left: auto; font-size: 0.78rem; color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .filter-count span { color: var(--accent); font-weight: 700; }
+
+  /* ── KPI Grid ────────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .kpi-card:hover { border-color: rgba(255,215,0,0.2); transform: translateY(-2px); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.yellow::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.green::before  { background: linear-gradient(90deg, var(--saved-color), transparent); }
+  .kpi-card.blue::before   { background: linear-gradient(90deg, var(--visitor-color), transparent); }
+  .kpi-card.purple::before { background: linear-gradient(90deg, var(--baptism-color), transparent); }
+  .kpi-card.orange::before { background: linear-gradient(90deg, var(--gc-color), transparent); }
+  .kpi-card.teal::before   { background: linear-gradient(90deg, #2dd4bf, transparent); }
+
+  .kpi-label {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-size: 2rem; font-weight: 900; line-height: 1;
+    letter-spacing: -1px;
+  }
+  .kpi-card.yellow .kpi-value { color: var(--accent); }
+  .kpi-card.green  .kpi-value { color: var(--saved-color); }
+  .kpi-card.blue   .kpi-value { color: var(--visitor-color); }
+  .kpi-card.purple .kpi-value { color: var(--baptism-color); }
+  .kpi-card.orange .kpi-value { color: var(--gc-color); }
+  .kpi-card.teal   .kpi-value { color: #2dd4bf; }
+  .kpi-sub {
+    font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;
+  }
+  .kpi-icon {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 1.6rem; opacity: 0.12;
+  }
+
+  /* ── Cards Grid ──────────────────────────────────────── */
+  .leads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+  .lead-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    transition: border-color 0.2s, transform 0.15s;
+    animation: fadeUp 0.3s ease both;
+  }
+  .lead-card:hover {
+    border-color: rgba(255,215,0,0.2);
+    transform: translateY(-2px);
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .lead-top {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .lead-avatar {
+    width: 40px; height: 40px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .lead-avatar.saved {
+    background: rgba(74,222,128,0.12); color: var(--saved-color);
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .lead-avatar.visitor {
+    background: rgba(96,165,250,0.12); color: var(--visitor-color);
+    border: 1px solid rgba(96,165,250,0.2);
+  }
+  .lead-name {
+    font-weight: 700; font-size: 0.95rem; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lead-date {
+    font-size: 0.7rem; color: var(--text-dim); margin-top: 1px;
+  }
+  .lead-type-badge {
+    margin-left: auto; font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 3px 8px; border-radius: 20px; flex-shrink: 0;
+  }
+  .lead-type-badge.saved {
+    background: rgba(74,222,128,0.1); color: var(--saved-color);
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .lead-type-badge.visitor {
+    background: rgba(96,165,250,0.1); color: var(--visitor-color);
+    border: 1px solid rgba(96,165,250,0.2);
+  }
+  .lead-tasks {
+    display: flex; flex-wrap: wrap; gap: 5px;
+  }
+  .task-chip {
+    font-size: 0.65rem; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .task-chip.pending {
+    background: rgba(251,191,36,0.08); color: #fbbf24;
+    border-color: rgba(251,191,36,0.2);
+  }
+  .task-chip.completed {
+    background: rgba(74,222,128,0.08); color: #4ade80;
+    border-color: rgba(74,222,128,0.2); text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  /* ── Empty state ─────────────────────────────────────── */
+  .empty-state {
+    text-align: center; padding: 80px 20px; color: var(--text-dim);
+  }
+  .empty-state svg { opacity: 0.2; margin-bottom: 16px; }
+
+  /* ── Section header ──────────────────────────────────── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-dim);
+  }
+
+  /* ── Loading ─────────────────────────────────────────── */
+  .spinner {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid rgba(255,215,0,0.15);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+    margin: 60px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Footer ──────────────────────────────────────────── */
+  .pub-footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(8,8,8,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 10px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.7rem; color: #333;
+  }
+  .pub-footer a { color: #444; text-decoration: none; }
+
+  /* ── Responsive ──────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .pub-header { padding: 0 16px; }
+    .pub-main { padding: 20px 16px 80px; }
+    .pub-church-name { display: none; }
+    .filter-bar { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Password Gate ═══════════════════════════════════════ -->
+<div id="gate">
+  <div id="gate-card">
+    <div id="gate-logo">
+      <div class="z-mark">
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+          <path d="M4 4h10L4 14h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span>Zelo Pro</span>
+    </div>
+    <div id="gate-church">Relatório de Consolidação</div>
+    <h2>Acesso Restrito</h2>
+    <p>Este relatório é protegido por senha. Entre com as credenciais da sua equipe para visualizar os dados em tempo real.</p>
+
+    <div class="gate-input-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input class="gate-input" type="password" id="gate-password" placeholder="Digite a senha do relatório" onkeydown="if(event.key==='Enter')verifyPassword()">
+    </div>
+    <button class="gate-btn" onclick="verifyPassword()" id="gate-btn">
+      Acessar Relatório
+    </button>
+    <div id="gate-error">Senha incorreta. Tente novamente.</div>
+    <div class="gate-footer">Powered by Zelo Pro · 7Pro Labs</div>
+  </div>
+</div>
+
+<!-- ══ App ═══════════════════════════════════════════════════ -->
+<div id="app">
+  <header class="pub-header">
+    <div class="pub-header-left">
+      <div class="pub-logo">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M4 4h10L4 14h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="pub-church-name" id="header-church-name">Carregando...</div>
+      </div>
+      <span class="pub-badge">Consolidação</span>
+    </div>
+    <div class="pub-header-right">
+      <span class="live-dot">Tempo Real</span>
+      <span id="header-last-update" style="font-size:0.7rem;color:#444;margin-left:4px;"></span>
+    </div>
+  </header>
+
+  <main class="pub-main">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="period-group" id="period-group">
+        <button class="period-btn active" data-days="7" onclick="setPeriod(7, this)">7d</button>
+        <button class="period-btn" data-days="30" onclick="setPeriod(30, this)">30d</button>
+        <button class="period-btn" data-days="90" onclick="setPeriod(90, this)">90d</button>
+        <button class="period-btn" data-days="0" onclick="setPeriod(0, this)">Todos</button>
+      </div>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="filter-search" type="text" id="pub-search" placeholder="Buscar pessoa..." oninput="filterLeads()">
+      </div>
+      <select class="filter-select" id="pub-filter-type" onchange="filterLeads()">
+        <option value="all">Todos os tipos</option>
+        <option value="saved">Salvos</option>
+        <option value="visitor">Visitantes</option>
+      </select>
+      <div class="filter-count">Exibindo <span id="pub-count">0</span> pessoas</div>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Total de Pessoas</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">no período selecionado</div>
+        <div class="kpi-icon">👥</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Salvos</div>
+        <div class="kpi-value" id="kpi-salvos">—</div>
+        <div class="kpi-sub">decisão de fé</div>
+        <div class="kpi-icon">✝️</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Visitantes</div>
+        <div class="kpi-value" id="kpi-visitantes">—</div>
+        <div class="kpi-sub">primeira visita</div>
+        <div class="kpi-icon">👋</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Interesse em Batismo</div>
+        <div class="kpi-value" id="kpi-batismo">—</div>
+        <div class="kpi-sub">solicitações</div>
+        <div class="kpi-icon">🕊️</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Interesse em GC</div>
+        <div class="kpi-value" id="kpi-gc">—</div>
+        <div class="kpi-sub">grupos de comunidade</div>
+        <div class="kpi-icon">🏠</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Interesse em Start</div>
+        <div class="kpi-value" id="kpi-start">—</div>
+        <div class="kpi-sub">curso de discipulado</div>
+        <div class="kpi-icon">🚀</div>
+      </div>
+    </div>
+
+    <!-- Leads Section -->
+    <div class="section-header">
+      <div class="section-title">Pessoas</div>
+    </div>
+
+    <div id="leads-loading" class="spinner"></div>
+    <div id="leads-grid" class="leads-grid" style="display:none;"></div>
+    <div id="leads-empty" class="empty-state" style="display:none;">
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <p>Nenhuma pessoa encontrada para este período.</p>
+    </div>
+  </main>
+
+  <footer class="pub-footer">
+    <span>Relatório gerado por <strong style="color:#555;">Zelo Pro</strong></span>
+    <a href="https://zelo.7prolabs.com" target="_blank">zelo.7prolabs.com</a>
+  </footer>
+</div>
+
+<script>
+const SUPABASE_FN_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1/public-report';
+const SESSION_KEY = 'pub_report_auth';
+
+// Get workspace slug from URL path: /orlando/relatorio-publico.html
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+const WORKSPACE_SLUG = pathParts.length > 1 ? pathParts[pathParts.length - 2] : 'orlando';
+
+let _allLeads = [];
+let _currentDays = 7;
+let _password = '';
+
+// ── Check existing session ────────────────────────────
+const saved = sessionStorage.getItem(SESSION_KEY);
+if (saved) {
+  try {
+    const sess = JSON.parse(saved);
+    if (sess.slug === WORKSPACE_SLUG && sess.password) {
+      _password = sess.password;
+      bootApp();
+    }
+  } catch(e) {}
+}
+
+// ── Verify Password ───────────────────────────────────
+async function verifyPassword() {
+  const pw = document.getElementById('gate-password').value.trim();
+  if (!pw) return;
+
+  const btn = document.getElementById('gate-btn');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  const err = document.getElementById('gate-error');
+  err.style.display = 'none';
+
+  try {
+    const res = await fetch(SUPABASE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_slug: WORKSPACE_SLUG, password: pw, date_days: '7' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Store session
+    _password = pw;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ slug: WORKSPACE_SLUG, password: pw }));
+
+    // Animate gate out
+    const gate = document.getElementById('gate');
+    gate.style.transition = 'opacity 0.4s ease';
+    gate.style.opacity = '0';
+    setTimeout(() => gate.remove(), 400);
+
+    bootApp(data);
+  } catch(e) {
+    err.textContent = e.message?.includes('Senha') ? 'Senha incorreta. Tente novamente.' : 'Erro ao conectar. Verifique sua conexão.';
+    err.style.display = 'block';
+  } finally {
+    btn.textContent = 'Acessar Relatório';
+    btn.disabled = false;
+  }
+}
+
+// ── Boot App ──────────────────────────────────────────
+function bootApp(initialData) {
+  document.getElementById('gate').style.transition = 'opacity 0.4s';
+  document.getElementById('gate').style.opacity = '0';
+  setTimeout(() => {
+    const g = document.getElementById('gate');
+    if (g) g.remove();
+  }, 400);
+
+  document.getElementById('app').style.display = 'block';
+
+  if (initialData) {
+    renderData(initialData);
+  } else {
+    loadData();
+  }
+
+  // Auto-refresh every 60s
+  setInterval(loadData, 60000);
+}
+
+// ── Load Data ─────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(SUPABASE_FN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspace_slug: WORKSPACE_SLUG,
+        password: _password,
+        date_days: String(_currentDays)
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderData(data);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── Render Data ───────────────────────────────────────
+function renderData(data) {
+  // Church name
+  const nameEl = document.getElementById('header-church-name');
+  if (nameEl) nameEl.textContent = data.workspace?.name || 'Relatório';
+  document.title = `${data.workspace?.name || 'Relatório'} · Consolidação · Zelo Pro`;
+
+  // Last update
+  const upd = document.getElementById('header-last-update');
+  if (upd) upd.textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+
+  // KPIs
+  setKpi('kpi-total',     data.kpis?.totalLeads ?? 0);
+  setKpi('kpi-salvos',    data.kpis?.salvos ?? 0);
+  setKpi('kpi-visitantes',data.kpis?.visitantes ?? 0);
+  setKpi('kpi-batismo',   data.kpis?.batismoCount ?? 0);
+  setKpi('kpi-gc',        data.kpis?.gcCount ?? 0);
+  setKpi('kpi-start',     data.kpis?.startCount ?? 0);
+
+  // Leads
+  _allLeads = data.leads || [];
+  filterLeads();
+}
+
+function setKpi(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Animate counting up
+  const start = parseInt(el.textContent) || 0;
+  const end   = parseInt(val) || 0;
+  if (start === end) { el.textContent = end; return; }
+  const dur = 600, step = 16;
+  const inc = (end - start) / (dur / step);
+  let cur = start;
+  const t = setInterval(() => {
+    cur += inc;
+    if ((inc > 0 && cur >= end) || (inc < 0 && cur <= end)) {
+      clearInterval(t); el.textContent = end;
+    } else {
+      el.textContent = Math.round(cur);
+    }
+  }, step);
+}
+
+// ── Filter Leads ──────────────────────────────────────
+function filterLeads() {
+  const search = document.getElementById('pub-search')?.value.toLowerCase() || '';
+  const type   = document.getElementById('pub-filter-type')?.value || 'all';
+
+  let filtered = _allLeads;
+  if (search) filtered = filtered.filter(l =>
+    l.name?.toLowerCase().includes(search) ||
+    l.phone?.includes(search));
+  if (type !== 'all') filtered = filtered.filter(l => l.type === type);
+
+  const count = document.getElementById('pub-count');
+  if (count) count.textContent = filtered.length;
+
+  renderLeads(filtered);
+}
+
+// ── Render Leads ──────────────────────────────────────
+function renderLeads(leads) {
+  const loading = document.getElementById('leads-loading');
+  const grid    = document.getElementById('leads-grid');
+  const empty   = document.getElementById('leads-empty');
+  if (loading) loading.style.display = 'none';
+
+  if (!leads || leads.length === 0) {
+    if (grid) grid.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (grid) grid.style.display = 'grid';
+
+  grid.innerHTML = '';
+  leads.forEach((l, idx) => {
+    const initial = (l.name || '?').charAt(0).toUpperCase();
+    const typeClass = l.type === 'saved' ? 'saved' : 'visitor';
+    const typeLabel = l.type === 'saved' ? 'Salvo' : 'Visitante';
+    const dateStr   = l.created_at
+      ? new Date(l.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+    const tasks = Array.isArray(l.tasks) ? l.tasks : [];
+    const taskChips = tasks.slice(0, 4).map(t =>
+      `<span class="task-chip ${t.status === 'completed' ? 'completed' : 'pending'}">${t.task_name || ''}</span>`
+    ).join('');
+
+    const card = document.createElement('div');
+    card.className = 'lead-card';
+    card.style.animationDelay = `${Math.min(idx * 0.03, 0.5)}s`;
+    card.innerHTML = `
+      <div class="lead-top">
+        <div class="lead-avatar ${typeClass}">${initial}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="lead-name">${l.name || 'Sem nome'}</div>
+          <div class="lead-date">📅 ${dateStr}</div>
+        </div>
+        <span class="lead-type-badge ${typeClass}">${typeLabel}</span>
+      </div>
+      <div class="lead-tasks">${taskChips || '<span style="font-size:0.72rem;color:#444;">Sem tarefas registradas</span>'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ── Period Filter ─────────────────────────────────────
+function setPeriod(days, btn) {
+  _currentDays = days;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Show loading
+  const grid = document.getElementById('leads-grid');
+  const loading = document.getElementById('leads-loading');
+  if (grid) grid.style.display = 'none';
+  if (loading) loading.style.display = 'block';
+
+  loadData();
+}
+</script>
+</body>
+</html>

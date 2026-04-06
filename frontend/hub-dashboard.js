@@ -9479,3 +9479,117 @@ async function sendMilaMessage() {
 
 })();
 // ── End Módulo Transmissão ─────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO RELATÓRIO PÚBLICO — Copy Link + Settings
+// ══════════════════════════════════════════════════════════════════
+(function() {
+    // Build the public report URL for the current workspace
+    function getReportUrl() {
+        const slug = window.currentWorkspaceSlug || window._currentSlug || (() => {
+            // Derive from URL path: /orlando/dashboard.html → orlando
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            return parts.length > 0 ? parts[parts.length - 2] || parts[0] : 'orlando';
+        })();
+        const base = window.location.origin;
+        return `${base}/${slug}/relatorio-publico.html`;
+    }
+
+    // ── Copy report link ───────────────────────────────────────────
+    window.copyReportLink = function() {
+        const url = getReportUrl();
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('🔗 Link do relatório copiado!', 2000);
+            // Visual feedback on button
+            const btn = document.getElementById('btn-copy-report-link');
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ Copiado!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            }
+        }).catch(() => {
+            prompt('Copie o link abaixo:', url);
+        });
+    };
+
+    // ── Open settings modal ────────────────────────────────────────
+    window.openReportSettings = async function() {
+        const overlay = document.getElementById('report-settings-overlay');
+        if (!overlay) return;
+
+        // Update link preview
+        const linkEl = document.getElementById('rset-link-preview');
+        if (linkEl) linkEl.textContent = getReportUrl();
+
+        // Fetch current password (masked)
+        const sb = window.supabaseClient;
+        if (sb && window.currentWorkspaceId) {
+            const { data: ws } = await sb
+                .from('workspaces')
+                .select('report_password')
+                .eq('id', window.currentWorkspaceId)
+                .single();
+            if (ws?.report_password) {
+                const pwEl = document.getElementById('rset-pw-display');
+                if (pwEl) pwEl.textContent = ws.report_password;
+            }
+        }
+
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        // Focus new password input
+        setTimeout(() => document.getElementById('rset-new-pw')?.focus(), 100);
+    };
+
+    // ── Close settings modal ───────────────────────────────────────
+    window.closeReportSettings = function() {
+        const overlay = document.getElementById('report-settings-overlay');
+        if (overlay) overlay.style.display = 'none';
+        document.body.style.overflow = '';
+        const inp = document.getElementById('rset-new-pw');
+        if (inp) inp.value = '';
+    };
+
+    // ── Toggle password visibility ─────────────────────────────────
+    window.rsetTogglePw = function() {
+        const inp = document.getElementById('rset-new-pw');
+        if (!inp) return;
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+    };
+
+    // ── Save new password ──────────────────────────────────────────
+    window.saveReportPassword = async function() {
+        const inp = document.getElementById('rset-new-pw');
+        const newPw = inp?.value.trim();
+        if (!newPw || newPw.length < 4) {
+            showToast('⚠️ A senha precisa ter pelo menos 4 caracteres.'); return;
+        }
+
+        const btn = document.getElementById('rset-save-btn');
+        if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
+
+        const sb = window.supabaseClient;
+        if (!sb || !window.currentWorkspaceId) {
+            showToast('❌ Workspace não identificado.'); return;
+        }
+
+        const { error } = await sb
+            .from('workspaces')
+            .update({ report_password: newPw })
+            .eq('id', window.currentWorkspaceId);
+
+        if (error) {
+            showToast('❌ Erro ao salvar: ' + error.message);
+        } else {
+            // Update displayed password
+            const pwEl = document.getElementById('rset-pw-display');
+            if (pwEl) pwEl.textContent = newPw;
+            showToast('✅ Senha do relatório atualizada!', 2200);
+            closeReportSettings();
+        }
+
+        if (btn) { btn.innerHTML = '💾 Salvar Senha'; btn.disabled = false; }
+    };
+
+})();
+// ── End Módulo Relatório Público ───────────────────────────────────
