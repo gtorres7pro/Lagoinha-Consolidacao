@@ -1,126 +1,73 @@
-# gemini.md: Lagoinha Consolidação Constitution
+# Zelo Pro (formerly Lagoinha Consolidação) Constitution & Blueprint
 
-## Discovery Answers (2026-03-17)
-1. **Guiding Star:** SaaS Dashboard for church consolidation with automated WhatsApp LLM follow-up for new converts and visitors.
-2. **Integrations:** Google Drive/Sheets (Birthdays), WhatsApp API (Provider TBD), LLM (Gemini).
-3. **Source of Truth:** Workspace-specific forms, Google Sheets, and a central Knolwedge Base for each church.
-4. **Delivery Payload:** Web Dashboard (Responsive) with real-time WhatsApp sync.
-5. **Behavioral Rules:** 
-    - Clean, professional UI.
-    - LLM-first interactions with 15-30m human-lock period.
-    - Deterministic task cards (AI vs Human).
-    - Multi-level access (Master Admin, Church Admin, User).
+## Document Scope (Last Updated: 2026-04-07)
+This file represents the absolute source of truth for the **Zelo Pro** platform. It documents structural logic, behavioral rules, UI/UX aesthetics, database schema expectations, and core functional invariant features implemented.
 
-## Data Schemas (JSON)
+---
 
-### Workspace (Church Settings)
-```json
-{
-  "id": "uuid",
-  "status": "draft | active",
-  "name": "string",
-  "crendentials": {
-    "whatsapp_token": "string",
-    "google_sheet_id": "string",
-    "llm_config": "object"
-  },
-  "knowledge_base": {
-    "events": [],
-    "address": "string",
-    "pastors": []
-  }
-}
-```
+## 1. Core Platform Overview 🌟
+*   **Guiding Star:** A comprehensive, multi-tenant SaaS Dashboard tailored to church consolidation, visitor tracking, and member lifecycle management (Start, Batismo, Novos Membros), augmented with AI and WAHA-based WhatsApp automation.
+*   **Target Audience:** Church administration, Master Admins (Zelo Support), and Church Operators (Users).
+*   **Visual Identity:** 
+    *   **Colors/Aesthetics:** Premium Glassmorphism. Dark mode primary. High-contrast Yellow (`#FFD700`) and Black branding. Smooth interactions, gradient highlights.
+    *   **Typography:** Bold, modern sans-serif (Outfit, Inter, or Montserrat).
+    *   **UI Elements:** Card-based UI, mobile-responsive layout, inline-editable task controls, active tag filtering overlays.
+*   **Stack:** Vanilla JS, HTML/CSS on the Frontend. Supabase (Auth, PostgreSQL DB, Storage, Edge Functions) as the robust Backend-as-a-Service, optionally interfacing with WAHA (WhatsApp API) or FastAPI.
 
-### Lead (Person Card)
-```json
-{
-  "id": "uuid",
-  "church_id": "uuid",
-  "name": "string",
-  "phone": "string",
-  "preferred_language": "pt | en | es",
-  "type": "saved | visitor",
-  "tasks": [
-    {
-      "task_name": "string",
-      "status": "pending | completed",
-      "assigned_to": "ai | human",
-      "completed_at": "datetime"
-    }
-  ],
-  "last_interaction": "datetime",
-  "llm_lock_until": "datetime"
-}
-```
+---
 
-### Message Log
-```json
-{
-  "id": "uuid",
-  "lead_id": "uuid",
-  "direction": "inbound | outbound",
-  "type": "text | image | audio",
-  "content": "string",
-  "automated": "boolean",
-  "sent_at": "datetime"
-}
-```
+## 2. Platform Modules & Features 🧩
 
-### Statistics (KPIs)
-```json
-{
-  "workspace_id": "uuid",
-  "total_leads": "number",
-  "ai_messages_sent": "number",
-  "human_messages_sent": "number",
-  "conversion_rate": "number"
-}
-```
+### A. Lifecycle Funnels
+1.  **Consolidação:** Converts (salvos/decisions). Tracks tasks like AI welcome, Start invite, GC invite, and Baptism.
+2.  **Visitantes:** First-time visitors. Tracks welcome messages, GC integration, and human follow-up.
+3.  **Start (Dynamic Welcome):** Discipleship flow. *Feature note: Workspace-aware dynamic labeling. E.g., for the "Orlando" workspace, the interface dynamically replaces "Start" with "Welcome to the New" in KPIs, menus, and reports.*
+4.  **Batismo:** Baptism candidate tracking, preparation workflow.
+5.  **Novos Membros:** Moving participants into official membership status (integrates with external concepts like InPeace).
 
-### App Updates & Feedback
-```json
-{
-  "id": "uuid",
-  "type": "update | bug | feature_request",
-  "title": "string",
-  "description": "string",
-  "status": "published | pending | in_progress",
-  "attached_files": ["url"],
-  "submitted_by": "user_id",
-  "created_at": "datetime"
-}
-```
+### B. Core Functional Tools
+1.  **Data Export (CSV):** Completely replaces generic email reporting. The `downloadReportCSV` mechanism runs client-side, respecting currently active UI filters (search, date periods, active tags) across all modules + public report links, providing an immediate `.csv` download coupled with a 🎉 Confetti success overlay.
+2.  **Módulo Tags:** Dynamic tagging engine enabling operators to segment leads directly, synchronized across all cards.
+3.  **Task Manager (Kanban & List):** A dual-view architecture for internal tasks and development tracking. Allows direct, inline modifications of status, priority, due dates, and assignees.
+4.  **Chat ao Vivo (Live Inbox):** Centralized WhatsApp UI connecting leads. Tracks 24-hour interaction windows, automated templates mapping, and historical AI (Mila) interactions.
 
-## Database Schema (Supabase)
+### C. Mila & Developer Hub
+1.  **Mila 2.0 (AI Support):** End-users can open Support Tickets with file attachments. Handled natively via Edge Functions to generate deterministic AI replies, update statuses, and notify via Resend emails.
+2.  **Roadmap & Tarefas:** Internal Master Admin dashboard mapping Mila requests into actionable Developer tasks. Includes public visibility toggles to map out the platform's public roadmap.
 
-### Tables:
-1.  **workspaces:** `id, name, status, credentials (jsonb), knowledge_base (jsonb)`
-2.  **leads:** `id, workspace_id, name, phone, preferred_language, type, tasks (jsonb), last_interaction, llm_lock_until`
-3.  **messages:** `id, lead_id, workspace_id, direction, content, type, automated, created_at`
-4.  **app_logs:** `id, type, title, description, status, submitted_by, attachments (text[]), created_at`
-5.  **users:** `id, email, role (master_admin | church_admin | user), workspace_id`
+---
 
-## Visual Identity
-1. **Primary Palette:** High-contrast Yellow (#FFD700 style) and Black.
-2. **Typography:** Bold, geometric sans-serif (e.g., 'Inter', 'Montserrat', or 'Outfit').
-3. **Style:** Glassmorphism with Yellow/Black accents. Rounded corners (20px+). High-quality imagery/avatars.
-4. **Layout:** Mobile-first approach, card-based task management, "Process Timeline" for leads.
+## 3. Database Schema Mapping (Supabase) 🗄️
 
-## Behavioral Rules
+*All tables employ Row Level Security (RLS) bound to `workspace_id` except for Master Admin override policies.*
 
-1. All logic must be deterministic (scripts in `tools/`).
-2. Architecture is 3rd Layer A.N.T. (Architecture, Navigation, Tools).
-3. No code is written in `tools/` before the JSON Schema is confirmed here.
-4. Professional delivery (Styled outcomes).
-5. **Human Lock:** AI is paused for 30m if any manual message is sent.
+### Key Tables
+*   **workspaces:** `id, name, status, credentials (json), knowledge_base (json)`
+*   **leads:** `id, workspace_id, name, phone, email, type (saved|visitor), tags (jsonb), batizado, culto, decisao, etc.`
+*   **app_logs / tickets:** `id, workspace_id, type (bug|feature), status, description, attachments (text[]), public_roadmap (boolean)`
+*   **tasks:** Universal tasks table. `id, workspace_id, lead_id, task_title, status, due_date, context`
+*   **messages:** `id, workspace_id, lead_id, direction, content, type (text|audio|image|template), automated, created_at`
+*   **start_participants:** `id, workspace_id, name, email, phone, source`
+*   **start_progress:** `participant_id, lesson_number, status, timestamp`
 
-## Architectural Invariants
-- Multi-tenant database layout (Row Level Security enabled).
-- Cron-based birthday checker (11 AM local).
-- LLM response hierarchy: Knowledge Base -> LLM Logic -> Human Escalation.
-- All outgoing WhatsApp messages must be logged in the `messages` table.
+---
 
-## Log de Manutenção (Maintenance Log)
-- 2026-03-17: Initial Constitution established based on user discovery.
+## 4. Architectural Invariants & Rules ⚠️
+
+1.  **No Vanilla Breakage:** Features must be built cleanly over the established Vanilla JS + Supabase JS SDK architectures. Do not inject heavy frameworks inside established monolithic dashboard files.
+2.  **Front-end Filter Fidelity:** When building exporters (like the CSV download) or charts, they MUST adhere to the globally scoped filtered arrays (e.g., `window._filteredConsolidados`, `window._filteredPublicLeads`) — never bypass visual filters to dump the raw DB.
+3.  **Graceful Degradation:** Features reliant on API tokens (WAHA WhatsApp, Resend Emails) must fail gracefully with appropriate user feedback rather than blanking the screen.
+4.  **Human Over AI:** "Human Lock" mechanism dictates that AI automation is paused for 30-minutes if a human sends a direct message to a lead inside the Live Chat module.
+5.  **Master Admin vs Church Admin:** Certain modules (Deploy, Global Variables, Dev Roadmap full administration, All-Workspaces viewer) must remain hidden from standard or single-church admins.
+
+---
+
+## 5. Maintenance Log 🛠️
+
+*   **2026-03-17:** Initial Constitution created based on client discovery.
+*   **2026-04-03:** "Chat ao vivo", WhatsApp (WAHA) infra optimizations implemented.
+*   **2026-04-04:** Support structure "Mila" created, integrated file upload routing and Dev Roadmap (Tarefas).
+*   **2026-04-04:** Rebranding execution: "Lago Hub" fully migrated to "Zelo Pro" visually and conceptually.
+*   **2026-04-06:** Cross-Platform UI standardization. "Welcome to the New" dynamic workspace labeling deployed.
+*   **2026-04-07:** Replaced erratic email-based reporting with direct, filter-aware CSV Client downloading coupled with highly-polished visual feedback (Confetti) across `dashboard.html` and `relatorio-publico.html`.
 
