@@ -9837,8 +9837,31 @@ async function sendMilaMessage() {
         if (!confirm(`Excluir tag "${tagName}"? Isso removerá a tag de todos os leads.`)) return;
         const sb = window.supabaseClient;
         if (!sb) return;
+
+        // Remover a tag do banco (workspace_tags)
         await sb.from('workspace_tags').delete().eq('id', tagId);
+        
+        // Remover a tag de todos os leads que a possuem no DB
+        const { data: affectedLeads } = await sb.from('leads').select('id, tags').contains('tags', [tagName]);
+        if (affectedLeads && affectedLeads.length > 0) {
+            await Promise.all(affectedLeads.map(lead => {
+                const newTags = (lead.tags || []).filter(t => t !== tagName);
+                return sb.from('leads').update({ tags: newTags }).eq('id', lead.id);
+            }));
+        }
+
+        // Cache local tags
         window._wsTags = window._wsTags.filter(t=>t.id!==tagId);
+        
+        // Atualiza leads globais carregados e UI
+        (window.globalLeads||[]).forEach(l => {
+            if (l.tags && l.tags.includes(tagName)) {
+                l.tags = l.tags.filter(t => t !== tagName);
+                const container = document.getElementById(`lead-tags-${l.id}`);
+                if (container) refreshLeadTagsUI(l.id, l.tags);
+            }
+        });
+
         renderTagFilterBar();
         const modal = document.getElementById('manage-tags-modal');
         if (modal) renderManageTagsContent(modal);
