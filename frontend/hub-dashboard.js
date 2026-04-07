@@ -9223,6 +9223,23 @@ async function sendMilaMessage() {
             const el = document.getElementById(id); if (el) el.value = '';
         });
 
+        // Reset step 4 UI states
+        const btnSend = document.getElementById('bc-btn-send');
+        if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.style.opacity = '1';
+            btnSend.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Disparar Agora';
+        }
+        const progBox = document.getElementById('bc-send-progress');
+        if (progBox) progBox.style.display = 'none';
+        const progBar = document.getElementById('bc-progress-bar');
+        if (progBar) progBar.style.width = '0%';
+        const statusLbl = document.getElementById('bc-send-status');
+        if (statusLbl) { statusLbl.textContent = 'Preparando envio...'; statusLbl.style.color = 'var(--text-dim)'; }
+        const schedToggle = document.getElementById('bc-schedule-toggle');
+        if (schedToggle) { schedToggle.checked = false; window.bcToggleSchedule(); }
+
+
         // Pre-fill existing data
         if (existingBroadcast) {
             const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
