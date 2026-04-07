@@ -389,6 +389,10 @@ function renderData(data) {
   if (nameEl) nameEl.textContent = data.workspace?.name || 'Relatório';
   document.title = `${data.workspace?.name || 'Relatório'} · Consolidação · Zelo Pro`;
 
+  const startLabel = data.workspace?.knowledge_base?.start_label || 'Start';
+  const kpiStartLabelEl = document.getElementById('kpi-start-label');
+  if (kpiStartLabelEl) kpiStartLabelEl.textContent = startLabel;
+
   animKpi('kpi-total',      data.kpis?.totalLeads ?? 0);
   animKpi('kpi-salvos',     data.kpis?.salvos ?? 0);
   animKpi('kpi-visitantes', data.kpis?.visitantes ?? 0);

@@ -409,6 +409,9 @@
                     // View title
                     const viewH1 = document.querySelector('#view-start h1');
                     if (viewH1) viewH1.textContent = startLabel;
+                    // Dashboard KPI Consolidação Label (kpi-t2)
+                    const kpiStartCardTitle = document.querySelector('#kpi-t2')?.closest('.kpi-number')?.previousElementSibling;
+                    if (kpiStartCardTitle) kpiStartCardTitle.textContent = `Convidar p/ ${startLabel}`;
                     // Task checkbox label
                     document.querySelectorAll('.task-checkbox').forEach(cb => {
                         if (cb.dataset.taskName === 'Convidar p/ Start') {
@@ -1993,7 +1996,7 @@
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convidar p/ Start', this)" ${lead.task_start?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
-                                    <span>Convidar p/ Start</span>
+                                    <span>Convidar p/ ${window._wsStartLabel || 'Start'}</span>
                                     <span class="task-meta">${mkMeta(lead.task_start)}</span>
                                 </div>
                             </label>
