@@ -2267,6 +2267,8 @@
         }
     }
 
+    window._globalLegacySendReportEmail = sendReportEmail;
+
     async function forgotPassword() {
         const email = prompt("E-mail para recuperar a senha:");
         if (!email) return;
@@ -7702,6 +7704,12 @@ document.addEventListener('click', (e) => {
 const _SUPABASE_FNURL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
 
 window.sendReportEmail = async function(scope, btnEl) {
+    if (scope === 'consolidados' || scope === 'visitantes') {
+        if (window._globalLegacySendReportEmail) {
+            return window._globalLegacySendReportEmail(scope, btnEl);
+        }
+    }
+
     const sb = window.supabaseClient;
     if (!sb) return;
 
