@@ -77,10 +77,12 @@ window.loadTaskManager = async function () {
             let weight = 10; let label = 'Voluntário';
             
             if (r === 'master_admin') { weight = 100; label = 'Master Admin'; }
-            else if (r === 'church_admin') { weight = 80; label = 'Admin'; }
-            else if (l === 'pastor') { weight = 60; label = 'Pastor'; }
-            else if (l === 'lider' || l === 'líder') { weight = 40; label = 'Líder'; }
-            else if (l === 'voluntario' || l === 'voluntário') { weight = 20; label = 'Voluntário'; }
+            else if (r === 'pastor_senior') { weight = 90; label = 'Pastor Sênior'; }
+            else if (r === 'church_admin') { weight = 80; label = 'Admin da Igreja'; }
+            else if (r === 'admin') { weight = 70; label = 'Admin'; }
+            else if (r === 'pastor') { weight = 60; label = 'Pastor'; }
+            else if (r === 'lider_ministerio' || l === 'lider' || l === 'líder') { weight = 40; label = 'Líder de Ministério'; }
+            else if (r === 'user' || l === 'voluntario' || l === 'voluntário') { weight = 20; label = 'Voluntário'; }
             
             u._roleLabel = label;
             u._roleWeight = weight;
@@ -100,6 +102,34 @@ window.loadTaskManager = async function () {
         
         _tasksUsers    = usersData;
         _workspaceTags = tagsRes.data   || [];
+
+        // Apply Privacy Rules
+        const myId = window._currentUser?.id;
+        const myRole = window.cachedProfile?.role || 'user';
+        const isMaster = myRole === 'master_admin';
+        const isChurchAdmin = ['admin', 'church_admin', 'pastor_senior'].includes(myRole);
+
+        _tasksAll = (tasksRes.data || []).filter(t => {
+            if (isMaster) return true; 
+            
+            const isMine = (t.created_by === myId) || (t.assignee_id === myId);
+            if (isMine) return true; // Eu vejo tarefas criadas por mim ou p/ mim
+            
+            if (!isChurchAdmin) return false; // Voluntários / Líderes só veem as suas
+            
+            // Administradores veem as outras tarefas, EXCETO se envolver outro admin/pastor p/ manter privacidade
+            const creator = usersData.find(u => u.id === t.created_by);
+            const assignee = usersData.find(u => u.id === t.assignee_id);
+            const cRole = creator?.role || 'user';
+            const aRole = assignee?.role || 'user';
+            
+            const creatorIsAdmin = ['admin', 'church_admin', 'pastor_senior'].includes(cRole);
+            const assigneeIsAdmin = ['admin', 'church_admin', 'pastor_senior'].includes(aRole);
+            
+            if (creatorIsAdmin || assigneeIsAdmin) return false; // É de outro admin
+            
+            return true;
+        });
 
         // Notification bell badge
         const unread = notifsRes.count || 0;
