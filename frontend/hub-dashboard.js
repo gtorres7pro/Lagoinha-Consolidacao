@@ -334,14 +334,14 @@
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, credentials').order('name');
+                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, credentials, knowledge_base').order('name');
                     if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
                     if (userRow?.workspace_id) {
-                        const { data } = await sb.from('workspaces').select('id, name, slug, status, credentials').eq('id', userRow.workspace_id);
+                        const { data } = await sb.from('workspaces').select('id, name, slug, status, credentials, knowledge_base').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
@@ -398,29 +398,10 @@
                 renderWsDropdown();
 
                 // ── Apply workspace-specific labels (e.g. Orlando "Welcome to the New") ──
-                if (initial && initial.knowledge_base) {
-                    const startLabel = initial.knowledge_base.start_label || 'Start';
-                    // Sidebar nav
-                    const navStartEl = document.querySelector('#nav-start .nav-label');
-                    if (navStartEl) navStartEl.textContent = startLabel;
-                    // KPI on Jornada board
-                    const jKpiH3 = document.querySelector('#jornada-kpi-start')?.previousElementSibling;
-                    if (jKpiH3) jKpiH3.textContent = startLabel;
-                    // View title
-                    const viewH1 = document.querySelector('#view-start h1');
-                    if (viewH1) viewH1.textContent = startLabel;
-                    // Dashboard KPI Consolidação Label (kpi-t2)
-                    const kpiStartCardTitle = document.querySelector('#kpi-t2')?.closest('.kpi-number')?.previousElementSibling;
-                    if (kpiStartCardTitle) kpiStartCardTitle.textContent = `Convidar p/ ${startLabel}`;
-                    // Task checkbox label
-                    document.querySelectorAll('.task-checkbox').forEach(cb => {
-                        if (cb.dataset.taskName === 'Convidar p/ Start') {
-                            const span = cb.nextElementSibling;
-                            if (span) span.textContent = `Convidar p/ ${startLabel}`;
-                        }
-                    });
-                    window._wsStartLabel = startLabel;
+                if (window.applyStartLabel) {
+                    window.applyStartLabel(initial);
                 }
+
                 // CRITICAL: Trigger data load for the initial workspace.
                 // initEngine() is defined inside DOMContentLoaded (different scope),
                 // so we can't call it directly here. Instead, call window.fetchLiveLeads
@@ -495,6 +476,10 @@
             if (dd) dd.classList.remove('open');
             renderWsDropdown();
             
+            if (window.applyStartLabel) {
+                window.applyStartLabel(ws);
+            }
+            
             // Toggle Chat ao Vivo based on WhatsApp connection
             const navChat = document.getElementById('nav-chat-ao-vivo');
             if (navChat) {
@@ -521,7 +506,7 @@
                 // Fallback: fetch from DB if not in local list
                 const sb = window.supabaseClient;
                 if (!sb) return;
-                sb.from('workspaces').select('id,name,slug,status,plan,modules').eq('id', wsId).single()
+                sb.from('workspaces').select('id,name,slug,status,plan,modules,credentials,knowledge_base').eq('id', wsId).single()
                     .then(({ data }) => { if (data) window.switchWorkspace(data); });
             }
         };
@@ -583,6 +568,52 @@
                     }, 100);
                 }
             }
+            
+            window.applyStartLabel = function(ws) {
+                const startLabel = (ws && ws.knowledge_base && ws.knowledge_base.start_label) || 'Start';
+                window._wsStartLabel = startLabel;
+                
+                // Sidebar nav
+                const navStartEl = document.querySelector('#nav-start .nav-label');
+                if (navStartEl) navStartEl.textContent = startLabel;
+                
+                // KPI on Jornada board (previous sibling of div#jornada-kpi-start is h3)
+                const jKpiStart = document.querySelector('#jornada-kpi-start');
+                if (jKpiStart && jKpiStart.previousElementSibling) {
+                    jKpiStart.previousElementSibling.textContent = startLabel;
+                }
+                
+                // View title
+                const viewH1 = document.querySelector('#view-start h1');
+                if (viewH1) viewH1.textContent = startLabel;
+                
+                // Dashboard KPI Consolidação Label (Convidar p/ Start)
+                const kpiStartVal = document.querySelector('#kpi-t2');
+                if (kpiStartVal) {
+                    const kpiNumberBox = kpiStartVal.closest('.kpi-number');
+                    if (kpiNumberBox && kpiNumberBox.previousElementSibling) {
+                        kpiNumberBox.previousElementSibling.textContent = `Convidar p/ ${startLabel}`;
+                    }
+                }
+                
+                // Task checkbox label (for already populated ones, if any)
+                document.querySelectorAll('.task-checkbox').forEach(cb => {
+                    const rowText = cb.closest('label');
+                    if (rowText && rowText.innerText.includes('Convidar p/')) {
+                         const span = cb.nextElementSibling;
+                         if (span && !span.textContent.includes('GC') && !span.textContent.includes('Batismo')) {
+                             // span structure: <div display flex> <span>Convidar ...</span> <span>Meta</span> </div>
+                             const innerSpan = span.querySelector('span:first-child');
+                             if(innerSpan) innerSpan.textContent = `Convidar p/ ${startLabel}`;
+                         }
+                    }
+                });
+
+                // Start Config Modal
+                const configTitle = document.getElementById('start-config-title');
+                if (configTitle) configTitle.textContent = `Configurar Aulas Módulo ${startLabel}`;
+            };
+
             // DOM is already ready (script is at bottom of body)
             // but auth guard IIFE is async — wait one tick for it to initialize supabase
             setTimeout(tryLoad, 50);
@@ -9049,10 +9080,12 @@ async function sendMilaMessage() {
 // ══════════════════════════════════════════════════════════════════
 (function() {
     // ── State ──────────────────────────────────────────────────────
-    let _bcData    = [];     // parsed CSV rows (array of objects)
-    let _bcCols    = [];     // detected column names
-    let _bcAiText  = '';     // AI-improved text (pending approval)
+    let _bcData         = [];     // parsed CSV rows (array of objects)
+    let _bcCols         = [];     // all detected column names
+    let _bcSelectedCols = [];     // user-selected columns
+    let _bcAiText       = '';     // AI-improved text (pending approval)
     let _currentBroadcastId = null; // active broadcast for edit/send
+    window._bcListRef   = [];     // reference list for inline buttons
 
     const BC_STEPS = {
         1: 'Passo 1 — Upload do CSV',
@@ -9093,6 +9126,7 @@ async function sendMilaMessage() {
         const container = document.getElementById('bc-list-container');
         const empty     = document.getElementById('bc-list-empty');
         if (!container) return;
+        window._bcListRef = list || [];
 
         // KPIs
         const total   = list?.length || 0;
@@ -9120,12 +9154,14 @@ async function sendMilaMessage() {
             const createdDate = b.created_at ? new Date(b.created_at).toLocaleDateString('pt-BR') : '—';
 
             const card = document.createElement('div');
-            card.style.cssText = 'background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 22px;display:flex;align-items:center;gap:16px;transition:border-color 0.2s;';
-            card.onmouseenter = () => card.style.borderColor = 'rgba(167,139,250,0.25)';
-            card.onmouseleave = () => card.style.borderColor = 'rgba(255,255,255,0.07)';
+            card.style.cssText = 'background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 22px;display:flex;align-items:center;gap:16px;transition:border-color 0.2s,background 0.2s;cursor:pointer;';
+            card.title = 'Clique para abrir / reenviar';
+            card.onmouseenter = () => { card.style.borderColor = 'rgba(167,139,250,0.35)'; card.style.background = 'rgba(167,139,250,0.03)'; };
+            card.onmouseleave = () => { card.style.borderColor = 'rgba(255,255,255,0.07)'; card.style.background = '#111'; };
+            card.onclick = (e) => { if (!e.target.closest('button')) openBroadcastWizard(b); };
             card.innerHTML = `
                 <div style="width:40px;height:40px;background:rgba(167,139,250,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#a78bfa" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72 19.79 19.79 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 19.79 19.79 0 0 0 2.81.7 2 2 0 0 1 1.72 2.03z"/></svg>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#a78bfa" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;color:#fff;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name}</div>
@@ -9137,6 +9173,7 @@ async function sendMilaMessage() {
                     </div>
                 </div>
                 <span style="font-size:0.68rem;font-weight:700;color:${statusColor};background:${statusColor}22;border:1px solid ${statusColor}44;padding:3px 10px;border-radius:20px;white-space:nowrap;">${statusLabel}</span>
+                <button onclick="openBroadcastWizard(window._bcListRef?.find(x=>x.id==='${b.id}'))" title="${b.status==='sent'?'Reenviar':'Editar'}" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:0.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='rgba(167,139,250,0.18)'" onmouseout="this.style.background='rgba(167,139,250,0.08)'">${b.status==='sent'?'🔄':'✏️'}</button>
                 ${b.status === 'draft' ? `<button onclick="deleteBroadcast('${b.id}')" title="Excluir rascunho" style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:rgba(239,68,68,0.6);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:0.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='rgba(239,68,68,0.14)';this.style.color='#ef4444'" onmouseout="this.style.background='rgba(239,68,68,0.06)';this.style.color='rgba(239,68,68,0.6)'">🗑️</button>` : ''}
             `;
             container.appendChild(card);
@@ -9144,6 +9181,7 @@ async function sendMilaMessage() {
     };
 
     // ── Delete draft ───────────────────────────────────────────────
+
     window.deleteBroadcast = async function(id) {
         if (!confirm('Excluir este rascunho de transmissão? Esta ação não pode ser desfeita.')) return;
         const sb = window.supabaseClient;
@@ -9154,22 +9192,59 @@ async function sendMilaMessage() {
     };
 
     // ── Open / Close Wizard ────────────────────────────────────────
-    window.openBroadcastWizard = function() {
-        _bcData = []; _bcCols = []; _bcAiText = ''; _currentBroadcastId = null;
+    window.openBroadcastWizard = function(existingBroadcast) {
+        _bcData = []; _bcCols = []; _bcSelectedCols = []; _bcAiText = '';
+        _currentBroadcastId = existingBroadcast?.id || null;
+
+        // Reset schedule toggle
+        const schedToggle = document.getElementById('bc-schedule-toggle');
+        if (schedToggle) { schedToggle.checked = false; }
+        const schedInputs = document.getElementById('bc-schedule-inputs');
+        if (schedInputs) { schedInputs.style.display = 'none'; }
+
         // Reset inputs
         ['bc-name','bc-reply-to','bc-subject','bc-body'].forEach(id => {
             const el = document.getElementById(id); if (el) el.value = '';
         });
+
+        // Pre-fill existing data
+        if (existingBroadcast) {
+            const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+            set('bc-name',     existingBroadcast.name);
+            set('bc-reply-to', existingBroadcast.email_reply_to);
+            set('bc-subject',  existingBroadcast.email_subject);
+            set('bc-body',     existingBroadcast.email_body);
+            // Restore columns
+            if (existingBroadcast.csv_columns?.length) {
+                _bcCols = existingBroadcast.csv_columns;
+                _bcSelectedCols = [..._bcCols];
+                const chips = document.getElementById('bc-columns-chips');
+                if (chips) {
+                    chips.innerHTML = _bcCols.map(c =>
+                        `<span onclick="bcToggleCol('${c}',this)" data-col="${c}" style="background:rgba(167,139,250,0.15);border:1.5px solid rgba(167,139,250,0.5);color:#a78bfa;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;">${c}</span>`
+                    ).join('');
+                }
+                document.getElementById('bc-columns-preview').style.display = 'block';
+            }
+        }
+
         const drop = document.getElementById('bc-dropzone');
         if (drop) { drop.style.borderColor = 'rgba(167,139,250,0.25)'; }
         document.getElementById('bc-file-info').style.display = 'none';
-        document.getElementById('bc-columns-preview').style.display = 'none';
+        if (!existingBroadcast) {
+            document.getElementById('bc-columns-preview').style.display = 'none';
+        }
         const btn = document.getElementById('bc-btn-step1-next');
-        if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
+        if (btn) {
+            // Allow next if existing broadcast has columns
+            const hasData = existingBroadcast?.csv_columns?.length > 0;
+            btn.disabled = !hasData; btn.style.opacity = hasData ? '1' : '0.4';
+        }
         document.getElementById('bc-wizard-overlay').style.display = 'block';
         document.body.style.overflow = 'hidden';
-        bcGoStep(1);
+        bcGoStep(existingBroadcast ? 3 : 1);
     };
+
 
     window.closeBroadcastWizard = function() {
         document.getElementById('bc-wizard-overlay').style.display = 'none';
@@ -9238,6 +9313,7 @@ async function sendMilaMessage() {
             complete: function(results) {
                 _bcData = results.data || [];
                 _bcCols = results.meta?.fields || [];
+                _bcSelectedCols = [..._bcCols]; // all selected by default
 
                 // Update UI
                 document.getElementById('bc-file-name').textContent = file.name;
@@ -9245,12 +9321,15 @@ async function sendMilaMessage() {
                 const info = document.getElementById('bc-file-info');
                 if (info) { info.style.display = 'flex'; }
 
-                // Columns chips
+                // Columns chips — clickable to toggle
                 const chips = document.getElementById('bc-columns-chips');
                 if (chips) {
-                    chips.innerHTML = _bcCols.map(c => `<span style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;">${c}</span>`).join('');
+                    chips.innerHTML = _bcCols.map(c =>
+                        `<span onclick="bcToggleCol('${c}',this)" data-col="${c}" style="background:rgba(167,139,250,0.15);border:1.5px solid rgba(167,139,250,0.5);color:#a78bfa;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:0.15s;">${c}</span>`
+                    ).join('');
                 }
                 document.getElementById('bc-columns-preview').style.display = 'block';
+                bcUpdateColsHint();
 
                 // Enable next button
                 const btn = document.getElementById('bc-btn-step1-next');
@@ -9263,14 +9342,42 @@ async function sendMilaMessage() {
         });
     };
 
+    window.bcToggleCol = function(colName, el) {
+        const idx = _bcSelectedCols.indexOf(colName);
+        if (idx === -1) {
+            _bcSelectedCols.push(colName);
+            el.style.background = 'rgba(167,139,250,0.15)';
+            el.style.borderColor = 'rgba(167,139,250,0.5)';
+            el.style.color = '#a78bfa';
+        } else {
+            _bcSelectedCols.splice(idx, 1);
+            el.style.background = 'rgba(255,255,255,0.04)';
+            el.style.borderColor = 'rgba(255,255,255,0.12)';
+            el.style.color = '#555';
+        }
+        bcUpdateColsHint();
+    };
+
+    function bcUpdateColsHint() {
+        const hint = document.getElementById('bc-selected-cols-hint');
+        if (!hint) return;
+        if (_bcSelectedCols.length === 0) {
+            hint.style.display = 'none'; return;
+        }
+        const vars = _bcSelectedCols.map(c => `{{${c}}}`).join('  ');
+        hint.style.display = 'block';
+        hint.textContent = `✅ Variáveis disponíveis: ${vars}`;
+    }
+
+
     // ── Build contacts table (step 2) ──────────────────────────────
     function bcBuildContactsTable() {
         const thead = document.getElementById('bc-contacts-thead');
         const tbody = document.getElementById('bc-contacts-tbody');
         if (!thead || !tbody) return;
 
-        // Max 5 columns to display (avoid horizontal scroll overload)
-        const displayCols = _bcCols.slice(0, 6);
+        // Use selected cols, or fall back to first 6
+        const displayCols = (_bcSelectedCols.length > 0 ? _bcSelectedCols : _bcCols).slice(0, 8);
 
         thead.innerHTML = `<tr>
             <th style="padding:10px 14px;text-align:center;width:40px;"><input type="checkbox" id="bc-check-all" onchange="bcSelectAll(this.checked)" style="accent-color:#a78bfa;width:16px;height:16px;"></th>
@@ -9293,6 +9400,7 @@ async function sendMilaMessage() {
         });
         bcUpdateCount();
     }
+
 
     window.bcSelectAll = function(checked) {
         document.querySelectorAll('.bc-row-check').forEach(cb => { cb.checked = checked; });
@@ -9320,17 +9428,23 @@ async function sendMilaMessage() {
             const sb = window.supabaseClient;
             const { data: { session } } = await sb.auth.getSession();
             const supabaseUrl = sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
-            const res = await fetch(`${supabaseUrl}/functions/v1/broadcast-email`, {
+
+            // Use mila-chat with a specific prompt to improve email text
+            const prompt = `Por favor, melhore o seguinte texto de e-mail para que fique mais amigável, claro e profissional para uma comunicação de igreja. Mantenha o tom pastoral e cristão. Preserve quaisquer variáveis no formato {{NomeDaVariavel}}. Retorne APENAS o texto melhorado, sem explicações adicionais:\n\n${text}`;
+
+            const res = await fetch(`${supabaseUrl}/functions/v1/mila-chat`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'improve_text', raw_text: text })
+                body: JSON.stringify({ message: prompt, history: [] })
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
-            _bcAiText = data.improved_text;
-            document.getElementById('bc-ai-original').textContent  = text;
-            document.getElementById('bc-ai-improved').textContent  = _bcAiText;
+            _bcAiText = data.reply || '';
+            if (!_bcAiText) throw new Error('Resposta vazia da IA');
+
+            document.getElementById('bc-ai-original').textContent = text;
+            document.getElementById('bc-ai-improved').textContent = _bcAiText;
 
             // Show modal
             const modal = document.getElementById('bc-ai-modal');
@@ -9348,6 +9462,7 @@ async function sendMilaMessage() {
     };
 
     window.bcApplyAiText = function() {
+        if (!_bcAiText) { showToast('⚠️ Nenhum texto da IA disponível.'); return; }
         const el = document.getElementById('bc-body');
         if (el) el.value = _bcAiText;
         closeBcAiModal();
@@ -9355,12 +9470,22 @@ async function sendMilaMessage() {
     };
 
     window.bcEditAiText = function() {
+        if (!_bcAiText) { showToast('⚠️ Nenhum texto da IA para editar.'); return; }
         const el = document.getElementById('bc-body');
-        if (el) el.value = _bcAiText;
+        if (el) { el.value = _bcAiText; }
         closeBcAiModal();
-        // Focus the textarea for editing
-        if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        // Focus textarea for editing
+        setTimeout(() => { if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 100);
     };
+
+    window.bcToggleSchedule = function(checked) {
+        const inputs = document.getElementById('bc-schedule-inputs');
+        const sendBtn = document.getElementById('bc-send-btn-text');
+        if (inputs) inputs.style.display = checked ? 'block' : 'none';
+        if (sendBtn) sendBtn.textContent = checked ? '🕐 Agendar Envio' : 'Disparar Agora';
+    };
+
+
 
     // ── Review panel (step 4) ──────────────────────────────────────
     function renderBcReview() {
@@ -9397,7 +9522,12 @@ async function sendMilaMessage() {
 
     // ── Send Now ───────────────────────────────────────────────────
     window.bcSendNow = async function() {
-        if (!confirm('Confirmar disparo? Os e-mails serão enviados agora para os contatos selecionados.')) return;
+        const isScheduled = document.getElementById('bc-schedule-toggle')?.checked;
+        const scheduledAt = isScheduled ? document.getElementById('bc-scheduled-at')?.value : null;
+
+        if (isScheduled && !scheduledAt) { showToast('⚠️ Selecione a data e hora para agendar.'); return; }
+        if (!isScheduled && !confirm('Confirmar disparo? Os e-mails serão enviados agora para os contatos selecionados.')) return;
+        if (isScheduled && !confirm(`Confirmar agendamento para ${new Date(scheduledAt).toLocaleString('pt-BR')}?`)) return;
 
         const btn = document.getElementById('bc-btn-send');
         const backBtn = document.getElementById('bc-btn-back-4');
@@ -9418,8 +9548,16 @@ async function sendMilaMessage() {
 
         try {
             // 1. Persist broadcast + contacts to DB
-            const broadcastId = await bcPersistBroadcast('draft');
+            const broadcastId = await bcPersistBroadcast(isScheduled ? 'scheduled' : 'draft', scheduledAt);
             if (!broadcastId) { clearInterval(ticker); return; }
+
+            if (isScheduled) {
+                clearInterval(ticker);
+                if (bar) bar.style.width = '100%';
+                if (status) { status.textContent = `✅ Transmissão agendada para ${new Date(scheduledAt).toLocaleString('pt-BR')}!`; status.style.color = '#a78bfa'; }
+                setTimeout(() => { closeBroadcastWizard(); loadBroadcasts(); showToast('🕐 Transmissão agendada!', 2500); }, 2000);
+                return;
+            }
 
             if (status) status.textContent = 'Enviando e-mails...';
 
@@ -9461,7 +9599,7 @@ async function sendMilaMessage() {
     };
 
     // ── Persist broadcast + contacts to Supabase ───────────────────
-    async function bcPersistBroadcast(status) {
+    async function bcPersistBroadcast(status, scheduledAt = null) {
         const sb = window.supabaseClient;
         if (!sb || !window.currentWorkspaceId) return null;
 
@@ -9470,6 +9608,8 @@ async function sendMilaMessage() {
         const subject   = document.getElementById('bc-subject')?.value.trim() || null;
         const body      = document.getElementById('bc-body')?.value.trim() || null;
         const { data: { user } } = await sb.auth.getUser();
+        // Use selected cols (or all if none chosen)
+        const colsToSave = _bcSelectedCols.length > 0 ? _bcSelectedCols : _bcCols;
 
         // Get selected rows
         const selectedRows = [];
@@ -9487,8 +9627,9 @@ async function sendMilaMessage() {
                 workspace_id: window.currentWorkspaceId,
                 name,
                 channel: 'email',
-                csv_columns: _bcCols,
+                csv_columns: colsToSave,
                 status,
+                ...(scheduledAt ? { scheduled_at: scheduledAt } : {}),
                 email_from: 'equipe@7pro.tech',
                 email_reply_to: replyTo,
                 email_subject: subject,
@@ -9503,7 +9644,8 @@ async function sendMilaMessage() {
             await sb.from('broadcasts').update({
                 name, email_reply_to: replyTo, email_subject: subject,
                 email_body: body, total_contacts: selectedRows.length,
-                csv_columns: _bcCols, status
+                csv_columns: colsToSave, status,
+                ...(scheduledAt ? { scheduled_at: scheduledAt } : {})
             }).eq('id', broadcastId);
             // Delete existing contacts before re-inserting
             await sb.from('broadcast_contacts').delete().eq('broadcast_id', broadcastId);

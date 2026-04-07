@@ -819,7 +819,7 @@
             <!-- 6.7 Transmissão -->
             <li id="nav-transmissao" onclick="switchTab('transmissao')" title="Transmissão — Envio em Massa por E-mail">
                 <span class="nav-icon" style="color:#a78bfa;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 </span>
                 <span class="nav-label" style="font-weight:700;">Transmissão</span>
             </li>
@@ -4494,7 +4494,7 @@
             <div class="hub-modal" style="width:100%; max-width:600px; background:#0b141a; border:1px solid rgba(255,255,255,.1); border-radius:16px; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden;">
                 <div style="padding:24px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <h2 style="font-size:1.2rem; font-weight:700; margin:0;">Configurar Aulas Módulo Start</h2>
+                        <h2 id="start-config-title" style="font-size:1.2rem; font-weight:700; margin:0;">Configurar Aulas Módulo Start</h2>
                         <p style="font-size:0.85rem; color:var(--text-dim); margin:4px 0 0;">Insira as URLs do YouTube e links para PDF de cada aula.</p>
                     </div>
                     <button onclick="window.startConfigClose()" style="background:none; border:none; color:#fff; cursor:pointer;">
@@ -4864,8 +4864,10 @@
                     </div>
                     <!-- Columns preview -->
                     <div id="bc-columns-preview" style="display:none;margin-top:20px;">
-                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:8px;">Colunas detectadas</div>
+                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:4px;">Colunas detectadas — <span style="color:#a78bfa;font-weight:600;">clique para selecionar as que deseja usar</span></div>
+                        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:10px;">As colunas selecionadas estarão disponíveis como variáveis (ex: <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;">{{Nome}}</code>) no corpo do e-mail.</div>
                         <div id="bc-columns-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                        <div id="bc-selected-cols-hint" style="display:none;margin-top:10px;font-size:0.7rem;color:#a78bfa;"></div>
                     </div>
                 </div>
                 <div style="display:flex;justify-content:flex-end;margin-top:20px;">
@@ -4886,9 +4888,9 @@
                             <button onclick="bcSelectAll(false)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#aaa;padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;">Desmarcar todos</button>
                         </div>
                     </div>
-                    <div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="overflow-x:auto;max-height:380px;overflow-y:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
                         <table id="bc-contacts-table" style="width:100%;border-collapse:collapse;font-size:0.82rem;">
-                            <thead id="bc-contacts-thead" style="background:rgba(255,255,255,0.04);"></thead>
+                            <thead id="bc-contacts-thead" style="background:rgba(255,255,255,0.04);position:sticky;top:0;z-index:2;"></thead>
                             <tbody id="bc-contacts-tbody"></tbody>
                         </table>
                     </div>
@@ -4937,6 +4939,17 @@
                 <div style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:16px;">
                     <h3 style="font-size:1rem;font-weight:700;color:#fff;margin:0 0 4px;">Revisão Final</h3>
                     <div id="bc-review-box" style="background:#0d0d0d;border-radius:12px;padding:18px;font-size:0.85rem;line-height:1.8;"></div>
+                    <!-- Schedule option -->
+                    <div id="bc-schedule-section" style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:12px;padding:16px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                            <input type="checkbox" id="bc-schedule-toggle" onchange="bcToggleSchedule(this.checked)" style="accent-color:#a78bfa;width:16px;height:16px;cursor:pointer;">
+                            <label for="bc-schedule-toggle" style="font-size:0.82rem;font-weight:700;color:#a78bfa;cursor:pointer;">🕐 Agendar envio para depois</label>
+                        </div>
+                        <div id="bc-schedule-inputs" style="display:none;">
+                            <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;">Selecione a data e hora para o disparo automático:</div>
+                            <input type="datetime-local" id="bc-scheduled-at" style="background:#1a1a1a;border:1px solid rgba(167,139,250,0.3);border-radius:10px;padding:10px 14px;color:#fff;font-size:0.85rem;font-family:var(--font);outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(167,139,250,0.6)'" onblur="this.style.borderColor='rgba(167,139,250,0.3)'">
+                        </div>
+                    </div>
                     <!-- Progress bar -->
                     <div id="bc-send-progress" style="display:none;">
                         <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;" id="bc-send-status">Enviando...</div>
@@ -4950,7 +4963,7 @@
                     <button onclick="bcSaveDraft()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#aaa;padding:12px 20px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.88rem;">💾 Salvar Rascunho</button>
                     <button onclick="bcSendNow()" id="bc-btn-send" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border:none;padding:12px 28px;border-radius:12px;font-weight:700;cursor:pointer;font-size:0.88rem;display:flex;align-items:center;gap:8px;">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        Disparar Agora
+                        <span id="bc-send-btn-text">Disparar Agora</span>
                     </button>
                 </div>
             </div>
