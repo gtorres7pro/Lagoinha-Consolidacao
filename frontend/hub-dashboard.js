@@ -1858,6 +1858,7 @@
 
                     updateTopKPIs(filtered);
                     updateCharts(filtered);
+                    window._filteredConsolidados = filtered;
                     renderCards(filtered, 'leads-container');
 
                     // Visitors Filter
@@ -1905,6 +1906,7 @@
                         vFiltered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                     }
                     
+                    window._filteredVisitantes = vFiltered;
                     renderCards(vFiltered, 'visitors-container');
                     
                     // Update Visitor KPIs
@@ -10072,7 +10074,8 @@ async function sendMilaMessage() {
         const wsName = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.name || 'workspace';
 
         if (moduleType === 'consolidados') {
-            const leads = window._allSaved || [];
+            let leads = window._filteredConsolidados || window._allSaved || [];
+            if (window._activeTagFilter) leads = leads.filter(l => (l.tags||[]).includes(window._activeTagFilter));
             if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
             const headers = ['Nome','Telefone','Email','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
             const rows = leads.map(l => [
@@ -10089,7 +10092,8 @@ async function sendMilaMessage() {
         }
 
         else if (moduleType === 'visitantes') {
-            const leads = window._allVisit || [];
+            let leads = window._filteredVisitantes || window._allVisit || [];
+            if (window._activeTagFilter) leads = leads.filter(l => (l.tags||[]).includes(window._activeTagFilter));
             if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
             const headers = ['Nome','Telefone','Email','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
             const rows = leads.map(l => [
