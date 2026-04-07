@@ -60,7 +60,7 @@ window.loadTaskManager = async function () {
         const [tasksRes, deptsRes, usersRes, notifsRes, tagsRes] = await Promise.all([
             sb.from('tasks_full').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false }),
             sb.from('task_departments').select('*').eq('workspace_id', wsId).order('name'),
-            sb.from('users').select('id,name,email').eq('workspace_id', wsId),
+            sb.from('users').select('id,name,email,role,level').eq('workspace_id', wsId),
             userId
                 ? sb.from('task_notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null)
                 : Promise.resolve({ count: 0 }),
@@ -69,7 +69,36 @@ window.loadTaskManager = async function () {
 
         _tasksAll      = tasksRes.data  || [];
         _tasksDepts    = deptsRes.data  || [];
-        _tasksUsers    = usersRes.data  || [];
+        
+        let usersData = usersRes.data || [];
+        usersData.forEach(u => {
+            let r = u.role || 'user';
+            let l = (u.level || '').toLowerCase();
+            let weight = 10; let label = 'Voluntário';
+            
+            if (r === 'master_admin') { weight = 100; label = 'Master Admin'; }
+            else if (r === 'church_admin') { weight = 80; label = 'Admin'; }
+            else if (l === 'pastor') { weight = 60; label = 'Pastor'; }
+            else if (l === 'lider' || l === 'líder') { weight = 40; label = 'Líder'; }
+            else if (l === 'voluntario' || l === 'voluntário') { weight = 20; label = 'Voluntário'; }
+            
+            u._roleLabel = label;
+            u._roleWeight = weight;
+            
+            if (u.name) {
+                let parts = u.name.trim().split(' ');
+                u._displayName = parts.length > 1 ? parts[0] + ' ' + parts[parts.length-1] : parts[0];
+            } else {
+                u._displayName = u.email || 'Usuário';
+            }
+        });
+        
+        usersData.sort((a,b) => {
+            if (b._roleWeight !== a._roleWeight) return b._roleWeight - a._roleWeight;
+            return a._displayName.localeCompare(b._displayName);
+        });
+        
+        _tasksUsers    = usersData;
         _workspaceTags = tagsRes.data   || [];
 
         // Notification bell badge
@@ -113,7 +142,7 @@ function populateTaskFilterDropdowns() {
         const el = document.getElementById(id);
         if (!el) return;
         const first = id.includes('filter') ? '<option value="">Todos os membros</option>' : '<option value="">— Sem responsável —</option>';
-        el.innerHTML = first + _tasksUsers.map(u => `<option value="${u.id}">${u.name || u.email}</option>`).join('');
+        el.innerHTML = first + _tasksUsers.map(u => `<option value="${u.id}">${u._displayName} (${u._roleLabel})</option>`).join('');
     });
 }
 
@@ -251,10 +280,10 @@ function renderAssigneeSelect(taskId, currentId, currentName) {
     
     let optsHtml = `<option value="unassigned">⭕ S/ Responsável</option>` + fallbackHtml +
         members.map(m => {
-            return `<option value="${m.id}" ${m.id===currentId?'selected':''}>👤 ${(m.name||'').split(' ')[0]}</option>`;
+            return `<option value="${m.id}" ${m.id===currentId?'selected':''}>👤 ${m._displayName} (${m._roleLabel})</option>`;
         }).join('');
         
-    return `<select onchange="quickUpdateTask('${taskId}', 'assignee_id', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:${color}15;color:${color};border:1px solid ${color}30;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;outline:none;cursor:pointer;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;">
+    return `<select onchange="quickUpdateTask('${taskId}', 'assignee_id', this.value)" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:${color}15;color:${color};border:1px solid ${color}30;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;outline:none;cursor:pointer;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit;">
         ${optsHtml}
     </select>`;
 }
@@ -291,6 +320,9 @@ function renderTasksList(tasks) {
                     onclick="openTaskModal('${t.id}')"
                     onmouseover="this.style.background='rgba(255,215,0,.03)'"
                     onmouseout="this.style.background=''">
+            <td style="text-align:center;padding:12px;width:40px;" onclick="event.stopPropagation()">
+                <input type="checkbox" class="task-bulk-checkbox" value="${t.id}" onchange="updateBulkBar()" style="accent-color:#FFD700;cursor:pointer;width:14px;height:14px;">
+            </td>
             <td data-label="Tarefa" style="padding:13px 16px;">
                 <div style="font-weight:600;color:#fff;font-size:.88rem;line-height:1.3;">${t.title || 'Sem título'}</div>
                 ${t.description ? `<div style="font-size:.74rem;color:rgba(255,255,255,.35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;">${t.description}</div>` : ''}
@@ -310,8 +342,9 @@ function renderTasksList(tasks) {
             <td data-label="Data Ref." style="padding:13px 16px;">
                 ${renderDateSelect(t.id, t.due_date)}
             </td>
-            <td data-label="Logs" style="padding:13px 16px;text-align:center;font-size:.8rem;color:rgba(255,255,255,.4);">
-                ${t.comment_count > 0 ? `<span style="color:rgba(255,255,255,.6);">${t.comment_count}</span>` : '—'}
+            <td data-label="Ações" style="padding:13px 16px;text-align:center;font-size:1rem;color:rgba(255,255,255,.5);white-space:nowrap;" onclick="event.stopPropagation()">
+                <span title="Comentários" style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.05);padding:4px 8px;border-radius:12px;font-size:.75rem;">💬 ${t.comment_count || '0'}</span>
+                <span onclick="inlineDeleteTask('${t.id}')" title="Excluir" style="cursor:pointer;background:rgba(239,68,68,.1);color:#EF4444;padding:4px 8px;border-radius:12px;font-size:.75rem;margin-left:8px;transition:.2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">🗑️</span>
             </td>
         </tr>`;
     }).join('');
@@ -645,7 +678,7 @@ window.saveTaskModal = async function () {
         notes:        getVal('task-modal-notes'),
         status:       document.getElementById('task-modal-status')?.value   || 'todo',
         priority:     document.getElementById('task-modal-priority')?.value || 'medium',
-        due_date:     document.getElementById('task-modal-due')?.value      || null,
+        due_date:     document.getElementById('task-modal-due')?.value      || (!_currentTaskId ? new Date().toISOString() : null),
         department_id:document.getElementById('task-modal-dept')?.value     || null,
         assigned_to:  newAssignee || null,
         recurrence:   document.getElementById('task-modal-recurrence')?.value || null,
@@ -1356,6 +1389,85 @@ async function logActivity(taskId, action, oldValue, newValue) {
     if (!sb || !wsId || !taskId) return;
     await sb.from('task_activity').insert({ task_id: taskId, workspace_id: wsId, user_id: window._currentUser?.id || null, action, old_value: oldValue || null, new_value: newValue || null });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// BULK ACTIONS & INLINE DELETE
+// ═══════════════════════════════════════════════════════════════════
+
+function getSelectedTasks() {
+    const cbx = document.querySelectorAll('.task-bulk-checkbox:checked');
+    return Array.from(cbx).map(c => c.value);
+}
+
+window.updateBulkBar = function() {
+    const bar = document.getElementById('tasks-bulk-actions');
+    const checked = getSelectedTasks();
+    if (!bar) return;
+    
+    if (checked.length > 0) {
+        bar.style.display = 'flex';
+        document.getElementById('tasks-bulk-count').textContent = checked.length;
+        document.getElementById('tasks-bulk-assignee').innerHTML = '<option value="">👤 Atribuir a...</option>' + 
+            '<option value="unassigned">⭕ Sem Responsável</option>' +
+            _tasksUsers.map(u => `<option value="${u.id}">👤 ${u._displayName} (${u._roleLabel})</option>`).join('');
+    } else {
+        bar.style.display = 'none';
+        const allBtn = document.getElementById('tasks-bulk-check-all');
+        if (allBtn) allBtn.checked = false;
+    }
+};
+
+window.toggleBulkTasksAll = function() {
+    const allCbx = document.getElementById('tasks-bulk-check-all');
+    const checkboxes = document.querySelectorAll('.task-bulk-checkbox');
+    checkboxes.forEach(c => c.checked = allCbx.checked);
+    updateBulkBar();
+};
+
+window.bulkUpdateTasks = async function(field, value) {
+    const selected = getSelectedTasks();
+    if (!selected.length || !value) return;
+    if (field === 'assignee_id' && value === 'unassigned') value = null;
+    
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('tasks').update({ [field]: value }).in('id', selected);
+    
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao atualizar: ' + error.message, 'error');
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast(`${selected.length} tarefas atualizadas.`, 'success');
+        document.getElementById('tasks-bulk-assignee').value = '';
+        await loadTaskManager();
+    }
+};
+
+window.bulkDeleteTasks = async function() {
+    const selected = getSelectedTasks();
+    if (!selected.length) return;
+    if (!confirm(`Deseja mesmo excluir ${selected.length} tarefas selecionadas?`)) return;
+    
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('tasks').delete().in('id', selected);
+    
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir: ' + error.message, 'error');
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast(`${selected.length} tarefas excluídas.`, 'success');
+        await loadTaskManager();
+    }
+};
+
+window.inlineDeleteTask = async function(taskId) {
+    if (!confirm('Deseja excluir esta tarefa?')) return;
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('tasks').delete().eq('id', taskId);
+    if (error) {
+        if (typeof hubToast !== 'undefined') hubToast('Erro ao excluir: ' + error.message, 'error');
+    } else {
+        if (typeof hubToast !== 'undefined') hubToast('Tarefa excluída', 'success');
+        await loadTaskManager();
+    }
+};
 
 async function loadTaskActivity(taskId) {
     const el = document.getElementById('task-modal-activity');

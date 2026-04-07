@@ -2748,23 +2748,36 @@
                 </div>
             </div>
 
+            <!-- BULK ACTIONS BAR (hidden by default) -->
+            <div id="tasks-bulk-actions" style="display:none; align-items:center; gap:16px; background:rgba(30,41,59,0.95); border:1px solid rgba(96,165,250,0.3); padding:10px 24px; border-radius:12px; margin: 16px 32px 0 32px; backdrop-filter:blur(8px);">
+                <div style="color:#60A5FA; font-weight:700; font-size:.85rem;"><span id="tasks-bulk-count">0</span> selecionadas</div>
+                <div style="flex:1;"></div>
+                
+                <select id="tasks-bulk-assignee" onchange="bulkUpdateTasks('assignee_id', this.value)" style="appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 12px;font-size:.75rem;font-weight:600;outline:none;cursor:pointer;">
+                    <option value="">👤 Atribuir a...</option>
+                </select>
+                
+                <button onclick="bulkDeleteTasks()" style="background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2); padding:5px 12px; border-radius:20px; font-weight:700; font-size:.75rem; cursor:pointer; transition:.2s;" onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.1)'">🗑️ Excluir Selecionadas</button>
+            </div>
+
             <!-- LIST VIEW -->
             <div id="tasks-list-view" class="tasks-wrapper-padding tasks-bottom-padding" style="margin-top:16px;">
                 <div style="background:transparent;">
                     <table class="task-responsive-table">
                         <thead>
                             <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="width:40px;text-align:center;padding:12px;"><input type="checkbox" id="tasks-bulk-check-all" onchange="toggleBulkTasksAll()" style="accent-color:#FFD700;cursor:pointer;width:14px;height:14px;"></th>
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;width:35%;">Tarefa</th>
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Status</th>
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Prioridade</th>
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Departamento</th>
                                 <th style="text-align:left;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Responsável</th>
                                 <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Vencimento</th>
-                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">💬</th>
+                                <th style="text-align:center;padding:12px 16px;color:rgba(255,255,255,.3);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tasks-list-tbody">
-                            <tr><td colspan="7" style="padding:60px;text-align:center;color:rgba(255,255,255,.2);">Carregando tarefas...</td></tr>
+                            <tr><td colspan="8" style="padding:60px;text-align:center;color:rgba(255,255,255,.2);">Carregando tarefas...</td></tr>
                         </tbody>
                     </table>
                 </div>
