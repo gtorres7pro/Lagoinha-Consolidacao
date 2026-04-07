@@ -9921,3 +9921,276 @@ async function sendMilaMessage() {
 
 })();
 // ── End Módulo Tags ─────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════
+// MÓDULO DOWNLOAD CSV + CONFETTI
+// ═══════════════════════════════════════════════════════════
+
+(function() {
+
+    // ── Inject confetti styles ─────────────────────────
+    if (!document.getElementById('csv-download-styles')) {
+        const s = document.createElement('style');
+        s.id = 'csv-download-styles';
+        s.textContent = `
+            @keyframes confettiFall {
+                0%   { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+                100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+            }
+            .confetti-piece {
+                position: fixed;
+                top: -10px;
+                z-index: 100000;
+                pointer-events: none;
+                animation: confettiFall linear forwards;
+            }
+            #csv-success-overlay {
+                display: none;
+                position: fixed; inset: 0;
+                background: rgba(0,0,0,.7);
+                backdrop-filter: blur(8px);
+                z-index: 99999;
+                justify-content: center;
+                align-items: center;
+            }
+            #csv-success-overlay.open { display: flex; }
+            #csv-success-card {
+                background: #141622;
+                border: 1px solid rgba(255,215,0,.3);
+                border-radius: 20px;
+                padding: 40px 50px;
+                text-align: center;
+                max-width: 380px;
+                box-shadow: 0 25px 60px rgba(0,0,0,.5), 0 0 40px rgba(255,215,0,.08);
+                animation: successPop .4s cubic-bezier(.34,1.56,.64,1);
+            }
+            @keyframes successPop {
+                0% { transform: scale(.7); opacity: 0; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            #csv-success-card .success-icon {
+                font-size: 3.5rem;
+                margin-bottom: 16px;
+            }
+            #csv-success-card h2 {
+                color: #FFD700;
+                font-size: 1.3rem;
+                margin: 0 0 8px;
+                font-weight: 800;
+            }
+            #csv-success-card p {
+                color: rgba(255,255,255,.6);
+                font-size: .9rem;
+                margin: 0 0 24px;
+                line-height: 1.5;
+            }
+            #csv-success-card button {
+                background: linear-gradient(135deg, #FFD700, #FFA000);
+                border: none;
+                color: #000;
+                font-weight: 800;
+                padding: 12px 32px;
+                border-radius: 12px;
+                font-size: .9rem;
+                cursor: pointer;
+                font-family: var(--font, 'Outfit', sans-serif);
+                transition: opacity .2s;
+            }
+            #csv-success-card button:hover { opacity: .85; }
+        `;
+        document.head.appendChild(s);
+    }
+
+    // ── Inject success overlay into DOM ────────────────
+    if (!document.getElementById('csv-success-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'csv-success-overlay';
+        overlay.onclick = function(e) { if (e.target === this) closeSuccessPopup(); };
+        overlay.innerHTML = `
+            <div id="csv-success-card">
+                <div class="success-icon">🎉</div>
+                <h2>Download Concluído!</h2>
+                <p id="csv-success-msg">Seu relatório CSV foi baixado com sucesso.</p>
+                <button onclick="closeSuccessPopup()">Fechar</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    // ── Confetti launcher ──────────────────────────────
+    function launchConfetti() {
+        const colors = ['#FFD700', '#FFA000', '#FF6B6B', '#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#fff'];
+        const shapes = ['■', '●', '▲', '★', '♦'];
+        for (let i = 0; i < 60; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti-piece';
+            el.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.color = colors[Math.floor(Math.random() * colors.length)];
+            el.style.fontSize = (Math.random() * 12 + 8) + 'px';
+            el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+            el.style.animationDelay = (Math.random() * 1.5) + 's';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
+    }
+
+    function showSuccessPopup(count, moduleName) {
+        const msg = document.getElementById('csv-success-msg');
+        if (msg) msg.textContent = `${count} registro${count !== 1 ? 's' : ''} de "${moduleName}" ${count !== 1 ? 'foram exportados' : 'foi exportado'} com sucesso.`;
+        document.getElementById('csv-success-overlay')?.classList.add('open');
+        launchConfetti();
+    }
+
+    window.closeSuccessPopup = function() {
+        document.getElementById('csv-success-overlay')?.classList.remove('open');
+    };
+
+    // ── CSV encoder ────────────────────────────────────
+    function csvEscape(val) {
+        if (val == null) return '';
+        const s = String(val);
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    }
+
+    function downloadBlob(csv, filename) {
+        // BOM for Excel UTF-8 support
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+    }
+
+    // ── Download for Consolidação ──────────────────────
+    window.downloadReportCSV = function(moduleType) {
+        const now = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        const wsName = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId)?.name || 'workspace';
+
+        if (moduleType === 'consolidados') {
+            const leads = window._allSaved || [];
+            if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
+            const headers = ['Nome','Telefone','Email','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+            const rows = leads.map(l => [
+                csvEscape(l.name), csvEscape(l.phone), csvEscape(l.email),
+                csvEscape(l.decisao), csvEscape(l.culto), csvEscape(l.pais),
+                csvEscape(l.gc_status), csvEscape(l.batizado), csvEscape(l.idade),
+                csvEscape(l.sexo), csvEscape(l.melhor_horario),
+                csvEscape((l.tags||[]).join('; ')),
+                csvEscape(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
+            ]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            downloadBlob(csv, `consolidacao_${wsName}_${now}.csv`);
+            showSuccessPopup(leads.length, 'Consolidação');
+        }
+
+        else if (moduleType === 'visitantes') {
+            const leads = window._allVisit || [];
+            if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
+            const headers = ['Nome','Telefone','Email','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+            const rows = leads.map(l => [
+                csvEscape(l.name), csvEscape(l.phone), csvEscape(l.email),
+                csvEscape(l.culto), csvEscape(l.pais), csvEscape(l.gc_status),
+                csvEscape(l.batizado), csvEscape(l.idade), csvEscape(l.sexo),
+                csvEscape(l.melhor_horario), csvEscape((l.tags||[]).join('; ')),
+                csvEscape(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
+            ]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            downloadBlob(csv, `visitantes_${wsName}_${now}.csv`);
+            showSuccessPopup(leads.length, 'Visitantes');
+        }
+
+        else if (moduleType === 'start') {
+            const leads = typeof _startParticipants !== 'undefined' ? _startParticipants : [];
+            if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
+            const label = window._wsStartLabel || 'Start';
+            const headers = ['Nome','Email','Telefone','Status','Origem','Data de Cadastro'];
+            const rows = leads.map(p => {
+                let st = 'Não Iniciou';
+                if (p.start_completions && p.start_completions.length > 0) st = 'Concluído';
+                else if (p.start_progress && p.start_progress.length > 0) st = 'Em Andamento';
+                let src = 'Novo Cadastro';
+                if (p.source === 'consolidation') src = 'Consolidado';
+                if (p.source === 'visitor') src = 'Visitante';
+                return [
+                    csvEscape(p.name), csvEscape(p.email), csvEscape(p.phone),
+                    csvEscape(st), csvEscape(src),
+                    csvEscape(p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : '')
+                ];
+            });
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            downloadBlob(csv, `${label.toLowerCase().replace(/\s+/g,'_')}_${wsName}_${now}.csv`);
+            showSuccessPopup(leads.length, label);
+        }
+
+        else if (moduleType === 'batismo') {
+            const leads = window._batismoAll || [];
+            if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
+            const headers = ['Nome','Email','Telefone','Status','Data'];
+            const rows = leads.map(r => {
+                let st = 'Em Curso';
+                if (r.status === 'baptized') st = 'Batizado';
+                if (r.status === 'will_baptize_today') st = 'Será Batizado';
+                return [
+                    csvEscape(r.name), csvEscape(r.email), csvEscape(r.phone),
+                    csvEscape(st),
+                    csvEscape(r.created_at ? new Date(r.created_at).toLocaleDateString('pt-BR') : '')
+                ];
+            });
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            downloadBlob(csv, `batismo_${wsName}_${now}.csv`);
+            showSuccessPopup(leads.length, 'Batismo');
+        }
+
+        else if (moduleType === 'membros') {
+            const leads = window._membrosAll || [];
+            if (!leads.length) { if (typeof hubToast !== 'undefined') hubToast('Nenhum dado para exportar.', 'error'); return; }
+            const headers = ['Nome','Email','Telefone','InPeace Status','Data'];
+            const rows = leads.map(r => [
+                csvEscape(r.name), csvEscape(r.email), csvEscape(r.phone),
+                csvEscape(r.inpeace_status === 'done' ? 'Feito' : 'Pendente'),
+                csvEscape(r.created_at ? new Date(r.created_at).toLocaleDateString('pt-BR') : '')
+            ]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            downloadBlob(csv, `novos_membros_${wsName}_${now}.csv`);
+            showSuccessPopup(leads.length, 'Novos Membros');
+        }
+
+        else {
+            if (typeof hubToast !== 'undefined') hubToast('Módulo desconhecido', 'error');
+        }
+    };
+
+    // ── Public-report-compatible download ──────────────
+    // This is used in relatorio-publico.html (has its own _allLeads / filterLeads)
+    window.downloadPublicReportCSV = function() {
+        // Access the filtered leads from the public report scope
+        // The public report sets grid innerHTML via renderLeads(filtered)
+        // We need the leads that are currently rendered — stored in _allLeads after filterLeads
+        const leads = window._filteredPublicLeads || window._allLeads || [];
+        if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
+
+        const now = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+        const rows = leads.map(l => [
+            csvEscape(l.name), csvEscape(l.phone), csvEscape(l.email),
+            csvEscape(l.type === 'saved' ? 'Salvo' : 'Visitante'),
+            csvEscape(l.decisao), csvEscape(l.culto), csvEscape(l.pais),
+            csvEscape(l.gc_status), csvEscape(l.batizado), csvEscape(l.idade),
+            csvEscape(l.sexo), csvEscape(l.melhor_horario),
+            csvEscape((l.tags||[]).join('; ')),
+            csvEscape(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
+        ]);
+        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        downloadBlob(csv, `relatorio_consolidacao_${now}.csv`);
+
+        // Simple confetti in public report page
+        launchConfetti();
+        alert('🎉 Download concluído! ' + leads.length + ' registro(s) exportados.');
+    };
+
+})();

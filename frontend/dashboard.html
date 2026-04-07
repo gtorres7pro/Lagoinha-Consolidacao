@@ -1163,6 +1163,7 @@
                     <button onclick="openBatismoForm()" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;">
                         🌊 Abrir Form
                     </button>
+                    <button onclick="downloadReportCSV('batismo')" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
                 </div>
             </header>
 
@@ -1239,6 +1240,7 @@
                     <button onclick="openMembrosForm()" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;">
                         🏛️ Abrir Form
                     </button>
+                    <button onclick="downloadReportCSV('membros')" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
                 </div>
             </header>
 
@@ -1402,7 +1404,7 @@
                         title="Configurações do relatório público">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </button>
-                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('consolidados', 120)">Enviar Relatório</button>
+                    <button type="button" class="btn btn-outline" onclick="downloadReportCSV('consolidados')" style="display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
                 </div>
             </header>
 
@@ -1541,6 +1543,7 @@
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                         Configurar Aulas
                     </button>
+                    <button class="btn btn-outline" onclick="downloadReportCSV('start')" style="display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
                 </div>
             </header>
             
@@ -1597,7 +1600,7 @@
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                         Formulário
                     </button>
-                    <button type="button" class="btn btn-outline" onclick="sendReportEmail('visitantes', window._allVisit ? window._allVisit.length : 0)">📤 Enviar Relatório</button>
+                    <button type="button" class="btn btn-outline" onclick="downloadReportCSV('visitantes')" style="display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
                     <button type="button" class="btn btn-outline" style="background: var(--text-main); color: var(--bg-color);" onclick="window.open('./visitor-form.html', '_blank')">+ Novo Visitante</button>
                 </div>
             </header>

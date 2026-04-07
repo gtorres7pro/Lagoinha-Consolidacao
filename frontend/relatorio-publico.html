@@ -294,7 +294,13 @@
     </div>
 
     <!-- Leads -->
-    <div class="section-header"><div class="section-title">Pessoas</div></div>
+    <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="section-title">Pessoas</div>
+      <button onclick="downloadPublicReportCSV()" style="display:flex;align-items:center;gap:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:#FFD700;padding:8px 16px;border-radius:10px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:0.2s;font-family:inherit;" onmouseover="this.style.background='rgba(255,215,0,0.15)'" onmouseout="this.style.background='rgba(255,215,0,0.08)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar Relatório CSV
+      </button>
+    </div>
     <div id="leads-loading" class="spinner"></div>
     <div id="leads-grid" class="leads-grid" style="display:none;"></div>
     <div id="leads-empty" class="empty-state" style="display:none;">
@@ -515,6 +521,7 @@ function filterLeads() {
 
   const el = document.getElementById('pub-count');
   if (el) el.textContent = filtered.length;
+  window._filteredPublicLeads = filtered;
   renderLeads(filtered);
 }
 
@@ -692,6 +699,62 @@ function formatPhone(digits) {
 function hexToRgb(hex) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '255,215,0';
+}
+
+// ── CSV Download + Confetti ──────────────────────────
+function _csvEsc(val) {
+  if (val == null) return '';
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function _dlBlob(csv, filename) {
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+}
+function _launchConfetti() {
+  const colors = ['#FFD700','#FFA000','#FF6B6B','#34D399','#60A5FA','#A78BFA','#F472B6','#fff'];
+  const shapes = ['■','●','▲','★','♦'];
+  if (!document.getElementById('confetti-style')) {
+    const st = document.createElement('style'); st.id = 'confetti-style';
+    st.textContent = `@keyframes confettiFall{0%{transform:translateY(-100vh) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}.confetti-piece{position:fixed;top:-10px;z-index:100000;pointer-events:none;animation:confettiFall linear forwards}`;
+    document.head.appendChild(st);
+  }
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.textContent = shapes[Math.floor(Math.random()*shapes.length)];
+    el.style.left = Math.random()*100+'vw';
+    el.style.color = colors[Math.floor(Math.random()*colors.length)];
+    el.style.fontSize = (Math.random()*12+8)+'px';
+    el.style.animationDuration = (Math.random()*2+2)+'s';
+    el.style.animationDelay = (Math.random()*1.5)+'s';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+}
+function downloadPublicReportCSV() {
+  const leads = window._filteredPublicLeads || window._allLeads || [];
+  if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
+  const now = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+  const rows = leads.map(l => [
+    _csvEsc(l.name),_csvEsc(l.phone),_csvEsc(l.email),
+    _csvEsc(l.type==='saved'?'Salvo':'Visitante'),
+    _csvEsc(l.decisao),_csvEsc(l.culto),_csvEsc(l.pais),
+    _csvEsc(l.gc_status),_csvEsc(l.batizado),_csvEsc(l.idade),
+    _csvEsc(l.sexo),_csvEsc(l.melhor_horario),
+    _csvEsc((l.tags||[]).join('; ')),
+    _csvEsc(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
+  ]);
+  const csv = [headers.join(','),...rows.map(r=>r.join(','))].join('\n');
+  _dlBlob(csv, `relatorio_consolidacao_${now}.csv`);
+  _launchConfetti();
+  setTimeout(() => alert('🎉 Download concluído! ' + leads.length + ' registro(s) exportados.'), 500);
 }
 </script>
 </body>
