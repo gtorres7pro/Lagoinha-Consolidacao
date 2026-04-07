@@ -9214,7 +9214,7 @@ async function sendMilaMessage() {
 
         // Reset schedule toggle
         const schedToggle = document.getElementById('bc-schedule-toggle');
-        if (schedToggle) { schedToggle.checked = false; }
+        if (schedToggle) { schedToggle.checked = false; window.bcToggleSchedule(); }
         const schedInputs = document.getElementById('bc-schedule-inputs');
         if (schedInputs) { schedInputs.style.display = 'none'; }
 
@@ -9236,8 +9236,7 @@ async function sendMilaMessage() {
         if (progBar) progBar.style.width = '0%';
         const statusLbl = document.getElementById('bc-send-status');
         if (statusLbl) { statusLbl.textContent = 'Preparando envio...'; statusLbl.style.color = 'var(--text-dim)'; }
-        const schedToggle = document.getElementById('bc-schedule-toggle');
-        if (schedToggle) { schedToggle.checked = false; window.bcToggleSchedule(); }
+
 
 
         // Pre-fill existing data
