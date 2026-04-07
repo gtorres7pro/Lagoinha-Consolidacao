@@ -1463,7 +1463,23 @@
                     },
                     scales: {
                         x: { display: false, grid: { display: false } },
-                        y: { border: { display: false }, grid: { display: false }, ticks: { color: '#CCC', font: {family: 'Outfit', size: 10} } }
+                        y: { 
+                            border: { display: false }, 
+                            grid: { display: false }, 
+                            ticks: { 
+                                color: '#CCC', 
+                                font: {family: 'Outfit', size: 10},
+                                callback: function(value) {
+                                    let label = this.getLabelForValue ? this.getLabelForValue(value) : value;
+                                    label = String(label);
+                                    if(label.length > 14) return label.substr(0, 13) + '…';
+                                    return label;
+                                }
+                            },
+                            afterFit: function(scale) {
+                                scale.width = 85;
+                            }
+                        }
                     },
                     onClick: (evt, activeEls, chart) => {
                         if (activeEls.length > 0) {
@@ -9430,7 +9446,7 @@ async function sendMilaMessage() {
             const supabaseUrl = sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
 
             // Use mila-chat with a specific prompt to improve email text
-            const prompt = `Por favor, melhore o seguinte texto de e-mail para que fique mais amigável, claro e profissional para uma comunicação de igreja. Mantenha o tom pastoral e cristão. Preserve quaisquer variáveis no formato {{NomeDaVariavel}}. Retorne APENAS o texto melhorado, sem explicações adicionais:\n\n${text}`;
+            const prompt = `Por favor, melhore o seguinte texto de e-mail para que fique mais amigável, claro e profissional para uma comunicação de igreja. Mantenha o tom pastoral e cristão. IMPORTANTE: NÃO crie remetentes fictícios e NÃO assine nem direcione a mim usando meu nome pessoal. Referencie o destinatário sempre usando a variável genérica {{Nome}} ou outras no formato {{NomeDaVariavel}}. Retorne APENAS o texto melhorado, sem explicações adicionais:\n\n${text}`;
 
             const res = await fetch(`${supabaseUrl}/functions/v1/mila-chat`, {
                 method: 'POST',
