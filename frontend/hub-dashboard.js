@@ -9291,8 +9291,10 @@ async function sendMilaMessage() {
             showToast('⚠️ Carregue um arquivo CSV primeiro.'); return;
         }
         if (step === 4) {
+            const name = document.getElementById('bc-name')?.value.trim();
             const subj = document.getElementById('bc-subject')?.value.trim();
             const body = document.getElementById('bc-body')?.value.trim();
+            if (!name) { showToast('⚠️ Dê um nome à transmissão.'); return; }
             if (!subj || !body) { showToast('⚠️ Preencha o assunto e o corpo do e-mail.'); return; }
             renderBcReview();
         }
@@ -9582,7 +9584,15 @@ async function sendMilaMessage() {
         try {
             // 1. Persist broadcast + contacts to DB
             const broadcastId = await bcPersistBroadcast(isScheduled ? 'scheduled' : 'draft', scheduledAt);
-            if (!broadcastId) { clearInterval(ticker); return; }
+            if (!broadcastId) { 
+                clearInterval(ticker); 
+                if (bar) bar.style.width = '0%';
+                if (progress) progress.style.display = 'none';
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Disparar Agora'; }
+                if (status) { status.textContent = 'Preparando envio...'; status.style.color = 'var(--text-dim)'; }
+                if (backBtn) backBtn.disabled = false;
+                return; 
+            }
 
             if (isScheduled) {
                 clearInterval(ticker);
