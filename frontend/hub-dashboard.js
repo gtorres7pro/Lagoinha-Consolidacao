@@ -10625,7 +10625,23 @@ async function sendMilaMessage() {
     window.loadCrieConnect = async function() {
         const client = sb();
         const workspace = wsId();
-        if (!client || !workspace) return;
+
+        // Retry if workspace or client not ready yet (race on login)
+        if (!client || !workspace) {
+            if (!window._connectRetry) window._connectRetry = 0;
+            if (window._connectRetry < 10) {
+                window._connectRetry++;
+                setTimeout(window.loadCrieConnect, 400);
+            } else {
+                window._connectRetry = 0;
+                const errMsg = '<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">⚠️ Workspace nao inicializado. Recarregue a pagina.</div>';
+                ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.innerHTML = errMsg;
+                });
+            }
+            return;
+        }
+        window._connectRetry = 0;
 
         ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
             const el = document.getElementById(id);
@@ -10639,7 +10655,14 @@ async function sendMilaMessage() {
             .order('pinned', { ascending: false })
             .order('created_at', { ascending: false });
 
-        if (error) { console.error('[Connect]', error); return; }
+        if (error) {
+            console.error('[Connect] erro:', error);
+            const errMsg = '<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">Erro RLS: ' + error.message + '</div>';
+            ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.innerHTML = errMsg;
+            });
+            return;
+        }
 
         const pending  = (data||[]).filter(l => l.status === 'pending');
         const active   = (data||[]).filter(l => l.status === 'active');
