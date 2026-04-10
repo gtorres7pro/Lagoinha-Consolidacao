@@ -4044,7 +4044,7 @@
 
         <!-- ═══════════════ EVENTO DRAWER ═══════════════ -->
         <div id="evento-drawer-overlay" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);" onclick="closeEventoDrawer()"></div>
-        <div id="evento-drawer" style="display:none;position:fixed;top:0;right:0;height:100vh;width:min(560px,95vw);background:#0d0f15;border-left:1px solid rgba(255,255,255,.08);z-index:801;overflow-y:auto;transition:transform .25s ease;flex-direction:column;">
+        <div id="evento-drawer" style="display:none;position:fixed;top:0;right:0;height:100vh;width:min(780px,95vw);background:#0d0f15;border-left:1px solid rgba(255,255,255,.08);z-index:801;overflow-y:auto;transition:transform .25s ease;flex-direction:column;">
             <div style="padding:24px 24px 0;">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
                     <button onclick="closeEventoDrawer()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;color:rgba(255,255,255,.5);cursor:pointer;font-size:.85rem;">&#8592;</button>
@@ -4130,45 +4130,62 @@
 
             <!-- Tab: Financeiro -->
             <div id="drawer-panel-financeiro" style="padding:24px;display:none;">
-                <!-- Summary KPIs -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;" id="fin-kpis">
-                    <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:14px;padding:14px;text-align:center;">
-                        <div style="font-size:1.2rem;font-weight:900;color:#4ade80;" id="fin-receita">0€</div>
-                        <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">Receita</div>
+
+                <!-- ── KPI Row ─────────────────────────────────── -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <div style="background:linear-gradient(135deg,rgba(74,222,128,.12),rgba(74,222,128,.04));border:1px solid rgba(74,222,128,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#4ade80;letter-spacing:-.02em;" id="fin-receita">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">💰 Receita</div>
                     </div>
-                    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:14px;padding:14px;text-align:center;">
-                        <div style="font-size:1.2rem;font-weight:900;color:#f87171;" id="fin-despesas">0€</div>
-                        <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">Despesas</div>
+                    <div style="background:linear-gradient(135deg,rgba(248,113,113,.12),rgba(248,113,113,.04));border:1px solid rgba(248,113,113,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#f87171;letter-spacing:-.02em;" id="fin-despesas">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">📉 Despesas</div>
                     </div>
-                    <div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:14px;padding:14px;text-align:center;">
-                        <div style="font-size:1.2rem;font-weight:900;color:#60a5fa;" id="fin-saldo">0€</div>
-                        <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;">Saldo</div>
-                    </div>
-                </div>
-                <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:.8rem;color:rgba(255,255,255,.5);">
-                    Pagamentos via inscricoes: <span id="fin-inscricoes-info" style="color:#F59E0B;font-weight:700;">a calcular…</span>
-                </div>
-                <!-- Lancamentos -->
-                <div style="margin-bottom:14px;">
-                    <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;">Lançar</div>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="openFinLancamento('Receita')" style="flex:1;padding:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:10px;color:#4ade80;font-size:.78rem;font-weight:700;cursor:pointer;">+ Receita</button>
-                        <button onclick="openFinLancamento('Despesa')" style="flex:1;padding:10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:10px;color:#f87171;font-size:.78rem;font-weight:700;cursor:pointer;">- Despesa</button>
+                    <div style="background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(96,165,250,.04));border:1px solid rgba(96,165,250,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;letter-spacing:-.02em;" id="fin-saldo">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">⚖️ Saldo</div>
                     </div>
                 </div>
-                <!-- Lancamento form (hidden) -->
-                <div id="fin-lancamento-form" style="display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:14px;">
-                    <div style="font-size:.78rem;font-weight:700;color:#fff;margin-bottom:10px;" id="fin-form-label">Novo Lançamento</div>
-                    <input id="fin-form-desc" placeholder="Descrição" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;margin-bottom:8px;box-sizing:border-box;">
-                    <input id="fin-form-amount" type="number" min="0" step="0.01" placeholder="Valor (€)" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.85rem;outline:none;margin-bottom:10px;box-sizing:border-box;">
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="saveFinLancamento()" style="flex:1;padding:9px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#F59E0B;font-weight:700;cursor:pointer;font-size:.8rem;">Guardar</button>
-                        <button onclick="document.getElementById('fin-lancamento-form').style.display='none'" style="padding:9px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.4);cursor:pointer;font-size:.8rem;">Cancelar</button>
-                    </div>
+
+                <!-- ── Inscrições pill ─────────────────────────── -->
+                <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:12px;padding:11px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+                    <span style="font-size:.78rem;color:rgba(255,255,255,.45);">Pagamentos via inscrições</span>
+                    <span id="fin-inscricoes-info" style="color:#F59E0B;font-weight:800;font-size:.85rem;">a calcular…</span>
                 </div>
-                <!-- List of lancamentos -->
-                <div id="fin-lancamentos-list" style="display:flex;flex-direction:column;gap:6px;">
-                    <div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:.82rem;">A carregar lançamentos…</div>
+
+                <!-- ── 2-column layout: Form | Lista ──────────── -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+
+                    <!-- LEFT: Lançar -->
+                    <div>
+                        <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px;">Lançar</div>
+                        <div style="display:flex;gap:8px;margin-bottom:14px;">
+                            <button onclick="openFinLancamento('Receita')" style="flex:1;padding:11px 8px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:10px;color:#4ade80;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(74,222,128,.2)'" onmouseout="this.style.background='rgba(74,222,128,.1)'">+ Receita</button>
+                            <button onclick="openFinLancamento('Despesa')" style="flex:1;padding:11px 8px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:10px;color:#f87171;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(248,113,113,.2)'" onmouseout="this.style.background='rgba(248,113,113,.1)'">− Despesa</button>
+                        </div>
+                        <!-- Inline form -->
+                        <div id="fin-lancamento-form" style="display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;">
+                            <div style="font-size:.75rem;font-weight:800;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:6px;" id="fin-form-label">
+                                <span id="fin-form-type-dot" style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>
+                                Novo Lançamento
+                            </div>
+                            <input id="fin-form-desc" placeholder="Descrição (ex: Aluguer de salão)" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#fff;font-size:.85rem;outline:none;margin-bottom:8px;box-sizing:border-box;font-family:inherit;">
+                            <input id="fin-form-amount" type="number" min="0" step="0.01" placeholder="Valor" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#fff;font-size:.85rem;outline:none;margin-bottom:12px;box-sizing:border-box;font-family:inherit;">
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="saveFinLancamento()" style="flex:1;padding:10px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#F59E0B;font-weight:800;cursor:pointer;font-size:.82rem;">✓ Guardar</button>
+                                <button onclick="document.getElementById('fin-lancamento-form').style.display='none'" style="padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;color:rgba(255,255,255,.4);cursor:pointer;font-size:.82rem;">✕</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Histórico de lançamentos -->
+                    <div>
+                        <div style="font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px;">Histórico</div>
+                        <div id="fin-lancamentos-list" style="display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;padding-right:2px;">
+                            <div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.25);font-size:.8rem;">A carregar…</div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
