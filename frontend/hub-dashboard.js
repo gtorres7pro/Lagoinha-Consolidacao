@@ -5432,9 +5432,12 @@ async function loadDrawerInscritos() {
 // ── Drawer: Financeiro ────────────────────────────────────────
 async function loadDrawerFinanceiro() {
     const id = window._drawerEventoId;
-    const ev = window._drawerEventoData;
-    if (!id || !ev) return;
+    if (!id) return;
     const sb = window.supabaseClient;
+
+    // Always fetch fresh event data so currency/price reflect latest save
+    const { data: freshEv } = await sb.from('crie_events').select('price,currency').eq('id', id).single();
+    const ev = freshEv || window._drawerEventoData || {};
 
     // Get attendees payment info
     const { data: att } = await sb.from('crie_attendees')
