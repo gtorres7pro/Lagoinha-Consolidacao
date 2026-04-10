@@ -5392,9 +5392,10 @@ async function saveEventoDrawer() {
         }
     }
 
-    const { error } = await sb.from('crie_events').update(payload).eq('id', id);
+    const { data: updated, error } = await sb.from('crie_events').update(payload).eq('id', id).select();
     if (error) { hubToast('Erro ao guardar: ' + error.message, 'error'); }
-    else        { hubToast(payload.banner_url ? 'Evento e banner actualizados! 🖼️' : 'Evento actualizado!', 'success'); }
+    else if (!updated || updated.length === 0) { hubToast('❌ Sem permissão para guardar este evento.', 'error'); }
+    else        { hubToast(payload.banner_url ? 'Evento e banner actualizados! 🖼️' : 'Evento actualizado! ✓', 'success'); }
 
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar Alterações'; }
     await loadCrieEventos();
