@@ -5326,13 +5326,15 @@ function switchDrawerTab(tab) {
     ['info','inscritos','financeiro'].forEach(t => {
         const panel = document.getElementById(`drawer-panel-${t}`);
         const btn   = document.getElementById(`dtab-${t}`);
-        if (panel) panel.style.display = t === tab ? 'flex' : 'none';
+        if (panel) {
+            panel.style.display = t === tab ? 'flex' : 'none';
+            panel.style.flexDirection = 'column';
+        }
         if (btn) {
             btn.style.color       = t === tab ? '#F59E0B' : 'rgba(255,255,255,.4)';
             btn.style.borderBottom = t === tab ? '2px solid #F59E0B' : '2px solid transparent';
         }
     });
-    if (tab === 'info') document.getElementById('drawer-panel-info').style.flexDirection = 'column';
     if (tab === 'inscritos')  loadDrawerInscritos();
     if (tab === 'financeiro') loadDrawerFinanceiro();
 }
