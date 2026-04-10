@@ -5443,9 +5443,10 @@ async function loadDrawerFinanceiro() {
 
     const pagos    = (att || []).filter(a => a.payment_status === 'Pago').length;
     const price    = ev.price || 0;
-    const currency = ev.currency || '€';
+    const currSymbols = { 'BRL': 'R$', 'EUR': '€', 'USD': '$', 'GBP': '£' };
+    const currency = currSymbols[ev.currency] || ev.currency || '€';
     const recInscricoes = pagos * price;
-    document.getElementById('fin-inscricoes-info').textContent = `${pagos} pagos x ${price.toFixed(2)}${currency} = ${recInscricoes.toFixed(2)}${currency}`;
+    document.getElementById('fin-inscricoes-info').textContent = `${pagos} pagos x ${currency}${price.toFixed(2)} = ${currency}${recInscricoes.toFixed(2)}`;
 
     // Get manual lancamentos
     const { data: lans } = await sb.from('crie_finances')
@@ -5461,10 +5462,10 @@ async function loadDrawerFinanceiro() {
     const totalDespesas = manualExpense;
     const saldo         = totalReceita - totalDespesas;
 
-    document.getElementById('fin-receita').textContent  = totalReceita.toFixed(2)  + currency;
-    document.getElementById('fin-despesas').textContent = totalDespesas.toFixed(2) + currency;
+    document.getElementById('fin-receita').textContent  = currency + totalReceita.toFixed(2);
+    document.getElementById('fin-despesas').textContent = currency + totalDespesas.toFixed(2);
     const elSaldo = document.getElementById('fin-saldo');
-    if (elSaldo) { elSaldo.textContent = saldo.toFixed(2) + currency; elSaldo.style.color = saldo >= 0 ? '#60a5fa' : '#f87171'; }
+    if (elSaldo) { elSaldo.textContent = currency + saldo.toFixed(2); elSaldo.style.color = saldo >= 0 ? '#60a5fa' : '#f87171'; }
 
     // Render lancamentos list
     const list = document.getElementById('fin-lancamentos-list');
@@ -5480,7 +5481,7 @@ async function loadDrawerFinanceiro() {
                 <div style="font-size:.82rem;font-weight:600;color:#fff;">${l.description||'—'}</div>
                 <div style="font-size:.7rem;color:rgba(255,255,255,.35);">${new Date(l.created_at).toLocaleDateString('pt-PT')}</div>
             </div>
-            <span style="font-size:.9rem;font-weight:800;color:${isInc?'#4ade80':'#f87171'};">${isInc?'+':'-'}${(l.amount||0).toFixed(2)}${currency}</span>
+            <span style="font-size:.9rem;font-weight:800;color:${isInc?'#4ade80':'#f87171'};">${isInc?'+':'-'} ${currency}${(l.amount||0).toFixed(2)}</span>
             <button onclick="deleteFinLancamento('${l.id}')" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:7px;padding:4px 8px;color:#f87171;cursor:pointer;font-size:.7rem;">&#10005;</button>
         </div>`;
     }).join('');
