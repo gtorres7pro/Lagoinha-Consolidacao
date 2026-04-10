@@ -4082,6 +4082,26 @@
                         <option value="CONCLUIDO">Concluído</option>
                     </select>
                 </div>
+
+                <!-- Banner Upload (Edit) -->
+                <div>
+                    <label class="hub-field-label">Imagem de Divulgação</label>
+                    <div id="dedit-banner-area" onclick="document.getElementById('dedit-banner-input').click()"
+                         style="border:2px dashed rgba(255,215,0,.2);border-radius:14px;padding:18px;text-align:center;cursor:pointer;transition:border .2s,background .2s;background:rgba(255,255,255,.02);margin-top:6px;"
+                         onmouseover="this.style.borderColor='rgba(255,215,0,.5)';this.style.background='rgba(255,215,0,.03)'"
+                         onmouseout="this.style.borderColor='rgba(255,215,0,.2)';this.style.background='rgba(255,255,255,.02)'">
+                        <div id="dedit-banner-placeholder">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,215,0,.4)" stroke-width="1.5" style="margin-bottom:6px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <div style="font-size:.75rem;color:rgba(255,255,255,.3);">Clique para carregar ou trocar imagem</div>
+                        </div>
+                        <div id="dedit-banner-preview-wrap" style="display:none;">
+                            <img id="dedit-banner-preview-img" src="" alt="banner" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;display:block;">
+                            <button type="button" onclick="event.stopPropagation();clearDrawerBanner()" style="margin-top:8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.2);color:#f87171;padding:4px 12px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;">✕ Remover</button>
+                        </div>
+                    </div>
+                    <input type="file" id="dedit-banner-input" accept="image/*" style="display:none;" onchange="previewDrawerBanner(this)">
+                </div>
+
                 <div style="display:flex;gap:10px;margin-top:4px;">
                     <button onclick="saveEventoDrawer()" id="drawer-save-btn" class="hub-btn" style="flex:1;padding:12px;">Guardar Alterações</button>
                     <button onclick="archiveCrieEvento(window._drawerEventoId, window._drawerEventoStatus)" style="padding:12px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;font-size:.82rem;">&#128230; Arquivar</button>
@@ -4164,11 +4184,15 @@
                     <h1><span style="color:#F59E0B;">C*</span> Check-in</h1>
                     <p>Marcar presença dos inscritos em tempo real</p>
                 </div>
-                <div class="actions" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <div class="actions" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; align-items:center;">
                     <span id="checkin-counter" style="background:rgba(74,222,128,.12); color:#4ade80; border:1px solid rgba(74,222,128,.25); padding:7px 14px; border-radius:12px; font-size:.78rem; font-weight:700; white-space:nowrap;">✓ 0 presentes</span>
                     <span id="checkin-pagos" style="background:rgba(96,165,250,.1); color:#60a5fa; border:1px solid rgba(96,165,250,.2); padding:7px 14px; border-radius:12px; font-size:.78rem; font-weight:700; white-space:nowrap;">💳 0 pagos</span>
                     <span id="checkin-pendentes" style="background:rgba(251,191,36,.1); color:#fbbf24; border:1px solid rgba(251,191,36,.2); padding:7px 14px; border-radius:12px; font-size:.78rem; font-weight:700; white-space:nowrap;">⏳ 0 pendentes</span>
                     <span id="checkin-gratuitos" style="background:rgba(167,243,208,.08); color:#6ee7b7; border:1px solid rgba(167,243,208,.15); padding:7px 14px; border-radius:12px; font-size:.78rem; font-weight:700; white-space:nowrap;">🎟 0 gratuitos</span>
+                    <button onclick="openQuickAddCrie()" class="hub-btn" style="padding:7px 14px; font-size:.78rem; white-space:nowrap;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Adicionar Inscrito
+                    </button>
                 </div>
             </header>
             <div class="crie-pad">
@@ -4321,6 +4345,36 @@
                     </div>
 
                     <button type="submit" class="hub-btn" style="width:100%; padding:14px; margin-top:8px;">Criar Evento</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Add Inscrito (Walk-in Check-in) Modal -->
+        <div id="modal-quick-add-checkin" style="display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,.85); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
+            <div style="background:#111827; border:1px solid rgba(255,215,0,.15); border-radius:24px; padding:32px; width:100%; max-width:420px; position:relative;">
+                <button onclick="closeModal('modal-quick-add-checkin')" style="position:absolute; top:16px; right:16px; background:none; border:none; color:rgba(255,255,255,.4); font-size:1.2rem; cursor:pointer;">✕</button>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.25); display:flex; align-items:center; justify-content:center; font-size:1rem;">🚶</div>
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:800; margin:0; color:#fff;">Adicionar Inscrito na Hora</h3>
+                        <p style="font-size:.74rem; color:rgba(255,255,255,.4); margin:2px 0 0;">Entrada avulsa — marcado como Presente</p>
+                    </div>
+                </div>
+                <div style="height:1px; background:rgba(255,255,255,.06); margin:20px 0;"></div>
+                <form onsubmit="quickAddCrieAttendee(event)" style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        <label class="hub-field-label">Nome Completo *</label>
+                        <input name="q_name" required placeholder="Nome do participante" autocomplete="off"
+                            style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:11px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box; margin-top:6px;">
+                    </div>
+                    <div>
+                        <label class="hub-field-label">WhatsApp (opcional)</label>
+                        <input name="q_phone" type="tel" placeholder="+351 912 345 678" autocomplete="off"
+                            style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:11px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box; margin-top:6px;">
+                    </div>
+                    <button id="btn-quick-add" type="submit" style="width:100%; padding:13px; background:linear-gradient(135deg,rgba(74,222,128,.2),rgba(74,222,128,.08)); border:1px solid rgba(74,222,128,.35); border-radius:12px; color:#4ade80; font-weight:800; cursor:pointer; font-size:.9rem; letter-spacing:.02em; margin-top:4px;">
+                        ✅ Confirmar Entrada
+                    </button>
                 </form>
             </div>
         </div>

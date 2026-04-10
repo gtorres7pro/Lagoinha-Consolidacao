@@ -124,6 +124,24 @@
         .form-row.cols2 { grid-template-columns:1fr 1fr; }
         @media(max-width:440px) { .form-row.cols2 { grid-template-columns:1fr; } }
 
+        /* Phone country picker */
+        .phone-wrap { display:flex; gap:0; }
+        .phone-wrap .country-sel {
+            flex-shrink:0; width:110px;
+            border-radius: 11px 0 0 11px;
+            border-right: none !important;
+            padding-right: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 28px;
+        }
+        .phone-wrap .country-sel:focus { z-index:1; border-color: rgba(255,215,0,.4); box-shadow: 0 0 0 3px rgba(255,215,0,.08); }
+        .phone-wrap .phone-num {
+            flex:1;
+            border-radius: 0 11px 11px 0;
+        }
+
         label { display:block; font-size:.75rem; font-weight:600; color:var(--muted); margin-bottom:5px; }
         input, select {
             width:100%; padding:11px 14px;
@@ -254,14 +272,33 @@
             <div class="form-card">
                 <h2>Dados de Inscrição</h2>
                 <form id="crie-reg-form" onsubmit="submitCrieForm(event)">
-                    <div class="form-row cols2">
+                    <div class="form-row">
                         <div>
                             <label>Nome Completo *</label>
                             <input type="text" id="cr-name" required placeholder="O seu nome">
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div>
                             <label>Telefone / WhatsApp *</label>
-                            <input type="tel" id="cr-phone" required placeholder="+351 9xx xxx xxx">
+                            <div class="phone-wrap">
+                                <select id="cr-phone-country" class="country-sel">
+                                    <option value="+351">🇵🇹 +351</option>
+                                    <option value="+55">🇧🇷 +55</option>
+                                    <option value="+1">🇺🇸 +1</option>
+                                    <option value="+44">🇬🇧 +44</option>
+                                    <option value="+34">🇪🇸 +34</option>
+                                    <option value="+33">🇫🇷 +33</option>
+                                    <option value="+49">🇩🇪 +49</option>
+                                    <option value="+39">🇮🇹 +39</option>
+                                    <option value="+31">🇳🇱 +31</option>
+                                    <option value="+41">🇨🇭 +41</option>
+                                    <option value="+27">🇿🇦 +27</option>
+                                    <option value="+244">🇦🇴 +244</option>
+                                    <option value="+258">🇲🇿 +258</option>
+                                </select>
+                                <input type="tel" id="cr-phone" class="phone-num" required placeholder="912 345 678" autocomplete="tel-national">
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -310,6 +347,10 @@
             <p>Obrigado, <strong id="success-name">—</strong>!<br>
                Estamos à tua espera no evento.<br>
                Até breve! 🙏</p>
+            <button onclick="location.reload()" style="margin-top:28px; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.7); border-radius:14px; padding:12px 24px; font-family:var(--font); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'; this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.06)'; this.style.color='rgba(255,255,255,.7)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Inscrição
+            </button>
         </div>
 
         <p class="footer-note">Zelo Pro · <span id="footer-ws-name">CRIE</span></p>
@@ -432,18 +473,20 @@
         e.preventDefault();
         if (!_workspaceId || !_eventId) return;
 
-        const btn   = document.getElementById('cr-submit-btn');
-        const name  = document.getElementById('cr-name').value.trim();
-        const phone = document.getElementById('cr-phone').value.trim();
-        const email = document.getElementById('cr-email').value.trim().toLowerCase();
+        const btn      = document.getElementById('cr-submit-btn');
+        const name     = document.getElementById('cr-name').value.trim();
+        const phoneNum  = document.getElementById('cr-phone').value.trim();
+        const countryCode = document.getElementById('cr-phone-country').value;
+        const email    = document.getElementById('cr-email').value.trim().toLowerCase();
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> A enviar…';
 
         try {
-            // Normalize PT phone
-            let phoneFinal = phone.replace(/\s/g, '');
-            if (/^9\d{8}$/.test(phoneFinal)) phoneFinal = '+351' + phoneFinal;
+            // Build full phone from country selector + number input
+            const numClean = phoneNum.replace(/[\s\-().]/g, '');
+            // If user already typed a + prefix, use as-is; otherwise prepend country code
+            let phoneFinal = numClean.startsWith('+') ? numClean : countryCode + numClean;
 
             // Auto-detect member via phone/email match in crie_members
             let isMember = false;

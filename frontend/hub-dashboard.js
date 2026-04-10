@@ -1194,8 +1194,14 @@
             document.getElementById('custom-modal-content').innerHTML = contentHTML;
             document.getElementById('custom-modal-overlay').style.display = 'flex';
         }
-        window.closeModal = function() {
-            document.getElementById('custom-modal-overlay').style.display = 'none';
+        window.closeModal = function(id) {
+            if (id) {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            } else {
+                const el = document.getElementById('custom-modal-overlay');
+                if (el) el.style.display = 'none';
+            }
         }
 
         window.maskDate = function(ref) {
@@ -5257,7 +5263,6 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-title').value    = ev.title || '';
     document.getElementById('dedit-desc').value     = ev.description || '';
     document.getElementById('dedit-date').value     = ev.date ? (() => {
-        // Show Lisbon local time in the datetime-local input (not raw UTC)
         const d = new Date(ev.date);
         const lp = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Lisbon', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d);
         const g = t => lp.find(p => p.type === t)?.value;
@@ -5268,6 +5273,22 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-price').value    = ev.price ?? '';
     document.getElementById('dedit-currency').value = ev.currency || '€';
     document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
+
+    // Populate banner preview if event already has one
+    _drawerBannerFile = null;
+    const dBannerInput = document.getElementById('dedit-banner-input');
+    if (dBannerInput) dBannerInput.value = '';
+    const dPlaceholder = document.getElementById('dedit-banner-placeholder');
+    const dPreviewWrap = document.getElementById('dedit-banner-preview-wrap');
+    const dPreviewImg  = document.getElementById('dedit-banner-preview-img');
+    if (ev.banner_url && dPreviewWrap && dPreviewImg) {
+        dPreviewImg.src = ev.banner_url;
+        dPreviewWrap.style.display = 'block';
+        if (dPlaceholder) dPlaceholder.style.display = 'none';
+    } else if (dPreviewWrap) {
+        dPreviewWrap.style.display = 'none';
+        if (dPlaceholder) dPlaceholder.style.display = 'block';
+    }
 
     // Handle locked state
     const isLocked   = !!ev.locked;
@@ -5332,6 +5353,24 @@ async function saveEventoDrawer() {
         currency:    document.getElementById('dedit-currency').value || '€',
         status:      document.getElementById('dedit-status').value,
     };
+
+    // Upload new banner if one was selected in the drawer
+    if (_drawerBannerFile) {
+        try {
+            const wsId = getCrieWorkspaceId();
+            const ext  = _drawerBannerFile.name.split('.').pop().toLowerCase();
+            const path = `crie-banners/${wsId}/${Date.now()}.${ext}`;
+            const { error: upErr } = await sb.storage.from('event-banners').upload(path, _drawerBannerFile, { upsert: true, contentType: _drawerBannerFile.type });
+            if (!upErr) {
+                const { data: { publicUrl } } = sb.storage.from('event-banners').getPublicUrl(path);
+                payload.banner_url = publicUrl;
+            } else {
+                console.warn('[CRIE] Drawer banner upload error:', upErr.message);
+            }
+        } catch(err) { console.warn('[CRIE] Drawer banner upload exception:', err); }
+        _drawerBannerFile = null;
+    }
+
     const { error } = await sb.from('crie_events').update(payload).eq('id', id);
     if (error) { hubToast('Erro ao guardar: ' + error.message, 'error'); }
     else        { hubToast('Evento actualizado!', 'success'); }
@@ -5553,12 +5592,16 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
 <div class="footer">Gerado automaticamente pelo Zelo Pro &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
 </body></html>`;
 
-    // 3. Open report in new window
-    const reportWin = window.open('', '_blank', 'width=720,height=850');
-    if (reportWin) {
-        reportWin.document.write(reportHtml);
-        reportWin.document.close();
-    }
+    // 3. Download report as HTML file (avoids popup blockers)
+    const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `relatorio-crie-${(ev.title || 'evento').replace(/[^a-z0-9]/gi,'_').toLowerCase()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+    hubToast('Relatório gerado e descarregado! 📊', 'success');
 
     // 4. Prepare mailto with summary
     if (email) {
@@ -5596,8 +5639,43 @@ function openCreateEventoModal() {
     if (modal) modal.style.display = 'flex';
 }
 
-// ── Banner image preview/clear helpers ────────────────────────
+// ── Banner image preview/clear helpers (Create modal) ─────────
 let _bannerFile = null;
+
+// ── Banner image preview/clear helpers (Edit drawer) ──────────
+let _drawerBannerFile = null;
+
+function previewDrawerBanner(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        if (typeof hubToast !== 'undefined') hubToast('Imagem demasiado grande (máx 5MB)', 'error');
+        input.value = ''; return;
+    }
+    _drawerBannerFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img  = document.getElementById('dedit-banner-preview-img');
+        const wrap = document.getElementById('dedit-banner-preview-wrap');
+        const ph   = document.getElementById('dedit-banner-placeholder');
+        if (img)  img.src = ev.target.result;
+        if (wrap) wrap.style.display = 'block';
+        if (ph)   ph.style.display   = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearDrawerBanner() {
+    _drawerBannerFile = null;
+    const input = document.getElementById('dedit-banner-input');
+    const img   = document.getElementById('dedit-banner-preview-img');
+    const wrap  = document.getElementById('dedit-banner-preview-wrap');
+    const ph    = document.getElementById('dedit-banner-placeholder');
+    if (input) input.value = '';
+    if (img)   img.src = '';
+    if (wrap)  wrap.style.display = 'none';
+    if (ph)    ph.style.display   = 'block';
+}
 
 function previewEventBanner(input) {
     const file = input.files[0];
