@@ -10622,6 +10622,35 @@ async function sendMilaMessage() {
         </div>`;
     }
 
+
+    // ── DEBUG fn – remove after fix ──
+    window.runConnectDebug = async function() {
+        const out = document.getElementById('connect-debug-output');
+        if (!out) return;
+        out.textContent = 'A correr...';
+
+        const client = sb();
+        const workspace = wsId();
+        const { data: { user } } = client ? await client.auth.getUser() : { data: { user: null } };
+
+        let lines = [
+            'supabaseClient: ' + (client ? 'OK' : 'NULL'),
+            'currentWorkspaceId: ' + (workspace || 'NULL'),
+            'auth.uid(): ' + (user ? user.id : 'nao autenticado'),
+        ];
+
+        if (client && workspace) {
+            const { data, error, count } = await client
+                .from('connect_listings')
+                .select('id,title,status', { count: 'exact' })
+                .eq('workspace_id', workspace);
+            lines.push('Rows retornadas: ' + (error ? 'ERRO: ' + error.message : (data ? data.length : 0)));
+            if (data && data.length) lines.push('1o registo: ' + data[0].title + ' [' + data[0].status + ']');
+        }
+
+        out.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
+    };
+
     window.loadCrieConnect = async function() {
         const client = sb();
         const workspace = wsId();
