@@ -939,14 +939,17 @@ async function submitListing() {
     return;
   }
 
-  const { data: listing, error } = await _supa.from('connect_listings').insert({
+  const generatedId = crypto.randomUUID();
+
+  const { error } = await _supa.from('connect_listings').insert({
+    id: generatedId,
     workspace_id: currentWorkspaceId,
     title, description: desc, category: cat,
     contact_name: name, contact_email: email,
     contact_phone: phone ? `${country} ${phone}` : null,
     status: 'pending',
     terms_accepted: true,
-  }).select('id').single();
+  });
 
   if (error) {
     msgEl.className = 'form-msg error-msg';
@@ -960,7 +963,7 @@ async function submitListing() {
     await fetch(`${_EDGE_BASE}/connect-notify-reviewers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listing_id: listing.id }),
+      body: JSON.stringify({ listing_id: generatedId }),
     });
   } catch(e) { /* silent */ }
 
