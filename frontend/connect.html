@@ -140,7 +140,7 @@
     /* ═══ FILTER BAR ═══ */
     .filter-bar {
       position: relative; z-index: 1;
-      max-width: 920px;
+      max-width: 1200px;
       margin: 0 auto 40px;
       padding: 0 24px;
       display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -188,7 +188,7 @@
     /* ═══ BOARD ═══ */
     .board-wrap {
       position: relative; z-index: 1;
-      max-width: 920px;
+      max-width: 1200px;
       margin: 0 auto 80px;
       padding: 0 24px;
     }
@@ -454,7 +454,7 @@
       position: relative; z-index: 1;
       border-top: 1px solid var(--border);
       padding: 40px 32px 32px;
-      max-width: 920px; margin: 0 auto;
+      max-width: 1200px; margin: 0 auto;
     }
     .footer-disclaimer {
       font-size: 0.76rem;
@@ -688,11 +688,35 @@ function initLottie() {
   } catch(e) { /* silent fail */ }
 }
 
+// ═══ GLOBAL WORKSPACE ═══
+let currentWorkspaceId = null;
+
+async function resolveWorkspace() {
+  const urlParams = new URLSearchParams(location.search);
+  const wsSlug    = urlParams.get('ws');
+
+  if (wsSlug) {
+    const { data: ws } = await _supa.from('workspaces').select('id').eq('slug', wsSlug).single();
+    if (ws) currentWorkspaceId = ws.id;
+  }
+  if (!currentWorkspaceId) {
+    const { data: ws } = await _supa.from('workspaces').select('id').eq('status','active').limit(1).single();
+    if (ws) currentWorkspaceId = ws.id;
+  }
+}
+
 // ═══ LOAD LISTINGS ═══
 async function loadListings() {
+  if (!currentWorkspaceId) {
+    document.getElementById('board-wrap').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Workspace não encontrado. Verifique o link de conexão.</p></div>';
+    return;
+  }
+
   const { data, error } = await _supa
     .from('connect_listings')
     .select('*')
+    .eq('workspace_id', currentWorkspaceId)
     .eq('status', 'active')
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false });
@@ -806,10 +830,7 @@ function setCatFilter(cat, btn) {
   renderBoard();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('search-input').addEventListener('input', renderBoard);
-  document.getElementById('sort-select').addEventListener('change', renderBoard);
-});
+
 
 // ═══ SHARE ═══
 function shareCard(id, title) {
@@ -911,29 +932,15 @@ async function submitListing() {
   const btn = document.getElementById('btn-submit-post');
   btn.disabled = true; btn.textContent = 'Enviando...';
 
-  // Determine workspace from URL param or first active
-  const urlParams = new URLSearchParams(location.search);
-  const wsSlug    = urlParams.get('ws');
-
-  let workspaceId = null;
-  if (wsSlug) {
-    const { data: ws } = await _supa.from('workspaces').select('id').eq('slug', wsSlug).single();
-    if (ws) workspaceId = ws.id;
-  }
-  if (!workspaceId) {
-    const { data: ws } = await _supa.from('workspaces').select('id').eq('status','active').limit(1).single();
-    if (ws) workspaceId = ws.id;
-  }
-
-  if (!workspaceId) {
+  if (!currentWorkspaceId) {
     msgEl.className = 'form-msg error-msg';
-    msgEl.textContent = 'Erro: workspace não encontrado.';
+    msgEl.textContent = 'Erro: workspace não encontrado. Atualize a página e tente novamente.';
     btn.disabled = false; btn.textContent = 'Enviar para Revisão';
     return;
   }
 
   const { data: listing, error } = await _supa.from('connect_listings').insert({
-    workspace_id: workspaceId,
+    workspace_id: currentWorkspaceId,
     title, description: desc, category: cat,
     contact_name: name, contact_email: email,
     contact_phone: phone ? `${country} ${phone}` : null,
@@ -982,11 +989,17 @@ function scrollToHash() {
 }
 
 // ═══ INIT ═══
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('search-input').addEventListener('input', renderBoard);
+  document.getElementById('sort-select').addEventListener('change', renderBoard);
+
   populateCountrySelect('c-country');
   populateCountrySelect('p-country');
   initLottie();
-  loadListings().then(scrollToHash);
+  
+  await resolveWorkspace();
+  await loadListings();
+  scrollToHash();
 
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(el =>
