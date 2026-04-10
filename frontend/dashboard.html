@@ -4264,19 +4264,44 @@
                 </div>
             </header>
 
-            <!-- KPI Row — all in one scrollable line -->
-            <div style="padding:16px 24px 4px;overflow-x:auto;">
-                <div style="display:flex;gap:12px;min-width:max-content;">
-                    <div class="kpi-box" style="min-width:120px;"><p class="kpi-label">Inscritos</p><p class="kpi-value" id="rel-total-inscritos">–</p></div>
-                    <div class="kpi-box" style="min-width:120px;border-color:rgba(245,158,11,.3);"><p class="kpi-label">Membros Ativos</p><p class="kpi-value" id="rel-membros-ativos" style="color:#F59E0B;">–</p></div>
-                    <div class="kpi-box" style="min-width:130px;border-color:rgba(167,139,250,.3);"><p class="kpi-label">Membresia / mês</p><p class="kpi-value" id="rel-membresia" style="color:#A78BFA;">–</p></div>
-                    <div class="kpi-box" style="min-width:120px;border-color:rgba(74,222,128,.3);"><p class="kpi-label">Receita Total</p><p class="kpi-value" id="rel-receita" style="color:#4ade80;">–</p></div>
-                    <div class="kpi-box" style="min-width:120px;border-color:rgba(248,113,113,.3);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="rel-despesas" style="color:#f87171;">–</p></div>
-                    <div class="kpi-box" style="min-width:120px;border-color:rgba(96,165,250,.3);"><p class="kpi-label">Resultado</p><p class="kpi-value" id="rel-resultado" style="color:#60a5fa;">–</p></div>
-                    <div class="kpi-box" style="min-width:120px;"><p class="kpi-label">Eventos</p><p class="kpi-value" id="rel-eventos">–</p></div>
-                    <div class="kpi-box" style="min-width:140px;border-color:rgba(52,211,153,.3);"><p class="kpi-label">Média Recorrência</p><p class="kpi-value" id="rel-recorrencia" style="color:#34D399;">–</p></div>
+            <!-- KPI Row — compact flex grid -->
+            <div style="padding:12px 24px 4px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 16px;flex:1;min-width:100px;max-width:180px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Inscritos</p>
+                        <p id="rel-total-inscritos" style="font-size:1.45rem;font-weight:800;color:#fff;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:100px;max-width:180px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Membros Ativos</p>
+                        <p id="rel-membros-ativos" style="font-size:1.45rem;font-weight:800;color:#F59E0B;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:110px;max-width:180px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Membresia/mês</p>
+                        <p id="rel-membresia" style="font-size:1.45rem;font-weight:800;color:#A78BFA;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:110px;max-width:200px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Receita Total</p>
+                        <p id="rel-receita" style="font-size:1.45rem;font-weight:800;color:#4ade80;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:110px;max-width:180px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Despesas</p>
+                        <p id="rel-despesas" style="font-size:1.45rem;font-weight:800;color:#f87171;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:110px;max-width:200px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Resultado</p>
+                        <p id="rel-resultado" style="font-size:1.45rem;font-weight:800;color:#60a5fa;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 16px;flex:1;min-width:80px;max-width:120px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Eventos</p>
+                        <p id="rel-eventos" style="font-size:1.45rem;font-weight:800;color:#fff;margin:0;line-height:1;">–</p>
+                    </div>
+                    <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:12px;padding:10px 16px;flex:1;min-width:110px;max-width:180px;">
+                        <p style="font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin:0 0 4px;">Recorrência</p>
+                        <p id="rel-recorrencia" style="font-size:1.45rem;font-weight:800;color:#34D399;margin:0;line-height:1;">–</p>
+                    </div>
                 </div>
             </div>
+
 
             <!-- Sub-tabs -->
             <div style="padding:20px 24px 0;">
