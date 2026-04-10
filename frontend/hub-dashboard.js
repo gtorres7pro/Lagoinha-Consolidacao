@@ -4159,6 +4159,7 @@ window.switchTab = function(tab) {
             'crie-eventos': loadCrieEventos,
             'crie-checkin': loadCrieCheckinEventos,
             'crie-relatorios': loadCrieRelatorios,
+            'crie-connect': window.loadCrieConnect,
         };
         if (loaders[tab]) loaders[tab]();
         return;
@@ -10811,19 +10812,23 @@ async function sendMilaMessage() {
             : '';
 
         let actions = '';
+        const editBtn = `<button onclick="openConnectEdit('${l.id}')" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✏️ Editar</button>`;
         if (l.status === 'pending') {
             actions = `
                 <button onclick="connectApproveListing('${l.id}')" style="background:rgba(52,211,153,0.12);color:#34D399;border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✔ Aprovar</button>
-                <button onclick="connectRejectListing('${l.id}')" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✖ Recusar</button>`;
+                <button onclick="connectRejectListing('${l.id}')" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✖ Recusar</button>
+                ${editBtn}`;
         } else if (l.status === 'active') {
             const pinLabel = l.pinned ? '📌 Desafixar' : '📌 Fixar';
             actions = `
                 <button onclick="connectTogglePin('${l.id}', ${!l.pinned})" style="background:rgba(255,215,0,0.08);color:#FFD700;border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">${pinLabel}</button>
                 <button onclick="connectArchiveListing('${l.id}')" style="background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">Arquivar</button>
-                <button onclick="connectToggleLogs('${l.id}')" id="logs-toggle-${l.id}" style="background:rgba(167,139,250,0.08);color:#A78BFA;border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">📋 Ver Contatos (${l.contact_count||0})</button>`;
+                <button onclick="connectToggleLogs('${l.id}')" id="logs-toggle-${l.id}" style="background:rgba(167,139,250,0.08);color:#A78BFA;border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">📋 Ver Contatos (${l.contact_count||0})</button>
+                ${editBtn}`;
         } else {
             actions = `
-                <button onclick="connectReactivateListing('${l.id}')" style="background:rgba(52,211,153,0.1);color:#34D399;border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">🔄 Reativar</button>
+                <button onclick="connectReactivateListing('${l.id}')" style="background:rgba(52,211,153,0.1);color:#34D399;border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">🔄 Para Aprovação</button>
+                ${editBtn}
                 <button onclick="connectDeleteListing('${l.id}')" style="background:rgba(248,113,113,0.08);color:#f87171;border:1px solid rgba(248,113,113,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">🗑 Excluir</button>`;
         }
 
@@ -10854,39 +10859,10 @@ async function sendMilaMessage() {
     }
 
 
-    // ── DEBUG fn – remove after fix ──
-    window.runConnectDebug = async function() {
-        const out = document.getElementById('connect-debug-output');
-        if (!out) return;
-        out.textContent = 'A correr...';
-
-        const client = sb();
-        const workspace = wsId();
-        const { data: { user } } = client ? await client.auth.getUser() : { data: { user: null } };
-
-        let lines = [
-            'supabaseClient: ' + (client ? 'OK' : 'NULL'),
-            'currentWorkspaceId: ' + (workspace || 'NULL'),
-            'auth.uid(): ' + (user ? user.id : 'nao autenticado'),
-        ];
-
-        if (client && workspace) {
-            const { data, error, count } = await client
-                .from('connect_listings')
-                .select('id,title,status', { count: 'exact' })
-                .eq('workspace_id', workspace);
-            lines.push('Rows retornadas: ' + (error ? 'ERRO: ' + error.message : (data ? data.length : 0)));
-            if (data && data.length) lines.push('1o registo: ' + data[0].title + ' [' + data[0].status + ']');
-        }
-
-        out.innerHTML = lines.map(l => '<div>' + l + '</div>').join('');
-    };
-
     window.loadCrieConnect = async function() {
         const client = sb();
         const workspace = wsId();
 
-        // Retry if workspace or client not ready yet (race on login)
         if (!client || !workspace) {
             if (!window._connectRetry) window._connectRetry = 0;
             if (window._connectRetry < 10) {
@@ -10894,7 +10870,7 @@ async function sendMilaMessage() {
                 setTimeout(window.loadCrieConnect, 400);
             } else {
                 window._connectRetry = 0;
-                const errMsg = '<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">⚠️ Workspace nao inicializado. Recarregue a pagina.</div>';
+                const errMsg = '<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">⚠️ Workspace não inicializado. Recarregue a página.</div>';
                 ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
                     const el = document.getElementById(id); if (el) el.innerHTML = errMsg;
                 });
@@ -10916,7 +10892,7 @@ async function sendMilaMessage() {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('[Connect] erro:', error);
+            console.error('[Connect] Erro:', error);
             const errMsg = '<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">Erro RLS: ' + error.message + '</div>';
             ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
                 const el = document.getElementById(id); if (el) el.innerHTML = errMsg;
@@ -10940,13 +10916,18 @@ async function sendMilaMessage() {
         const render = (listId, items, emptyMsg) => {
             const el = document.getElementById(listId);
             if (!el) return;
-            el.innerHTML = items.length
-                ? items.map(buildDashCard).join('')
-                : `<div style="color:rgba(255,255,255,0.2);font-size:0.82rem;padding:24px;text-align:center;">${emptyMsg}</div>`;
+            try {
+                el.innerHTML = items.length
+                    ? items.map(buildDashCard).join('')
+                    : `<div style="color:rgba(255,255,255,0.2);font-size:0.82rem;padding:24px;text-align:center;">${emptyMsg}</div>`;
+            } catch(renderErr) {
+                console.error('[Connect] Erro ao renderizar card:', renderErr);
+                el.innerHTML = `<div style="color:#f87171;font-size:0.8rem;padding:20px;text-align:center;">Erro ao exibir itens.</div>`;
+            }
         };
         render('connect-pending-list',  pending,  'Nenhuma oferta pendente.');
         render('connect-active-list',   active,   'Nenhuma oferta ativa ainda.');
-        render('connect-archived-list', archived, 'Nenhum item arquivado.');
+        render('connect-archived-list', archived, 'Nenhum item arquivado e/ou recusado.');
     };
 
     window.connectApproveListing = async function(id) {
@@ -10984,12 +10965,62 @@ async function sendMilaMessage() {
     };
 
     window.connectReactivateListing = async function(id) {
-        const expiresAt = new Date(Date.now() + (await getExpiryDays()) * 86400000).toISOString();
+        // Send back to pending for re-approval instead of directly to active
         const { error } = await sb().from('connect_listings').update({
-            status: 'active', rejection_reason: null, expires_at: expiresAt,
+            status: 'pending', rejection_reason: null,
         }).eq('id', id);
-        if (error) { window.showToast('❌ Erro ao reativar'); return; }
-        window.showToast('✅ Oferta reativada!');
+        if (error) { window.showToast('❌ Erro ao reenviar para aprovação'); return; }
+        window.showToast('🔄 Oferta enviada para aprovação novamente!');
+        window.loadCrieConnect();
+    };
+
+    window.openConnectEdit = async function(id) {
+        const { data, error } = await sb().from('connect_listings').select('*').eq('id', id).single();
+        if (error || !data) { window.showToast('❌ Erro ao carregar oferta'); return; }
+        document.getElementById('ce-id').value       = data.id;
+        document.getElementById('ce-title').value    = data.title || '';
+        document.getElementById('ce-category').value = data.category || '';
+        document.getElementById('ce-desc').value     = data.description || '';
+        document.getElementById('ce-badge').value    = data.badge_type || 'none';
+        document.getElementById('ce-name').value     = data.contact_name || '';
+        document.getElementById('ce-email').value    = data.contact_email || '';
+        document.getElementById('ce-expiry').value   = data.expires_at
+            ? Math.max(1, Math.round((new Date(data.expires_at) - new Date()) / 86400000))
+            : '';
+        document.getElementById('ce-msg').textContent = '';
+        document.getElementById('modal-connect-edit').style.display = 'flex';
+    };
+
+    window.saveConnectEdit = async function() {
+        const id      = document.getElementById('ce-id').value;
+        const title   = document.getElementById('ce-title').value.trim();
+        const category= document.getElementById('ce-category').value;
+        const desc    = document.getElementById('ce-desc').value.trim();
+        const badge   = document.getElementById('ce-badge').value;
+        const name    = document.getElementById('ce-name').value.trim();
+        const email   = document.getElementById('ce-email').value.trim();
+        const expiryDays = parseInt(document.getElementById('ce-expiry').value) || 0;
+        const msgEl   = document.getElementById('ce-msg');
+
+        if (!title || !category) {
+            msgEl.style.color = '#f87171';
+            msgEl.textContent = 'Título e categoria são obrigatórios.';
+            return;
+        }
+
+        const updates = { title, category, description: desc, badge_type: badge,
+            contact_name: name, contact_email: email };
+        if (expiryDays > 0)
+            updates.expires_at = new Date(Date.now() + expiryDays * 86400000).toISOString();
+
+        const { error } = await sb().from('connect_listings').update(updates).eq('id', id);
+        if (error) {
+            msgEl.style.color = '#f87171';
+            msgEl.textContent = 'Erro: ' + error.message;
+            return;
+        }
+        document.getElementById('modal-connect-edit').style.display = 'none';
+        window.showToast('✅ Oferta atualizada!');
         window.loadCrieConnect();
     };
 
