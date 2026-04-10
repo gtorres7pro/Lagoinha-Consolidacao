@@ -5629,13 +5629,29 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
     setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
     hubToast('Relatório gerado e descarregado! 📊', 'success');
 
-    // 4. Prepare mailto with summary
+    // 4. Send report automatically via Edge Function
     if (email) {
-        const subject = encodeURIComponent(`Relatório CRIE — ${ev.title}`);
-        const body    = encodeURIComponent(
-            `Relatório do evento: ${ev.title}\nData: ${dateStr}\nLocal: ${ev.location||'—'}\n\nInscritos: ${total}\nPresentes: ${presentes}\nAusentes: ${ausentes}\nTaxa presença: ${total>0?((presentes/total)*100).toFixed(0):0}%\nRecorrentes: ${recorrentes}\n\nReceita Total: ${totalRec.toFixed(2)}${currency}\nDespesas Total: ${manDesp.toFixed(2)}${currency}\nSaldo Final: ${saldo.toFixed(2)}${currency}\n\nO relatório completo foi aberto numa nova janela.`
-        );
-        window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+        try {
+            const supabaseUrl = window.SUPABASE_URL || sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
+            const { data: { session } } = await sb.auth.getSession();
+            const subject = `Relatório CRIE — ${ev.title}`;
+            
+            hubToast('A enviar relatório por e-mail...', 'warning');
+            const res = await fetch(`${supabaseUrl}/functions/v1/crie-send-report`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${session ? session.access_token : window.SUPABASE_ANON_KEY}`, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ email, subject, html: reportHtml })
+            });
+            const dat = await res.json();
+            if (dat.error) throw new Error(dat.error);
+            hubToast(`Relatório enviado para ${email}! 🚀`, 'success');
+        } catch (err) {
+            console.error('Email send err:', err);
+            hubToast('Erro ao enviar email, mas relatório foi gerado e descarregado.', 'error');
+        }
     }
 
     // 5. Lock the event
