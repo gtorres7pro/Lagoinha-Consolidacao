@@ -5241,6 +5241,7 @@ function renderCrieEventos(list) {
 window._drawerEventoId     = null;
 window._drawerEventoStatus = null;
 window._drawerEventoData   = null;
+window._drawerBannerFile   = null;   // file selected in the Edit drawer
 let   _finLancamentoType   = 'Receita';
 
 function openEventoDrawer(id) {
@@ -5275,7 +5276,7 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
 
     // Populate banner preview if event already has one
-    _drawerBannerFile = null;
+    window._drawerBannerFile = null;
     const dBannerInput = document.getElementById('dedit-banner-input');
     if (dBannerInput) dBannerInput.value = '';
     const dPlaceholder = document.getElementById('dedit-banner-placeholder');
@@ -5298,7 +5299,7 @@ function openEventoDrawer(id) {
     const reopenWrap = document.getElementById('drawer-reopen-wrap');
 
     if (saveBtn)    saveBtn.disabled = isLocked;
-    if (fecharBtn)  { fecharBtn.disabled = isLocked; fecharBtn.textContent = isLocked ? (hasReport ? '&#128274; Relatório Enviado' : '&#128274; Evento Fechado') : '&#128274; GERAR RELATÓRIO & FECHAR EVENTO'; }
+    if (fecharBtn)  { fecharBtn.disabled = isLocked; fecharBtn.innerHTML = isLocked ? (hasReport ? '🔒 Relatório Enviado' : '🔒 Evento Fechado') : '🔒 GERAR RELATÓRIO & FECHAR EVENTO'; }
     if (reopenWrap) reopenWrap.style.display = isLocked ? 'block' : 'none';
 
     // Pre-fill email with logged-in user email if available
@@ -5355,25 +5356,38 @@ async function saveEventoDrawer() {
     };
 
     // Upload new banner if one was selected in the drawer
-    if (_drawerBannerFile) {
-        try {
-            const wsId = getCrieWorkspaceId();
-            const ext  = _drawerBannerFile.name.split('.').pop().toLowerCase();
-            const path = `crie-banners/${wsId}/${Date.now()}.${ext}`;
-            const { error: upErr } = await sb.storage.from('event-banners').upload(path, _drawerBannerFile, { upsert: true, contentType: _drawerBannerFile.type });
-            if (!upErr) {
-                const { data: { publicUrl } } = sb.storage.from('event-banners').getPublicUrl(path);
-                payload.banner_url = publicUrl;
-            } else {
-                console.warn('[CRIE] Drawer banner upload error:', upErr.message);
+    if (window._drawerBannerFile) {
+        const wsId = getCrieWorkspaceId();
+        if (!wsId) {
+            hubToast('Erro: workspace não encontrado para upload do banner', 'error');
+        } else {
+            if (btn) { btn.textContent = 'A carregar banner…'; }
+            try {
+                const file = window._drawerBannerFile;
+                const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+                const path = `crie-banners/${wsId}/${crypto.randomUUID()}.${ext}`;
+                const { data: upData, error: upErr } = await sb.storage
+                    .from('event-banners')
+                    .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+                if (upErr) {
+                    hubToast('⚠️ Banner não guardado: ' + upErr.message, 'error');
+                    console.error('[CRIE] Banner upload error:', upErr);
+                } else {
+                    const { data: urlData } = sb.storage.from('event-banners').getPublicUrl(path);
+                    payload.banner_url = urlData.publicUrl;
+                    console.log('[CRIE] Banner uploaded OK:', payload.banner_url);
+                }
+            } catch(err) {
+                hubToast('⚠️ Erro inesperado no upload do banner', 'error');
+                console.error('[CRIE] Banner upload exception:', err);
             }
-        } catch(err) { console.warn('[CRIE] Drawer banner upload exception:', err); }
-        _drawerBannerFile = null;
+            window._drawerBannerFile = null;
+        }
     }
 
     const { error } = await sb.from('crie_events').update(payload).eq('id', id);
     if (error) { hubToast('Erro ao guardar: ' + error.message, 'error'); }
-    else        { hubToast('Evento actualizado!', 'success'); }
+    else        { hubToast(payload.banner_url ? 'Evento e banner actualizados! 🖼️' : 'Evento actualizado!', 'success'); }
 
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar Alterações'; }
     await loadCrieEventos();
@@ -5643,7 +5657,7 @@ function openCreateEventoModal() {
 let _bannerFile = null;
 
 // ── Banner image preview/clear helpers (Edit drawer) ──────────
-let _drawerBannerFile = null;
+// NOTE: window._drawerBannerFile is declared at line ~5244 with the other drawer globals
 
 function previewDrawerBanner(input) {
     const file = input.files[0];
@@ -5652,7 +5666,7 @@ function previewDrawerBanner(input) {
         if (typeof hubToast !== 'undefined') hubToast('Imagem demasiado grande (máx 5MB)', 'error');
         input.value = ''; return;
     }
-    _drawerBannerFile = file;
+    window._drawerBannerFile = file;
     const reader = new FileReader();
     reader.onload = ev => {
         const img  = document.getElementById('dedit-banner-preview-img');
@@ -5666,7 +5680,7 @@ function previewDrawerBanner(input) {
 }
 
 function clearDrawerBanner() {
-    _drawerBannerFile = null;
+    window._drawerBannerFile = null;
     const input = document.getElementById('dedit-banner-input');
     const img   = document.getElementById('dedit-banner-preview-img');
     const wrap  = document.getElementById('dedit-banner-preview-wrap');
