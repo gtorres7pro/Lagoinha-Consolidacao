@@ -5989,31 +5989,57 @@ async function quickAddCrieAttendee(e) {
     if (!eventId || !wsId) return;
 
     const form = e.target;
-    const qName = form.elements['q_name'].value.trim();
-    const qPhone = form.elements['q_phone'].value.trim() || null;
-    
+    const qName        = form.elements['q_name'].value.trim();
+    const phoneNum     = (form.elements['q_phone']?.value || '').trim();
+    const countryCode  = form.elements['q_phone_country']?.value || '+351';
+    const qEmail       = (form.elements['q_email']?.value || '').trim().toLowerCase() || null;
+    const qIndustry    = form.elements['q_industry']?.value || null;
+
+    // Build full phone — respect if user already typed +prefix
+    let qPhone = null;
+    if (phoneNum) {
+        const numClean = phoneNum.replace(/[\s\-().]/g, '');
+        qPhone = numClean.startsWith('+') ? numClean : countryCode + numClean;
+    }
+
     const btn = document.getElementById('btn-quick-add');
     if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Adicionando...';
+        btn.innerHTML = '<span style="opacity:.6">A adicionar…</span>';
     }
 
+    // Auto-detect member via phone/email match in crie_members
+    const sb = window.supabaseClient;
+    let isMember = false;
+    try {
+        const orFilters = [];
+        if (qPhone) orFilters.push(`phone.eq.${qPhone}`);
+        if (qEmail) orFilters.push(`email.eq.${qEmail}`);
+        if (orFilters.length) {
+            const { data: mem } = await sb.from('crie_members')
+                .select('id').eq('workspace_id', wsId)
+                .or(orFilters.join(',')).maybeSingle();
+            if (mem) isMember = true;
+        }
+    } catch(_) {}
+
     const payload = {
-        workspace_id: wsId,
-        event_id: eventId,
-        name: qName,
-        phone: qPhone,
-        payment_status: 'Pendente',
+        workspace_id:    wsId,
+        event_id:        eventId,
+        name:            qName,
+        phone:           qPhone,
+        email:           qEmail,
+        industry:        qIndustry || null,
+        payment_status:  'Pendente',
         presence_status: 'Presente',
-        is_member: false
+        is_member:       isMember,
     };
 
-    const sb = window.supabaseClient;
     const { data, error } = await sb.from('crie_attendees').insert(payload).select().single();
     
     if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Confirmar Entrada (Override)';
+        btn.innerHTML = '✅ Confirmar Entrada';
     }
 
     if (error) {
@@ -6026,7 +6052,7 @@ async function quickAddCrieAttendee(e) {
     form.reset();
     closeModal('modal-quick-add-checkin');
     
-    if (typeof hubToast !== 'undefined') hubToast('Entrada rápida confirmada!', 'success');
+    if (typeof hubToast !== 'undefined') hubToast(`${qName.split(' ')[0]} adicionado com sucesso! 🎉`, 'success');
     
     filterCheckin();
     updateCheckinCounter();
