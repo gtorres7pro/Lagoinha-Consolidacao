@@ -4252,40 +4252,138 @@
             </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════════
-             View: CRIE — Relatórios
-        ═══════════════════════════════════════════════════════════ -->
+        <!-- ═══ View: CRIE Relatórios ═══ -->
         <div id="view-crie-relatorios" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
                     <h1><span style="color:#F59E0B;">C*</span> Relatórios</h1>
                     <p>KPIs consolidados e histórico financeiro do CRIE</p>
                 </div>
-            </header>
-            <div class="crie-pad">
-                <!-- KPI summary -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; margin-bottom:32px;">
-                    <div class="kpi-box"><p class="kpi-label">Total Inscritos</p><p class="kpi-value" id="rel-total-inscritos">–</p></div>
-                    <div class="kpi-box" style="border-color:rgba(245,158,11,.25);"><p class="kpi-label">Membros Ativos</p><p class="kpi-value" id="rel-membros-ativos" style="color:#F59E0B;">–</p></div>
-                    <div class="kpi-box" style="border-color:rgba(74,222,128,.25);"><p class="kpi-label">Receita Total</p><p class="kpi-value" id="rel-receita" style="color:#4ade80;">–</p></div>
-                    <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="rel-despesas" style="color:#f87171;">–</p></div>
-                    <div class="kpi-box" style="border-color:rgba(96,165,250,.25);"><p class="kpi-label">Resultado</p><p class="kpi-value" id="rel-resultado" style="color:#60a5fa;">–</p></div>
-                    <div class="kpi-box"><p class="kpi-label">Eventos Realizados</p><p class="kpi-value" id="rel-eventos">–</p></div>
+                <div class="actions">
+                    <button onclick="loadCrieRelatorios()" style="background:rgba(245,158,11,0.08);color:#F59E0B;border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.78rem;cursor:pointer;">↻ Atualizar</button>
                 </div>
-                <!-- Event breakdown table -->
-                <h3 style="font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:16px;">Por Evento</h3>
+            </header>
+
+            <!-- KPI Row — all in one scrollable line -->
+            <div style="padding:16px 24px 4px;overflow-x:auto;">
+                <div style="display:flex;gap:12px;min-width:max-content;">
+                    <div class="kpi-box" style="min-width:120px;"><p class="kpi-label">Inscritos</p><p class="kpi-value" id="rel-total-inscritos">–</p></div>
+                    <div class="kpi-box" style="min-width:120px;border-color:rgba(245,158,11,.3);"><p class="kpi-label">Membros Ativos</p><p class="kpi-value" id="rel-membros-ativos" style="color:#F59E0B;">–</p></div>
+                    <div class="kpi-box" style="min-width:130px;border-color:rgba(167,139,250,.3);"><p class="kpi-label">Membresia / mês</p><p class="kpi-value" id="rel-membresia" style="color:#A78BFA;">–</p></div>
+                    <div class="kpi-box" style="min-width:120px;border-color:rgba(74,222,128,.3);"><p class="kpi-label">Receita Total</p><p class="kpi-value" id="rel-receita" style="color:#4ade80;">–</p></div>
+                    <div class="kpi-box" style="min-width:120px;border-color:rgba(248,113,113,.3);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="rel-despesas" style="color:#f87171;">–</p></div>
+                    <div class="kpi-box" style="min-width:120px;border-color:rgba(96,165,250,.3);"><p class="kpi-label">Resultado</p><p class="kpi-value" id="rel-resultado" style="color:#60a5fa;">–</p></div>
+                    <div class="kpi-box" style="min-width:120px;"><p class="kpi-label">Eventos</p><p class="kpi-value" id="rel-eventos">–</p></div>
+                    <div class="kpi-box" style="min-width:140px;border-color:rgba(52,211,153,.3);"><p class="kpi-label">Média Recorrência</p><p class="kpi-value" id="rel-recorrencia" style="color:#34D399;">–</p></div>
+                </div>
+            </div>
+
+            <!-- Sub-tabs -->
+            <div style="padding:20px 24px 0;">
+                <div style="display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:20px;">
+                    <button id="rel-tab-resumo" onclick="switchRelTab('resumo')" style="background:rgba(245,158,11,0.12);color:#F59E0B;border:none;border-bottom:2px solid #F59E0B;border-radius:8px 8px 0 0;padding:9px 18px;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">📊 Por Evento</button>
+                    <button id="rel-tab-financeiro" onclick="switchRelTab('financeiro')" style="background:transparent;color:rgba(255,255,255,0.4);border:none;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;padding:9px 18px;font-weight:600;font-size:0.78rem;cursor:pointer;font-family:inherit;">💰 Financeiro</button>
+                </div>
+            </div>
+
+            <!-- Tab: Por Evento -->
+            <div id="rel-pane-resumo" style="padding:0 24px 80px;">
                 <div class="hub-table-wrap">
                     <table class="hub-dev-table">
                         <thead><tr>
-                            <th>Evento</th><th>Data</th><th>Inscritos</th><th>Presenças</th><th>Pagos</th><th>Receita</th><th>Despesas</th><th>Resultado</th>
+                            <th>Evento</th><th>Data</th><th>Inscritos</th><th>Presenças</th><th>Recorrentes</th><th>Pagos</th><th>Receita</th><th>Despesas</th><th>Resultado</th>
                         </tr></thead>
                         <tbody id="rel-eventos-body">
-                            <tr><td colspan="8" style="text-align:center; padding:40px; color:rgba(255,255,255,.3);">A carregar…</td></tr>
+                            <tr><td colspan="9" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Financeiro -->
+            <div id="rel-pane-financeiro" style="display:none;padding:0 24px 80px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                    <select id="fin-filter-type" onchange="renderFinanceiro()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;color:#fff;font-family:inherit;font-size:0.8rem;outline:none;">
+                        <option value="">Todos os tipos</option>
+                        <option value="Receita">Receitas</option>
+                        <option value="Despesa">Despesas</option>
+                    </select>
+                    <select id="fin-filter-tag" onchange="renderFinanceiro()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;color:#fff;font-family:inherit;font-size:0.8rem;outline:none;">
+                        <option value="">Todas as categorias</option>
+                        <option value="evento">Custos de Evento</option>
+                        <option value="ingresso">Ingressos</option>
+                        <option value="membresia">Membresia</option>
+                        <option value="doacao">Doação</option>
+                        <option value="avulso">Avulso</option>
+                    </select>
+                    <input id="fin-filter-search" oninput="renderFinanceiro()" type="text" placeholder="Buscar descrição…" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 14px;color:#fff;font-family:inherit;font-size:0.8rem;outline:none;flex:1;min-width:160px;"/>
+                    <button onclick="openAvulsaModal()" style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.25);border-radius:10px;padding:8px 14px;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Lançamento Avulso
+                    </button>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+                    <div style="background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:12px;padding:12px 18px;flex:1;min-width:140px;">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Total Receitas</div>
+                        <div id="fin-total-receitas" style="font-size:1.3rem;font-weight:800;color:#4ade80;">–</div>
+                    </div>
+                    <div style="background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);border-radius:12px;padding:12px 18px;flex:1;min-width:140px;">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Total Despesas</div>
+                        <div id="fin-total-despesas" style="font-size:1.3rem;font-weight:800;color:#f87171;">–</div>
+                    </div>
+                    <div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:12px;padding:12px 18px;flex:1;min-width:140px;">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Saldo Filtrado</div>
+                        <div id="fin-total-saldo" style="font-size:1.3rem;font-weight:800;color:#60a5fa;">–</div>
+                    </div>
+                </div>
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table" style="font-size:0.8rem;">
+                        <thead><tr>
+                            <th>Data</th><th>Descrição</th><th>Categoria</th><th>Evento</th><th>Tipo</th><th style="text-align:right;">Valor</th><th></th>
+                        </tr></thead>
+                        <tbody id="fin-transactions-body">
+                            <tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+
+        <!-- Modal: Lançamento Avulso -->
+        <div id="modal-avulso" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+            <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:460px;">
+                <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:1rem;font-weight:800;color:#fff;flex:1;">💸 Novo Lançamento Avulso</span>
+                    <button onclick="document.getElementById('modal-avulso').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.2rem;cursor:pointer;">✕</button>
+                </div>
+                <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Tipo</label>
+                        <select id="av-type" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                            <option value="Receita">💰 Receita</option><option value="Despesa">💸 Despesa</option>
+                        </select></div>
+                        <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Categoria</label>
+                        <select id="av-tag" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                            <option value="doacao">🎁 Doação</option><option value="avulso">📌 Avulso</option>
+                            <option value="membresia">⭐ Membresia</option><option value="ingresso">🎟️ Ingresso</option><option value="evento">🎪 Custo de Evento</option>
+                        </select></div>
+                    </div>
+                    <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição</label>
+                    <input id="av-desc" type="text" placeholder="Ex: Doação Gabriel Torres" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"/></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Valor (€)</label>
+                        <input id="av-amount" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"/></div>
+                        <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Data</label>
+                        <input id="av-date" type="date" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"/></div>
+                    </div>
+                    <div><label style="font-size:0.7rem;color:rgba(255,255,255,0.35);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Notas (opcional)</label>
+                    <textarea id="av-notes" rows="2" placeholder="Observações…" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;resize:vertical;box-sizing:border-box;"></textarea></div>
+                    <div id="av-msg" style="font-size:0.8rem;min-height:16px;text-align:center;"></div>
+                    <button onclick="saveAvulsoLancamento()" style="background:#4ade80;color:#000;font-weight:800;border:none;border-radius:11px;padding:12px;font-size:0.9rem;cursor:pointer;font-family:inherit;">Salvar Lançamento</button>
+                </div>
+            </div>
+        </div>
+
 
         <!-- ═══ View: CRIE Connect ═══ -->
         <div id="view-crie-connect" class="view-section">

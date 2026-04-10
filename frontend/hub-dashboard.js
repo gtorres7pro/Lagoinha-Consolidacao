@@ -6077,55 +6077,286 @@ async function quickAddCrieAttendee(e) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CRIE — RELATÓRIOS
+// CRIE — RELATÓRIOS (full rebuild)
 // ═══════════════════════════════════════════════════════════
+
+// Cached data for filtering without re-fetching
+window._relFinancasAll = [];
+window._relEventosMap  = {};
+
+// Tag badge map
+const FIN_TAG_META = {
+    evento:    { icon: '🎪', label: 'Custo de Evento',  color: 'rgba(167,139,250,0.5)' },
+    ingresso:  { icon: '🎟️', label: 'Ingresso',         color: 'rgba(96,165,250,0.5)'  },
+    membresia: { icon: '⭐', label: 'Membresia',        color: 'rgba(251,191,36,0.6)'  },
+    doacao:    { icon: '🎁', label: 'Doação',           color: 'rgba(52,211,153,0.5)'  },
+    avulso:    { icon: '📌', label: 'Avulso',           color: 'rgba(255,255,255,0.25)'},
+};
+
+window.switchRelTab = function(tab) {
+    const resumo     = document.getElementById('rel-pane-resumo');
+    const financeiro = document.getElementById('rel-pane-financeiro');
+    const btnR       = document.getElementById('rel-tab-resumo');
+    const btnF       = document.getElementById('rel-tab-financeiro');
+    if (!resumo) return;
+    if (tab === 'resumo') {
+        resumo.style.display    = 'block';
+        financeiro.style.display = 'none';
+        btnR.style.color = '#F59E0B'; btnR.style.background = 'rgba(245,158,11,0.12)'; btnR.style.borderBottom = '2px solid #F59E0B';
+        btnF.style.color = 'rgba(255,255,255,0.4)'; btnF.style.background = 'transparent'; btnF.style.borderBottom = '2px solid transparent';
+    } else {
+        resumo.style.display    = 'none';
+        financeiro.style.display = 'block';
+        btnF.style.color = '#4ade80'; btnF.style.background = 'rgba(74,222,128,0.1)'; btnF.style.borderBottom = '2px solid #4ade80';
+        btnR.style.color = 'rgba(255,255,255,0.4)'; btnR.style.background = 'transparent'; btnR.style.borderBottom = '2px solid transparent';
+        renderFinanceiro();
+    }
+};
+
 async function loadCrieRelatorios() {
     const wsId = getCrieWorkspaceId();
     if (!wsId) return;
     const sb = window.supabaseClient;
 
-    const [{ data: attendees }, { data: membros }, { data: eventos }, { data: financas }] = await Promise.all([
-        sb.from('crie_attendees').select('id, payment_status, presence_status, event_id').eq('workspace_id', wsId),
-        sb.from('crie_members').select('id, status').eq('workspace_id', wsId),
-        sb.from('crie_events').select('id, title, date, status').eq('workspace_id', wsId).neq('status','ARCHIVED').order('date',{ascending:false}),
-        sb.from('crie_finances').select('type, amount, event_id').eq('workspace_id', wsId),
+    // Fetch everything in parallel
+    const [
+        { data: attendees },
+        { data: membros },
+        { data: eventos },
+        { data: financas },
+    ] = await Promise.all([
+        sb.from('crie_attendees').select('id, payment_status, presence_status, event_id, phone').eq('workspace_id', wsId),
+        sb.from('crie_members').select('id, status, monthly_fee').eq('workspace_id', wsId),
+        sb.from('crie_events').select('id, title, date, status, price, currency').eq('workspace_id', wsId).neq('status', 'ARCHIVED').order('date', { ascending: false }),
+        sb.from('crie_finances').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false }),
     ]);
 
-    const totalInscritos = attendees?.length || 0;
-    const membrosAtivos = (membros||[]).filter(m => m.status === 'Ativo').length;
-    const receita = (financas||[]).filter(f => f.type==='Receita').reduce((s,f) => s + Number(f.amount), 0);
-    const despesas = (financas||[]).filter(f => f.type==='Despesa').reduce((s,f) => s + Number(f.amount), 0);
+    // Cache for the Financeiro tab
+    window._relFinancasAll = financas || [];
+    window._relEventosMap  = {};
+    (eventos || []).forEach(e => { window._relEventosMap[e.id] = e.title; });
 
-    document.getElementById('rel-total-inscritos').textContent = totalInscritos;
-    document.getElementById('rel-membros-ativos').textContent = membrosAtivos;
-    document.getElementById('rel-receita').textContent = `${receita.toFixed(2)}€`;
-    document.getElementById('rel-despesas').textContent = `${despesas.toFixed(2)}€`;
-    document.getElementById('rel-resultado').textContent = `${(receita-despesas).toFixed(2)}€`;
-    document.getElementById('rel-eventos').textContent = (eventos||[]).length;
+    // ── KPI calculations ──────────────────────────────────────
+    const totalInscritos = (attendees || []).length;
+    const membrosAtivos  = (membros || []).filter(m => m.status === 'Ativo').length;
+    const membresiaTotal = (membros || []).filter(m => m.status === 'Ativo').reduce((s, m) => s + Number(m.monthly_fee || 0), 0);
 
-    // Build per-event table
+    // Case-insensitive type matching (fix for mixed "Receita"/"receita" data)
+    const receita  = (financas || []).filter(f => f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
+    const despesas = (financas || []).filter(f => f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
+    const resultado = receita - despesas;
+
+    // Also include inscription revenue from events (pagos × price)
+    let totalInscricaoRec = 0;
+    const eventosRealizados = (eventos || []).filter(e => e.status === 'CONCLUIDO' || e.status === 'ARCHIVED');
+    eventosRealizados.forEach(ev => {
+        const pagos = (attendees || []).filter(a => a.event_id === ev.id && a.payment_status === 'Pago').length;
+        totalInscricaoRec += pagos * Number(ev.price || 0);
+    });
+    const receitaTotal = receita + totalInscricaoRec;
+
+    // Recurrence: % of presentes that came to >1 event
+    const presentesByPhone = {};
+    (attendees || []).filter(a => a.presence_status === 'Presente' && a.phone).forEach(a => {
+        if (!presentesByPhone[a.phone]) presentesByPhone[a.phone] = new Set();
+        presentesByPhone[a.phone].add(a.event_id);
+    });
+    const totalPresentes = Object.keys(presentesByPhone).length;
+    const recorrentes = Object.values(presentesByPhone).filter(s => s.size > 1).length;
+    const recorrenciaRate = totalPresentes > 0 ? Math.round((recorrentes / totalPresentes) * 100) : 0;
+
+    // ── Update DOM ─────────────────────────────────────────────
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('rel-total-inscritos', totalInscritos);
+    setText('rel-membros-ativos', membrosAtivos);
+    setText('rel-membresia', `€${membresiaTotal.toFixed(0)}`);
+    setText('rel-receita',   `€${receitaTotal.toFixed(2)}`);
+    setText('rel-despesas',  `€${despesas.toFixed(2)}`);
+    setText('rel-resultado', `${resultado >= 0 ? '+' : ''}€${(receitaTotal - despesas).toFixed(2)}`);
+    setText('rel-eventos', (eventos || []).length);
+    setText('rel-recorrencia', `${recorrenciaRate}%`);
+
+    // Color resultado
+    const elRes = document.getElementById('rel-resultado');
+    if (elRes) elRes.style.color = (receitaTotal - despesas) >= 0 ? '#4ade80' : '#f87171';
+
+    // ── Per-event table ─────────────────────────────────────────
     const tbody = document.getElementById('rel-eventos-body');
     if (tbody && eventos?.length) {
+        // Need to compute recurrentes per event: attendees who are Presente AND appeared Presente in another event
+        const phoneEventsMap = {}; // phone -> Set of event_ids where they were Presente
+        (attendees || []).filter(a => a.presence_status === 'Presente' && a.phone).forEach(a => {
+            if (!phoneEventsMap[a.phone]) phoneEventsMap[a.phone] = new Set();
+            phoneEventsMap[a.phone].add(a.event_id);
+        });
+
         tbody.innerHTML = eventos.map(ev => {
-            const evAttendees = (attendees||[]).filter(a => a.event_id === ev.id);
-            const presences = evAttendees.filter(a => a.presence_status === 'Presente').length;
-            const pagos = evAttendees.filter(a => a.payment_status === 'Pago').length;
-            const evReceita = (financas||[]).filter(f => f.event_id === ev.id && f.type==='Receita').reduce((s,f)=>s+Number(f.amount),0);
-            const evDespesas = (financas||[]).filter(f => f.event_id === ev.id && f.type==='Despesa').reduce((s,f)=>s+Number(f.amount),0);
-            const resultado = evReceita - evDespesas;
+            const evAtt     = (attendees || []).filter(a => a.event_id === ev.id);
+            const presentes = evAtt.filter(a => a.presence_status === 'Presente').length;
+            const pagos     = evAtt.filter(a => a.payment_status  === 'Pago').length;
+            const currSymbols = { 'BRL': 'R$', 'EUR': '€', 'USD': '$', 'GBP': '£' };
+            const sym = currSymbols[ev.currency] || ev.currency || '€';
+
+            // Recurrentes for this event: Presente here AND Presente in at least one other event
+            const evRecorrentes = evAtt.filter(a => {
+                if (a.presence_status !== 'Presente' || !a.phone) return false;
+                const s = phoneEventsMap[a.phone];
+                return s && s.size > 1; // appeared in more than just this event
+            }).length;
+
+            const evReceita  = (financas || []).filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
+            const evDespesas = (financas || []).filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
+            const inscRec    = pagos * Number(ev.price || 0);
+            const evTotal    = evReceita + inscRec;
+            const evResultado = evTotal - evDespesas;
+            const dateStr    = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT') : '—';
+
             return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);">
-                <td style="padding:12px 16px; font-weight:700; color:#fff;">${ev.title}</td>
-                <td style="padding:12px 16px; font-size:.78rem; color:rgba(255,255,255,.5);">${new Date(ev.date).toLocaleDateString('pt-PT')}</td>
-                <td style="padding:12px 16px; text-align:center; color:rgba(255,255,255,.7);">${evAttendees.length}</td>
-                <td style="padding:12px 16px; text-align:center; color:#4ade80;">${presences}</td>
-                <td style="padding:12px 16px; text-align:center; color:#F59E0B;">${pagos}</td>
-                <td style="padding:12px 16px; color:#4ade80; font-weight:700;">${evReceita.toFixed(2)}€</td>
-                <td style="padding:12px 16px; color:#f87171; font-weight:700;">${evDespesas.toFixed(2)}€</td>
-                <td style="padding:12px 16px; font-weight:800; color:${resultado>=0?'#4ade80':'#f87171'};">${resultado.toFixed(2)}€</td>
+                <td style="padding:12px 16px;font-weight:700;color:#fff;">${ev.title}</td>
+                <td style="padding:12px 16px;font-size:.78rem;color:rgba(255,255,255,.5);">${dateStr}</td>
+                <td style="padding:12px 16px;text-align:center;color:rgba(255,255,255,.7);">${evAtt.length}</td>
+                <td style="padding:12px 16px;text-align:center;color:#4ade80;">${presentes}</td>
+                <td style="padding:12px 16px;text-align:center;color:#34D399;">${evRecorrentes}</td>
+                <td style="padding:12px 16px;text-align:center;color:#F59E0B;">${pagos}</td>
+                <td style="padding:12px 16px;color:#4ade80;font-weight:700;">${sym}${evTotal.toFixed(2)}</td>
+                <td style="padding:12px 16px;color:#f87171;font-weight:700;">${sym}${evDespesas.toFixed(2)}</td>
+                <td style="padding:12px 16px;font-weight:800;color:${evResultado >= 0 ? '#4ade80' : '#f87171'};">${sym}${evResultado.toFixed(2)}</td>
             </tr>`;
         }).join('');
+    } else if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Sem eventos registados.</td></tr>';
     }
+
+    // If the Financeiro tab is visible, refresh it
+    const finPane = document.getElementById('rel-pane-financeiro');
+    if (finPane && finPane.style.display !== 'none') renderFinanceiro();
 }
+
+window.renderFinanceiro = function() {
+    const all    = window._relFinancasAll || [];
+    const evMap  = window._relEventosMap  || {};
+    const typeF  = document.getElementById('fin-filter-type')?.value  || '';
+    const tagF   = document.getElementById('fin-filter-tag')?.value   || '';
+    const searchF = (document.getElementById('fin-filter-search')?.value || '').toLowerCase();
+
+    const filtered = all.filter(f => {
+        if (typeF  && f.type?.toLowerCase() !== typeF.toLowerCase()) return false;
+        if (tagF   && (f.tag || 'evento') !== tagF)  return false;
+        if (searchF && !(f.description || '').toLowerCase().includes(searchF)) return false;
+        return true;
+    });
+
+    const totalR = filtered.filter(f => f.type?.toLowerCase() === 'receita').reduce((s,f) => s + Number(f.amount), 0);
+    const totalD = filtered.filter(f => f.type?.toLowerCase() === 'despesa').reduce((s,f) => s + Number(f.amount), 0);
+    const saldo  = totalR - totalD;
+
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('fin-total-receitas', `€${totalR.toFixed(2)}`);
+    setText('fin-total-despesas', `€${totalD.toFixed(2)}`);
+    const elSaldo = document.getElementById('fin-total-saldo');
+    if (elSaldo) { elSaldo.textContent = `€${saldo.toFixed(2)}`; elSaldo.style.color = saldo >= 0 ? '#4ade80' : '#f87171'; }
+
+    const tbody = document.getElementById('fin-transactions-body');
+    if (!tbody) return;
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Nenhuma transação encontrada.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(f => {
+        const tagMeta = FIN_TAG_META[f.tag || 'evento'] || FIN_TAG_META.avulso;
+        const isRec   = f.type?.toLowerCase() === 'receita';
+        const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-PT') : '—';
+        const evTitle = f.event_id ? (evMap[f.event_id] || f.event_id.substring(0,8)+'…') : '—';
+
+        return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);" id="fin-row-${f.id}">
+            <td style="padding:10px 14px;font-size:.75rem;color:rgba(255,255,255,.4);">${dateStr}</td>
+            <td style="padding:10px 14px;font-weight:600;color:#fff;">${f.description || '—'}</td>
+            <td style="padding:10px 14px;">
+                <span style="background:${tagMeta.color.replace('0.5','0.15').replace('0.6','0.12')};border:1px solid ${tagMeta.color};border-radius:20px;padding:2px 9px;font-size:.68rem;font-weight:700;color:#fff;white-space:nowrap;">${tagMeta.icon} ${tagMeta.label}</span>
+            </td>
+            <td style="padding:10px 14px;font-size:.75rem;color:rgba(255,255,255,.45);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${evTitle}">${evTitle}</td>
+            <td style="padding:10px 14px;">
+                <span style="font-size:.72rem;font-weight:700;color:${isRec ? '#4ade80' : '#f87171'};">${isRec ? '▲ Receita' : '▼ Despesa'}</span>
+            </td>
+            <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:.88rem;color:${isRec ? '#4ade80' : '#f87171'};">${isRec ? '+' : '-'}€${Number(f.amount).toFixed(2)}</td>
+            <td style="padding:10px 14px;">
+                ${!f.event_id ? `<button onclick="deleteAvulsaLancamento('${f.id}')" style="background:none;border:none;color:rgba(248,113,113,0.5);cursor:pointer;font-size:.9rem;padding:2px 6px;" title="Excluir">🗑</button>` : ''}
+            </td>
+        </tr>`;
+    }).join('');
+};
+
+window.openAvulsaModal = function() {
+    const modal = document.getElementById('modal-avulso');
+    if (!modal) return;
+    // Set today's date as default 
+    const dateInput = document.getElementById('av-date');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    ['av-desc', 'av-notes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const amtEl = document.getElementById('av-amount'); if (amtEl) amtEl.value = '';
+    const msgEl = document.getElementById('av-msg');   if (msgEl) msgEl.textContent = '';
+    modal.style.display = 'flex';
+};
+
+window.saveAvulsoLancamento = async function() {
+    const wsId = getCrieWorkspaceId();
+    const sb   = window.supabaseClient;
+    if (!wsId || !sb) return;
+    const msgEl = document.getElementById('av-msg');
+    const type   = document.getElementById('av-type')?.value;
+    const tag    = document.getElementById('av-tag')?.value  || 'avulso';
+    const desc   = document.getElementById('av-desc')?.value.trim();
+    const amount = parseFloat(document.getElementById('av-amount')?.value);
+    const dateV  = document.getElementById('av-date')?.value;
+    const notes  = document.getElementById('av-notes')?.value.trim() || null;
+
+    if (!desc || !amount || !dateV) {
+        if (msgEl) { msgEl.style.color = '#f87171'; msgEl.textContent = 'Preencha descrição, valor e data.'; }
+        return;
+    }
+
+    const { error } = await sb.from('crie_finances').insert({
+        workspace_id: wsId,
+        type, tag, source: 'avulso',
+        description: desc,
+        amount,
+        notes,
+        created_at: new Date(dateV).toISOString(),
+        event_id: null,
+    });
+
+    if (error) {
+        if (msgEl) { msgEl.style.color = '#f87171'; msgEl.textContent = '❌ ' + error.message; }
+        return;
+    }
+
+    if (msgEl) { msgEl.style.color = '#4ade80'; msgEl.textContent = '✅ Lançamento guardado!'; }
+    setTimeout(() => {
+        document.getElementById('modal-avulso').style.display = 'none';
+        loadCrieRelatorios();
+        switchRelTab('financeiro');
+    }, 800);
+};
+
+window.deleteAvulsaLancamento = async function(id) {
+    if (!confirm('Excluir este lançamento avulso?')) return;
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('crie_finances').delete().eq('id', id);
+    if (error) { hubToast('❌ Erro ao excluir: ' + error.message, 'error'); return; }
+    hubToast('🗑️ Lançamento excluído.', 'success');
+    // Remove from cache and re-render without full reload
+    window._relFinancasAll = window._relFinancasAll.filter(f => f.id !== id);
+    renderFinanceiro();
+    loadCrieRelatorios(); // refresh KPIs too
+};
+
+// Close modal on outside click
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('modal-avulso');
+    if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+});
+
 
 // ── closeModal utility (if not already defined) ─────────────
 if (!window.closeModal) {
