@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRIE Connect — Oportunidades da Comunidade</title>
+  <meta name="description" content="Encontre ofertas de emprego, serviços e doações publicadas pela comunidade Lagoinha e CRIE. Conecte-se com segurança dentro da família da fé."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:     #FFD700;
+      --gold-dim: rgba(255,215,0,0.15);
+      --bg:       #080808;
+      --bg-card:  #111111;
+      --border:   rgba(255,255,255,0.07);
+      --text:     #f0f0f0;
+      --text-dim: rgba(255,255,255,0.4);
+      --radius:   16px;
+      --font:     'Outfit', system-ui, sans-serif;
+      --blue:     #60A5FA;
+      --blue-dim: rgba(96,165,250,0.15);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══ LOTTIE BACKGROUND ═══ */
+    #lottie-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    /* ═══ HEADER ═══ */
+    .connect-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8,8,8,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 34px; height: 34px;
+      background: var(--gold);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-icon svg { width: 16px; height: 16px; }
+    .brand-name {
+      font-size: 1rem; font-weight: 800; color: #fff;
+      line-height: 1;
+    }
+    .brand-sub { font-size: 0.65rem; color: var(--text-dim); font-weight: 500; letter-spacing: .5px; }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .btn-post {
+      background: var(--gold);
+      color: #000;
+      font-weight: 800;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: transform .15s, opacity .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-post:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background .15s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+    /* ═══ HERO ═══ */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 72px 32px 48px;
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.72rem; font-weight: 700;
+      color: var(--gold);
+      letter-spacing: .5px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--gold); }
+    .hero p {
+      font-size: 1rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ═══ FILTER BAR ═══ */
+    .filter-bar {
+      position: relative; z-index: 1;
+      max-width: 920px;
+      margin: 0 auto 40px;
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 16px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-input:focus { border-color: rgba(255,215,0,0.4); }
+    .cat-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cat-pill {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim);
+      font-family: var(--font);
+      transition: all .2s;
+    }
+    .cat-pill:hover, .cat-pill.active {
+      background: rgba(255,215,0,0.1);
+      border-color: rgba(255,215,0,0.4);
+      color: var(--gold);
+    }
+    .sort-select {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: rgba(255,255,255,0.6);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ═══ BOARD ═══ */
+    .board-wrap {
+      position: relative; z-index: 1;
+      max-width: 920px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+    .category-section { margin-bottom: 48px; }
+    .cat-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cat-icon { font-size: 1.3rem; }
+    .cat-title { font-size: 1rem; font-weight: 800; color: #fff; }
+    .cat-count {
+      margin-left: auto;
+      background: rgba(255,255,255,0.06);
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.72rem; color: var(--text-dim); font-weight: 600;
+    }
+
+    /* ═══ CARDS ═══ */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .listing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+      animation: cardIn .4s ease both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .listing-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      transition: background .2s;
+    }
+    .listing-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.14);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+
+    /* Badge variants */
+    .listing-card.badge-membro_crie {
+      border-color: rgba(255,215,0,0.3);
+      box-shadow: 0 0 0 1px rgba(255,215,0,0.08), 0 8px 30px rgba(255,215,0,0.05);
+    }
+    .listing-card.badge-membro_crie::before { background: linear-gradient(90deg, var(--gold), #f59e0b); }
+    .listing-card.badge-membro_lagoinha { border-color: rgba(96,165,250,0.25); }
+    .listing-card.badge-membro_lagoinha::before { background: var(--blue); }
+    .listing-card.pinned { order: -1; }
+    .pin-indicator {
+      position: absolute; top: 12px; right: 12px;
+      font-size: 0.65rem; font-weight: 700;
+      color: var(--gold); letter-spacing: .5px;
+      background: var(--gold-dim);
+      border-radius: 4px; padding: 2px 6px;
+    }
+
+    .card-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 0.62rem; font-weight: 700; letter-spacing:.3px;
+    }
+    .badge-crie-pill {
+      background: rgba(255,215,0,0.12);
+      border: 1px solid rgba(255,215,0,0.35);
+      color: var(--gold);
+    }
+    .badge-lagoinha-pill {
+      background: rgba(96,165,250,0.12);
+      border: 1px solid rgba(96,165,250,0.3);
+      color: var(--blue);
+    }
+    .badge-cat-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+    }
+    .card-title {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 0.83rem; color: rgba(255,255,255,0.55);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto;
+    }
+    .card-date { font-size: 0.7rem; color: var(--text-dim); }
+    .btn-contact {
+      background: var(--gold);
+      color: #000;
+      font-weight: 800;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: opacity .15s, transform .15s;
+    }
+    .btn-contact:hover { opacity: .85; transform: translateY(-1px); }
+    .share-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 0.75rem;
+      display: flex; align-items: center; gap: 4px;
+      padding: 6px 8px; border-radius: 6px;
+      transition: color .15s, background .15s;
+      font-family: var(--font);
+    }
+    .share-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+
+    /* ═══ EMPTY STATE ═══ */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-dim);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: .4; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ═══ MODALS ═══ */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(8px);
+      z-index: 900;
+      align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #111;
+      border: 1px solid rgba(255,215,0,0.18);
+      border-radius: 20px;
+      width: 100%; max-width: 480px;
+      max-height: 92vh;
+      overflow-y: auto;
+      animation: modalIn .3s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform:scale(.94) translateY(20px); }
+      to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .modal-header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .modal-title { font-size: 1rem; font-weight: 800; color: #fff; flex: 1; }
+    .modal-close {
+      background: none; border: none; color: var(--text-dim);
+      font-size: 1.2rem; cursor: pointer; line-height: 1; padding: 4px; border-radius: 6px;
+      transition: color .15s;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label {
+      font-size: 0.7rem; color: var(--text-dim);
+      font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .form-input, .form-textarea, .form-select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: rgba(255,215,0,0.45); }
+    .form-textarea { resize: vertical; min-height: 90px; }
+    .phone-row { display: flex; gap: 8px; }
+    .country-select {
+      width: 110px; flex-shrink: 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 8px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .country-select:focus { border-color: rgba(255,215,0,0.45); }
+    .disclaimer-box {
+      background: rgba(255,215,0,0.04);
+      border: 1px solid rgba(255,215,0,0.15);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.6;
+    }
+    .guidelines-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.7;
+    }
+    .guidelines-box ol { padding-left: 16px; }
+    .guidelines-box li { margin-bottom: 4px; }
+    .checkbox-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.5;
+    }
+    .checkbox-row input[type=checkbox] { margin-top: 2px; accent-color: var(--gold); flex-shrink: 0; }
+    .btn-submit {
+      background: var(--gold); color: #000;
+      font-weight: 800; font-family: var(--font);
+      font-size: 0.9rem; border: none; border-radius: 11px;
+      padding: 13px; cursor: pointer;
+      transition: opacity .15s, transform .15s;
+      width: 100%;
+    }
+    .btn-submit:hover { opacity: .88; }
+    .btn-submit:disabled { opacity: .4; cursor: not-allowed; }
+    .form-msg { font-size: 0.8rem; text-align: center; min-height: 18px; }
+    .success-msg { color: #34D399; }
+    .error-msg { color: #f87171; }
+
+    /* ═══ TOAST ═══ */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1a1a1a; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 12px 20px;
+      font-size: 0.85rem; font-weight: 600; color: #fff;
+      z-index: 9999; display: none;
+      animation: slideUp .3s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
+
+    /* ═══ FOOTER ═══ */
+    .connect-footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 40px 32px 32px;
+      max-width: 920px; margin: 0 auto;
+    }
+    .footer-disclaimer {
+      font-size: 0.76rem;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.8;
+      text-align: center;
+    }
+    .footer-disclaimer strong { color: rgba(255,255,255,0.4); }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 600px) {
+      .connect-header { padding: 12px 16px; }
+      .hero { padding: 48px 16px 32px; }
+      .filter-bar, .board-wrap { padding: 0 16px; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .btn-post .btn-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Lottie Background -->
+<div id="lottie-bg"></div>
+
+<!-- Header -->
+<header class="connect-header">
+  <a class="header-brand" href="#">
+    <div class="brand-icon">
+      <svg viewBox="0 0 18 18" fill="none"><path d="M4 4 h10 l-10 10 h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">CRIE <span style="color:var(--gold);">Connect</span></div>
+      <div class="brand-sub">Lagoinha Church</div>
+    </div>
+  </a>
+  <div class="header-actions">
+    <button class="btn-ghost" onclick="document.getElementById('modal-post').classList.add('open')">📋 Publicar Oferta</button>
+    <button class="btn-post" onclick="document.getElementById('modal-post').classList.add('open')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span class="btn-label">Nova Oferta</span>
+    </button>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">✦ Comunidade &amp; Oportunidades</div>
+  <h1>Conecte-se com a<br/><span>família da fé</span></h1>
+  <p>Ofertas de emprego, serviços e doações compartilhadas por membros da Lagoinha e do CRIE. Intenção de fé, conexão real.</p>
+</section>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <input class="search-input" id="search-input" type="search" placeholder="🔍 Buscar oportunidades..."/>
+  <div class="cat-pills">
+    <button class="cat-pill active" data-cat="all" onclick="setCatFilter('all',this)">Todas</button>
+    <button class="cat-pill" data-cat="emprego" onclick="setCatFilter('emprego',this)">💼 Emprego</button>
+    <button class="cat-pill" data-cat="servico" onclick="setCatFilter('servico',this)">🔧 Serviços</button>
+    <button class="cat-pill" data-cat="doacao" onclick="setCatFilter('doacao',this)">🎁 Doação</button>
+  </div>
+  <select class="sort-select" id="sort-select">
+    <option value="recent">Mais recentes</option>
+    <option value="pinned">Destaque</option>
+  </select>
+</div>
+
+<!-- Board -->
+<div class="board-wrap" id="board-wrap">
+  <div class="empty-state"><div class="icon">⏳</div><p>Carregando oportunidades...</p></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ MODAL: Fazer Contato ═══ -->
+<div class="modal-overlay" id="modal-contact">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="contact-modal-title">✉️ Fazer Contato</div>
+      <button class="modal-close" onclick="closeContactModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Seu Nome</label>
+        <input class="form-input" id="c-name" type="text" placeholder="Nome completo"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone / WhatsApp</label>
+        <div class="phone-row">
+          <select class="country-select" id="c-country"></select>
+          <input class="form-input" id="c-phone" type="tel" placeholder="00 00000-0000"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seu Email</label>
+        <input class="form-input" id="c-email" type="email" placeholder="email@exemplo.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mensagem</label>
+        <textarea class="form-textarea" id="c-message" placeholder="Apresente-se e descreva seu interesse..."></textarea>
+      </div>
+      <div class="disclaimer-box">
+        ⚠️ Ao enviar, você concorda que suas informações (nome, telefone e email) serão compartilhadas com o anunciante. A Lagoinha e o CRIE não se responsabilizam pelo resultado desta conexão. Use sua própria diligência.
+      </div>
+      <div class="form-msg" id="contact-msg"></div>
+      <button class="btn-submit" id="btn-send-contact" onclick="sendContact()">Enviar Mensagem</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Publicar Oferta ═══ -->
+<div class="modal-overlay" id="modal-post">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">📋 Publicar Oferta</div>
+      <button class="modal-close" onclick="closePostModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="guidelines-box">
+        <strong style="color:rgba(255,255,255,.6);font-size:0.78rem;">📌 Diretrizes</strong>
+        <ol style="margin-top:8px;">
+          <li>Publicações devem ser de cunho estritamente profissional.</li>
+          <li>Não são permitidas ofertas de produtos para venda.</li>
+          <li>Conteúdo inapropriado ou enganoso resultará em remoção imediata.</li>
+          <li>A Lagoinha e o CRIE se reservam ao direito de não aprovar sem justificativa.</li>
+          <li>Sua oferta será revisada antes de ficar visível ao público.</li>
+        </ol>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Título da Oferta</label>
+        <input class="form-input" id="p-title" type="text" placeholder="Ex: Desenvolvedor Frontend — PJ"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" id="p-category">
+          <option value="">Selecione...</option>
+          <option value="emprego">💼 Oferta de Emprego</option>
+          <option value="servico">🔧 Oferta de Serviços</option>
+          <option value="doacao">🎁 Doação</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição completa</label>
+        <textarea class="form-textarea" id="p-desc" placeholder="Descreva a oportunidade com detalhes: requisitos, benefícios, localização, etc." style="min-height:120px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seu Nome (exibido internamente)</label>
+        <input class="form-input" id="p-name" type="text" placeholder="Nome completo"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Seu Email (para receber os contatos)</label>
+        <input class="form-input" id="p-email" type="email" placeholder="email@exemplo.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone (opcional, visível só internamente)</label>
+        <div class="phone-row">
+          <select class="country-select" id="p-country"></select>
+          <input class="form-input" id="p-phone" type="tel" placeholder="Opcional"/>
+        </div>
+      </div>
+      <div class="disclaimer-box" style="font-size:0.73rem;">
+        🛡️ <strong style="color:rgba(255,255,255,.5);">Isenção de Responsabilidade:</strong> O Ministério Lagoinha e o CRIE atuam exclusivamente como plataforma de conexão. Todas as publicações passam por moderação, porém não garantimos, endossamos nem nos responsabilizamos por quaisquer relações profissionais ou comerciais estabelecidas através deste espaço. Cabe a cada parte realizar sua própria diligência antes de qualquer acordo. Ao submeter, você reconhece e aceita estes termos.
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="p-terms"/>
+        <label for="p-terms">Li e aceito as diretrizes e a isenção de responsabilidade acima.</label>
+      </div>
+      <div class="form-msg" id="post-msg"></div>
+      <button class="btn-submit" id="btn-submit-post" onclick="submitListing()">Enviar para Revisão</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="connect-footer">
+  <div class="footer-disclaimer">
+    <strong>Isenção de Responsabilidade:</strong> O Ministério Lagoinha e o CRIE atuam exclusivamente como plataforma de conexão entre pessoas da comunidade. Todas as publicações passam por moderação de conteúdo, porém a Lagoinha e o CRIE não garantem, endossam nem se responsabilizam pela qualidade dos serviços, veracidade das informações, ou resultados de quaisquer relações profissionais ou comerciais estabelecidas através deste espaço. Cabe a cada parte envolvida realizar sua própria diligência antes de estabelecer qualquer acordo, contratação ou parceria. Ao fazer contato através desta plataforma, o usuário reconhece e aceita estes termos.<br/><br/>
+    © 2026 Lagoinha Church · Powered by <strong>Zelo Pro</strong>
+  </div>
+</footer>
+
+<script>
+// ═══ SUPABASE INIT ═══
+const _SUPA_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+const _SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+const _supa      = supabase.createClient(_SUPA_URL, _SUPA_KEY);
+const _EDGE_BASE = `${_SUPA_URL}/functions/v1`;
+
+// ═══ STATE ═══
+let allListings = [];
+let activeCat   = 'all';
+let currentListingId = null;
+
+const CATEGORY_META = {
+  emprego: { label: 'Oferta de Emprego', icon: '💼' },
+  servico: { label: 'Oferta de Serviços', icon: '🔧' },
+  doacao:  { label: 'Doação', icon: '🎁' },
+};
+
+// ═══ COUNTRY CODES ═══
+const COUNTRIES = [
+  {code:'+55',flag:'🇧🇷',name:'BR'},{code:'+1',flag:'🇺🇸',name:'US'},
+  {code:'+351',flag:'🇵🇹',name:'PT'},{code:'+44',flag:'🇬🇧',name:'GB'},
+  {code:'+34',flag:'🇪🇸',name:'ES'},{code:'+49',flag:'🇩🇪',name:'DE'},
+  {code:'+33',flag:'🇫🇷',name:'FR'},{code:'+39',flag:'🇮🇹',name:'IT'},
+  {code:'+54',flag:'🇦🇷',name:'AR'},{code:'+56',flag:'🇨🇱',name:'CL'},
+  {code:'+57',flag:'🇨🇴',name:'CO'},{code:'+52',flag:'🇲🇽',name:'MX'},
+  {code:'+81',flag:'🇯🇵',name:'JP'},{code:'+86',flag:'🇨🇳',name:'CN'},
+  {code:'+91',flag:'🇮🇳',name:'IN'},{code:'+61',flag:'🇦🇺',name:'AU'},
+  {code:'+64',flag:'🇳🇿',name:'NZ'},{code:'+27',flag:'🇿🇦',name:'ZA'},
+];
+
+function populateCountrySelect(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = COUNTRIES.map(c =>
+    `<option value="${c.code}">${c.flag} ${c.code}</option>`
+  ).join('');
+}
+
+// ═══ LOTTIE ═══
+function initLottie() {
+  try {
+    lottie.loadAnimation({
+      container: document.getElementById('lottie-bg'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'https://assets5.lottiefiles.com/packages/lf20_qp1q7mct.json'
+    });
+  } catch(e) { /* silent fail */ }
+}
+
+// ═══ LOAD LISTINGS ═══
+async function loadListings() {
+  const { data, error } = await _supa
+    .from('connect_listings')
+    .select('*')
+    .eq('status', 'active')
+    .order('pinned', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('loadListings error:', error);
+    document.getElementById('board-wrap').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar. Tente novamente.</p></div>';
+    return;
+  }
+  allListings = data || [];
+  renderBoard();
+}
+
+// ═══ RENDER ═══
+function renderBoard() {
+  const query  = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const sort   = document.getElementById('sort-select')?.value || 'recent';
+  const wrap   = document.getElementById('board-wrap');
+
+  let items = allListings.filter(l => {
+    const matchCat  = activeCat === 'all' || l.category === activeCat;
+    const matchSearch = !query || l.title.toLowerCase().includes(query) || l.description.toLowerCase().includes(query);
+    return matchCat && matchSearch;
+  });
+
+  if (sort === 'pinned') items.sort((a,b) => (b.pinned - a.pinned));
+
+  if (!items.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Nenhuma oferta encontrada. Tente outro filtro ou <button class="btn-ghost" style="display:inline;padding:4px 10px;" onclick="document.getElementById(\'modal-post\').classList.add(\'open\')">publique a sua</button>.</p></div>';
+    return;
+  }
+
+  // Group by category
+  const groups = {};
+  items.forEach(l => {
+    if (!groups[l.category]) groups[l.category] = [];
+    groups[l.category].push(l);
+  });
+
+  const orderCats = activeCat !== 'all'
+    ? [activeCat]
+    : ['emprego','servico','doacao'].filter(c => groups[c]);
+
+  wrap.innerHTML = orderCats.map(cat => {
+    const meta  = CATEGORY_META[cat] || { label: cat, icon: '📌' };
+    const cards = (groups[cat] || []).map(renderCard).join('');
+    return `
+      <div class="category-section">
+        <div class="cat-header">
+          <span class="cat-icon">${meta.icon}</span>
+          <span class="cat-title">${meta.label}</span>
+          <span class="cat-count">${groups[cat].length}</span>
+        </div>
+        <div class="cards-grid">${cards}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderCard(l) {
+  const badgeClass  = l.badge_type !== 'none' ? `badge-${l.badge_type}` : '';
+  const pinnedMark  = l.pinned ? '<span class="pin-indicator">⭐ DESTAQUE</span>' : '';
+  const badgePills  = l.badge_type === 'membro_crie'
+    ? '<span class="badge badge-crie-pill">⭐ Membro CRIE</span>'
+    : l.badge_type === 'membro_lagoinha'
+    ? '<span class="badge badge-lagoinha-pill">🔵 Membro Lagoinha</span>'
+    : '';
+  const catMeta     = CATEGORY_META[l.category] || { icon: '📌', label: l.category };
+  const catPill     = `<span class="badge badge-cat-pill">${catMeta.icon} ${catMeta.label}</span>`;
+  const timeAgo     = relativeTime(l.created_at);
+
+  return `
+    <div class="listing-card ${badgeClass} ${l.pinned ? 'pinned' : ''}" id="card-${l.id}">
+      ${pinnedMark}
+      <div class="card-badges">${badgePills}${catPill}</div>
+      <div class="card-title">${escapeHtml(l.title)}</div>
+      <div class="card-desc">${escapeHtml(l.description)}</div>
+      <div class="card-footer">
+        <span class="card-date">🕐 ${timeAgo}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="share-btn" onclick="shareCard('${l.id}','${escapeHtml(l.title).replace(/'/g,"\\'")}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Compartilhar
+          </button>
+          <button class="btn-contact" onclick="openContactModal('${l.id}','${escapeHtml(l.title).replace(/'/g,"\\'")}')">Fazer Contato</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function relativeTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)   return 'agora há pouco';
+  if (mins < 60)  return `há ${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)   return `há ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `há ${days} dia${days>1?'s':''}`;
+}
+
+function escapeHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══ FILTERS ═══
+function setCatFilter(cat, btn) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderBoard();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('search-input').addEventListener('input', renderBoard);
+  document.getElementById('sort-select').addEventListener('change', renderBoard);
+});
+
+// ═══ SHARE ═══
+function shareCard(id, title) {
+  const url = `${location.origin}${location.pathname}#${id}`;
+  if (navigator.share) {
+    navigator.share({ title: `CRIE Connect: ${title}`, url }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast('🔗 Link copiado!'));
+  }
+}
+
+// ═══ CONTACT MODAL ═══
+function openContactModal(listingId, title) {
+  currentListingId = listingId;
+  document.getElementById('contact-modal-title').textContent = `✉️ Contato: ${title}`;
+  document.getElementById('contact-msg').textContent = '';
+  ['c-name','c-phone','c-email','c-message'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('modal-contact').classList.add('open');
+}
+
+function closeContactModal() {
+  document.getElementById('modal-contact').classList.remove('open');
+  currentListingId = null;
+}
+
+async function sendContact() {
+  const name    = document.getElementById('c-name').value.trim();
+  const country = document.getElementById('c-country').value;
+  const phone   = document.getElementById('c-phone').value.trim();
+  const email   = document.getElementById('c-email').value.trim();
+  const message = document.getElementById('c-message').value.trim();
+  const msgEl   = document.getElementById('contact-msg');
+
+  if (!name || !phone || !email || !message) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = 'Preencha todos os campos.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-send-contact');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  msgEl.textContent = '';
+
+  try {
+    const res = await fetch(`${_EDGE_BASE}/connect-sendcontact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        listing_id: currentListingId,
+        sender_name: name,
+        sender_phone: `${country} ${phone}`,
+        sender_email: email,
+        message,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.className = 'form-msg success-msg';
+      msgEl.textContent = '✅ Mensagem enviada! Aguarde o contato do anunciante.';
+      btn.textContent = 'Enviado ✓';
+      setTimeout(closeContactModal, 2500);
+    } else {
+      throw new Error(data.error || 'Falha no envio');
+    }
+  } catch(e) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = `❌ Erro: ${e.message}`;
+    btn.disabled = false; btn.textContent = 'Enviar Mensagem';
+  }
+}
+
+// ═══ POST LISTING MODAL ═══
+function closePostModal() {
+  document.getElementById('modal-post').classList.remove('open');
+}
+
+async function submitListing() {
+  const title   = document.getElementById('p-title').value.trim();
+  const cat     = document.getElementById('p-category').value;
+  const desc    = document.getElementById('p-desc').value.trim();
+  const name    = document.getElementById('p-name').value.trim();
+  const email   = document.getElementById('p-email').value.trim();
+  const country = document.getElementById('p-country').value;
+  const phone   = document.getElementById('p-phone').value.trim();
+  const terms   = document.getElementById('p-terms').checked;
+  const msgEl   = document.getElementById('post-msg');
+
+  if (!title || !cat || !desc || !name || !email) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = 'Preencha todos os campos obrigatórios.';
+    return;
+  }
+  if (!terms) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = 'Você precisa aceitar os termos para continuar.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-post');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  // Determine workspace from URL param or first active
+  const urlParams = new URLSearchParams(location.search);
+  const wsSlug    = urlParams.get('ws');
+
+  let workspaceId = null;
+  if (wsSlug) {
+    const { data: ws } = await _supa.from('workspaces').select('id').eq('slug', wsSlug).single();
+    if (ws) workspaceId = ws.id;
+  }
+  if (!workspaceId) {
+    const { data: ws } = await _supa.from('workspaces').select('id').eq('status','active').limit(1).single();
+    if (ws) workspaceId = ws.id;
+  }
+
+  if (!workspaceId) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = 'Erro: workspace não encontrado.';
+    btn.disabled = false; btn.textContent = 'Enviar para Revisão';
+    return;
+  }
+
+  const { data: listing, error } = await _supa.from('connect_listings').insert({
+    workspace_id: workspaceId,
+    title, description: desc, category: cat,
+    contact_name: name, contact_email: email,
+    contact_phone: phone ? `${country} ${phone}` : null,
+    status: 'pending',
+    terms_accepted: true,
+  }).select('id').single();
+
+  if (error) {
+    msgEl.className = 'form-msg error-msg';
+    msgEl.textContent = `❌ Erro ao enviar: ${error.message}`;
+    btn.disabled = false; btn.textContent = 'Enviar para Revisão';
+    return;
+  }
+
+  // Trigger reviewer notification
+  try {
+    await fetch(`${_EDGE_BASE}/connect-notify-reviewers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listing_id: listing.id }),
+    });
+  } catch(e) { /* silent */ }
+
+  msgEl.className = 'form-msg success-msg';
+  msgEl.textContent = '✅ Oferta enviada! Será revisada em breve.';
+  btn.textContent = 'Enviado ✓';
+  setTimeout(closePostModal, 2800);
+}
+
+// ═══ TOAST ═══
+function showToast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', duration);
+}
+
+// ═══ HASH DEEP LINK ═══
+function scrollToHash() {
+  const id = location.hash.slice(1);
+  if (!id) return;
+  setTimeout(() => {
+    const el = document.getElementById(`card-${id}`);
+    if (el) { el.scrollIntoView({ behavior:'smooth', block:'center' }); el.style.outline = '2px solid var(--gold)'; }
+  }, 600);
+}
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', () => {
+  populateCountrySelect('c-country');
+  populateCountrySelect('p-country');
+  initLottie();
+  loadListings().then(scrollToHash);
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(el =>
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); })
+  );
+});
+</script>
+</body>
+</html>
