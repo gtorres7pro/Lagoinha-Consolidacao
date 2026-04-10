@@ -5272,7 +5272,9 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-capacity').value = ev.capacity || '';
     document.getElementById('dedit-location').value = ev.location || '';
     document.getElementById('dedit-price').value    = ev.price ?? '';
-    document.getElementById('dedit-currency').value = ev.currency || '€';
+    // Normalize legacy symbol values to codes for the select
+    const currToCode = { '€':'EUR', 'R$':'BRL', '$':'USD', '£':'GBP', 'EUR':'EUR', 'BRL':'BRL', 'USD':'USD', 'GBP':'GBP' };
+    document.getElementById('dedit-currency').value = currToCode[ev.currency] || 'EUR';
     document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
 
     // Populate banner preview if event already has one
@@ -5355,7 +5357,7 @@ async function saveEventoDrawer() {
         capacity:    parseInt(document.getElementById('dedit-capacity').value) || 0,
         location:    document.getElementById('dedit-location').value.trim(),
         price:       parseFloat(document.getElementById('dedit-price').value) || 0,
-        currency:    document.getElementById('dedit-currency').value || '€',
+        currency:    document.getElementById('dedit-currency').value || 'EUR',
         status:      document.getElementById('dedit-status').value,
         banner_url:  existingBannerUrl,  // preserve existing; overwritten below if new file uploaded
     };
