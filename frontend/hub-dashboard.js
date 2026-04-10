@@ -5344,6 +5344,8 @@ async function saveEventoDrawer() {
     const btn = document.getElementById('drawer-save-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'A guardar…'; }
 
+    // Preserve existing banner_url from the stored event data (avoid clearing it on save)
+    const existingBannerUrl = window._drawerEventoData?.banner_url || null;
     const payload = {
         title:       document.getElementById('dedit-title').value.trim(),
         description: document.getElementById('dedit-desc').value.trim() || null,
@@ -5353,6 +5355,7 @@ async function saveEventoDrawer() {
         price:       parseFloat(document.getElementById('dedit-price').value) || 0,
         currency:    document.getElementById('dedit-currency').value || '€',
         status:      document.getElementById('dedit-status').value,
+        banner_url:  existingBannerUrl,  // preserve existing; overwritten below if new file uploaded
     };
 
     // Upload new banner if one was selected in the drawer
