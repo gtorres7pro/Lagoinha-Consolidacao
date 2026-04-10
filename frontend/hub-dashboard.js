@@ -651,6 +651,8 @@
             // Legacy regional/global — now handled by new patch; kept for safety
             if (tabName === 'regional' && window.loadRegionalView) window.loadRegionalView();
             if (tabName === 'global'   && window.loadGlobalView)   window.loadGlobalView();
+            // CRIE Connect module
+            if (tabName === 'crie-connect' && window.loadCrieConnect) window.loadCrieConnect();
         }
 
         // ─── Sidebar visibility based on user level ──────────────────────
@@ -5553,17 +5555,18 @@ async function fecharEvento() {
     const totalRec  = recInsc + manRec;
     const saldo     = totalRec - manDesp;
 
-    // Check recurring attendees (attendees in >1 CRIE event)
-    const phones = attendees.map(a => a.phone).filter(Boolean);
+    // Check recurring attendees (must be Present in THIS event, and Present in a PREVIOUS event)
+    const presentesPhones = attendees.filter(a => a.presence_status === 'Presente').map(a => a.phone).filter(Boolean);
     let recorrentes = 0;
-    if (phones.length) {
+    if (presentesPhones.length) {
         const { data: prevAtt } = await sb.from('crie_attendees')
-            .select('phone, event_id')
-            .in('phone', phones)
+            .select('phone, event_id, presence_status')
+            .in('phone', presentesPhones)
             .eq('workspace_id', wsId)
+            .eq('presence_status', 'Presente')
             .neq('event_id', id);
         const prevPhones = new Set((prevAtt || []).map(a => a.phone));
-        recorrentes = attendees.filter(a => prevPhones.has(a.phone)).length;
+        recorrentes = attendees.filter(a => a.presence_status === 'Presente' && prevPhones.has(a.phone)).length;
     }
 
     // 2. Generate elegant HTML report
@@ -5618,16 +5621,6 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
 <div class="footer">Gerado automaticamente pelo Zelo Pro &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
 </body></html>`;
 
-    // 3. Download report as HTML file (avoids popup blockers)
-    const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `relatorio-crie-${(ev.title || 'evento').replace(/[^a-z0-9]/gi,'_').toLowerCase()}.html`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
-    hubToast('Relatório gerado e descarregado! 📊', 'success');
 
     // 4. Send report automatically via Edge Function
     if (email) {
@@ -10526,5 +10519,359 @@ async function sendMilaMessage() {
         launchConfetti();
         alert('🎉 Download concluído! ' + leads.length + ' registro(s) exportados.');
     };
+
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CRIE CONNECT MODULE
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+    const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const EDGE_BASE     = `${SUPABASE_URL}/functions/v1`;
+    const CAT_META = {
+        emprego: { label: 'Oferta de Emprego', icon: '💼' },
+        servico: { label: 'Oferta de Serviços', icon: '🔧' },
+        doacao:  { label: 'Doação', icon: '🎁' },
+    };
+    const BADGE_META = {
+        membro_crie:     { label: '⭐ Membro CRIE',     color: '#FFD700' },
+        membro_lagoinha: { label: '🔵 Membro Lagoinha', color: '#60A5FA' },
+        none: null,
+    };
+
+    function sb()  { return window.supabaseClient; }
+    function wsId(){ return window.currentWorkspaceId; }
+
+    function relTime(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        const m = Math.floor(diff / 60000);
+        if (m < 1)  return 'agora';
+        if (m < 60) return `há ${m}min`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `há ${h}h`;
+        const d = Math.floor(h / 24);
+        return `há ${d} dia${d>1?'s':''}`;
+    }
+    function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+    function updatePendingBadge(count) {
+        const b = document.getElementById('connect-pending-badge');
+        if (!b) return;
+        b.textContent = count;
+        b.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+
+    function buildDashCard(l) {
+        const cat   = CAT_META[l.category] || { label: l.category, icon: '📌' };
+        const badge = BADGE_META[l.badge_type];
+        const expiry = l.expires_at ? new Date(l.expires_at).toLocaleDateString('pt-BR') : '—';
+        const isPast = l.expires_at && new Date(l.expires_at) < new Date();
+
+        const badgePill = badge
+            ? `<span style="display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:2px 9px;font-size:0.65rem;font-weight:700;background:${badge.color}18;border:1px solid ${badge.color}44;color:${badge.color};">${badge.label}</span>`
+            : '';
+        const rejectedPill = l.status === 'rejected'
+            ? `<span style="display:inline-flex;align-items:center;border-radius:20px;padding:2px 9px;font-size:0.65rem;font-weight:700;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.35);color:#f87171;">Recusado</span>`
+            : '';
+        const pinnedDot = l.pinned ? `<span style="color:#FFD700;font-size:0.7rem;">⭐ Destaque</span>` : '';
+        const expiryTag = l.expires_at
+            ? `<span style="font-size:0.7rem;color:${isPast?'#f87171':'rgba(255,255,255,0.3)'};">📅 ${isPast?'Expirado em':'Expira em'}: ${expiry}</span>`
+            : '';
+
+        let actions = '';
+        if (l.status === 'pending') {
+            actions = `
+                <button onclick="connectApproveListing('${l.id}')" style="background:rgba(52,211,153,0.12);color:#34D399;border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✔ Aprovar</button>
+                <button onclick="connectRejectListing('${l.id}')" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">✖ Recusar</button>`;
+        } else if (l.status === 'active') {
+            const pinLabel = l.pinned ? '📌 Desafixar' : '📌 Fixar';
+            actions = `
+                <button onclick="connectTogglePin('${l.id}', ${!l.pinned})" style="background:rgba(255,215,0,0.08);color:#FFD700;border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">${pinLabel}</button>
+                <button onclick="connectArchiveListing('${l.id}')" style="background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">Arquivar</button>
+                <button onclick="connectToggleLogs('${l.id}')" id="logs-toggle-${l.id}" style="background:rgba(167,139,250,0.08);color:#A78BFA;border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">📋 Ver Contatos (${l.contact_count||0})</button>`;
+        } else {
+            actions = `
+                <button onclick="connectReactivateListing('${l.id}')" style="background:rgba(52,211,153,0.1);color:#34D399;border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">🔄 Reativar</button>
+                <button onclick="connectDeleteListing('${l.id}')" style="background:rgba(248,113,113,0.08);color:#f87171;border:1px solid rgba(248,113,113,0.2);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;">🗑 Excluir</button>`;
+        }
+
+        return `
+        <div id="connect-card-${l.id}" style="background:#111;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px 18px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:200px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);">${cat.icon} ${cat.label}</span>
+                        ${badgePill}${rejectedPill}${pinnedDot}
+                    </div>
+                    <div style="font-size:0.95rem;font-weight:700;color:#fff;margin-bottom:4px;">${esc(l.title)}</div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.45);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(l.description)}</div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.3);">👤 ${esc(l.contact_name)}</span>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.3);">✉️ ${esc(l.contact_email)}</span>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.3);">🕐 ${relTime(l.created_at)}</span>
+                        ${expiryTag}
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${actions}</div>
+            </div>
+            <div id="logs-panel-${l.id}" style="display:none;margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+                <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.3);margin-bottom:10px;">Contatos recebidos</div>
+                <div id="logs-list-${l.id}" style="font-size:0.8rem;color:rgba(255,255,255,0.4);">Carregando...</div>
+            </div>
+        </div>`;
+    }
+
+    window.loadCrieConnect = async function() {
+        const client = sb();
+        const workspace = wsId();
+        if (!client || !workspace) return;
+
+        ['connect-pending-list','connect-active-list','connect-archived-list'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '<div style="color:rgba(255,255,255,0.25);font-size:0.8rem;padding:20px;text-align:center;">Carregando...</div>';
+        });
+
+        const { data, error } = await client
+            .from('connect_listings')
+            .select('*')
+            .eq('workspace_id', workspace)
+            .order('pinned', { ascending: false })
+            .order('created_at', { ascending: false });
+
+        if (error) { console.error('[Connect]', error); return; }
+
+        const pending  = (data||[]).filter(l => l.status === 'pending');
+        const active   = (data||[]).filter(l => l.status === 'active');
+        const archived = (data||[]).filter(l => l.status === 'archived' || l.status === 'rejected');
+
+        setText('connect-kpi-active',   active.length);
+        setText('connect-kpi-pending',  pending.length);
+        setText('connect-kpi-archived', archived.length);
+        setText('connect-kpi-contacts', (data||[]).reduce((a,l) => a + (l.contact_count||0), 0));
+        setText('connect-pending-count',  pending.length);
+        setText('connect-active-count',   active.length);
+        setText('connect-archived-count', archived.length);
+        updatePendingBadge(pending.length);
+
+        const render = (listId, items, emptyMsg) => {
+            const el = document.getElementById(listId);
+            if (!el) return;
+            el.innerHTML = items.length
+                ? items.map(buildDashCard).join('')
+                : `<div style="color:rgba(255,255,255,0.2);font-size:0.82rem;padding:24px;text-align:center;">${emptyMsg}</div>`;
+        };
+        render('connect-pending-list',  pending,  'Nenhuma oferta pendente.');
+        render('connect-active-list',   active,   'Nenhuma oferta ativa ainda.');
+        render('connect-archived-list', archived, 'Nenhum item arquivado.');
+    };
+
+    window.connectApproveListing = async function(id) {
+        const client = sb();
+        const { data: { user } } = await client.auth.getUser();
+        const expiresAt = new Date(Date.now() + (await getExpiryDays()) * 86400000).toISOString();
+        const { error } = await client.from('connect_listings').update({
+            status: 'active',
+            approved_at: new Date().toISOString(),
+            approved_by: user.id,
+            expires_at: expiresAt,
+        }).eq('id', id);
+        if (error) { window.showToast('❌ Erro ao aprovar'); return; }
+        window.showToast('✅ Oferta aprovada!');
+        window.loadCrieConnect();
+    };
+
+    window.connectRejectListing = async function(id) {
+        const reason = prompt('Motivo da recusa (opcional):');
+        const { error } = await sb().from('connect_listings').update({
+            status: 'rejected',
+            rejection_reason: reason || null,
+        }).eq('id', id);
+        if (error) { window.showToast('❌ Erro ao recusar'); return; }
+        window.showToast('🚫 Oferta recusada e arquivada.');
+        window.loadCrieConnect();
+    };
+
+    window.connectArchiveListing = async function(id) {
+        if (!confirm('Arquivar esta oferta?')) return;
+        const { error } = await sb().from('connect_listings').update({ status: 'archived' }).eq('id', id);
+        if (error) { window.showToast('❌ Erro ao arquivar'); return; }
+        window.showToast('🗂️ Oferta arquivada.');
+        window.loadCrieConnect();
+    };
+
+    window.connectReactivateListing = async function(id) {
+        const expiresAt = new Date(Date.now() + (await getExpiryDays()) * 86400000).toISOString();
+        const { error } = await sb().from('connect_listings').update({
+            status: 'active', rejection_reason: null, expires_at: expiresAt,
+        }).eq('id', id);
+        if (error) { window.showToast('❌ Erro ao reativar'); return; }
+        window.showToast('✅ Oferta reativada!');
+        window.loadCrieConnect();
+    };
+
+    window.connectDeleteListing = async function(id) {
+        if (!confirm('Excluir permanentemente esta oferta?')) return;
+        const { error } = await sb().from('connect_listings').delete().eq('id', id);
+        if (error) { window.showToast('❌ Erro ao excluir'); return; }
+        window.showToast('🗑️ Oferta excluída.');
+        window.loadCrieConnect();
+    };
+
+    window.connectTogglePin = async function(id, pinned) {
+        const { error } = await sb().from('connect_listings').update({ pinned }).eq('id', id);
+        if (error) { window.showToast('❌ Erro ao alterar destaque'); return; }
+        window.showToast(pinned ? '⭐ Oferta destacada!' : '📌 Destaque removido.');
+        window.loadCrieConnect();
+    };
+
+    window.connectToggleLogs = async function(listingId) {
+        const panel = document.getElementById(`logs-panel-${listingId}`);
+        if (!panel) return;
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : 'block';
+        const btn = document.getElementById(`logs-toggle-${listingId}`);
+        if (btn) btn.textContent = isOpen ? '📋 Ver Contatos' : '📄 Fechar Contatos';
+        if (!isOpen) {
+            const listEl = document.getElementById(`logs-list-${listingId}`);
+            if (listEl) listEl.innerHTML = 'Carregando...';
+            const { data, error } = await sb().from('connect_contacts')
+                .select('*').eq('listing_id', listingId).order('created_at', { ascending: false });
+            if (!listEl) return;
+            if (error || !data || !data.length) {
+                listEl.innerHTML = '<span style="color:rgba(255,255,255,0.25);">Nenhum contato recebido ainda.</span>';
+                return;
+            }
+            listEl.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+                <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">Nome</th>
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">Telefone</th>
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">Email</th>
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">Mensagem</th>
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">Data</th>
+                    <th style="padding:6px 10px;text-align:left;color:rgba(255,255,255,0.3);font-weight:600;">📧</th>
+                </tr></thead>
+                <tbody>${data.map(c => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <td style="padding:6px 10px;color:rgba(255,255,255,0.7);">${esc(c.sender_name)}</td>
+                    <td style="padding:6px 10px;color:rgba(255,255,255,0.55);">${esc(c.sender_phone)}</td>
+                    <td style="padding:6px 10px;color:rgba(255,255,255,0.55);">${esc(c.sender_email)}</td>
+                    <td style="padding:6px 10px;color:rgba(255,255,255,0.5);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(c.message)}">${esc(c.message)}</td>
+                    <td style="padding:6px 10px;color:rgba(255,255,255,0.3);">${new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
+                    <td style="padding:6px 10px;">${c.email_sent ? '✅' : '❌'}</td>
+                </tr>`).join('')}</tbody></table></div>`;
+        }
+    };
+
+    window.openConnectSettings = async function() {
+        const modal = document.getElementById('modal-connect-settings');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        const linkInput = document.getElementById('connect-public-link');
+        if (linkInput) {
+            const slug = getWsSlug();
+            linkInput.value = `${window.location.origin}/connect.html${slug ? '?ws='+slug : ''}`;
+        }
+        const { data: ws } = await sb().from('workspaces').select('connect_settings').eq('id', wsId()).single();
+        const settings = ws?.connect_settings || {};
+        const pubCheck = document.getElementById('connect-setting-public');
+        if (pubCheck) pubCheck.checked = settings.public_enabled !== false;
+        const expiryInput = document.getElementById('connect-setting-expiry');
+        if (expiryInput) expiryInput.value = settings.expiry_days || 14;
+
+        const { data: users } = await sb().from('users').select('id, name, email').eq('workspace_id', wsId());
+        const notifyList = document.getElementById('connect-notify-users-list');
+        if (notifyList && users) {
+            const notifyIds = settings.notify_user_ids || [];
+            notifyList.innerHTML = users.map(u => `
+                <label style="display:flex;align-items:center;gap:10px;padding:6px;border-radius:8px;cursor:pointer;">
+                    <input type="checkbox" value="${u.id}" style="accent-color:#FFD700;" ${notifyIds.includes(u.id) ? 'checked' : ''}/>
+                    <span style="font-size:0.82rem;color:rgba(255,255,255,0.6);">${esc(u.name||u.email)}</span>
+                </label>`).join('');
+        }
+    };
+
+    window.saveConnectSettings = async function() {
+        const msgEl = document.getElementById('connect-settings-msg');
+        const publicEnabled = document.getElementById('connect-setting-public')?.checked !== false;
+        const expiryDays    = parseInt(document.getElementById('connect-setting-expiry')?.value) || 14;
+        const checked       = document.querySelectorAll('#connect-notify-users-list input[type=checkbox]:checked');
+        const notifyIds     = Array.from(checked).map(c => c.value);
+        const { error } = await sb().from('workspaces').update({
+            connect_settings: { public_enabled: publicEnabled, expiry_days: expiryDays, notify_user_ids: notifyIds }
+        }).eq('id', wsId());
+        if (error) {
+            if (msgEl) { msgEl.style.color='#f87171'; msgEl.textContent='❌ Erro ao salvar'; }
+            return;
+        }
+        if (msgEl) { msgEl.style.color='#34D399'; msgEl.textContent='✅ Salvo!'; }
+        setTimeout(() => { document.getElementById('modal-connect-settings').style.display='none'; }, 1200);
+    };
+
+    window.copyConnectLink = function() {
+        const val = document.getElementById('connect-public-link')?.value;
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => window.showToast('🔗 Link copiado!'));
+    };
+
+    window.openConnectPublicPage = function() {
+        const slug = getWsSlug();
+        window.open(`${window.location.origin}/connect.html${slug ? '?ws='+slug : ''}`, '_blank');
+    };
+
+    window.openConnectNewListingModal = function() {
+        const modal = document.getElementById('modal-connect-new');
+        if (!modal) return;
+        ['cn-title','cn-desc','cn-name','cn-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
+        ['cn-category','cn-badge'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id==='cn-badge'?'none':''; });
+        const pin = document.getElementById('cn-pinned'); if(pin) pin.checked=false;
+        const msg = document.getElementById('cn-msg');   if(msg) msg.textContent='';
+        modal.style.display = 'flex';
+    };
+
+    window.submitInternalListing = async function() {
+        const title = document.getElementById('cn-title')?.value.trim();
+        const cat   = document.getElementById('cn-category')?.value;
+        const desc  = document.getElementById('cn-desc')?.value.trim();
+        const badge = document.getElementById('cn-badge')?.value || 'none';
+        const name  = document.getElementById('cn-name')?.value.trim();
+        const email = document.getElementById('cn-email')?.value.trim();
+        const pin   = document.getElementById('cn-pinned')?.checked || false;
+        const msgEl = document.getElementById('cn-msg');
+        if (!title || !cat || !desc || !name || !email) {
+            if (msgEl) { msgEl.style.color='#f87171'; msgEl.textContent='Preencha todos os campos obrigatórios.'; }
+            return;
+        }
+        const { data: { user } } = await sb().auth.getUser();
+        const expiresAt = new Date(Date.now() + (await getExpiryDays()) * 86400000).toISOString();
+        const { error } = await sb().from('connect_listings').insert({
+            workspace_id: wsId(), title, description: desc, category: cat,
+            badge_type: badge, contact_name: name, contact_email: email,
+            status: 'active', pinned: pin, expires_at: expiresAt,
+            approved_at: new Date().toISOString(), approved_by: user.id, terms_accepted: true,
+        });
+        if (error) { if (msgEl) { msgEl.style.color='#f87171'; msgEl.textContent='❌ '+error.message; } return; }
+        window.showToast('✅ Oferta publicada!');
+        document.getElementById('modal-connect-new').style.display='none';
+        window.loadCrieConnect();
+    };
+
+    async function getExpiryDays() {
+        const { data: ws } = await sb().from('workspaces').select('connect_settings').eq('id', wsId()).single();
+        return ws?.connect_settings?.expiry_days || 14;
+    }
+
+    function getWsSlug() {
+        const allWs = window._allWorkspaces || [];
+        const ws = allWs.find(w => w.id === wsId());
+        return ws?.slug || '';
+    }
+
+    // Close modals on outside click
+    document.addEventListener('DOMContentLoaded', () => {
+        ['modal-connect-settings','modal-connect-new'].forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+        });
+    });
 
 })();
