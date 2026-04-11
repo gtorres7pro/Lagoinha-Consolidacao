@@ -1,5 +1,5 @@
 /**
- * Zelo Pro - Birthdays Module
+ * Zelo - Birthdays Module
  * Handles CSV parsing, database syncing, and rendering of birthdays.
  */
 

@@ -6,7 +6,7 @@
 .main { overflow: hidden !important; }
 
 /* ─────────────────────────────────────────────
-   Zelo Pro Design System — v2.0 Minimalist Premium
+   Zelo Design System — v2.0 Minimalist Premium
    Updated: 2026-04-11
 ───────────────────────────────────────────── */
 
@@ -86,11 +86,11 @@
 :root {
   /* Backgrounds */
   --bg:          #0f0f13;
-  --bg-deep:     #0a0a0d;
+  --bg-deep:     #0d0d0f;
   --bg-card:     rgba(255,255,255,0.03);
   --bg-card-solid: #131318;
   --bg-input:    rgba(255,255,255,0.04);
-  --bg-hover:    rgba(255,255,255,0.04);
+  --bg-hover:    rgba(255,255,255,0.03);
 
   /* Borders */
   --border:      rgba(255,255,255,0.07);
@@ -401,13 +401,13 @@ body {
 .hub-nav-item.active {
   color: var(--text);
   font-weight: 600;
-  background: rgba(255,255,255,0.05);
+  background: transparent;
 }
 /* Active left border accent */
 .hub-nav-item.active::before {
   content: '';
   position: absolute;
-  left: 0; top: 20%; bottom: 20%;
+  left: -10px; top: 15%; bottom: 15%;
   width: 3px;
   background: var(--accent);
   border-radius: 0 3px 3px 0;
@@ -481,7 +481,7 @@ body {
   margin-bottom: 28px;
 }
 .hub-kpi-card {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: var(--radius-card);
   padding: 18px 20px;
@@ -833,7 +833,7 @@ body {
 .hub-status-dot.draft    { background: #444; }
 
 /* Plan badge */
-.hub-plan-badge { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 6px; display: inline-block; }
+.hub-plan-badge { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 10px; border-radius: 999px; display: inline-block; }
 .hub-plan-badge.free    { background: rgba(255,255,255,.06); color: #888; }
 .hub-plan-badge.basic   { background: rgba(100,180,255,.12); color: #64b4ff; }
 .hub-plan-badge.medium  { background: rgba(251,191,36,.12);  color: var(--accent); }
@@ -871,13 +871,13 @@ body {
 .hub-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(251,191,36,0.08); }
 
 /* ── Team Management ── */
-.hub-module-badge { font-size:.68rem; font-weight:600; background:rgba(251,191,36,.08); color:var(--accent); border:1px solid rgba(251,191,36,.18); border-radius:6px; padding:2px 8px; display:inline-block; white-space:nowrap; }
+.hub-module-badge { font-size:.68rem; font-weight:600; background:rgba(251,191,36,.08); color:var(--accent); border:1px solid rgba(251,191,36,.18); border-radius:999px; padding:2px 8px; display:inline-block; white-space:nowrap; }
 .hub-module-chip { display:inline-flex; align-items:center; gap:5px; font-size:.77rem; font-weight:600; padding:5px 11px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,.04); color:var(--text-muted); cursor:pointer; user-select:none; transition:all .15s; }
 .hub-module-chip.selected { background:rgba(251,191,36,.1); border-color:rgba(251,191,36,.28); color:var(--accent); }
 .hub-module-chip:hover { opacity:.85; }
 
 /* ── Plans & Monetization ── */
-.ws-plan-badge { font-size:.54rem; font-weight:800; letter-spacing:.05em; padding:2px 7px; border-radius:5px; white-space:nowrap; display:inline-flex; align-items:center; margin-left:2px; }
+.ws-plan-badge { font-size:.54rem; font-weight:800; letter-spacing:.05em; padding:2px 7px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; margin-left:2px; }
 .ws-plan-free    { background:rgba(255,255,255,.07); color:#888; }
 .ws-plan-basic   { background:rgba(100,180,255,.15); color:#64b4ff; }
 .ws-plan-medium  { background:rgba(100,220,150,.15); color:#64dc96; }
@@ -911,7 +911,7 @@ body {
 /* ── Announcement Cards & Scope tabs ── */
 .hub-announcement-card { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:18px; transition:border-color .2s, transform .15s; }
 .hub-announcement-card:hover { border-color:rgba(251,191,36,.25); transform:translateY(-1px); }
-.hub-scope-badge { font-size:.67rem; font-weight:700; padding:2px 9px; border-radius:6px; white-space:nowrap; letter-spacing:.04em; flex-shrink:0; }
+.hub-scope-badge { font-size:.67rem; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap; letter-spacing:.04em; flex-shrink:0; }
 .hub-scope-tab { background:rgba(255,255,255,.04); border:1px solid var(--border); color:var(--text-muted); padding:6px 15px; border-radius:20px; font-size:.78rem; font-weight:600; cursor:pointer; transition:all .15s; }
 .hub-scope-tab:hover { border-color:rgba(251,191,36,.35); color:var(--accent); }
 .hub-scope-tab.active { background:rgba(251,191,36,.1); border-color:rgba(251,191,36,.4); color:var(--accent); }
@@ -1039,22 +1039,238 @@ select.hub-field-input { cursor: pointer; }
 /* ── Workshop comment reply input ── */
 #workshop-comments-list .hub-field-input { background:rgba(255,255,255,0.02); font-size:0.82rem; padding:9px 12px; }
 
-/* ── Secondary Sidebar (Dual Pane) ── */
-.sidebar-secondary { width:216px; background:var(--bg-deep); border-right:1px solid var(--border); display:none; flex-direction:column; z-index:9; height:100dvh; overflow-y:auto; flex-shrink:0; }
-.sidebar-secondary.show { display:flex; animation:secSidebarIn 0.22s cubic-bezier(0.16,1,0.3,1) both; }
-.sec-sidebar-header { display:flex; align-items:center; justify-content:space-between; padding:18px 14px 16px; border-bottom:1px solid var(--border); min-height:68px; flex-shrink:0; }
-.sec-sidebar-title { font-size:0.8rem; font-weight:800; color:#fff; letter-spacing:-0.01em; }
-.sec-sidebar-close { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); border-radius:7px; color:#777; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0; }
-.sec-sidebar-close:hover { background:rgba(251,191,36,.1); color:var(--accent); border-color:rgba(251,191,36,.25); }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Phase 2 — Module Specific Components
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-#sec-sidebar-nav li { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:9px; cursor:pointer; transition:background 0.15s, color 0.15s; color:var(--text-muted); font-size:0.82rem; font-weight:500; list-style:none; }
-#sec-sidebar-nav li:hover { background:rgba(255,255,255,0.05); color:#fff; }
-#sec-sidebar-nav li.active { color:var(--accent); background:rgba(251,191,36,0.07); }
-#sec-sidebar-nav .nav-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; opacity:0.65; }
-#sec-sidebar-nav .nav-icon svg { width:14px; height:14px; }
-#sec-sidebar-nav li:hover .nav-icon, #sec-sidebar-nav li.active .nav-icon { opacity:1; }
-#sec-sidebar-nav .nav-item-arrow { display:none; }
-
-@media (max-width: 768px) {
-  .sidebar-secondary { position:fixed; left:60px; top:0; bottom:0; z-index:99; box-shadow:12px 0 40px rgba(0,0,0,0.8); }
+/* ── Kanban Board ── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
+.kanban-col {
+  background: rgba(255,255,255,0.015);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 14px;
+  min-height: 200px;
+}
+.kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.kanban-col-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.45);
+}
+.kanban-col-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.35);
+  border-radius: 20px;
+  padding: 1px 7px;
+}
+.kanban-task-card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 11px 13px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  transition: border-color 0.18s, transform 0.18s;
+}
+.kanban-task-card:hover {
+  border-color: rgba(251,191,36,0.2);
+  transform: translateY(-1px);
+}
+.kanban-task-card-title {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.kanban-task-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.kanban-task-priority {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.kanban-task-priority.high   { background: rgba(248,113,113,0.1); color: #f87171; }
+.kanban-task-priority.medium { background: rgba(251,191,36,0.1);  color: #fbbf24; }
+.kanban-task-priority.low    { background: rgba(74,222,128,0.1);  color: #4ade80; }
+.kanban-task-due {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.25);
+}
+.kanban-task-due.overdue { color: #f87171; }
+
+/* ── List View (Tasks) ── */
+.task-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.018);
+  margin-bottom: 6px;
+  transition: border-color 0.18s, background 0.18s;
+  cursor: pointer;
+}
+.task-list-row:hover {
+  border-color: rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.03);
+}
+.task-list-row.done {
+  opacity: 0.5;
+}
+.task-list-row.done .task-list-title {
+  text-decoration: line-through;
+}
+.task-list-title {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+}
+
+/* ── Cantina POS product grid ── */
+.pos-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.pos-product-item {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 11px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.18s, transform 0.18s;
+}
+.pos-product-item:hover {
+  border-color: rgba(251,113,133,0.25);
+  transform: translateY(-1px);
+}
+.pos-product-item-img {
+  height: 85px;
+  width: 100%;
+  object-fit: cover;
+  background: rgba(0,0,0,0.3);
+}
+.pos-product-item-info {
+  padding: 8px 10px;
+}
+.pos-product-item-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.pos-product-item-price {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fb7185;
+}
+
+/* ── CRIE Event card refinements ── */
+.crie-event-card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.055);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.crie-event-card:hover {
+  border-color: rgba(251,191,36,0.18);
+  transform: translateY(-1px);
+}
+.crie-event-card-banner {
+  height: 120px;
+  background: rgba(0,0,0,0.3);
+  object-fit: cover;
+  width: 100%;
+}
+.crie-event-card-body {
+  padding: 14px;
+}
+.crie-event-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crie-event-card-date {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 10px;
+}
+.crie-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.018);
+  margin-bottom: 6px;
+  transition: border-color 0.18s;
+}
+.crie-member-row:hover { border-color: rgba(255,255,255,0.1); }
+
+/* ── Module section subheaders ── */
+.module-subheader {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 18px 0 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 12px;
+}
+
+/* ── Status pill variants (shared) ── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.status-pill.pending   { background: rgba(251,191,36,0.1);  color: #fbbf24; }
+.status-pill.active    { background: rgba(74,222,128,0.1);  color: #4ade80; }
+.status-pill.confirmed { background: rgba(96,165,250,0.1);  color: #60a5fa; }
+.status-pill.ready     { background: rgba(52,211,153,0.1);  color: #34d399; }
+.status-pill.delivered { background: rgba(167,139,250,0.1); color: #a78bfa; }
+.status-pill.cancelled { background: rgba(248,113,113,0.1); color: #f87171; }
+.status-pill.expired   { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.35); }
+

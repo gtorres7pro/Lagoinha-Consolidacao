@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   hub-cantina.js — Módulo Cantina — Zelo Pro
+   hub-cantina.js — Módulo Cantina — Zelo
    v1.0 — 2026-04-11
 ═══════════════════════════════════════════════════════════ */
 
@@ -370,7 +370,7 @@ function renderEstoqueGrid(products) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:rgba(255,255,255,0.3);">
       <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
       <div>Nenhum produto encontrado</div>
-      <button onclick="openProductModal()" style="margin-top:16px;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer;">
+      <button onclick="openProductModal()" style="margin-top:16px;background:rgba(251,113,133,0.12);border:1px solid rgba(251,113,133,0.3);color:#fb7185;border-radius:9px;padding:9px 18px;font-weight:700;cursor:pointer;font-family:inherit;">
         + Adicionar Primeiro Produto
       </button>
     </div>`;
@@ -387,55 +387,55 @@ function renderProductCard(p) {
   const cfg = window._cantinaConfig;
   const sym = cfg?.currency_symbol || 'R$';
 
-  return `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,${p.archived ? '0.04' : '0.08'});border-radius:16px;overflow:hidden;transition:all .2s;opacity:${p.archived ? '0.5' : '1'};" 
-    onmouseover="this.style.border='1px solid rgba(251,113,133,0.3)';this.style.transform='translateY(-2px)'" 
-    onmouseout="this.style.border='1px solid rgba(255,255,255,${p.archived ? '0.04' : '0.08'})';this.style.transform=''">
+  return `<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,${p.archived ? '0.04' : '0.06'});border-radius:13px;overflow:hidden;transition:border-color .18s,transform .18s;opacity:${p.archived ? '0.45' : '1'};" 
+    onmouseover="this.style.borderColor='rgba(251,113,133,0.25)';this.style.transform='translateY(-1px)'" 
+    onmouseout="this.style.borderColor='rgba(255,255,255,${p.archived ? '0.04' : '0.06'})';this.style.transform=''">
     <!-- Photo -->
-    <div style="height:160px;background:rgba(0,0,0,0.3);position:relative;overflow:hidden;">
+    <div style="height:150px;background:rgba(0,0,0,0.35);position:relative;overflow:hidden;">
       ${photo
         ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`
-        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:rgba(255,255,255,0.15);">📦</div>`
+        : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;color:rgba(255,255,255,0.1);">📦</div>`
       }
       <!-- Status badges -->
-      <div style="position:absolute;top:8px;left:8px;display:flex;gap:4px;flex-wrap:wrap;">
-        <span style="font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:20px;background:${p.available_online ? 'rgba(52,211,153,0.9)' : 'rgba(248,113,113,0.9)'};color:#fff;">
+      <div style="position:absolute;top:7px;left:7px;display:flex;gap:3px;flex-wrap:wrap;">
+        <span style="font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:20px;background:${p.available_online ? 'rgba(52,211,153,0.85)' : 'rgba(248,113,113,0.85)'};color:#fff;letter-spacing:0.04em;">
           ${p.available_online ? '🌐 ONLINE' : '🔒 OFFLINE'}
         </span>
-        ${p.archived ? `<span style="font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,0.15);color:#fff;">ARQUIVADO</span>` : ''}
-        ${isOut ? `<span style="font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(248,113,113,0.9);color:#fff;">SEM ESTOQUE</span>` : ''}
-        ${isLow && !isOut ? `<span style="font-size:0.62rem;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(251,191,36,0.9);color:#000;">ESTOQUE BAIXO</span>` : ''}
+        ${p.archived ? `<span style="font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);">ARQUIVADO</span>` : ''}
+        ${isOut ? `<span style="font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(248,113,113,0.85);color:#fff;">ESGOTADO</span>` : ''}
+        ${isLow && !isOut ? `<span style="font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(251,191,36,0.9);color:#000;">ESTOQUE BAIXO</span>` : ''}
       </div>
-      ${p.photos && p.photos.length > 1 ? `<div style="position:absolute;bottom:6px;right:8px;font-size:0.65rem;color:rgba(255,255,255,0.6);background:rgba(0,0,0,0.5);padding:2px 7px;border-radius:10px;">+${p.photos.length-1} fotos</div>` : ''}
+      ${p.photos && p.photos.length > 1 ? `<div style="position:absolute;bottom:5px;right:7px;font-size:0.62rem;color:rgba(255,255,255,0.55);background:rgba(0,0,0,0.55);padding:2px 6px;border-radius:8px;">+${p.photos.length-1}</div>` : ''}
     </div>
     <!-- Info -->
-    <div style="padding:14px;">
-      <div style="font-weight:700;font-size:0.95rem;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-      ${p.description ? `<div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.description}</div>` : ''}
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <span style="font-size:1.1rem;font-weight:800;color:#fb7185;">${sym} ${parseFloat(p.price).toFixed(2).replace('.',',')}</span>
-        <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">
+    <div style="padding:12px;">
+      <div style="font-weight:700;font-size:0.9rem;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+      ${p.description ? `<div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-bottom:7px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.description}</div>` : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+        <span style="font-size:1rem;font-weight:800;color:#fb7185;">${sym} ${parseFloat(p.price).toFixed(2).replace('.',',')}</span>
+        <span style="font-size:0.7rem;color:rgba(255,255,255,0.3);">
           🌐 ${p.qty_online} · 🏪 ${p.qty_physical}
         </span>
       </div>
       <!-- Actions -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
         <button onclick="openProductModal('${p.id}')"
           title="Editar produto"
-          style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);border-radius:8px;padding:7px 10px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"
-          onmouseover="this.style.background='rgba(255,255,255,0.12)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)'">✏️ Editar</button>
+          style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);border-radius:7px;padding:6px 8px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.color='#fff'"
+          onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='rgba(255,255,255,0.6)'">✏️ Editar</button>
         <button onclick="toggleProductOnline('${p.id}', ${!p.available_online})"
-          title="${p.available_online ? '🔒 Tirar do Online — o produto ficará indisponível no portal público' : '🌐 Colocar Online — o produto ficará visível no portal público'}"
-          style="background:${p.available_online ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.04)'};border:1px solid ${p.available_online ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.08)'};color:${p.available_online ? '#34d399' : 'rgba(255,255,255,0.5)'};border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
+          title="${p.available_online ? '🔒 Tirar do Online' : '🌐 Colocar Online'}"
+          style="background:${p.available_online ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.03)'};border:1px solid ${p.available_online ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.07)'};color:${p.available_online ? '#34d399' : 'rgba(255,255,255,0.4)'};border-radius:7px;padding:6px;font-size:0.82rem;cursor:pointer;width:32px;transition:all .15s;"
           onmouseover="this.style.filter='brightness(1.3)'"
           onmouseout="this.style.filter='brightness(1)'">${p.available_online ? '🌐' : '🔒'}</button>
         <button onclick="duplicateProduct('${p.id}')"
-          title="📋 Duplicar — cria uma cópia deste produto (offline por padrão)"
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
-          onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">📋</button>
+          title="📋 Duplicar"
+          style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);border-radius:7px;padding:6px;font-size:0.82rem;cursor:pointer;width:32px;transition:all .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">📋</button>
         <button onclick="archiveProduct('${p.id}', ${!p.archived})"
-          title="${p.archived ? '♻️ Restaurar — tira do arquivo e volta para Ativos' : '🗄️ Arquivar — oculta o produto sem apagar. Acesse em "Arquivados"'}"
-          style="background:${p.archived ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.04)'};border:1px solid ${p.archived ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'};color:${p.archived ? '#fbbf24' : 'rgba(255,255,255,0.4)'};border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
+          title="${p.archived ? '♻️ Restaurar' : '🗄️ Arquivar'}"
+          style="background:${p.archived ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.03)'};border:1px solid ${p.archived ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.07)'};color:${p.archived ? '#fbbf24' : 'rgba(255,255,255,0.35)'};border-radius:7px;padding:6px;font-size:0.82rem;cursor:pointer;width:32px;transition:all .15s;"
           onmouseover="this.style.filter='brightness(1.3)'"
           onmouseout="this.style.filter='brightness(1)'">${p.archived ? '♻️' : '🗄️'}</button>
       </div>
@@ -698,34 +698,34 @@ function renderPedidoCard(o) {
     }
   }
 
-  return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px 18px;display:flex;align-items:flex-start;gap:14px;">
+  return `<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.055);border-radius:12px;padding:12px 16px;display:flex;align-items:flex-start;gap:12px;transition:border-color .18s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.1)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.055)'">
     <!-- Status indicator -->
-    <div style="width:4px;align-self:stretch;border-radius:4px;background:${st.color};flex-shrink:0;"></div>
+    <div style="width:3px;align-self:stretch;border-radius:3px;background:${st.color};flex-shrink:0;"></div>
     <!-- Main info -->
     <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-        <span style="font-weight:800;font-size:0.95rem;color:#fff;">${o.order_number || o.id.substr(0,6)}</span>
-        <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${st.bg};color:${st.color};">${st.label}</span>
-        <span style="font-size:0.7rem;color:rgba(255,255,255,0.3);">${o.order_type === 'pos' ? '🏪 Balcão' : '🌐 Online'}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+        <span style="font-weight:800;font-size:0.88rem;color:#fff;">${o.order_number || o.id.substr(0,6)}</span>
+        <span style="font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.color};">${st.label}</span>
+        <span style="font-size:0.65rem;color:rgba(255,255,255,0.25);">${o.order_type === 'pos' ? '🏪 Balcão' : '🌐 Online'}</span>
         ${countdownHtml}
       </div>
-      <div style="font-size:0.85rem;color:#fff;font-weight:600;">${o.customer_name}</div>
-      <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">${o.customer_phone}</div>
-      <div style="font-size:0.78rem;color:rgba(255,255,255,0.5);margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${itemsSummary}</div>
+      <div style="font-size:0.82rem;color:#fff;font-weight:600;">${o.customer_name}</div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);">${o.customer_phone}</div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${itemsSummary}</div>
     </div>
     <!-- Amount + time -->
     <div style="text-align:right;flex-shrink:0;">
-      <div style="font-weight:800;font-size:1rem;color:#fb7185;">${sym} ${parseFloat(o.total||0).toFixed(2).replace('.',',')}</div>
-      <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:2px;">${cantinaTimeAgo(o.created_at)}</div>
-      <div style="font-size:0.7rem;color:${o.payment_status==='paid' ? '#34d399' : '#fbbf24'};margin-top:2px;font-weight:600;">${o.payment_status==='paid' ? '✅ Pago' : '⏳ Aguardando'}</div>
+      <div style="font-weight:800;font-size:0.95rem;color:#fb7185;">${sym} ${parseFloat(o.total||0).toFixed(2).replace('.',',')}</div>
+      <div style="font-size:0.65rem;color:rgba(255,255,255,0.25);margin-top:2px;">${cantinaTimeAgo(o.created_at)}</div>
+      <div style="font-size:0.65rem;color:${o.payment_status==='paid' ? '#34d399' : '#fbbf24'};margin-top:2px;font-weight:600;">${o.payment_status==='paid' ? '✅ Pago' : '⏳ Aguardando'}</div>
     </div>
     <!-- Actions -->
     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-      ${o.status === 'pending' ? `<button onclick="updateOrderStatus('${o.id}','confirmed')" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;border-radius:8px;padding:5px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✓ Confirmar</button>` : ''}
-      ${o.status === 'confirmed' ? `<button onclick="updateOrderStatus('${o.id}','ready')" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;border-radius:8px;padding:5px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✓ Pronto</button>` : ''}
-      ${o.status === 'ready' ? `<button onclick="updateOrderStatus('${o.id}','delivered')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;border-radius:8px;padding:5px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✓ Entregue</button>` : ''}
-      ${o.payment_status === 'unpaid' && ['pending','confirmed','ready'].includes(o.status) ? `<button onclick="markOrderPaid('${o.id}')" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;border-radius:8px;padding:5px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">💰 Pago</button>` : ''}
-      ${['pending','confirmed'].includes(o.status) ? `<button onclick="updateOrderStatus('${o.id}','cancelled')" style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:#f87171;border-radius:8px;padding:5px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap;">✕ Cancelar</button>` : ''}
+      ${o.status === 'pending' ? `<button onclick="updateOrderStatus('${o.id}','confirmed')" style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);color:#60a5fa;border-radius:7px;padding:4px 9px;font-size:0.68rem;cursor:pointer;white-space:nowrap;">✓ Confirmar</button>` : ''}
+      ${o.status === 'confirmed' ? `<button onclick="updateOrderStatus('${o.id}','ready')" style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);color:#34d399;border-radius:7px;padding:4px 9px;font-size:0.68rem;cursor:pointer;white-space:nowrap;">✓ Pronto</button>` : ''}
+      ${o.status === 'ready' ? `<button onclick="updateOrderStatus('${o.id}','delivered')" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;border-radius:7px;padding:4px 9px;font-size:0.68rem;cursor:pointer;white-space:nowrap;">✓ Entregue</button>` : ''}
+      ${o.payment_status === 'unpaid' && ['pending','confirmed','ready'].includes(o.status) ? `<button onclick="markOrderPaid('${o.id}')" style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);color:#34d399;border-radius:7px;padding:4px 9px;font-size:0.68rem;cursor:pointer;white-space:nowrap;">💰 Pago</button>` : ''}
+      ${['pending','confirmed'].includes(o.status) ? `<button onclick="updateOrderStatus('${o.id}','cancelled')" style="background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.15);color:#f87171;border-radius:7px;padding:4px 9px;font-size:0.68rem;cursor:pointer;white-space:nowrap;">✕ Cancelar</button>` : ''}
     </div>
   </div>`;
 }
@@ -1011,7 +1011,7 @@ async function sendCashClosingEmail({ totalSales, totalExpenses, totalDonations,
     </table>
     <h3>Por forma de pagamento:</h3>
     <table border="0" cellpadding="8">${bkHtml}</table>
-    <p style="color:#999;font-size:0.85em;">Enviado automaticamente pelo Zelo Pro</p>
+    <p style="color:#999;font-size:0.85em;">Enviado automaticamente pelo Zelo</p>
   `;
 
   // Use the existing Resend function pattern from the project

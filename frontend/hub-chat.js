@@ -1,5 +1,5 @@
 /* ============================================================
-   hub-chat.js — Chat ao Vivo | Zelo Pro
+   hub-chat.js — Chat ao Vivo | Zelo
    WhatsApp-style inbox for AI + human conversations
    ============================================================ */
 

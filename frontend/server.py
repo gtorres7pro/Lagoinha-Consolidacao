@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dev server para Zelo Pro — resolve slugs de workspace e força NO-CACHE.
+Dev server para Zelo — resolve slugs de workspace e força NO-CACHE.
 """
 import http.server
 import os
@@ -38,6 +38,6 @@ if __name__ == '__main__':
     os.chdir(ROOT)
     handler = SlugRewriteHandler
     with http.server.HTTPServer(('', port), handler) as httpd:
-        print(f'✅  Servidor Zelo Pro (NO CACHE) → http://localhost:{port}')
+        print(f'✅  Servidor Zelo (NO CACHE) → http://localhost:{port}')
         print(f'   Exemplo: http://localhost:{port}/braga/dashboard.html')
         httpd.serve_forever()
