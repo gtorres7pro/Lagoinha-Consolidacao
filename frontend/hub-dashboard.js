@@ -103,6 +103,7 @@
                 crie_membros:    'nav-crie-membros',
                 crie_eventos:    'nav-crie-eventos',
                 crie_checkin:    'nav-crie-checkin',
+                crie_workshop:   'nav-crie-workshop',
                 crie_relatorios: 'nav-crie-relatorios',
             };
 
@@ -2536,7 +2537,8 @@
               { key: 'crie_membros',    label: 'Membros',    navId: 'nav-crie-membros' },
               { key: 'crie_eventos',    label: 'Eventos',    navId: 'nav-crie-eventos' },
               { key: 'crie_checkin',    label: 'Check-in',   navId: 'nav-crie-checkin' },
-              { key: 'crie_relatorios', label: 'Relatórios', navId: 'nav-crie-relatorios' },
+              { key: 'crie_workshop',   label: 'Workshop',   navId: 'nav-crie-workshop' },
+              { key: 'crie_relatorios', label: 'Controle',   navId: 'nav-crie-relatorios' },
           ]
         },
         { key: 'configuracoes',   label: 'Configurações',   navIds: ['nav-settings-toggle'],
@@ -4158,6 +4160,7 @@ window.switchTab = function(tab) {
             'crie-membros': loadCrieMembros,
             'crie-eventos': loadCrieEventos,
             'crie-checkin': loadCrieCheckinEventos,
+            'crie-workshop': typeof loadCrieWorkshop === 'function' ? loadCrieWorkshop : null,
             'crie-relatorios': loadCrieRelatorios,
             'crie-connect': window.loadCrieConnect,
         };
@@ -5205,9 +5208,11 @@ function renderCrieEventos(list) {
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
                 <span style="font-size:.76rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.55);">&#128197; ${dateStr}</span>
-                ${ev.price > 0
-                    ? `<span style="font-size:.76rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:4px 9px;color:#F59E0B;font-weight:700;">${ev.price.toFixed(2)}${currency(ev)}</span>`
-                    : '<span style="font-size:.76rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">GRATUITO</span>'}
+                ${ev.is_free
+                    ? '<span style="font-size:.76rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">🆓 GRATUITO</span>'
+                    : (ev.price > 0 ? `<span style="font-size:.76rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:4px 9px;color:#F59E0B;font-weight:700;">${ev.price.toFixed(2)} ${currency(ev)}</span>` : '')}
+                ${ev.online_payment_enabled ? '<span style="font-size:.76rem;background:rgba(99,80,255,.08);border:1px solid rgba(99,80,255,.25);border-radius:8px;padding:4px 9px;color:#a78bfa;font-weight:700;">&#9889; Pag. Online</span>' : ''}
+                ${ev.open_to_guests === false ? '<span style="font-size:.76rem;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:4px 9px;color:#f87171;font-weight:700;">&#128274; Só Membros</span>' : ''}
                 <span style="font-size:.76rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.5);">&#128101; ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
                 ${hasReport ? '<span style="font-size:.76rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">&#10003; Relatório enviado</span>' :
                               (isFinalizado ? '<span style="font-size:.76rem;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:4px 9px;color:#f87171;font-weight:700;">&#9888; Relatório pendente</span>' : '')}
@@ -5280,6 +5285,27 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-currency').value = currToCode[ev.currency] || 'EUR';
     document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
 
+    // Populate payment & visibility toggles
+    const isFree      = !!ev.is_free;
+    const onlinePay   = !!ev.online_payment_enabled;
+    const openGuests  = ev.open_to_guests !== false; // default true for backward compat
+
+    setEventoToggle('toggle-is-free',          isFree,     '#F59E0B');
+    setEventoToggle('toggle-online-payment',   onlinePay,  '#6350FF');
+    setEventoToggle('toggle-open-to-guests',   openGuests, '#34D399');
+
+    // Show/hide price row based on is_free at open time
+    const priceRow = document.getElementById('dedit-price-row');
+    if (priceRow) priceRow.style.display = isFree ? 'none' : 'grid';
+
+    // Grey-out pagamento online hint depending on Stripe connection status
+    const onlineHint = document.getElementById('dedit-online-pay-hint');
+    if (onlineHint) {
+        const stripeOk = !!window._crieStripeConnected;
+        onlineHint.textContent = stripeOk ? 'Stripe conectado ✓' : 'Requer Stripe conectado';
+        onlineHint.style.color = stripeOk ? 'rgba(52,211,153,0.7)' : 'rgba(255,255,255,0.35)';
+    }
+
     // Populate banner preview if event already has one
     window._drawerBannerFile = null;
     const dBannerInput = document.getElementById('dedit-banner-input');
@@ -5327,6 +5353,57 @@ function closeEventoDrawer() {
     document.getElementById('evento-drawer').style.display         = 'none';
 }
 
+// ── Toggle helpers for event payment toggles ───────────────────
+/**
+ * Sets a toggle's visual state without firing its onclick.
+ * @param {string} id       - element id of the toggle track
+ * @param {boolean} active  - whether it should be ON
+ * @param {string} color    - active background color
+ */
+function setEventoToggle(id, active, color = '#F59E0B') {
+    const track = document.getElementById(id);
+    if (!track) return;
+    const thumb = track.querySelector('div');
+    track.dataset.active = String(active);
+    if (active) {
+        track.style.background = color;
+        if (thumb) { thumb.style.left = '21px'; thumb.style.background = '#fff'; }
+    } else {
+        track.style.background = 'rgba(255,255,255,0.1)';
+        if (thumb) { thumb.style.left = '3px'; thumb.style.background = 'rgba(255,255,255,0.8)'; }
+    }
+}
+
+window.toggleEventoGratuito = function(track) {
+    const current = track.dataset.active === 'true';
+    const newVal  = !current;
+    setEventoToggle('toggle-is-free', newVal, '#F59E0B');
+    // Show/hide price row
+    const priceRow = document.getElementById('dedit-price-row');
+    if (priceRow) priceRow.style.display = newVal ? 'none' : 'grid';
+    // If now free, also disable online payment
+    if (newVal) {
+        setEventoToggle('toggle-online-payment', false, '#6350FF');
+    }
+};
+
+window.toggleEventoOnlinePayment = function(track) {
+    const isFree = document.getElementById('toggle-is-free')?.dataset.active === 'true';
+    if (isFree) { hubToast('Não é possível activar pagamento num evento gratuito.', 'error'); return; }
+    const stripeOk = !!window._crieStripeConnected;
+    if (!stripeOk) {
+        hubToast('⚡ Conecta o Stripe em CRIE → Controle → Configurações para activar pagamentos online.', 'error');
+        return;
+    }
+    const newVal = track.dataset.active !== 'true';
+    setEventoToggle('toggle-online-payment', newVal, '#6350FF');
+};
+
+window.toggleEventoOpenToGuests = function(track) {
+    const newVal = track.dataset.active !== 'true';
+    setEventoToggle('toggle-open-to-guests', newVal, '#34D399');
+};
+
 function switchDrawerTab(tab) {
     ['info','inscritos','financeiro'].forEach(t => {
         const panel = document.getElementById(`drawer-panel-${t}`);
@@ -5354,16 +5431,21 @@ async function saveEventoDrawer() {
     // Preserve existing banner_url from the stored event data (avoid clearing it on save)
     const existingBannerUrl = window._drawerEventoData?.banner_url || null;
     const payload = {
-        title:       document.getElementById('dedit-title').value.trim(),
-        description: document.getElementById('dedit-desc').value.trim() || null,
-        date:        localLisbonToUTC(document.getElementById('dedit-date').value) || null,
-        capacity:    parseInt(document.getElementById('dedit-capacity').value) || 0,
-        location:    document.getElementById('dedit-location').value.trim(),
-        price:       parseFloat(document.getElementById('dedit-price').value) || 0,
-        currency:    document.getElementById('dedit-currency').value || 'EUR',
-        status:      document.getElementById('dedit-status').value,
-        banner_url:  existingBannerUrl,  // preserve existing; overwritten below if new file uploaded
+        title:                   document.getElementById('dedit-title').value.trim(),
+        description:             document.getElementById('dedit-desc').value.trim() || null,
+        date:                    localLisbonToUTC(document.getElementById('dedit-date').value) || null,
+        capacity:                parseInt(document.getElementById('dedit-capacity').value) || 0,
+        location:                document.getElementById('dedit-location').value.trim(),
+        price:                   parseFloat(document.getElementById('dedit-price').value) || 0,
+        currency:                document.getElementById('dedit-currency').value || 'EUR',
+        status:                  document.getElementById('dedit-status').value,
+        banner_url:              existingBannerUrl,
+        is_free:                 document.getElementById('toggle-is-free')?.dataset.active === 'true',
+        online_payment_enabled:  document.getElementById('toggle-online-payment')?.dataset.active === 'true',
+        open_to_guests:          document.getElementById('toggle-open-to-guests')?.dataset.active === 'true',
     };
+    // If event is free, force price to 0 and disable online payment
+    if (payload.is_free) { payload.price = 0; payload.online_payment_enabled = false; }
 
     // Upload new banner if one was selected in the drawer
     if (window._drawerBannerFile) {
@@ -5746,7 +5828,47 @@ function clearEventBanner() {
     if (ph) ph.style.display = 'block';
     if (pw) pw.style.display = 'none';
     if (pi) pi.src = '';
+    // Also reset create modal toggles to defaults
+    setEventoToggle('ctoggle-is-free',          false, '#F59E0B');
+    setEventoToggle('ctoggle-online-payment',   false, '#6350FF');
+    setEventoToggle('ctoggle-open-to-guests',   true,  '#34D399');
+    const pr = document.getElementById('create-price-row');
+    if (pr) pr.style.display = 'grid';
+    ['create-is-free-val','create-online-pay-val'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = 'false';
+    });
+    const og = document.getElementById('create-open-guests-val');
+    if (og) og.value = 'true';
 }
+
+/**
+ * Generic toggle handler for create-event modal hidden fields.
+ * @param {HTMLElement} track       - the toggle track div
+ * @param {string} fieldId          - suffix of the hidden field ID (e.g. 'is_free')
+ * @param {string} color            - active color
+ * @param {string|null} priceRowId  - if provided, toggles display of that row
+ * @param {boolean} requireStripe   - if true, checks window._crieStripeConnected
+ */
+window.toggleCreateEvtField = function(track, fieldId, color, priceRowId = null, requireStripe = false) {
+    if (requireStripe && !window._crieStripeConnected) {
+        hubToast('⚡ Conecta o Stripe em CRIE → Controle → Configurações para activar pagamentos online.', 'error');
+        return;
+    }
+    // If toggling is_free ON, also turn off online payment
+    if (fieldId === 'is_free' && track.dataset.active !== 'true') {
+        setEventoToggle('ctoggle-online-payment', false, '#6350FF');
+        const opVal = document.getElementById('create-online-pay-val');
+        if (opVal) opVal.value = 'false';
+    }
+    const newVal = track.dataset.active !== 'true';
+    setEventoToggle('c' + 'toggle-' + fieldId.replace(/_/g, '-'), newVal, color);
+    const hiddenField = document.getElementById('create-' + fieldId.replace(/_/g, '-') + '-val');
+    if (hiddenField) hiddenField.value = String(newVal);
+    if (priceRowId) {
+        const row = document.getElementById(priceRowId);
+        if (row) row.style.display = newVal ? 'none' : 'grid';
+    }
+};
 
 
 async function saveCrieEvento(e) {
@@ -5755,17 +5877,21 @@ async function saveCrieEvento(e) {
     const form = e.target;
     // ⚠️ form.title resolves to document.title in DOM — use elements[] instead
     const payload = {
-        workspace_id: wsId,
-        title:       form.elements['title'].value.trim(),
-        description: form.elements['description'].value.trim() || null,
-        date:        localLisbonToUTC(form.elements['date'].value),
-        capacity:    parseInt(form.elements['capacity'].value) || 0,
-        location:    form.elements['location'].value.trim(),
-        price:       parseFloat(form.elements['price'].value) || 0,
-        currency:    form.elements['currency'] ? form.elements['currency'].value : '€',
-        status:      form.elements['status'].value,
-        banner_url:  null,
+        workspace_id:           wsId,
+        title:                  form.elements['title'].value.trim(),
+        description:            form.elements['description'].value.trim() || null,
+        date:                   localLisbonToUTC(form.elements['date'].value),
+        capacity:               parseInt(form.elements['capacity'].value) || 0,
+        location:               form.elements['location'].value.trim(),
+        price:                  parseFloat(form.elements['price']?.value) || 0,
+        currency:               form.elements['currency']?.value || 'EUR',
+        status:                 form.elements['status'].value,
+        banner_url:             null,
+        is_free:                form.elements['is_free']?.value === 'true',
+        online_payment_enabled: form.elements['online_payment_enabled']?.value === 'true',
+        open_to_guests:         form.elements['open_to_guests']?.value !== 'false',
     };
+    if (payload.is_free) { payload.price = 0; payload.online_payment_enabled = false; }
     if (!payload.title) {
         if (typeof hubToast !== 'undefined') hubToast('Título é obrigatório', 'error');
         return;
@@ -6097,22 +6223,296 @@ const FIN_TAG_META = {
 window.switchRelTab = function(tab) {
     const resumo     = document.getElementById('rel-pane-resumo');
     const financeiro = document.getElementById('rel-pane-financeiro');
+    const config     = document.getElementById('rel-pane-config');
     const btnR       = document.getElementById('rel-tab-resumo');
     const btnF       = document.getElementById('rel-tab-financeiro');
+    const btnC       = document.getElementById('rel-tab-config');
     if (!resumo) return;
+
+    // Reset all
+    [resumo, financeiro, config].forEach(p => { if (p) p.style.display = 'none'; });
+    [btnR, btnF, btnC].forEach(b => {
+        if (!b) return;
+        b.style.color = 'rgba(255,255,255,0.4)';
+        b.style.background = 'transparent';
+        b.style.borderBottom = '2px solid transparent';
+    });
+
     if (tab === 'resumo') {
-        resumo.style.display    = 'block';
-        financeiro.style.display = 'none';
+        resumo.style.display = 'block';
         btnR.style.color = '#F59E0B'; btnR.style.background = 'rgba(245,158,11,0.12)'; btnR.style.borderBottom = '2px solid #F59E0B';
-        btnF.style.color = 'rgba(255,255,255,0.4)'; btnF.style.background = 'transparent'; btnF.style.borderBottom = '2px solid transparent';
-    } else {
-        resumo.style.display    = 'none';
+    } else if (tab === 'financeiro') {
         financeiro.style.display = 'block';
         btnF.style.color = '#4ade80'; btnF.style.background = 'rgba(74,222,128,0.1)'; btnF.style.borderBottom = '2px solid #4ade80';
-        btnR.style.color = 'rgba(255,255,255,0.4)'; btnR.style.background = 'transparent'; btnR.style.borderBottom = '2px solid transparent';
         renderFinanceiro();
+    } else if (tab === 'config') {
+        config.style.display = 'block';
+        btnC.style.color = '#a78bfa'; btnC.style.background = 'rgba(167,139,250,0.1)'; btnC.style.borderBottom = '2px solid #a78bfa';
+        loadCrieSettings();
     }
 };
+
+// ═══════════════════════════════════════════════════════════════════════
+// CRIE CONTROLE — Settings: Stripe, Membresía, Cupons
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Load current workspace crie_settings and populate the Configurações tab.
+ */
+async function loadCrieSettings() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const s = ws?.crie_settings || {};
+
+    // ── Stripe status ─────────────────────────────────────────
+    const statusEl = document.getElementById('stripe-connection-status');
+    const pkInput  = document.getElementById('stripe-pk-input');
+    const btnConn  = document.getElementById('btn-stripe-connect');
+    const btnDisc  = document.getElementById('btn-stripe-disconnect');
+
+    if (s.stripe_connected) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:#4ade80;">⬤</span><span style="color:#4ade80;">Conectado: ${s.stripe_account_name || ''}</span>`;
+        if (pkInput)  pkInput.value = s.stripe_publishable_key || '';
+        if (btnConn)  btnConn.style.display = 'none';
+        if (btnDisc)  btnDisc.style.display = 'inline-flex';
+    } else {
+        if (statusEl) statusEl.innerHTML = `<span style="color:rgba(255,255,255,0.2);">⬤</span><span style="color:rgba(255,255,255,0.3);">Não conectado</span>`;
+        if (btnConn)  btnConn.style.display = 'inline-flex';
+        if (btnDisc)  btnDisc.style.display = 'none';
+    }
+
+    window._crieStripeConnected = !!s.stripe_connected;
+    window._crieStripePublishableKey = s.stripe_publishable_key || '';
+
+    // ── Membership fee ────────────────────────────────────────
+    const feeInput = document.getElementById('membership-fee-input');
+    const currSel  = document.getElementById('membership-currency-select');
+    if (feeInput && s.membership_fee != null) feeInput.value = s.membership_fee;
+    if (currSel  && s.membership_currency) currSel.value = s.membership_currency;
+
+    // ── Coupons list ──────────────────────────────────────────
+    await loadCrieCoupons();
+}
+
+/** Toggle secret key visibility */
+window.toggleSkVisibility = function() {
+    const inp = document.getElementById('stripe-sk-input');
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+
+/** Connect Stripe — validate keys via Edge Function */
+window.connectStripe = async function() {
+    const pk  = (document.getElementById('stripe-pk-input')?.value || '').trim();
+    const sk  = (document.getElementById('stripe-sk-input')?.value || '').trim();
+    const msg = document.getElementById('stripe-connect-msg');
+    const btn = document.getElementById('btn-stripe-connect');
+
+    if (!pk || !sk) { if (msg) { msg.textContent = '⚠️ Insere ambas as chaves.'; msg.style.color = '#f87171'; } return; }
+    if (!pk.startsWith('pk_')) { if (msg) { msg.textContent = '⚠️ Publishable Key inválida (deve começar com pk_).'; msg.style.color = '#f87171'; } return; }
+    if (!sk.startsWith('sk_')) { if (msg) { msg.textContent = '⚠️ Secret Key inválida (deve começar com sk_).'; msg.style.color = '#f87171'; } return; }
+
+    if (btn) { btn.textContent = '⏳ A conectar...'; btn.disabled = true; }
+    if (msg) { msg.textContent = ''; }
+
+    const wsId = getCrieWorkspaceId();
+    const EDGE = (window.SUPABASE_URL || '').replace('.supabase.co','') + '.supabase.co/functions/v1';
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+
+    try {
+        const res = await fetch(`${EDGE}/crie-stripe-connect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ workspace_id: wsId, publishable_key: pk, secret_key: sk })
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || 'Erro desconhecido');
+
+        if (msg) { msg.textContent = `✓ Conectado como: ${json.account_name || json.email || 'Conta Stripe'}`; msg.style.color = '#4ade80'; }
+        await loadCrieSettings();
+    } catch (err) {
+        if (msg) { msg.textContent = `❌ ${err.message}`; msg.style.color = '#f87171'; }
+    } finally {
+        if (btn) { btn.textContent = '⚡ Conectar Stripe'; btn.disabled = false; }
+    }
+};
+
+/** Disconnect Stripe — clears credentials */
+window.disconnectStripe = async function() {
+    if (!confirm('Desconectar o Stripe deste workspace? Os eventos e pagamentos existentes não serão afetados.')) return;
+    const wsId = getCrieWorkspaceId();
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const updated = { ...(ws?.crie_settings || {}), stripe_connected: false, stripe_publishable_key: '', stripe_account_name: '', stripe_account_email: '' };
+    await sb.from('workspaces').update({ crie_settings: updated }).eq('id', wsId);
+    window._crieStripeConnected = false;
+    await loadCrieSettings();
+    const msg = document.getElementById('stripe-connect-msg');
+    if (msg) { msg.textContent = 'Stripe desconectado.'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+};
+
+/** Save membership fee & currency */
+window.saveMembershipSettings = async function() {
+    const wsId = getCrieWorkspaceId();
+    const fee  = parseFloat(document.getElementById('membership-fee-input')?.value || '0') || 0;
+    const curr = document.getElementById('membership-currency-select')?.value || 'EUR';
+    const msg  = document.getElementById('membership-save-msg');
+    if (msg) { msg.textContent = 'A guardar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const updated = { ...(ws?.crie_settings || {}), membership_fee: fee, membership_currency: curr };
+    const { error } = await sb.from('workspaces').update({ crie_settings: updated }).eq('id', wsId);
+
+    if (error) {
+        if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
+    } else {
+        if (msg) { msg.textContent = `✓ Mensalidade de ${curr} ${fee.toFixed(2)}/mês guardada.`; msg.style.color = '#4ade80'; }
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    }
+};
+
+/** Load and render coupons list */
+async function loadCrieCoupons() {
+    const wsId = getCrieWorkspaceId();
+    if (!wsId) return;
+    const sb = window.supabaseClient;
+    const { data: coupons } = await sb.from('crie_coupons').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false });
+    renderCrieCoupons(coupons || []);
+}
+
+function renderCrieCoupons(coupons) {
+    const list  = document.getElementById('crie-coupons-list');
+    const empty = document.getElementById('crie-coupons-empty');
+    if (!list) return;
+
+    if (!coupons.length) {
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    const applicableLabel = { both: 'Ambos', events: 'Eventos', memberships: 'Mensalidades' };
+
+    const rows = coupons.map(c => {
+        const discStr = c.type === 'percent' ? `${c.discount}%` : `${c.currency || 'EUR'} ${Number(c.discount).toFixed(2)}`;
+        const expStr  = c.expires_at ? new Date(c.expires_at).toLocaleDateString('pt-PT') : '∞';
+        const statusColor = c.is_active ? '#4ade80' : 'rgba(255,255,255,0.25)';
+        return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">
+            <span style="font-size:1.1rem;">🎁</span>
+            <div>
+                <span style="font-size:0.88rem;font-weight:700;color:#fff;font-family:monospace;">${c.code}</span>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);margin-top:2px;">Desconto: <strong style="color:rgba(255,255,255,0.7);">${discStr}</strong> &bull; Aplica-se a: ${applicableLabel[c.applicable_to] || 'Ambos'} &bull; Usos: ${c.times_redeemed || 0}${c.max_redemptions ? '/'+c.max_redemptions : ''} &bull; Expira: ${expStr}</div>
+            </div>
+            <span style="font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusColor}22;color:${statusColor};">${c.is_active ? 'ATIVO' : 'INATIVO'}</span>
+            <button onclick="toggleCouponStatus('${c.id}', ${!c.is_active})" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 10px;font-size:0.7rem;color:rgba(255,255,255,0.4);cursor:pointer;">${c.is_active ? 'Desativar' : 'Ativar'}</button>
+            <button onclick="deleteCrieCoupon('${c.id}')" style="background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.15);border-radius:8px;padding:5px 8px;font-size:0.75rem;color:#f87171;cursor:pointer;">✕</button>
+        </div>`;
+    }).join('');
+
+    list.innerHTML = rows;
+}
+
+window.openCrieCreateCouponModal = function() {
+    // Reset form
+    ['coupon-code-input','coupon-discount-input','coupon-max-uses-input','coupon-expires-input'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const msgEl = document.getElementById('coupon-create-msg');
+    if (msgEl) msgEl.textContent = '';
+    document.getElementById('coupon-type-select').value = 'percent';
+    document.getElementById('coupon-applicable-select').value = 'both';
+    updateCouponTypeUI();
+    const modal = document.getElementById('modal-crie-coupon');
+    if (modal) { modal.style.display = 'flex'; }
+};
+
+window.updateCouponTypeUI = function() {
+    const type  = document.getElementById('coupon-type-select')?.value;
+    const label = document.getElementById('coupon-discount-label');
+    const input = document.getElementById('coupon-discount-input');
+    if (!label || !input) return;
+    if (type === 'percent') {
+        label.textContent = 'Desconto (%)';
+        input.max = 100; input.placeholder = '20';
+    } else {
+        label.textContent = 'Valor Fixo (€)';
+        input.removeAttribute('max'); input.placeholder = '5.00';
+    }
+};
+
+window.saveCrieCoupon = async function() {
+    const code    = (document.getElementById('coupon-code-input')?.value || '').trim();
+    const type    = document.getElementById('coupon-type-select')?.value || 'percent';
+    const disc    = parseFloat(document.getElementById('coupon-discount-input')?.value || '0');
+    const appTo   = document.getElementById('coupon-applicable-select')?.value || 'both';
+    const maxUses = parseInt(document.getElementById('coupon-max-uses-input')?.value || '0') || null;
+    const expDate = document.getElementById('coupon-expires-input')?.value || null;
+    const msg     = document.getElementById('coupon-create-msg');
+    const wsId    = getCrieWorkspaceId();
+    const curr    = document.getElementById('membership-currency-select')?.value || 'EUR';
+
+    if (!code) { if (msg) {msg.textContent='⚠️ Código obrigatório.';msg.style.color='#f87171';} return; }
+    if (!disc || disc <= 0) { if (msg) {msg.textContent='⚠️ Desconto inválido.';msg.style.color='#f87171';} return; }
+    if (type === 'percent' && disc > 100) { if (msg) {msg.textContent='⚠️ Percentual máximo: 100%.';msg.style.color='#f87171';} return; }
+
+    if (msg) { msg.textContent = 'A criar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+
+    const sb = window.supabaseClient;
+    const { data: { session } } = await sb.auth.getSession();
+    const EDGE = (window.SUPABASE_URL || '').replace('.supabase.co','') + '.supabase.co/functions/v1';
+    const stripeConnected = window._crieStripeConnected;
+
+    let stripe_coupon_id = null;
+
+    if (stripeConnected) {
+        try {
+            const res = await fetch(`${EDGE}/crie-create-coupon`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ workspace_id: wsId, code, type, discount: disc, currency: curr, max_redemptions: maxUses, expires_at: expDate })
+            });
+            const json = await res.json();
+            if (json.coupon_id) stripe_coupon_id = json.coupon_id;
+        } catch(e) {
+            console.warn('Stripe coupon create failed:', e.message);
+        }
+    }
+
+    // Save to DB regardless
+    const { error } = await sb.from('crie_coupons').insert({
+        workspace_id: wsId, stripe_coupon_id, code, type,
+        discount: disc, currency: curr, applicable_to: appTo,
+        max_redemptions: maxUses,
+        expires_at: expDate ? new Date(expDate).toISOString() : null,
+        is_active: true
+    });
+
+    if (error) {
+        if (msg) { msg.textContent = '❌ Erro ao guardar cupom.'; msg.style.color = '#f87171'; }
+        return;
+    }
+
+    // Close modal + refresh list
+    document.getElementById('modal-crie-coupon').style.display = 'none';
+    await loadCrieCoupons();
+    if (msg) { msg.textContent = ''; }
+};
+
+window.toggleCouponStatus = async function(couponId, newStatus) {
+    await window.supabaseClient.from('crie_coupons').update({ is_active: newStatus }).eq('id', couponId);
+    await loadCrieCoupons();
+};
+
+window.deleteCrieCoupon = async function(couponId) {
+    if (!confirm('Eliminar este cupom? Esta ação não pode ser desfeita.')) return;
+    await window.supabaseClient.from('crie_coupons').delete().eq('id', couponId);
+    await loadCrieCoupons();
+};
+
 
 async function loadCrieRelatorios() {
     const wsId = getCrieWorkspaceId();

@@ -1,0 +1,27 @@
+{
+  "name": "CRIE App",
+  "short_name": "CRIE",
+  "description": "O app dos membros CRIE — eventos, workshop e comunidade.",
+  "start_url": "/crie-app.html",
+  "display": "standalone",
+  "background_color": "#0a0b0f",
+  "theme_color": "#0a0b0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "social"],
+  "lang": "pt-PT",
+  "prefer_related_applications": false
+}
