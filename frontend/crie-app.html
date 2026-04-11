@@ -1280,7 +1280,8 @@ function renderMemberStatusSection() {
 async function loadPaymentInfo(wsId) {
     const ws = _activeWorkspaces.find(w => w.id === wsId);
     const fee      = ws?.crie_settings?.membership_fee || null;
-    const currency = ws?.crie_settings?.membership_currency || 'EUR';
+    // Use membership_currency → crie_default_currency → BRL
+    const currency = ws?.crie_settings?.membership_currency || ws?.crie_settings?.crie_default_currency || 'BRL';
 
     // Update pay modal amount
     const amtEl = document.getElementById('pay-amount-value');
@@ -1400,7 +1401,7 @@ async function processPayment(type) {
     // Stripe payment via Edge Function
     msg.textContent = '⏳ A processar…'; msg.style.color = 'var(--text2)';
     const fee      = ws.crie_settings?.membership_fee;
-    const currency = (ws.crie_settings?.membership_currency || 'EUR').toLowerCase();
+    const currency = (ws.crie_settings?.membership_currency || ws.crie_settings?.crie_default_currency || 'BRL').toLowerCase();
     const coupon   = window._appliedCoupon?.code || null;
 
     const EDGE = SUPABASE_URL + '/functions/v1';

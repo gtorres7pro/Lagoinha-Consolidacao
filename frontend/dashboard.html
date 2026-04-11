@@ -4696,6 +4696,53 @@
                     </div>
                 </div>
 
+                <!-- ─── CONFIGURAÇÕES REGIONAIS ───────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);display:flex;align-items:center;justify-content:center;font-size:1rem;">🌍</div>
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:700;color:#fff;margin:0;">Configurações Regionais</p>
+                            <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin:0;">Moeda e código de país padrão para formulários e eventos deste workspace</p>
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Moeda Padrão</label>
+                                <select id="crie-default-currency-select" class="hub-field-input">
+                                    <option value="BRL">🇧🇷 R$ BRL</option>
+                                    <option value="EUR">🇪🇺 € EUR</option>
+                                    <option value="USD">🇺🇸 $ USD</option>
+                                    <option value="GBP">🇬🇧 £ GBP</option>
+                                    <option value="AOA">🇦🇴 Kz AOA</option>
+                                    <option value="MZN">🇲🇿 MT MZN</option>
+                                    <option value="CHF">🇨🇭 CHF</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Código de País (Telefone)</label>
+                                <select id="crie-default-country-select" class="hub-field-input">
+                                    <option value="+55">🇧🇷 +55 Brasil</option>
+                                    <option value="+351">🇵🇹 +351 Portugal</option>
+                                    <option value="+1">🇺🇸 +1 EUA</option>
+                                    <option value="+244">🇦🇴 +244 Angola</option>
+                                    <option value="+258">🇲🇿 +258 Moçambique</option>
+                                    <option value="+44">🇬🇧 +44 Reino Unido</option>
+                                    <option value="+34">🇪🇸 +34 Espanha</option>
+                                    <option value="+33">🇫🇷 +33 França</option>
+                                    <option value="+49">🇩🇪 +49 Alemanha</option>
+                                    <option value="+27">🇿🇦 +27 África do Sul</option>
+                                    <option value="+41">🇨🇭 +41 Suíça</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button onclick="saveCrieRegionalSettings()" style="width:100%;background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);border-radius:10px;padding:10px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(96,165,250,0.22)'" onmouseout="this.style.background='rgba(96,165,250,0.12)'">Salvar</button>
+                            </div>
+                        </div>
+                        <div id="crie-regional-save-msg" style="font-size:0.78rem;min-height:16px;"></div>
+                    </div>
+                </div>
+
                 <!-- ─── CUPONS ─────────────────────────────────────── -->
                 <div>
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -6217,20 +6264,48 @@
             <!-- Stripe -->
             <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;background:rgba(96,165,250,0.03);border-color:rgba(96,165,250,0.12);">
                 <div style="display:flex;align-items:center;gap:12px;width:100%;">
-                    <h3 style="font-size:0.85rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.05em;flex:1;">⚡ Stripe</h3>
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                        <input type="checkbox" id="cc-stripe-enabled" onchange="toggleStripeSection(this.checked)" style="accent-color:#60a5fa;">
-                        <span style="font-size:0.82rem;color:rgba(255,255,255,0.6);">Ativar Stripe</span>
-                    </label>
+                    <h3 style="font-size:0.85rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.05em;flex:1;">⚡ Stripe — Pagamentos Online</h3>
+                    <div id="cantina-stripe-connection-status" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;">
+                        <span style="color:rgba(255,255,255,0.2);">⬤</span>
+                        <span style="color:rgba(255,255,255,0.3);">Não conectado</span>
+                    </div>
                 </div>
-                <div id="stripe-config-section" style="width:100%;display:flex;flex-direction:column;gap:10px;opacity:0.4;pointer-events:none;">
+                <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);line-height:1.5;margin:0;">Conecte a conta Stripe do seu workspace para activar pagamentos online na Cantina.</p>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;">
                     <div>
                         <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Publishable Key</label>
                         <input id="cc-stripe-pub" type="text" placeholder="pk_live_..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
                     </div>
-                    <div>
+                    <div style="position:relative;">
                         <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Secret Key</label>
-                        <input id="cc-stripe-sec" type="password" placeholder="sk_live_..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
+                        <div style="position:relative;">
+                            <input id="cc-stripe-sec" type="password" placeholder="sk_live_..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 40px 10px 14px;color:#fff;font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
+                            <button onclick="toggleCantinaSkVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:0.9rem;padding:0;" title="Mostrar/ocultar">👁</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <button id="btn-cantina-stripe-connect" onclick="connectCantinaStripe()"
+                        style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:opacity .2s;"
+                        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                        ⚡ Conectar Stripe
+                    </button>
+                    <button id="btn-cantina-stripe-disconnect" onclick="disconnectCantinaStripe()"
+                        style="display:none;align-items:center;gap:8px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:#f87171;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:700;cursor:pointer;"
+                        onmouseover="this.style.background='rgba(248,113,113,0.2)'" onmouseout="this.style.background='rgba(248,113,113,0.1)'">
+                        Desconectar
+                    </button>
+                    <span id="cantina-stripe-connect-msg" style="font-size:0.82rem;font-weight:600;"></span>
+                </div>
+
+                <!-- Ativar Stripe nos pedidos (toggle independente do connect) -->
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;width:100%;box-sizing:border-box;">
+                    <input type="checkbox" id="cc-stripe-enabled" onchange="toggleStripeSection(this.checked)" style="accent-color:#60a5fa;width:16px;height:16px;">
+                    <div>
+                        <div style="font-size:0.85rem;color:#fff;font-weight:600;">Activar Stripe nos pedidos online</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Exibe Stripe como opção de pagamento no portal público</div>
                     </div>
                 </div>
             </div>
@@ -6419,7 +6494,7 @@
     <script src="/hub-dashboard.js?v=20260407v1"></script>
 
     <script src="/hub-start.js?v=1"></script>
-    <script src="/hub-cantina.js?v=20260411v1"></script>
+    <script src="/hub-cantina.js?v=20260411v2"></script>
     <script src="/task-manager.js?v=20260401v1"></script>
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>

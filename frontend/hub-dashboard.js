@@ -4174,9 +4174,9 @@ window.switchTab = function(tab) {
 };
 
 /**
- * Lightweight initializer — fetches only the stripe_connected flag from
- * crie_settings once per page-load and caches it in window._crieStripeConnected.
- * Called on every CRIE tab switch so the Eventos drawer toggle always works.
+ * Lightweight initializer — fetches crie_settings once per page-load and
+ * caches Stripe status + regional defaults in global window vars.
+ * Called on every CRIE tab switch so drawers and toggles always have fresh state.
  */
 let _crieStripeStateLoading = false;
 async function _initCrieStripeState() {
@@ -4191,8 +4191,13 @@ async function _initCrieStripeState() {
         const s = ws?.crie_settings || {};
         window._crieStripeConnected      = !!s.stripe_connected;
         window._crieStripePublishableKey = s.stripe_publishable_key || '';
+        // Regional defaults — used by event drawers and public forms
+        window._crieDefaultCurrency      = s.crie_default_currency    || 'BRL';
+        window._crieDefaultCountryCode   = s.crie_default_country_code || '+55';
     } catch(e) {
-        window._crieStripeConnected = false;
+        window._crieStripeConnected      = false;
+        window._crieDefaultCurrency      = 'BRL';
+        window._crieDefaultCountryCode   = '+55';
     } finally {
         _crieStripeStateLoading = false;
     }
@@ -5310,7 +5315,7 @@ function openEventoDrawer(id) {
     document.getElementById('dedit-price').value    = ev.price ?? '';
     // Normalize legacy symbol values to codes for the select
     const currToCode = { '€':'EUR', 'R$':'BRL', '$':'USD', '£':'GBP', 'EUR':'EUR', 'BRL':'BRL', 'USD':'USD', 'GBP':'GBP' };
-    document.getElementById('dedit-currency').value = currToCode[ev.currency] || 'EUR';
+    document.getElementById('dedit-currency').value = currToCode[ev.currency] || window._crieDefaultCurrency || 'BRL';
     document.getElementById('dedit-status').value   = (ev.status === 'ARCHIVED' || ev.status === 'LIVE') ? 'DRAFT' : (ev.status || 'DRAFT');
 
     // Populate payment & visibility toggles
@@ -5912,7 +5917,7 @@ async function saveCrieEvento(e) {
         capacity:               parseInt(form.elements['capacity'].value) || 0,
         location:               form.elements['location'].value.trim(),
         price:                  parseFloat(form.elements['price']?.value) || 0,
-        currency:               form.elements['currency']?.value || 'EUR',
+        currency:               form.elements['currency']?.value || window._crieDefaultCurrency || 'BRL',
         status:                 form.elements['status'].value,
         banner_url:             null,
         is_free:                form.elements['is_free']?.value === 'true',
@@ -6321,7 +6326,19 @@ async function loadCrieSettings() {
     const feeInput = document.getElementById('membership-fee-input');
     const currSel  = document.getElementById('membership-currency-select');
     if (feeInput && s.membership_fee != null) feeInput.value = s.membership_fee;
-    if (currSel  && s.membership_currency) currSel.value = s.membership_currency;
+    // Use membership_currency or fall back to the workspace's default currency
+    const effectiveCurr = s.membership_currency || s.crie_default_currency || 'BRL';
+    if (currSel) currSel.value = effectiveCurr;
+
+    // ── Regional settings ──────────────────────────────────────
+    // Cache globally so event drawers & public pages can use these
+    window._crieDefaultCurrency    = s.crie_default_currency    || 'BRL';
+    window._crieDefaultCountryCode = s.crie_default_country_code || '+55';
+
+    const defCurrSel    = document.getElementById('crie-default-currency-select');
+    const defCountrySel = document.getElementById('crie-default-country-select');
+    if (defCurrSel)    defCurrSel.value    = window._crieDefaultCurrency;
+    if (defCountrySel) defCountrySel.value = window._crieDefaultCountryCode;
 
     // ── Coupons list ──────────────────────────────────────────
     await loadCrieCoupons();
@@ -6410,6 +6427,32 @@ window.saveMembershipSettings = async function() {
         if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
     } else {
         if (msg) { msg.textContent = `✓ Mensalidade de ${curr} ${fee.toFixed(2)}/mês guardada.`; msg.style.color = '#4ade80'; }
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    }
+};
+
+/** Save default currency & country code for this workspace */
+window.saveCrieRegionalSettings = async function() {
+    const wsId   = getCrieWorkspaceId();
+    const curr   = document.getElementById('crie-default-currency-select')?.value    || 'BRL';
+    const country = document.getElementById('crie-default-country-select')?.value   || '+55';
+    const msg    = document.getElementById('crie-regional-save-msg');
+    if (msg) { msg.textContent = 'A guardar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const updated = { ...(ws?.crie_settings || {}), crie_default_currency: curr, crie_default_country_code: country };
+    const { error } = await sb.from('workspaces').update({ crie_settings: updated }).eq('id', wsId);
+
+    if (error) {
+        if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
+    } else {
+        // Update global cache immediately
+        window._crieDefaultCurrency    = curr;
+        window._crieDefaultCountryCode = country;
+        // Reset stripe-state cache so next CRIE tab switch re-reads settings
+        _crieStripeStateLoading = false;
+        if (msg) { msg.textContent = `✓ Configurações regionais guardadas (${curr}, ${country}).`; msg.style.color = '#60a5fa'; }
         setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     }
 };

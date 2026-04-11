@@ -458,13 +458,15 @@
         auth: { persistSession: false, detectSessionInUrl: false, autoRefreshToken: false }
     });
 
-    let _workspaceId      = null;
-    let _workspaceName    = null;
-    let _eventId          = null;
-    let _onlinePayEnabled = false;
-    let _eventPrice       = 0;
-    let _eventCurrency    = 'BRL';
-    let _isFree           = false;
+    let _workspaceId         = null;
+    let _workspaceName        = null;
+    let _eventId              = null;
+    let _onlinePayEnabled     = false;
+    let _eventPrice           = 0;
+    let _eventCurrency        = 'BRL';
+    let _isFree               = false;
+    let _wsDefaultCountryCode = '+55'; // loaded from workspace crie_settings
+    let _wsDefaultCurrency    = 'BRL'; // loaded from workspace crie_settings
 
     function show(id) {
         ['loading-state','no-event-state','form-state','success-state','payment-success-state','payment-cancelled-state']
@@ -512,9 +514,18 @@
             _workspaceId = await window.HubRouter.getWorkspaceId();
             if (!_workspaceId) throw new Error('Workspace não encontrado');
 
-            // 2. Workspace branding
-            const { data: ws } = await sb.from('workspaces').select('name').eq('id', _workspaceId).single();
+            // 2. Workspace branding + regional settings
+            const { data: ws } = await sb.from('workspaces').select('name, crie_settings').eq('id', _workspaceId).single();
             _workspaceName = ws?.name || 'CRIE';
+            // Load regional defaults from workspace settings
+            const cs = ws?.crie_settings || {};
+            _wsDefaultCountryCode = cs.crie_default_country_code || '+55';
+            _wsDefaultCurrency    = cs.crie_default_currency    || 'BRL';
+
+            // Pre-select default country code in phone select
+            const countrySel = document.getElementById('cr-phone-country');
+            if (countrySel) countrySel.value = _wsDefaultCountryCode;
+
             if (ws?.name) {
                 document.getElementById('ws-sub-label').textContent = `CRIE — ${ws.name}`;
                 document.getElementById('footer-ws-name').textContent = `CRIE ${ws.name}`;
@@ -540,7 +551,8 @@
             _onlinePayEnabled = !!ev.online_payment_enabled;
             _isFree           = !!ev.is_free;
             _eventPrice       = parseFloat(ev.price) || 0;
-            _eventCurrency    = ev.currency || 'BRL';
+            // Use event's own currency; fall back to workspace default, then hardcoded default
+            _eventCurrency    = ev.currency || _wsDefaultCurrency;
 
             // 4. Populate event card
             document.getElementById('ev-title').textContent = ev.title;
