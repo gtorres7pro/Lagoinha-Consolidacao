@@ -133,7 +133,7 @@
             margin: 2px 0 4px;
             gap: 0;
         }
-        .nav-group.flyout-open .nav-submenu-wrap { display: flex; animation: slideDown 0.2s ease-out; }
+        .nav-group.flyout-open .nav-submenu-wrap { display: none !important; }
         .nav-submenu-line {
             width: 1px;
             background: rgba(255, 255, 255, 0.08);
@@ -1058,6 +1058,21 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
             </div>
         </div>
+    </aside>
+
+    <!-- Secondary Sidebar (Dual Pane) -->
+    <aside class="sidebar-secondary" id="secondary-sidebar" style="display:none;">
+        <div class="sec-sidebar-header">
+           <span class="sec-sidebar-title" id="sec-sidebar-title">Menu</span>
+           <button class="sec-sidebar-close" onclick="closeSecondarySidebar()" title="Voltar">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+           </button>
+        </div>
+        <ul class="nav" id="sec-sidebar-nav" style="padding: 12px; margin: 0; list-style: none;">
+            <!-- Submenus movidos via JS -->
+        </ul>
     </aside>
 
     <!-- ═══ PROFILE MODAL ═══ -->

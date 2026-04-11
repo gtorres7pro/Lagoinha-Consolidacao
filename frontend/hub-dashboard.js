@@ -637,6 +637,8 @@
 
         // Router logic
         window.switchTab = function(tabName) {
+            if (window.closeSecondarySidebar) window.closeSecondarySidebar();
+            
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
             if (viewEl) viewEl.classList.add('active');
@@ -656,33 +658,66 @@
             if (tabName === 'crie-connect' && window.loadCrieConnect) window.loadCrieConnect();
         }
 
-        // ─── SIDEBAR TOGGLE SUBMENU ──────────────────────────────────────
+        // ─── SIDEBAR TOGGLE SUBMENU (DUAL PANE) ──────────────────────────
+        window.closeSecondarySidebar = function() {
+            const openGroup = document.querySelector('.nav-group.flyout-open');
+            if (openGroup) {
+                const secSidebarNav = document.getElementById('sec-sidebar-nav');
+                // Return the UL to its original place just in case
+                if (secSidebarNav && secSidebarNav.firstElementChild) {
+                   openGroup.querySelector('.nav-submenu-wrap').appendChild(secSidebarNav.firstElementChild);
+                }
+                openGroup.classList.remove('flyout-open');
+            }
+            const secSidebar = document.getElementById('secondary-sidebar');
+            if (secSidebar) secSidebar.classList.remove('show');
+            
+            // Revert main sidebar to uncollapsed ONLY if not manually collapsed via bottom button
+            if (localStorage.getItem('sidebarCollapsed') !== '1') {
+                const sidebar = document.getElementById('main-sidebar');
+                if (sidebar) sidebar.classList.remove('sidebar-collapsed');
+                document.body.classList.remove('sidebar-collapsed');
+            }
+        };
+
         window.toggleSubmenu = function(element) {
             const group = element.closest('.nav-group');
             if (!group) return;
             
             const isFlyoutOpen = group.classList.contains('flyout-open');
             
-            // Close other open submenus first for a cleaner look
-            if (!isFlyoutOpen) {
-                document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
-                    if (el !== group) el.classList.remove('flyout-open');
-                });
+            if (isFlyoutOpen) {
+                // If clicking the same group that's already open -> close dual pane
+                window.closeSecondarySidebar();
+                return;
             }
 
-            // Toggle current group visibility
-            group.classList.toggle('flyout-open');
+            // Close previously open dual pane if any
+            window.closeSecondarySidebar();
+
+            // Set up the new group dual pane
+            group.classList.add('flyout-open');
+            const submenuWrap = group.querySelector('.nav-submenu-wrap');
+            const subUl = submenuWrap.querySelector('ul');
+            const secSidebar = document.getElementById('secondary-sidebar');
+            const secSidebarNav = document.getElementById('sec-sidebar-nav');
+            const secSidebarTitle = document.getElementById('sec-sidebar-title');
             
-            // Auto-scroll so it pushes list up if needed
-            if (!isFlyoutOpen) {
-                setTimeout(() => {
-                    const rect = group.getBoundingClientRect();
-                    const sidebar = document.querySelector('.sidebar');
-                    if (sidebar && rect.bottom > sidebar.clientHeight) {
-                        group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }, 100); // 100ms delay to allow DOM render of submenu
+            const groupName = element.querySelector('.nav-label').innerText;
+            if (secSidebarTitle) secSidebarTitle.innerText = groupName;
+            
+            // Move UL into dual pane container
+            if (subUl && secSidebarNav) {
+                secSidebarNav.appendChild(subUl);
             }
+            
+            // Collapse main sidebar forcibly
+            const sidebar = document.getElementById('main-sidebar');
+            if (sidebar) sidebar.classList.add('sidebar-collapsed');
+            document.body.classList.add('sidebar-collapsed');
+
+            // Show dual pane
+            if (secSidebar) secSidebar.classList.add('show');
         };
 
         // ─── Sidebar visibility based on user level ──────────────────────

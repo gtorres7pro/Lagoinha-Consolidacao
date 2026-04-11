@@ -1328,3 +1328,56 @@ select.hub-field-input { cursor: pointer; }
   padding: 9px 13px;
 }
 
+/* ── Secondary Sidebar (Dual Pane Submenus) ── */
+.sidebar-secondary {
+    width: 240px;
+    background: #0d0d0d;
+    border-right: 1px solid var(--card-border);
+    display: none; /* toggled inline to flex or via class */
+    flex-direction: column;
+    z-index: 9;
+    height: 100dvh;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+.sidebar-secondary.show {
+    display: flex;
+    animation: slideInRight 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+.sec-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 16px;
+    border-bottom: 1px solid var(--card-border);
+    min-height: 75px; 
+}
+.sec-sidebar-title {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+.sec-sidebar-close {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    color: #888;
+    cursor: pointer;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.sec-sidebar-close:hover {
+    background: rgba(255,215,0,.12); color: #FFD700; border-color: rgba(255,215,0,.3);
+}
+@keyframes slideInRight {
+    from { margin-left: -20px; opacity: 0; }
+    to { margin-left: 0; opacity: 1; }
+}
+
+/* On mobile, lay the secondary sidebar right on top of everything but main sidebar */
+@media (max-width: 768px) {
+    .sidebar-secondary { position: fixed; left: 64px; top: 0; bottom: 0; z-index: 99; box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
+}
+
