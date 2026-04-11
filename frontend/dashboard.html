@@ -746,7 +746,7 @@
             <li class="nav-group" id="nav-group-jornada">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
                     <span class="nav-icon" style="color:#FFF;"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-                    <span class="nav-label" style="font-weight:700; color: #FFF;">Jornada</span>
+                    <span class="nav-label">Jornada</span>
                     <span class="nav-item-arrow">▶</span>
                 </div>
                 <div class="nav-submenu-wrap">
@@ -979,25 +979,32 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </span>
                     <span class="nav-label">Configurações</span>
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <span class="nav-item-arrow">▶</span>
+                </div>
+                <div class="nav-submenu-wrap">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-equipe" onclick="switchTab('equipe')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Equipe</span>
                         </li>
                         <li id="nav-settings" onclick="switchTab('settings')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
                             <span class="nav-label">Base de Conhecimento IA</span>
-                        </li>
-                        <li id="nav-plans" onclick="showUpgradeModal()">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-                            <span class="nav-label">Planos</span>
-                        </li>
-                        <!-- Dev Hub — master_admin only -->
-                        <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')" class="nav-item-row master-admin-only" style="display:none;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:10px;transition:background .15s;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-                            <span class="nav-label">Dev Hub</span>
-                            <span style="font-size:.55rem;background:rgba(255,215,0,.15);color:#FFD700;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">DEV</span>
                         </li>
                     </ul>
                 </div>
+            </li>
+
+            <li id="nav-plans" onclick="showUpgradeModal()">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                <span class="nav-label">Planos</span>
+            </li>
+            <!-- Dev Hub — master_admin only -->
+            <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')" class="master-admin-only" style="display:none;align-items:center;gap:10px;">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+                <span class="nav-label">Dev Hub</span>
+                <span style="font-size:.55rem;background:rgba(255,215,0,.15);color:#FFD700;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">DEV</span>
             </li>
 
         </ul>
