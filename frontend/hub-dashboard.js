@@ -667,43 +667,15 @@
 
         // --- SIDEBAR DUAL PANE: close secondary sidebar ------------------
         window.closeSecondarySidebar = function() {
-            document.querySelectorAll('.nav-group.flyout-open').forEach(g => g.classList.remove('flyout-open'));
-            const secSidebar = document.getElementById('secondary-sidebar');
-            if (secSidebar) secSidebar.classList.remove('show');
-            const secNav = document.getElementById('sec-sidebar-nav');
-            if (secNav) secNav.innerHTML = '';
-            if (localStorage.getItem('sidebarCollapsed') !== '1') {
-                const sidebar = document.getElementById('main-sidebar');
-                if (sidebar) sidebar.classList.remove('sidebar-collapsed');
-                document.body.classList.remove('sidebar-collapsed');
-            }
+            // No longer using secondary sidebar, just close open submenus if needed
+            // Currently preserving open state of submenus is better
         };
 
         // --- SIDEBAR DUAL PANE: open secondary sidebar with submenu ------
         window.toggleSubmenu = function(element) {
             const group = element.closest('.nav-group');
             if (!group) return;
-            const isFlyoutOpen = group.classList.contains('flyout-open');
-            if (isFlyoutOpen) {
-                window.closeSecondarySidebar();
-                return;
-            }
-            window.closeSecondarySidebar();
-            group.classList.add('flyout-open');
-            const subUl = group.querySelector('.nav-submenu-wrap ul');
-            const secSidebarTitle = document.getElementById('sec-sidebar-title');
-            const secSidebarNav = document.getElementById('sec-sidebar-nav');
-            if (secSidebarTitle) {
-                secSidebarTitle.textContent = (element.querySelector('.nav-label') || {}).textContent || '';
-            }
-            if (secSidebarNav && subUl) {
-                secSidebarNav.innerHTML = subUl.innerHTML;
-            }
-            const sidebar = document.getElementById('main-sidebar');
-            if (sidebar) sidebar.classList.add('sidebar-collapsed');
-            document.body.classList.add('sidebar-collapsed');
-            const secSidebar = document.getElementById('secondary-sidebar');
-            if (secSidebar) secSidebar.classList.add('show');
+            group.classList.toggle('open');
         };
 
 
@@ -3822,7 +3794,7 @@
     // Close sidebar when nav item clicked on mobile — skip submenu toggles
     document.querySelectorAll('.nav li[onclick], .nav-item-row[onclick]').forEach(el => {
         el.addEventListener('click', () => {
-            if (window.innerWidth < 1024 && !el.dataset.submenuToggle) closeSidebar();
+            if (window.innerWidth < 1024 && !el.classList.contains('nav-item-row') && !el.dataset.submenuToggle) closeSidebar();
         });
     });
 
@@ -4914,7 +4886,7 @@ function _buildCrieReportHtml(sorted, wsName, dateStr) {
       <tbody>${rowsHtml}</tbody>
     </table>
   </div>
-  <p style="text-align:center;color:#4a4a6a;font-size:12px;margin-top:24px;">Gerado pelo Zelo Pro · ${dateStr}</p>
+  <p style="text-align:center;color:#4a4a6a;font-size:12px;margin-top:24px;">Gerado pelo Zelo · ${dateStr}</p>
 </div>
 </body></html>`;
 }
@@ -6051,7 +6023,7 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
     <br><br>Continue a registar os inscritos no CRIE para construir um historial preciso da comunidade e personalizar as próximas experiências!
 </div>
 
-<div class="footer">Gerado automaticamente pelo Zelo Pro &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
+<div class="footer">Gerado automaticamente pelo Zelo &middot; ${new Date().toLocaleDateString('pt-PT')}</div>
 </body></html>`;
 
 
@@ -8498,10 +8470,55 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
                 ${plan === 'trial' ? `<button onclick="extendTrial('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34D399;border-radius:8px;cursor:pointer;font-weight:700;">+7d Trial</button>` : ''}
                 <button onclick="openOverrideModal('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
                 ${wsUrl ? `<a href="${wsUrl}" target="_blank" style="font-size:.68rem;padding:3px 9px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);color:#FBBF24;border-radius:8px;cursor:pointer;text-decoration:none;">Abrir</a>` : ''}
+                <button onclick="deleteWorkspace('${ws.id}','${ws.name}')" title="Excluir workspace e usuários" style="font-size:.68rem;padding:3px 9px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:8px;cursor:pointer;font-weight:700;transition:all .15s;" onmouseover="this.style.background='rgba(239,68,68,.18)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">🗑️</button>
               </div>
             </td>
         </tr>`;
     }).join('');
+};
+
+// ── Delete Workspace ─────────────────────────────────────────────
+window.deleteWorkspace = async function(wsId, wsName) {
+    const confirmed = confirm(`⚠️ EXCLUIR WORKSPACE\n\nIgreja: "${wsName}"\n\nIsso irá remover permanentemente o workspace e TODOS os usuários vinculados.\nEssa ação não pode ser desfeita.\n\nDigite OK para confirmar.`);
+    if (!confirmed) return;
+
+    const sb = window.supabaseClient;
+    hubToast && hubToast('Excluindo workspace...', 'info');
+
+    try {
+        // 1. Get linked auth user IDs
+        const { data: pubUsers } = await sb.from('users').select('id').eq('workspace_id', wsId);
+        const userIds = (pubUsers || []).map(u => u.id);
+
+        // 2. Delete from public.users
+        if (userIds.length) {
+            await sb.from('users').delete().in('id', userIds);
+        }
+
+        // 3. Delete auth users via admin API (Edge Function)
+        if (userIds.length) {
+            const { data: { session } } = await sb.auth.getSession();
+            for (const uid of userIds) {
+                try {
+                    await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ action: 'delete', id: uid }),
+                    });
+                } catch(_) { /* non-fatal */ }
+            }
+        }
+
+        // 4. Delete workspace itself
+        const { error } = await sb.from('workspaces').delete().eq('id', wsId);
+        if (error) throw error;
+
+        hubToast && hubToast(`✅ Workspace "${wsName}" excluído com sucesso!`, 'success');
+        loadDevPanel();
+    } catch(e) {
+        console.error('deleteWorkspace error', e);
+        hubToast && hubToast('Erro ao excluir: ' + e.message, 'error');
+    }
 };
 
 window.extendTrial = async function(wsId, wsName) {
@@ -10044,7 +10061,7 @@ function loadMilaHistory() {
                     <div style="width: 56px; height: 56px; border-radius: 28px; background: linear-gradient(135deg, #FFD700, #F59E0B); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #111; font-size: 1.8rem; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);">M</div>
                 </div>
                 <h2 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px;">Olá, eu sou a Mila.</h2>
-                <p style="color: rgba(255,255,255,0.6); max-width: 400px; line-height: 1.5; margin-bottom: 40px;">Sua assistente integrada ao Zelo Pro. Consulte a base de dados, atualize fluxos ou relate feedbacks.</p>
+                <p style="color: rgba(255,255,255,0.6); max-width: 400px; line-height: 1.5; margin-bottom: 40px;">Sua assistente integrada ao Zelo. Consulte a base de dados, atualize fluxos ou relate feedbacks.</p>
                 
                 <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 600px;">
                     <div onclick="document.getElementById('mila-input').value = 'Gostaria de relatar uma melhoria no sistema...'; document.getElementById('mila-input').focus();" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; color: #E5E7EB;">💡 Sugerir melhoria</div>
