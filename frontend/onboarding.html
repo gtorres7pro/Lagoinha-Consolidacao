@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bem-vindo ao Zelo 🎉</title>
-    <meta name="theme-color" content="#030508">
+    <meta name="theme-color" content="black">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -14,17 +14,24 @@
             --gold: #FBBF24;
             --gold-dim: #F59E0B;
             --surface: rgba(255,255,255,0.03);
-            --border: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.07);
             --text-dim: rgba(255,255,255,0.45);
+        }
+
+        html, body {
+            height: 100%;
         }
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: #0f0f13;
+            background: #000;
             color: #fff;
             min-height: 100dvh;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Safe area for iOS home bar */
+            padding-bottom: env(safe-area-inset-bottom, 16px);
         }
 
         /* ── Background ── */
@@ -44,16 +51,33 @@
         /* ── Confetti ── */
         #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
 
+        /* ── Global progress bar ── */
+        .progress-bar-outer {
+            width: 100%; max-width: 960px;
+            padding: 20px 24px 8px 24px;
+            position: relative; z-index: 1;
+            flex-shrink: 0;
+        }
+        .progress-bg { height: 3px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--gold); border-radius: 10px; transition: width 0.4s ease; }
+        .progress-label { font-size: 0.72rem; color: var(--text-dim); text-align: right; margin-top: 6px; }
+
         /* ── Wrapper ── */
         .onboarding-wrapper {
             position: relative; z-index: 1;
             width: 100%; max-width: 960px;
-            padding: 32px 24px;
-            display: flex; flex-direction: column; align-items: stretch; gap: 0;
+            padding: 16px 24px 24px 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         /* ── Step system ── */
-        .step { display: none; flex-direction: column; align-items: center; gap: 28px; }
+        .step {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
         .step.active {
             display: flex;
             animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
@@ -65,40 +89,41 @@
 
         /* ── Logo ── */
         .logo {
-            width: 60px; height: 60px;
+            width: 56px; height: 56px;
             background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-            border-radius: 18px; flex-shrink: 0;
+            border-radius: 16px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 8px 32px rgba(251,191,36,0.3), 0 0 0 1px rgba(251,191,36,0.15);
         }
-        .logo svg { width: 24px; height: 24px; color: #000; }
+        .logo svg { width: 22px; height: 22px; color: #000; }
 
         /* ── Step 1 — Welcome ── */
         .welcome-layout {
-            width: 100%; display: grid; gap: 32px;
+            width: 100%; display: grid; gap: 28px;
             align-items: start;
             grid-template-columns: 1fr;
+            flex: 1;
         }
         @media (min-width: 700px) {
             .welcome-layout { grid-template-columns: 1fr 1fr; }
         }
 
-        .welcome-left { display: flex; flex-direction: column; gap: 18px; }
-        .welcome-right { display: flex; flex-direction: column; gap: 14px; }
+        .welcome-left { display: flex; flex-direction: column; gap: 16px; }
+        .welcome-right { display: flex; flex-direction: column; gap: 12px; }
 
-        .emoji-big { font-size: 3rem; display: block; }
+        .emoji-big { font-size: 2.5rem; display: block; }
         h1.main-title {
-            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
             font-weight: 900; letter-spacing: -0.05em; line-height: 1.05;
         }
-        .sub-text { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; }
+        .sub-text { color: var(--text-dim); font-size: 0.9rem; line-height: 1.6; }
         .ws-highlight { color: var(--gold); font-weight: 800; }
 
         .trial-badge {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 7px 16px;
+            padding: 6px 14px;
             background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2);
-            border-radius: 40px; font-size: 0.8rem; font-weight: 700; color: var(--gold);
+            border-radius: 40px; font-size: 0.78rem; font-weight: 700; color: var(--gold);
             width: fit-content;
         }
 
@@ -116,7 +141,7 @@
         .ic-blue   { background: rgba(96,165,250,0.12); }
         .ic-green  { background: rgba(52,211,153,0.12); }
         .info-tile-label { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .info-tile-value { font-size: 0.9rem; font-weight: 700; color: #fff; word-break: break-all; }
+        .info-tile-value { font-size: 0.88rem; font-weight: 700; color: #fff; word-break: break-all; }
         .info-tile-value.mono { font-family: 'Courier New', monospace; letter-spacing: 0.05em; }
 
         .password-warn {
@@ -127,23 +152,43 @@
         .password-warn strong { color: var(--gold); }
 
         /* ── Module Carousel (Step 2) ── */
+        /* The step-2 layout fills the screen properly */
+        #step-2 {
+            justify-content: space-between;
+            gap: 20px;
+        }
+
         .carousel-outer {
-            width: 100%; overflow: hidden; position: relative;
+            flex: 1;
+            overflow: hidden; position: relative;
+            /* Enable touch actions only horizontally so vertical scroll still works */
+            touch-action: pan-y;
         }
         .carousel-track {
-            display: flex; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
+            display: flex;
+            height: 100%;
+            transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
             will-change: transform;
+            /* Prevent text selection on swipe */
+            user-select: none;
+            -webkit-user-select: none;
         }
         .module-slide {
-            min-width: 100%; padding: 4px 2px;
-            display: flex; justify-content: center;
+            min-width: 100%;
+            height: 100%;
+            padding: 4px 2px;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
         }
         .module-card {
             width: 100%; max-width: 640px;
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: 24px; padding: 36px 40px;
-            display: flex; flex-direction: column; gap: 18px;
+            border-radius: 24px; padding: 28px 28px;
+            display: flex; flex-direction: column; gap: 16px;
             position: relative; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            backdrop-filter: blur(20px);
         }
         .module-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -151,9 +196,9 @@
             border-radius: 24px 24px 0 0;
         }
         .module-icon-wrap {
-            width: 56px; height: 56px; border-radius: 16px;
+            width: 52px; height: 52px; border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.6rem;
+            font-size: 1.5rem;
             background: var(--icon-bg, rgba(251,191,36,0.1));
         }
         .module-tag {
@@ -162,18 +207,18 @@
             background: rgba(255,255,255,0.05); border-radius: 20px; width: fit-content;
         }
         .module-name {
-            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-size: clamp(1.4rem, 3vw, 1.9rem);
             font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
         }
         .module-tagline {
-            font-size: 1rem; color: rgba(255,255,255,0.7); line-height: 1.6; font-weight: 500;
+            font-size: 0.95rem; color: rgba(255,255,255,0.7); line-height: 1.6; font-weight: 500;
         }
         .module-features {
-            display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+            display: flex; flex-direction: column; gap: 8px; margin-top: 2px;
         }
         .module-feat {
             display: flex; align-items: flex-start; gap: 10px;
-            font-size: 0.85rem; color: rgba(255,255,255,0.55); line-height: 1.4;
+            font-size: 0.83rem; color: rgba(255,255,255,0.55); line-height: 1.4;
         }
         .module-feat .dot-check { color: var(--gold); font-weight: 900; flex-shrink: 0; }
         .module-soon-badge {
@@ -186,6 +231,8 @@
         .carousel-nav {
             display: flex; align-items: center; justify-content: space-between;
             width: 100%; max-width: 640px;
+            flex-shrink: 0;
+            padding: 4px 0;
         }
         .nav-dots {
             display: flex; gap: 6px; align-items: center;
@@ -198,10 +245,13 @@
 
         .btn-nav {
             display: flex; align-items: center; gap: 6px;
-            padding: 9px 18px;
+            padding: 13px 20px;
             background: rgba(255,255,255,0.06); border: 1px solid var(--border);
-            border-radius: 10px; color: rgba(255,255,255,0.7); font-family: inherit;
-            font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            border-radius: 12px; color: rgba(255,255,255,0.7); font-family: inherit;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            /* Prevent iOS tap delay */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         .btn-nav:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .btn-nav.primary {
@@ -209,21 +259,23 @@
             color: #000; border: none; font-weight: 800;
         }
         .btn-nav.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(251,191,36,0.3); }
+        .btn-nav:active { opacity: 0.8; transform: scale(0.97); }
 
         /* Slide counter */
         .slide-counter { font-size: 0.78rem; color: var(--text-dim); }
 
         /* ── Final Step (Step 3) ── */
         .final-layout {
-            width: 100%; display: grid; gap: 32px;
+            width: 100%; display: grid; gap: 28px;
             grid-template-columns: 1fr;
             align-items: center; justify-items: center;
+            flex: 1;
         }
         @media (min-width: 700px) {
             .final-layout { grid-template-columns: 1fr 1fr; justify-items: stretch; }
         }
 
-        .final-left { display: flex; flex-direction: column; gap: 18px; text-align: center; }
+        .final-left { display: flex; flex-direction: column; gap: 16px; text-align: center; }
         @media (min-width: 700px) { .final-left { text-align: left; } }
 
         .btn-main {
@@ -233,6 +285,8 @@
             border: none; border-radius: 14px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             transition: all 0.2s; letter-spacing: -0.01em;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         .btn-main:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(251,191,36,0.3); }
         .btn-main:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -243,16 +297,6 @@
             border-radius: 50%; animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── Global progress bar ── */
-        .progress-bar-outer {
-            width: 100%; max-width: 960px;
-            padding: 0 24px;
-            position: relative; z-index: 1; margin-bottom: 8px;
-        }
-        .progress-bg { height: 3px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--gold); border-radius: 10px; transition: width 0.4s ease; }
-        .progress-label { font-size: 0.72rem; color: var(--text-dim); text-align: right; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -306,7 +350,7 @@
                     <div class="password-warn">
                         ✉️ Um e-mail com sua senha foi enviado agora. Verifique sua caixa de entrada (e o spam).
                     </div>
-                    <button class="btn-main" onclick="goToModules()">
+                    <button class="btn-main" onclick="goToModules()" style="-webkit-tap-highlight-color:transparent;touch-action:manipulation;">
                         Conhecer os módulos →
                     </button>
                 </div>
@@ -315,18 +359,18 @@
 
         <!-- ═══════════════════════ STEP 2 — Modules Carousel ═══════════════════════ -->
         <div class="step" id="step-2">
-            <div class="carousel-outer" style="width:100%;max-width:640px;">
+            <div class="carousel-outer" id="carousel-outer">
                 <div class="carousel-track" id="carousel-track">
                     <!-- Slides injected by JS -->
                 </div>
             </div>
             <div class="carousel-nav" id="carousel-nav">
-                <button class="btn-nav" id="btn-prev">← Anterior</button>
+                <button class="btn-nav" id="btn-prev" onclick="carouselPrev()">← Anterior</button>
                 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
                     <div class="nav-dots" id="nav-dots"></div>
                     <span class="slide-counter" id="slide-counter">1 / 10</span>
                 </div>
-                <button class="btn-nav primary" id="btn-next">Próximo →</button>
+                <button class="btn-nav primary" id="btn-next" onclick="handleNextBtn()">Próximo →</button>
             </div>
         </div>
 
@@ -413,7 +457,6 @@
     // ─── Step navigation ───────────────────────────────────────────────────────
     let currentStep = 1;
     const totalSteps = 3;
-    const TOTAL_MODULE_SLIDES = 10; // updated after build
 
     function showStep(n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -475,7 +518,7 @@
         tagline: 'Gestão completa do seu ministério de hospitalidade — do cardápio ao caixa.',
         features: [
           'Pedidos online com contagem regressiva e confirmação em tempo real',
-          'POS integrado para vendas no balcão com múltiplas formas de pagamento',
+          'PDV integrado para vendas no balcão com múltiplas formas de pagamento',
           'Fechamento de caixa automático com relatório por e-mail',
         ]
       },
@@ -507,9 +550,9 @@
         name: 'Tasks',
         tagline: 'Organize sua equipe com a eficiência que o ministério merece.',
         features: [
-          'Kanban e lista de tarefas com prioridades e responsáveis',
-          'Atribuição por membro, departamento ou módulo do sistema',
-          'Notificações e prazo de entrega integrados',
+          'Gerencie tarefas em modo lista ou visualização em colunas por status',
+          'Atribua tarefas por membro, departamento ou módulo do sistema',
+          'Notificações e prazos de entrega para nada cair no esquecimento',
         ]
       },
       {
@@ -551,8 +594,12 @@
 
     // ─── Build Carousel ────────────────────────────────────────────────────────
     let currentSlide = 0;
+    let carouselBuilt = false;
 
     function buildCarousel() {
+        if (carouselBuilt) return;
+        carouselBuilt = true;
+
         const track = document.getElementById('carousel-track');
         const dots  = document.getElementById('nav-dots');
 
@@ -584,6 +631,29 @@
           `<div class="nav-dot${i===0?' active':''}" onclick="goToSlide(${i})"></div>`
         ).join('');
 
+        // ── Swipe support — tracked ONLY within the carousel outer, no document listener ──
+        const outer = document.getElementById('carousel-outer');
+        let swipeStartX = null;
+        let swipeStartY = null;
+
+        outer.addEventListener('touchstart', e => {
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        outer.addEventListener('touchend', e => {
+            if (swipeStartX === null) return;
+            const dx = swipeStartX - e.changedTouches[0].clientX;
+            const dy = Math.abs(swipeStartY - e.changedTouches[0].clientY);
+            swipeStartX = null;
+            swipeStartY = null;
+            // Only treat as horizontal swipe if horizontal movement dominates
+            if (Math.abs(dx) > 40 && Math.abs(dx) > dy) {
+                if (dx > 0) carouselNext();
+                else carouselPrev();
+            }
+        }, { passive: true });
+
         updateSlide();
     }
 
@@ -594,16 +664,20 @@
 
         const isLast = currentSlide === MODULES.length - 1;
         const btnNext = document.getElementById('btn-next');
-        // Use data attribute to signal state — avoid overwriting onclick (conflicts with inline handler)
         btnNext.textContent = isLast ? 'Ver meu acesso →' : 'Próximo →';
-        btnNext.setAttribute('data-last', isLast ? '1' : '0');
+        btnNext.dataset.last = isLast ? '1' : '0';
 
-        const btnPrev = document.getElementById('btn-prev');
-        btnPrev.style.visibility = currentSlide === 0 ? 'hidden' : 'visible';
+        document.getElementById('btn-prev').style.visibility = currentSlide === 0 ? 'hidden' : 'visible';
 
-        // update global progress based on slide
+        // Update global progress based on slide position within step 2
         const pct = 9 + Math.round((currentSlide / (MODULES.length - 1)) * 75);
         document.getElementById('prog-fill').style.width = pct + '%';
+    }
+
+    function handleNextBtn() {
+        const btn = document.getElementById('btn-next');
+        if (btn.dataset.last === '1') showStep(3);
+        else carouselNext();
     }
 
     function carouselNext() {
@@ -614,26 +688,6 @@
         if (currentSlide > 0) { currentSlide--; updateSlide(); }
     }
     function goToSlide(i) { currentSlide = i; updateSlide(); }
-
-    // Wire nav buttons after DOM is ready (avoids inline onclick conflicts)
-    document.getElementById('btn-next').addEventListener('click', function() {
-        if (this.getAttribute('data-last') === '1') showStep(3);
-        else carouselNext();
-    });
-    document.getElementById('btn-prev').addEventListener('click', carouselPrev);
-
-    // Touch/swipe support for mobile
-    let touchStartX = 0;
-    document.getElementById('carousel-track') && document.getElementById('carousel-track').addEventListener('touchstart', e => {
-        touchStartX = e.touches[0].clientX;
-    }, {passive: true});
-    document.addEventListener('touchend', e => {
-        const diff = touchStartX - e.changedTouches[0].clientX;
-        if (currentStep === 2) {
-            if (diff > 50) carouselNext();
-            else if (diff < -50) carouselPrev();
-        }
-    });
 
     // ─── Login & redirect ──────────────────────────────────────────────────────
     async function doLogin() {
