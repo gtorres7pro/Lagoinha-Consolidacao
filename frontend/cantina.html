@@ -773,6 +773,36 @@
       color: var(--text-xs);
       margin-bottom: 12px;
     }
+    /* ── Payment method pills ───────────────────────────── */
+    .pay-method-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-dim);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s;
+      flex: 1;
+      justify-content: center;
+      min-width: 90px;
+    }
+    .pay-method-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .pay-method-btn.selected {
+      background: rgba(251,113,133,0.14);
+      border-color: rgba(251,113,133,0.45);
+      color: #fb7185;
+    }
+    .pay-method-btn.stripe-btn.selected {
+      background: rgba(99,102,241,0.14);
+      border-color: rgba(99,102,241,0.45);
+      color: #818cf8;
+    }
   </style>
 </head>
 
@@ -780,8 +810,8 @@
 
 <!-- ══ Supabase config ═══════════ -->
 <script>
-  const SUPABASE_URL = 'https://njbbhfihndxuuftxbkmg.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qYmJoZmlobmR4dXVmdHhia21nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNDQ4NTUsImV4cCI6MjA1NzcyMDg1NX0.1OZ2rGXpPEBJ8CJvkjEdNobtyBKXRb9GCCDR2-hJXpc';
+  const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 
@@ -886,6 +916,12 @@
         </div>
       </div>
 
+      <!-- Payment method (shown when config has multiple methods or stripe) -->
+      <div id="co-payment-section" style="display:none;">
+        <label class="field-label">Método de Pagamento *</label>
+        <div id="co-payment-methods" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;"></div>
+      </div>
+
       <!-- Order summary -->
       <div class="order-summary">
         <div class="order-summary-title">Resumo do Pedido</div>
@@ -968,6 +1004,32 @@ const qs  = s  => document.querySelector(s);
   }
   await loadConfig();
   await loadProducts();
+
+  // Handle Stripe return (success or cancel)
+  const paid      = params.get('paid');
+  const orderNo   = params.get('order');
+  const cancelled = params.get('cancelled');
+
+  if (paid === 'true' && orderNo) {
+    // Show success screen — payment confirmed by Stripe
+    setTimeout(() => {
+      el('checkout-modal').classList.add('open');
+      el('checkout-form-wrap').style.display = 'none';
+      el('success-screen').classList.add('show');
+      el('order-num-box').style.display = 'block';
+      el('order-num-display').textContent = orderNo;
+      el('success-sub').textContent = 'Pagamento confirmado via cartão! A cantina já recebeu o seu pedido.';
+      el('success-timer').style.display = 'none';
+    }, 500);
+  } else if (cancelled === 'true') {
+    setTimeout(() => {
+      const toast = document.createElement('div');
+      toast.textContent = 'Pagamento cancelado. Pode tentar novamente.';
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(251,113,133,0.15);border:1px solid rgba(251,113,133,0.3);color:#fb7185;padding:12px 24px;border-radius:12px;font-size:0.85rem;font-weight:600;z-index:9999;';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }, 300);
+  }
 })();
 
 async function loadConfig() {
@@ -1215,8 +1277,49 @@ function closeCart() {
 }
 
 // ── Checkout ───────────────────────────────────────────────
+window._selectedPayMethod = null;
+
+function selectPayMethod(method) {
+  window._selectedPayMethod = method;
+  document.querySelectorAll('.pay-method-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.method === method);
+  });
+}
+
 function openCheckout() {
   closeCart();
+  // Reset payment selection
+  window._selectedPayMethod = null;
+
+  // Build payment methods from config
+  const methods = _cfg?.payment_methods || ['cash', 'pix'];
+  const stripeEnabled = _cfg?.stripe_enabled && _cfg?.stripe_connected;
+  const methodLabels = {
+    cash:   { icon: '💵', label: 'Dinheiro' },
+    pix:    { icon: '⚡', label: 'Pix' },
+    card:   { icon: '💳', label: 'Cartão' },
+    stripe: { icon: '🟣', label: 'Cartão Online' },
+  };
+
+  const activeMethods = [...methods];
+  if (stripeEnabled && !activeMethods.includes('stripe')) activeMethods.push('stripe');
+
+  const paySection = el('co-payment-section');
+  const payContainer = el('co-payment-methods');
+
+  if (activeMethods.length > 1) {
+    payContainer.innerHTML = activeMethods.map(m => {
+      const info = methodLabels[m] || { icon: '💰', label: m };
+      const isStripe = m === 'stripe';
+      return `<button class="pay-method-btn${isStripe ? ' stripe-btn' : ''}" data-method="${m}" onclick="selectPayMethod('${m}')">${info.icon} ${info.label}</button>`;
+    }).join('');
+    paySection.style.display = 'block';
+  } else {
+    // Single method — auto-select silently
+    window._selectedPayMethod = activeMethods[0] || null;
+    paySection.style.display = 'none';
+  }
+
   // Fill summary
   const total = _cart.reduce((s, i) => s + i.subtotal, 0);
   el('co-items-summary').innerHTML = _cart.map(i =>
@@ -1245,6 +1348,12 @@ async function submitOrder() {
   if (!name)  { msgEl.textContent = '⚠️ Insira o seu nome'; return; }
   if (!phone) { msgEl.textContent = '⚠️ Insira o seu telefone'; return; }
 
+  // Validate payment method if section is visible
+  const paySection = el('co-payment-section');
+  if (paySection.style.display !== 'none' && !window._selectedPayMethod) {
+    msgEl.textContent = '⚠️ Selecione um método de pagamento'; return;
+  }
+
   msgEl.textContent = '';
   const btn = el('co-submit-btn');
   btn.textContent = '⏳ A confirmar...';
@@ -1253,10 +1362,10 @@ async function submitOrder() {
   const total = _cart.reduce((s, i) => s + i.subtotal, 0);
   const reserveMin = _cfg?.reservation_minutes || 20;
   const expiresAt = new Date(Date.now() + reserveMin * 60 * 1000).toISOString();
-
-  // Build order number: 6-char alphanumeric
   const orderNum = Math.random().toString(36).substr(2, 6).toUpperCase();
+  const chosenMethod = window._selectedPayMethod;
 
+  // Step 1: Create the order in DB (always, even for Stripe)
   const { data: order, error } = await sb.from('cantina_orders').insert({
     workspace_id: _wsId,
     customer_name: name,
@@ -1264,23 +1373,65 @@ async function submitOrder() {
     items: _cart.map(i => ({ product_id: i.product_id, name: i.name, qty: i.qty, unit_price: i.unit_price, subtotal: i.subtotal })),
     total,
     status: 'pending',
-    payment_method: null,
+    payment_method: chosenMethod,
     payment_status: 'unpaid',
     order_type: 'online',
     order_number: orderNum,
     expires_at: expiresAt,
   }).select().single();
 
-  btn.textContent = 'Confirmar Pedido →';
-  btn.disabled = false;
-
   if (error) {
-    msgEl.textContent = '❌ Erro ao enviar pedido. Tente novamente.';
+    btn.textContent = 'Confirmar Pedido →';
+    btn.disabled = false;
+    msgEl.textContent = '❌ Erro ao registar pedido. Tente novamente.';
     console.error(error);
     return;
   }
 
-  // Success!
+  // Step 2: If Stripe selected, redirect to Stripe Checkout
+  if (chosenMethod === 'stripe') {
+    btn.textContent = '💳 A redirecionar para pagamento...';
+    msgEl.textContent = '';
+
+    const baseUrl = location.origin + location.pathname;
+    const successUrl = `${baseUrl}?ws=${_wsId}&paid=true&order=${orderNum}`;
+    const cancelUrl  = `${baseUrl}?ws=${_wsId}&cancelled=true`;
+
+    const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+    const res = await fetch(`${EDGE_URL}/cantina-stripe-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspace_id: _wsId,
+        order_id: order.id,
+        order_number: orderNum,
+        items: _cart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price })),
+        total,
+        currency: _cfg?.currency || 'brl',
+        currency_symbol: _cfg?.currency_symbol || 'R$',
+        customer_name: name,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok || !result.url) {
+      btn.textContent = 'Confirmar Pedido →';
+      btn.disabled = false;
+      msgEl.textContent = '❌ Erro ao iniciar pagamento Stripe: ' + (result.error || 'Tente novamente.');
+      return;
+    }
+
+    // Redirect to Stripe hosted checkout
+    window.location.href = result.url;
+    return;
+  }
+
+  // Step 3: Non-Stripe — just show success
+  btn.textContent = 'Confirmar Pedido →';
+  btn.disabled = false;
   _expiresAt = expiresAt;
   showSuccess(order, reserveMin);
 }

@@ -656,6 +656,47 @@
             if (tabName === 'crie-connect' && window.loadCrieConnect) window.loadCrieConnect();
         }
 
+        // ─── SIDEBAR TOGGLE SUBMENU ──────────────────────────────────────
+        window.toggleSubmenu = function(element) {
+            const group = element.closest('.nav-group');
+            if (!group) return;
+            
+            const isFlyoutOpen = group.classList.contains('flyout-open');
+            
+            // On mobile (accordion style), we might want to close other open accordions
+            if (window.innerWidth < 1024) {
+                // If opening, close other open submenus first for a cleaner look
+                if (!isFlyoutOpen) {
+                    document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
+                        if (el !== group) el.classList.remove('flyout-open');
+                    });
+                }
+            } else {
+                // On desktop, you typically keep them open or hover based.
+                // Wait, desktop uses CSS hover animation mostly, but since it's a click:
+                // Close others if clicked
+                if (!isFlyoutOpen) {
+                    document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
+                        if (el !== group) el.classList.remove('flyout-open');
+                    });
+                }
+            }
+
+            // Toggle current group visibility
+            group.classList.toggle('flyout-open');
+            
+            // Auto-scroll on mobile if it opened downwards (so it pushes list up if needed)
+            if (window.innerWidth < 1024 && !isFlyoutOpen) {
+                setTimeout(() => {
+                    const rect = group.getBoundingClientRect();
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar && rect.bottom > sidebar.clientHeight) {
+                        group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 100); // 100ms delay to allow DOM render of submenu
+            }
+        };
+
         // ─── Sidebar visibility based on user level ──────────────────────
         window.applyHierarchyNav = function(level) {
             const levels = { workspace: 0, regional: 1, global: 2, master: 3 };
@@ -869,19 +910,27 @@
         // ═══════════════════════════════════════════════════════════
 
         const PLAN_CONFIG = {
-            free:    { label:'Free',    modules:['consolidation','visitors'], color:'rgba(255,255,255,.1)', text:'#aaa' },
-            basic:   { label:'Basic',   modules:['consolidation','visitors','start','aniversariantes'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
-            medium:  { label:'Medium',  modules:['consolidation','visitors','start','aniversariantes','crie'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            premium: { label:'Premium', modules:['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            free:     { label:'Gratuito', modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
+            trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            starter:  { label:'Starter',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
+            advanced: { label:'Advanced', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            founders: { label:'Founders', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
-        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios'];
+        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs'];
 
         // Map: module slug → { nav id, view id }
         const PLAN_NAV_MAP = {
             consolidation:   { nav:'nav-dashboard',  view:'view-dashboard'  },
             visitors:        { nav:'nav-visitors',   view:'view-visitors'   },
             ia_whatsapp:     { nav:'nav-messages',   view:'view-messages'   },
+            crie:            { nav:'nav-crie',       view:'view-crie' },
+            cantina:         { nav:'nav-cantina',    view:'view-cantina' },
+            financeiro:      { nav:'nav-finance-col',view:'view-null' },
+            tasks:           { nav:'nav-tasks-col',  view:'view-tasks' },
+            aniversariantes: { nav:'nav-birthdays',  view:'view-birthdays' },
+            broadcast:       { nav:'nav-broadcast',  view:'view-broadcast' },
+            relatorios:      { nav:'nav-relatorios', view:'view-relatorios' }
         };
 
         // ─── APPLY PLAN GATING ────────────────────────────────────────────
@@ -914,7 +963,7 @@
                     navEl.setAttribute('data-locked', '1');
                     navEl.style.opacity = '0.4';
                     navEl.style.cursor  = 'not-allowed';
-                    navEl.title = `Disponível a partir do plano ${slug==='ia_whatsapp'?'Premium':'Basic'}. Clique em "Ver Planos".`;
+                    navEl.title = `Disponível a partir de um plano superior. Clique para Upgrade.`;
                     // Add lock icon if not there
                     if (!navEl.querySelector('.plan-lock-icon')) {
                         const lock = document.createElement('span');
@@ -923,12 +972,13 @@
                         navEl.appendChild(lock);
                     }
                     // Override click to show upgrade modal instead
-                    navEl.onclick = (e) => { e.stopPropagation(); showUpgradeModal(); };
+                    navEl.onclick = (e) => { e.stopPropagation(); alert('Funcionalidade de Checkout em breve! Contate o Suporte para Upgrade.'); };
                 }
             });
 
             // Inject upgrade banners into locked views
             Object.entries(PLAN_NAV_MAP).forEach(([slug, {nav, view}]) => {
+                if (view === 'view-null') return;
                 const viewEl = document.getElementById(view);
                 if (!viewEl) return;
                 const isAllowed = allowed.includes(slug);
@@ -974,6 +1024,16 @@
                 chip.innerHTML = `<span>${included?'✓':'🔒'}</span> ${label}`;
                 grid.appendChild(chip);
             });
+
+            // Update action button (Upgrade vs Manage)
+            const upgradeBtnContainer = document.getElementById('settings-plan-upgrade-container');
+            if(upgradeBtnContainer) {
+                if(plan === 'free') {
+                    upgradeBtnContainer.innerHTML = `<button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px; font-size:.8rem;">⚡ Fazer Upgrade</button>`;
+                } else {
+                    upgradeBtnContainer.innerHTML = `<button onclick="startSaasPortal(event)" style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#fff; border-radius:10px; cursor:pointer; padding:8px 16px; font-size:.8rem; font-weight:600; display:flex; align-items:center; gap:6px; transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">💳 Gerenciar Assinatura</button>`;
+                }
+            }
         };
 
         // ─── UPGRADE MODAL ────────────────────────────────────────────────
@@ -989,6 +1049,92 @@
         document.getElementById('upgrade-modal-overlay')?.addEventListener('click', function(e) {
             if (e.target === this) closeUpgradeModal();
         });
+
+        // Trigger SaaS Checkout
+        window.startSaasCheckout = async function(priceId) {
+            try {
+                // Determine price mapping (these IDs will be configured in Stripe)
+                const priceMap = {
+                    'price_starter': 'price_starter_MONTHLY', // Replace with real price_id
+                    'price_advanced': 'price_advanced_MONTHLY', // Replace with real price_id
+                    'price_founders': 'price_founders_MONTHLY' // Replace with real price_id
+                };
+                
+                const finalPriceId = priceMap[priceId] || priceId;
+                
+                // Show loading state
+                const overlay = document.getElementById('upgrade-modal-overlay');
+                if(overlay) overlay.innerHTML = '<div style="color:#fff; font-size:1.2rem; display:flex; align-items:center; justify-content:center; height:100%;"><div class="hub-loader" style="margin-right:15px;"></div> Redirecionando para o Checkout seguro...</div>';
+
+                const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-handler', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        auth_token: _localToken,
+                        action: 'create_checkout',
+                        price_id: finalPriceId,
+                        cancel_url: window.location.href,
+                        success_url: window.location.href + '?success=true'
+                    })
+                });
+
+                if(!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Erro ao gerar checkout');
+                }
+
+                const data = await response.json();
+                if(data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('URL de checkout inválida');
+                }
+
+            } catch (error) {
+                console.error("Erro no checkout:", error);
+                alert("Erro ao iniciar assinatura: " + error.message);
+                closeUpgradeModal();
+                // Optionally reload to restore modal
+                location.reload();
+            }
+        };
+
+        // Trigger SaaS Portal
+        window.startSaasPortal = async function() {
+            try {
+                const oldText = event.target.innerHTML;
+                event.target.innerHTML = '<div class="hub-loader" style="width:16px;height:16px;border-width:2px;"></div>';
+                event.target.disabled = true;
+
+                const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-handler', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        auth_token: _localToken,
+                        action: 'create_portal',
+                        return_url: window.location.href
+                    })
+                });
+
+                if(!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Erro ao gerar portal');
+                }
+
+                const data = await response.json();
+                if(data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('URL de portal inválida');
+                }
+
+            } catch (error) {
+                console.error("Erro no portal:", error);
+                alert("Erro ao acessar assinaturas: " + error.message);
+                event.target.innerHTML = '💳 Gerenciar Assinatura';
+                event.target.disabled = false;
+            }
+        };
 
         // ─── WIRE applyPlanGating into loadWorkspaces flow ───────────────
         // (called from loadWorkspaces when workspace is resolved)

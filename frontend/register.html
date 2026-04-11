@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta — Zelo Pro</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zelo Pro">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
+    <link rel="stylesheet" href="/hub.css">
+    <!-- intl-tel-input for phone formatting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
+            padding: 24px;
+            overflow: hidden;
+            background: #030508;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+        }
+
+        .bg-grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            animation: fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .login-logo {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 32px rgba(251,191,36,0.25), 0 0 0 1px rgba(251,191,36,0.2);
+        }
+        .login-logo svg { width: 28px; height: 28px; color: #000; }
+
+        .login-headline { text-align: center; }
+        .login-headline h1 {
+            font-size: 2rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1.05;
+        }
+        .login-headline p {
+            color: var(--text-dim, rgba(255,255,255,0.6)); font-size: 0.84rem; font-weight: 500; margin-top: 6px;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 32px 28px;
+            width: 100%;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; gap: 18px;
+            backdrop-filter: blur(20px);
+        }
+
+        .field-group { display: flex; flex-direction: column; gap: 7px; }
+        .hub-label { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.7); }
+
+        .hub-input-wrap { position: relative; }
+        .hub-input-wrap .hub-input { padding-left: 44px; width:100%; }
+        .hub-input-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.4); pointer-events: none;
+            display: flex; align-items: center; z-index: 2;
+        }
+        .hub-input-icon svg { width: 16px; height: 16px; }
+
+        .btn-submit {
+            position: relative; width: 100%; padding: 14px;
+            background: #FFD700; color: #000;
+            font-family: inherit; font-size: 0.95rem; font-weight: 800;
+            border: none; border-radius: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s; margin-top: 10px;
+        }
+        .btn-submit:hover { background: #F59E0B; transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* intl-tel-input override */
+        .iti { width: 100%; }
+        .iti__flag-container { z-index: 2; }
+        .hub-input-wrap.phone-wrap .hub-input { padding-left: 50px; }
+
+        .forgot-btn {
+            background: none; border: none;
+            color: rgba(255,255,255,0.6);
+            font-family: inherit; font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; text-align: center; margin-top:10px;
+            text-decoration: none; display: block; width: 100%;
+        }
+        .forgot-btn:hover { color: #FFD700; }
+
+        /* Carousel Styles (Hidden initially) */
+        #onboarding-carousel {
+            position: fixed; inset: 0; background: #030508; z-index: 1000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .carousel-slide {
+            display: none; width: 100%; max-width: 600px; padding: 40px; text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .carousel-slide.active { display: block; }
+        .carousel-icon { font-size: 4rem; margin-bottom: 20px; }
+        .carousel-slide h2 { font-size: 2rem; font-weight: 800; color: #FFD700; margin-bottom: 15px; letter-spacing: -1px; }
+        .carousel-slide p { font-size: 1.1rem; color: rgba(255,255,255,0.7); margin-bottom: 40px; }
+        .carousel-btn {
+            background: #FFD700; color: #000; padding: 14px 30px; border-radius: 100px;
+            font-weight: 800; border: none; cursor: pointer; font-size: 1rem;
+        }
+        .carousel-indicators { margin-top: 30px; display: flex; justify-content: center; gap: 8px; }
+        .indicator { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+        .indicator.active { background: #FFD700; }
+
+        .password-box {
+            background: rgba(255,215,0,0.1); border: 1px dashed #FFD700; padding: 20px;
+            border-radius: 12px; margin-bottom: 30px; font-family: monospace; font-size: 1.5rem; letter-spacing: 2px;
+            user-select: all;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+
+    <!-- Registration Form -->
+    <div class="login-container" id="register-container">
+        <div class="login-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 h14 l-14 14 h14"/></svg>
+        </div>
+
+        <div class="login-headline">
+            <h1>Iniciar Trial de 7 Dias</h1>
+            <p>Junte-se à nova era da gestão de igrejas.</p>
+        </div>
+
+        <div class="login-card">
+            <div class="field-group">
+                <label class="hub-label">Seu Nome Completo</label>
+                <div class="hub-input-wrap">
+                    <span class="hub-input-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </span>
+                    <input class="hub-input" type="text" id="reg-name" placeholder="Ex: João da Silva">
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="hub-label">Nome da Igreja (Workspace)</label>
+                <div class="hub-input-wrap">
+                    <span class="hub-input-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </span>
+                    <input class="hub-input" type="text" id="reg-church" placeholder="Igreja Batista...">
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="hub-label">E-mail</label>
+                <div class="hub-input-wrap">
+                    <span class="hub-input-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                    </span>
+                    <input class="hub-input" type="email" id="reg-email" placeholder="seu@email.com">
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="hub-label">WhatsApp</label>
+                <div class="hub-input-wrap phone-wrap">
+                    <input class="hub-input" type="tel" id="reg-phone">
+                </div>
+            </div>
+
+            <div class="hub-error" id="reg-error" style="color:#ff6b6b; font-size:0.85rem; text-align:center; display:none;"></div>
+
+            <button class="btn-submit" id="btn-create" onclick="createAccount()">
+                <span id="btn-text">Criar Minha Conta Grátis</span>
+                <span class="spinner" id="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(0,0,0,0.2); border-top-color:#000; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
+            </button>
+
+            <a href="/login.html" class="forgot-btn">Já possui conta? Fazer Login</a>
+        </div>
+    </div>
+
+    <!-- Onboarding Carousel -->
+    <div id="onboarding-carousel">
+        <!-- Slide 1 -->
+        <div class="carousel-slide active" id="slide-1">
+            <div class="carousel-icon">🎉</div>
+            <h2>Conta Criada!</h2>
+            <p>Bem-vindo ao Zelo Pro. Estamos preparando o seu ministério com Inteligência Artificial e integrações avançadas.</p>
+            <button class="carousel-btn" onclick="nextSlide(2)">Próximo Passo →</button>
+            <div class="carousel-indicators">
+                <div class="indicator active"></div><div class="indicator"></div><div class="indicator"></div>
+            </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel-slide" id="slide-2">
+            <div class="carousel-icon">⚙️</div>
+            <h2>Automação Poderosa</h2>
+            <p>Seu workspace está sendo configurado. O módulo CRIE, Cantina e as integrações via WhatsApp estão sendo instanciados.</p>
+            <button class="carousel-btn" onclick="nextSlide(3)">Continuar →</button>
+            <div class="carousel-indicators">
+                <div class="indicator"></div><div class="indicator active"></div><div class="indicator"></div>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-slide" id="slide-3">
+            <div class="carousel-icon">🔐</div>
+            <h2>Tudo Pronto!</h2>
+            <p>Para o seu primeiro acesso, utilizamos o seu email e geramos uma senha inicial segura. Por favor, copie ou anote-a antes de prosseguir.</p>
+            <div class="password-box" id="show-password">LAGOINHA2026</div>
+            <button class="carousel-btn" onclick="finishOnboarding()">Acessar Meu Painel →</button>
+            <div class="carousel-indicators">
+                <div class="indicator"></div><div class="indicator"></div><div class="indicator active"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edge Function and SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <script>
+        const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        
+        let generatedPassword = '';
+        let generatedSlug = '';
+
+        // Initialize intl-tel-input
+        const phoneInputField = document.querySelector("#reg-phone");
+        const phoneInput = window.intlTelInput(phoneInputField, {
+            initialCountry: "br",
+            preferredCountries: ["br", "us", "pt"],
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",
+        });
+
+        async function createAccount() {
+            const name = document.getElementById('reg-name').value.trim();
+            const church = document.getElementById('reg-church').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const phone = phoneInput.getNumber(); // E.164 format
+            const errBox = document.getElementById('reg-error');
+
+            if (!name || !church || !email || !phone) {
+                errBox.style.display = 'block';
+                errBox.textContent = 'Por favor, preencha todos os campos.';
+                return;
+            }
+
+            errBox.style.display = 'none';
+            const btn = document.getElementById('btn-create');
+            const text = document.getElementById('btn-text');
+            const spin = document.getElementById('btn-spinner');
+            
+            btn.disabled = true;
+            text.style.display = 'none';
+            spin.style.display = 'inline-block';
+
+            try {
+                // Call edge function saas-provision-workspace
+                const { data, error } = await sb.functions.invoke('saas-provision-workspace', {
+                    body: {
+                        user_name: name,
+                        workspace_name: church,
+                        email: email,
+                        phone: phone
+                    }
+                });
+
+                if (error || (data && data.error)) {
+                    throw new Error(error ? error.message : data.error);
+                }
+
+                // If successful:
+                generatedPassword = data.generated_password;
+                generatedSlug = data.slug;
+                
+                document.getElementById('show-password').textContent = generatedPassword;
+                
+                // Show carousel
+                document.getElementById('register-container').style.display = 'none';
+                document.getElementById('onboarding-carousel').style.display = 'flex';
+
+            } catch (e) {
+                console.error(e);
+                errBox.style.display = 'block';
+                errBox.textContent = 'Erro ao criar conta: ' + e.message;
+                btn.disabled = false;
+                text.style.display = 'inline';
+                spin.style.display = 'none';
+            }
+        }
+
+        function nextSlide(step) {
+            document.querySelectorAll('.carousel-slide').forEach(el => el.classList.remove('active'));
+            document.getElementById('slide-' + step).classList.add('active');
+        }
+
+        function finishOnboarding() {
+            // Automatically sign in the user, then redirect to their new dashboard
+            const email = document.getElementById('reg-email').value.trim();
+            
+            sb.auth.signInWithPassword({ email, password: generatedPassword })
+              .then(({ data, error }) => {
+                  if (error) {
+                      alert('Erro ao fazer auto-login. Redirecionando para login.');
+                      window.location.href = '/login.html';
+                  } else {
+                      window.location.href = `/${generatedSlug}/dashboard.html`;
+                  }
+              });
+        }
+    </script>
+</body>
+</html>

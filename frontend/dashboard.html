@@ -117,30 +117,64 @@
         .nav li.active { color: var(--accent); background: rgba(251,191,36,0.08); font-weight: 600; }
 
         /* ── Nav Groups (menus with submenus) ──────── */
-        .nav-group { display: flex; flex-direction: column; }
+        .nav-group { display: flex; flex-direction: column; position: relative; }
         .nav-submenu-wrap {
-            display: flex;
-            flex-direction: row;
-            padding-left: 20px;
-            margin: 2px 0 4px;
-            gap: 0;
+            display: none;
         }
-        .nav-submenu-line {
-            width: 1px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 1px;
-            margin-right: 10px;
-            flex-shrink: 0;
-            position: relative;
+        @media (min-width: 1024px) {
+            .nav-submenu-wrap {
+                position: absolute;
+                left: calc(100% + 6px);
+                top: 0;
+                background: #111b21;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 12px;
+                padding: 6px;
+                min-width: 180px;
+                box-shadow: 4px 12px 40px rgba(0,0,0,0.8);
+                z-index: 100;
+                flex-direction: column;
+            }
+            .nav-submenu-line { display: none; }
+            .nav-submenu-wrap ul { display: flex; flex-direction: column; gap: 2px; }
+            .nav-submenu-wrap ul li { padding: 9px 12px; border-radius: 8px; }
+            .nav-group.flyout-open .nav-submenu-wrap { display: flex; animation: slideOut 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         }
-        .nav-submenu-line::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 40%;
-            background: linear-gradient(to bottom, rgba(251,191,36,0.25), transparent);
-            border-radius: 1px;
+        @keyframes slideOut {
+            from { opacity: 0; transform: translateX(-10px) scale(0.98); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
+
+        @media (max-width: 1023px) {
+            .nav-submenu-wrap {
+                flex-direction: row;
+                padding-left: 20px;
+                margin: 2px 0 4px;
+                gap: 0;
+                display: none;
+            }
+            .nav-group.flyout-open .nav-submenu-wrap { display: flex; }
+            .nav-submenu-line {
+                width: 1px;
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 1px;
+                margin-right: 10px;
+                flex-shrink: 0;
+                position: relative;
+            }
+            .nav-submenu-line::after {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 40%;
+                background: linear-gradient(to bottom, rgba(251,191,36,0.25), transparent);
+                border-radius: 1px;
+            }
+            .nav-submenu-wrap ul li { padding-left: 4px; }
+        }
+        
+        .nav-item-arrow { margin-left: auto; color: rgba(255,255,255,.3); font-size: .6rem; transition: transform 0.2s; }
+        .nav-group.flyout-open .nav-item-arrow { transform: rotate(90deg); color: var(--accent); }
         @keyframes badgePulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,.5); }
             50%       { box-shadow: 0 0 0 5px rgba(255,215,0,0); }
@@ -734,7 +768,7 @@
             </button>
         </div>
         <ul class="nav" id="sidebar">
-            <!-- 1. Início -->
+            <!-- 1. Home -->
             <li id="nav-home" class="active" onclick="switchTab('home')">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -742,37 +776,23 @@
                 <span class="nav-label">Início</span>
             </li>
 
-
-            <!-- ══ ADMINISTRATIVO (acima da Jornada) ══════════════════════ -->
-            <li class="nav-group" style="display:block;padding:0;background:none;margin-top:4px;">
-                <div id="nav-administrativo" onclick="switchTab('admin-tarefas')" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon" style="background:rgba(255,255,255,.06); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                    </span>
-                    <span class="nav-label" style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.75rem;flex:1;">Administrativo</span>
-                    <span id="admin-tasks-badge" style="display:none;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-size:.58rem;font-weight:900;align-items:center;justify-content:center;animation:badgePulse 2s ease infinite;">0</span>
-                </div>
-                <!-- Fixed open submenu — no collapse -->
-                <div class="nav-submenu-wrap" id="admin-submenu-wrap" style="display:flex;">
-                    <div class="nav-submenu-line"></div>
-                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
-                        <li id="nav-admin-financeiro" onclick="switchTab('admin-financeiro')" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:10px;transition:background .15s;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-                            <span class="nav-label">Rel. Financeiro</span>
-                        </li>
-                    </ul>
-                </div>
+            <!-- 2. Tasks -->
+            <li id="nav-tasks" onclick="switchTab('admin-tarefas')">
+                <span class="nav-icon" style="color:var(--text-mid);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </span>
+                <span class="nav-label" style="font-weight:700;">Tasks</span>
+                <span id="admin-tasks-badge" style="display:none;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-size:.58rem;font-weight:900;align-items:center;justify-content:center;animation:badgePulse 2s ease infinite;margin-left:auto;">0</span>
             </li>
 
-                        <!-- ══ PIPELINE JORNADA ══════════════════════════════════════ -->
-            <li class="nav-group" style="display:block;padding:0;background:none; margin-top: 8px;">
-                <div onclick="switchTab('jornada')" id="nav-jornada" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon" style="background:rgba(255, 255, 255, 0.08); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#FFF; flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    </span>
-                    <span class="nav-label" style="font-weight:700; letter-spacing: 0.1em; text-transform:uppercase; color: #FFF; font-size: 0.75rem;">JORNADA</span>
+            <!-- 3. Jornada -->
+            <li class="nav-group" id="nav-group-jornada">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:#FFF;"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+                    <span class="nav-label" style="font-weight:700; color: #FFF;">Jornada</span>
+                    <span class="nav-item-arrow">▶</span>
                 </div>
-                <div class="nav-submenu-wrap" id="jornada-submenu-wrap" style="display:flex;">
+                <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-visitors" onclick="switchTab('visitors')">
@@ -799,7 +819,7 @@
                 </div>
             </li>
 
-            <!-- 6. Aniversariantes -->
+            <!-- 4. Aniversariantes -->
             <li id="nav-birthdays" onclick="switchTab('birthdays')" title="Gestão de Aniversariantes">
                 <span class="nav-icon" style="color:var(--accent);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v-4"/><path d="M9 17h6"/></svg>
@@ -807,16 +827,16 @@
                 <span class="nav-label">Aniversariantes</span>
             </li>
 
-            <!-- 6.5 Chat ao Vivo -->
+            <!-- 5. Chat ao Vivo -->
             <li id="nav-chat-ao-vivo" onclick="switchTab('chat-ao-vivo')" title="Chat ao Vivo — Inbox WhatsApp" style="position:relative;">
                 <span class="nav-icon" style="color:#25D366;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </span>
                 <span class="nav-label" style="font-weight:700;">Chat ao Vivo</span>
-                <span id="chat-unread-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#f87171;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:none;align-items:center;justify-content:center;line-height:1;">0</span>
+                <span id="chat-unread-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#f87171;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
             </li>
 
-            <!-- 6.7 Transmissão -->
+            <!-- 6. Transmissão -->
             <li id="nav-transmissao" onclick="switchTab('transmissao')" title="Transmissão — Envio em Massa por E-mail">
                 <span class="nav-icon" style="color:#a78bfa;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -824,130 +844,63 @@
                 <span class="nav-label" style="font-weight:700;">Transmissão</span>
             </li>
 
-            <!-- 7. Assistente Mila -->
-            <li id="nav-mila" onclick="switchTab('mila')" title="Assistente Virtual Mila">
-                <span class="nav-icon" style="color: #FFD700;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2c0-1.1.9-2 2-2zm0 4a4 4 0 0 1 4 4v5h-8v-5a4 4 0 0 1 4-4zm-4 4H4v5h4v-5zm12 0h-4v5h4v-5z"/>
-                    </svg>
-                </span>
-                <span class="nav-label" style="font-weight:700;">Mila | Suporte</span>
-            </li>
-
-            <!-- 8. Relatórios — clickable header, fixed submenus (no collapse) -->
-            <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-relatorios-toggle" onclick="switchTab('relatorios-local')" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                    </span>
-                    <span class="nav-label" style="font-weight:700;flex:1;">Relatórios</span>
-                </div>
-                <!-- Submenus always visible, shown/hidden by JS based on user role -->
-                <div class="nav-submenu-wrap" id="relatorios-submenu-wrap" style="display:flex;">
-                    <div class="nav-submenu-line"></div>
-                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
-
-                        <!-- Regional + submenu Financeiro -->
-                        <li id="nav-relatorios-regional" onclick="switchTab('relatorios-regional')" style="display:none;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-                            <span class="nav-label">Regional</span>
-                        </li>
-                        <li id="nav-rel-financeiro-regional" onclick="switchTab('rel-financeiro-regional')" style="display:none;padding-left:16px;">
-                            <span class="nav-icon" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;opacity:.85;">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-                            </span>
-                            <span class="nav-label" style="font-size:.78rem;">Rel. Financeiro</span>
-                        </li>
-
-                        <!-- Global + submenu Financeiro -->
-                        <li id="nav-relatorios-global" onclick="switchTab('relatorios-global')" style="display:none;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></span>
-                            <span class="nav-label">Global</span>
-                        </li>
-                        <li id="nav-rel-financeiro-global" onclick="switchTab('rel-financeiro-global')" style="display:none;padding-left:16px;">
-                            <span class="nav-icon" style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;opacity:.85;">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-                            </span>
-                            <span class="nav-label" style="font-size:.78rem;">Rel. Financeiro</span>
-                        </li>
-
-                    </ul>
-                </div>
-            </li>
-
-
-            <!-- 9. Logs -->
-            <li id="nav-logs" onclick="switchTab('logs')">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </span>
-                <span class="nav-label">Logs</span>
-            </li>
-
-            <!-- ══ MINISTÉRIOS ══════════════════════════════════════ -->
-            <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Ministérios</li>
-
-            <!-- 10. CRIE (collapsible) -->
-            <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-crie-toggle" onclick="toggleCrieMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon" style="background:rgba(255,179,0,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:.75rem; font-weight:900; color:#F59E0B; flex-shrink:0;">C*</span>
+            <!-- 7. CRIE -->
+            <li class="nav-group" id="nav-group-crie">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:#F59E0B;">C*</span>
                     <span class="nav-label" style="font-weight:800;">CRIE</span>
-                    <span id="crie-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+                    <span class="nav-item-arrow">▶</span>
                 </div>
-                <div class="nav-submenu-wrap" id="crie-submenu-wrap" style="display:none;">
+                <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-crie-inscritos" onclick="switchTab('crie-inscritos')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Inscritos</span>
                         </li>
                         <li id="nav-crie-membros" onclick="switchTab('crie-membros')" style="position:relative;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
                             <span class="nav-label">Membros</span>
                             <span id="nav-membros-badge" style="display:none;background:#F87171;color:#fff;font-size:0.6rem;font-weight:800;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;margin-left:auto;animation:pulse 1.5s ease infinite;"></span>
                         </li>
                         <li id="nav-crie-eventos" onclick="switchTab('crie-eventos')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
                             <span class="nav-label">Eventos</span>
                         </li>
                         <li id="nav-crie-checkin" onclick="switchTab('crie-checkin')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
                             <span class="nav-label">Check-in</span>
                         </li>
                         <li id="nav-crie-workshop" onclick="switchTab('crie-workshop')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
                             <span class="nav-label">Workshop</span>
                         </li>
                         <li id="nav-crie-relatorios" onclick="switchTab('crie-relatorios')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
                             <span class="nav-label">Controle</span>
                         </li>
                         <li id="nav-crie-connect" onclick="switchTab('crie-connect')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
                             <span class="nav-label" style="font-weight:700;">Connect</span>
-                            <span id="connect-pending-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
                         </li>
                     </ul>
                 </div>
             </li>
 
-            <!-- 11. CANTINA (collapsible) -->
-            <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-cantina-toggle" onclick="toggleCantinaMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon" style="background:rgba(251,113,133,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
-                    </span>
+            <!-- 8. Cantina -->
+            <li class="nav-group" id="nav-group-cantina">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:#fb7185;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
                     <span class="nav-label" style="font-weight:800;">Cantina</span>
                     <span id="cantina-orders-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
-                    <span id="cantina-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+                    <span class="nav-item-arrow">▶</span>
                 </div>
-                <div class="nav-submenu-wrap" id="cantina-submenu-wrap" style="display:none;">
+                <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
                         <li id="nav-cantina-pedidos" onclick="switchTab('cantina-pedidos')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
                             <span class="nav-label">Pedidos</span>
-                            <span id="cantina-pending-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#fb7185;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
                         </li>
                         <li id="nav-cantina-estoque" onclick="switchTab('cantina-estoque')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
@@ -960,7 +913,6 @@
                         <li id="nav-cantina-pos" onclick="switchTab('cantina-pos')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
                             <span class="nav-label" style="font-weight:700;">POS</span>
-                            <span style="font-size:.55rem;background:rgba(251,113,133,.15);color:#fb7185;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">CAIXA</span>
                         </li>
                         <li id="nav-cantina-config" onclick="switchTab('cantina-config')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
@@ -970,39 +922,106 @@
                 </div>
             </li>
 
-            <!-- 12. Voluntários (em desenvolvimento) -->
+            <!-- 9. Voluntários -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
                 <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
                 <span class="nav-label">Voluntários</span>
                 <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
-            <!-- 12. We Care (em desenvolvimento) -->
+            <!-- 10. We Care -->
             <li id="nav-wecare" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
                 <span class="nav-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
                 </span>
                 <span class="nav-label">We Care</span>
                 <span style="font-size:0.6rem;margin-left:auto;opacity:0.6;font-weight:500;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:4px;">breve</span>
             </li>
 
-            <!-- ══ CONFIGURAÇÕES (collapsível) — SEMPRE ÚLTIMO ══ -->
-            <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Sistema</li>
-
-            <li class="nav-group" style="display:block;padding:0;background:none;">
-                <div id="nav-settings-toggle" onclick="toggleSettingsMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </span>
-                    <span class="nav-label">Configurações</span>
-                    <span id="settings-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+            <!-- 11. Financeiro -->
+            <li class="nav-group" id="nav-group-financeiro">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:#10B981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+                    <span class="nav-label" style="font-weight:700;">Financeiro</span>
+                    <span class="nav-item-arrow">▶</span>
                 </div>
-                <div class="nav-submenu-wrap" id="settings-submenu-wrap" style="display:none;">
+                <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
-                        <li id="nav-users" onclick="switchTab('users')">
+                        <li id="nav-admin-financeiro" onclick="switchTab('admin-financeiro')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg></span>
+                            <span class="nav-label">Rel. Financeiro</span>
+                        </li>
+                        <li style="opacity:0.6; pointer-events:none;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+                            <span class="nav-label">Contas a Pagar</span>
+                            <span style="font-size:0.55rem;background:rgba(255,255,255,.08);color:white;padding:1px 6px;border-radius:4px;margin-left:auto;">breve</span>
+                        </li>
+                        <li style="opacity:0.6; pointer-events:none;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                            <span class="nav-label">Controle de Vendors</span>
+                            <span style="font-size:0.55rem;background:rgba(255,255,255,.08);color:white;padding:1px 6px;border-radius:4px;margin-left:auto;">breve</span>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- 12. Relatórios -->
+            <li class="nav-group" id="nav-group-relatorios">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:var(--text-mid);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                    <span class="nav-label" style="font-weight:700;">Relatórios</span>
+                    <span class="nav-item-arrow">▶</span>
+                </div>
+                <div class="nav-submenu-wrap">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-relatorios-toggle" onclick="switchTab('relatorios-local')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></span>
+                            <span class="nav-label">Local</span>
+                        </li>
+                        <li id="nav-relatorios-regional" onclick="switchTab('relatorios-regional')" style="display:none;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+                            <span class="nav-label">Regional</span>
+                        </li>
+                        <li id="nav-relatorios-global" onclick="switchTab('relatorios-global')" style="display:none;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></span>
+                            <span class="nav-label">Global</span>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+
+            <!-- 13. Logs -->
+            <li id="nav-logs" onclick="switchTab('logs')">
+                <span class="nav-icon" style="color:var(--text-mid);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </span>
+                <span class="nav-label">Logs</span>
+            </li>
+
+            <!-- 14. Suporte -->
+            <li id="nav-mila" onclick="switchTab('mila')" title="Assistente Virtual Mila">
+                <span class="nav-icon" style="color: #FFD700;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2c0-1.1.9-2 2-2zm0 4a4 4 0 0 1 4 4v5h-8v-5a4 4 0 0 1 4-4zm-4 4H4v5h4v-5zm12 0h-4v5h4v-5z"/>
+                    </svg>
+                </span>
+                <span class="nav-label" style="font-weight:700;">Suporte (Mila)</span>
+            </li>
+
+            <!-- 15. Configurações -->
+            <li style="pointer-events:none; padding: 14px 12px 4px; font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.2);">Sistema</li>
+
+            <li class="nav-group" id="nav-group-config">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:var(--text-mid);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </span>
+                    <span class="nav-label">Configurações</span>
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Equipe</span>
                         </li>
@@ -2164,7 +2183,9 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span id="settings-plan-badge" class="ws-plan-badge" style="font-size:.85rem; padding:5px 16px;">—</span>
-                        <button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px; font-size:.8rem;">⚡ Fazer Upgrade</button>
+                        <div id="settings-plan-upgrade-container">
+                            <button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px; font-size:.8rem;">⚡ Fazer Upgrade</button>
+                        </div>
                     </div>
                 </div>
                 <div id="settings-modules-grid" style="display:flex; flex-wrap:wrap; gap:10px;">
@@ -2510,9 +2531,10 @@
                             <div>
                                 <label class="pd-label">Plano</label>
                                 <select id="new-ws-plan" class="pd-select">
-                                    <option value="free">Free</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="premium" selected>Premium</option>
+                                    <option value="free">Gratuito</option>
+                                    <option value="starter">Starter</option>
+                                    <option value="advanced">Advanced</option>
+                                    <option value="founders" selected>Founders</option>
                                 </select>
                             </div>
 
@@ -2520,13 +2542,20 @@
                             <div>
                                 <label class="pd-label">Módulos Habilitados</label>
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;" id="new-ws-modules-grid">
-                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="visitantes" checked style="accent-color:#FFD700;"> Visitantes</label>
-                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="consolidados" checked style="accent-color:#FFD700;"> Consolidação</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="consolidation" checked style="accent-color:#FFD700;"> Consolidação</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="visitors" checked style="accent-color:#FFD700;"> Visitantes</label>
                                     <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="start" checked style="accent-color:#FFD700;"> START</label>
-                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="batismo" style="accent-color:#FFD700;"> Batismo</label>
-                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="novos_membros" style="accent-color:#FFD700;"> Novos Membros</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="tasks" checked style="accent-color:#FFD700;"> Tasks</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="broadcast" checked style="accent-color:#FFD700;"> Transmissão</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="aniversariantes" checked style="accent-color:#FFD700;"> Aniversariantes</label>
                                     <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="crie" checked style="accent-color:#FFD700;"> CRIE</label>
-                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.15);border-radius:10px;cursor:pointer;font-size:.82rem;color:#FFD700;"><input type="checkbox" value="ai_whatsapp" style="accent-color:#FFD700;"> IA WhatsApp</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="cantina" checked style="accent-color:#FFD700;"> Cantina</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="financeiro" checked style="accent-color:#FFD700;"> Financeiro</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="relatorios" checked style="accent-color:#FFD700;"> Relatórios</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="logs" checked style="accent-color:#FFD700;"> Logs</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:.82rem;"><input type="checkbox" value="voluntarios" checked style="accent-color:#FFD700;"> Voluntários</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.15);border-radius:10px;cursor:pointer;font-size:.82rem;color:#FFD700;"><input type="checkbox" value="wecare" checked style="accent-color:#FFD700;"> We Care</label>
+                                    <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.15);border-radius:10px;cursor:pointer;font-size:.82rem;color:#FFD700;"><input type="checkbox" value="ia_whatsapp" checked style="accent-color:#FFD700;"> Chat IA / WhatsApp</label>
                                 </div>
                             </div>
 
@@ -5490,82 +5519,102 @@
                     <!-- FREE -->
                     <div class="hub-plan-card hub-plan-card-free">
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">FREE</span>
-                            <div class="hub-plan-price">Gratuíto</div>
+                            <span class="hub-plan-tier">GRATUITO</span>
+                            <div class="hub-plan-price">Free</div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
                             <li class="included">Visitantes</li>
-                            <li class="locked">IA WhatsApp</li>
-                            <li class="locked">START</li>
+                            <li class="included">START</li>
+                            <li class="locked">Tasks</li>
+                            <li class="locked">Transmissão</li>
                             <li class="locked">Aniversariantes</li>
-                            <li class="locked">CRIE</li>
                             <li class="locked">Financeiro</li>
+                            <li class="locked">Relatórios/Logs</li>
                             <li class="locked">Voluntários</li>
+                            <li class="locked">CRIE</li>
+                            <li class="locked">Cantina</li>
+                            <li class="locked">WAHA / IA</li>
+                            <li class="locked">We Care</li>
                         </ul>
-                        <button class="hub-plan-cta hub-plan-cta-outline" onclick="closeUpgradeModal()">Plano Atual</button>
+                        <button class="hub-plan-cta hub-plan-cta-outline" onclick="closeUpgradeModal()">Plano Base</button>
                     </div>
 
-                    <!-- BASIC -->
+                    <!-- STARTER -->
                     <div class="hub-plan-card hub-plan-card-basic">
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">START</span>
+                            <span class="hub-plan-tier">STARTER</span>
                             <div class="hub-plan-price">$ 27<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
                             <li class="included">Visitantes</li>
                             <li class="included">START</li>
+                            <li class="included">Tasks</li>
+                            <li class="included">Transmissão</li>
                             <li class="included">Aniversariantes</li>
-                            <li class="locked">IA WhatsApp</li>
-                            <li class="locked">CRIE</li>
                             <li class="locked">Financeiro</li>
+                            <li class="locked">Relatórios/Logs</li>
                             <li class="locked">Voluntários</li>
+                            <li class="locked">CRIE</li>
+                            <li class="locked">Cantina</li>
+                            <li class="locked">WAHA / IA</li>
+                            <li class="locked">We Care</li>
                         </ul>
-                        <a href="https://wa.me/13214443034?text=Quero%20o%20plano%20Start" target="_blank" class="hub-plan-cta hub-plan-cta-outline">Falar com Suporte</a>
+                        <button onclick="startSaasCheckout('price_starter')" class="hub-plan-cta hub-plan-cta-outline">Evoluir para Starter</button>
                     </div>
 
-                    <!-- MEDIUM -->
+                    <!-- ADVANCED -->
                     <div class="hub-plan-card hub-plan-card-medium">
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">PRO</span>
+                            <span class="hub-plan-tier">ADVANCED</span>
                             <div class="hub-plan-price">$ 47<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
                             <li class="included">Visitantes</li>
                             <li class="included">START</li>
+                            <li class="included">Tasks</li>
+                            <li class="included">Transmissão</li>
                             <li class="included">Aniversariantes</li>
-                            <li class="included">CRIE</li>
-                            <li class="locked">IA WhatsApp</li>
-                            <li class="locked">Financeiro</li>
-                            <li class="locked">Voluntários</li>
+                            <li class="included">Financeiro</li>
+                            <li class="included">Relatórios/Logs</li>
+                            <li class="included">Voluntários</li>
+                            <li class="locked">CRIE</li>
+                            <li class="locked">Cantina</li>
+                            <li class="locked">WAHA / IA</li>
+                            <li class="locked">We Care</li>
                         </ul>
-                        <a href="https://wa.me/13214443034?text=Quero%20o%20plano%20PRO" target="_blank" class="hub-plan-cta hub-plan-cta-outline">Falar com Suporte</a>
+                        <button onclick="startSaasCheckout('price_advanced')" class="hub-plan-cta hub-plan-cta-outline">Evoluir para Advanced</button>
                     </div>
 
-                    <!-- PREMIUM -->
+                    <!-- FOUNDERS -->
                     <div class="hub-plan-card hub-plan-card-premium">
-                        <div class="hub-plan-card-badge">Mais Popular</div>
+                        <div class="hub-plan-card-badge">Tudo Liberado</div>
                         <div class="hub-plan-card-header">
-                            <span class="hub-plan-tier">PREMIUM</span>
+                            <span class="hub-plan-tier">FOUNDERS</span>
                             <div class="hub-plan-price">$ 97<span style="font-size:.75rem;">/mês</span></div>
                         </div>
                         <ul class="hub-plan-features">
                             <li class="included">Consolidação</li>
                             <li class="included">Visitantes</li>
-                            <li class="included">IA WhatsApp</li>
                             <li class="included">START</li>
+                            <li class="included">Tasks</li>
+                            <li class="included">Transmissão</li>
                             <li class="included">Aniversariantes</li>
-                            <li class="included">CRIE</li>
                             <li class="included">Financeiro</li>
+                            <li class="included">Relatórios/Logs</li>
                             <li class="included">Voluntários</li>
+                            <li class="included">CRIE</li>
+                            <li class="included">Cantina</li>
+                            <li class="included">WAHA / IA</li>
+                            <li class="included">We Care</li>
                         </ul>
-                        <a href="https://wa.me/13214443034?text=Quero%20o%20plano%20Premium" target="_blank" class="hub-plan-cta hub-plan-cta-premium">Falar com Suporte</a>
+                        <button onclick="startSaasCheckout('price_founders')" class="hub-plan-cta hub-plan-cta-premium">Evoluir para Founders</button>
                     </div>
 
                 </div>
-                <p style="text-align:center; color:var(--text-dim); font-size:.75rem; margin-top:20px;">Preços em USD ($). Planos anuais disponíveis. Fale conosco para personalizar.</p>
+                <p style="text-align:center; color:var(--text-dim); font-size:.75rem; margin-top:20px;">Preços em USD ($). Assinaturas recorrentes via Stripe. Pagamento seguro com cartão de crédito.</p>
             </div>
         </div>
 
