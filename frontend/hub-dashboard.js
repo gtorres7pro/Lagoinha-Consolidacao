@@ -12044,6 +12044,9 @@ async function loadPendingApplications() {
 
     const pending = data || [];
 
+    // ── Update nav sidebar badge ──────────────────────────────────
+    updateNavMembersBadge(pending.length);
+
     const banner = document.getElementById('pending-apps-banner');
     const label  = document.getElementById('pending-apps-label');
     const list   = document.getElementById('pending-apps-list');
@@ -12076,6 +12079,18 @@ async function loadPendingApplications() {
     }).join('');
 }
 
+// ── Nav badge helper ──────────────────────────────────────────────
+function updateNavMembersBadge(count) {
+    const badge = document.getElementById('nav-membros-badge');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent   = count;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
 function togglePendingApps() {
     const list = document.getElementById('pending-apps-list');
     if (!list) return;
@@ -12103,10 +12118,8 @@ async function reviewApplication(appId, appUserId, decision) {
                 .select('id').eq('workspace_id', wsId).eq('email', appUser.email).single();
 
             if (existing) {
-                // Link existing member
                 await sb().from('crie_members').update({ app_user_id: appUserId }).eq('id', existing.id);
             } else {
-                // Create new member entry
                 await sb().from('crie_members').insert({
                     workspace_id: wsId,
                     name:         appUser.name,
@@ -12117,8 +12130,33 @@ async function reviewApplication(appId, appUserId, decision) {
                     source:       'app',
                 });
             }
+
+            // 4. Send welcome email via Edge Function (fire-and-forget)
+            const SUPABASE_URL = window.SUPABASE_URL || document.querySelector('meta[name="supabase-url"]')?.content || '';
+            const wsName = (() => {
+                const allWs = window._allWorkspaces || [];
+                const ws = allWs.find(w => w.id === wsId);
+                return ws?.name || '';
+            })();
+
+            try {
+                fetch(`${SUPABASE_URL}/functions/v1/crie-member-welcome`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({
+                        memberName:    appUser.name,
+                        memberEmail:   appUser.email,
+                        workspaceName: wsName,
+                        appUrl:        'https://crie-app.7prolabs.com',
+                    }),
+                }).then(r => r.json()).then(r => {
+                    if (r.sent) console.log('✅ Welcome email sent to:', appUser.email);
+                    else        console.warn('📧 Email skipped:', r.reason || r.error);
+                }).catch(err => console.warn('Email fetch error:', err));
+            } catch (_) { /* Non-blocking */ }
         }
-        showHubToast('✅ Membro aprovado com sucesso!', 'success');
+
+        showHubToast('✅ Membro aprovado! Email de boas-vindas enviado.', 'success');
     } else {
         showHubToast('Candidatura rejeitada.', 'info');
     }
@@ -12127,6 +12165,31 @@ async function reviewApplication(appId, appUserId, decision) {
     await loadPendingApplications();
     if (typeof loadCrieMembros === 'function') loadCrieMembros();
 }
+
+// ── Init: Poll pending count every 2 min when CRIE is active ─────
+(function initPendingPoller() {
+    // Run once on startup (after a short delay to ensure wsId is set)
+    setTimeout(async () => {
+        const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+        if (!wsId) return;
+        const { count } = await sb().from('crie_member_applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('workspace_id', wsId)
+            .eq('status', 'pending');
+        updateNavMembersBadge(count || 0);
+    }, 3000);
+
+    // Poll every 2 minutes
+    setInterval(async () => {
+        const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+        if (!wsId) return;
+        const { count } = await sb().from('crie_member_applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('workspace_id', wsId)
+            .eq('status', 'pending');
+        updateNavMembersBadge(count || 0);
+    }, 2 * 60 * 1000);
+})();
 
 // ── Patch loadCrieMembros to also load pending apps ───────────────
 const _origLoadCrieMembros = window.loadCrieMembros;
