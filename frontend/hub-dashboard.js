@@ -330,6 +330,8 @@
                 const role = userRow?.role || 'user';
                 // Store user info globally for other parts of the app
                 window._currentUser = { id: userId, role, ...userRow };
+                // Defer user-module gating until after workspace loads (applyPlanGating runs first)
+                // applyUserModuleGating is called inside switchWorkspace → applyPlanGating chain
 
                 let workspaces = [];
 
@@ -472,7 +474,11 @@
             if (pillNameEl) pillNameEl.textContent = ws.name;
             const sidebarLabel = document.getElementById('sidebar-workspace-name');
             if (sidebarLabel) sidebarLabel.textContent = displayWsName(ws.name);
+            // Store workspace modules globally so user-modal and sidebar gating can use them
+            window._wsModules = ws.modules || [];
             if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
+            // Re-apply user-level gating on top of plan gating
+            if (window.applyUserModuleGating) window.applyUserModuleGating();
             const dd = document.getElementById('ws-dropdown');
             if (dd) dd.classList.remove('open');
             renderWsDropdown();
@@ -1007,6 +1013,55 @@
 
             // Refresh settings plan section
             window.loadSettingsPlanSection && window.loadSettingsPlanSection(plan, allowed);
+        };
+
+        // ─── USER-LEVEL MODULE GATING ─────────────────────────────────────────
+        // Runs AFTER applyPlanGating — further restricts sidebar by user.modules
+        window.applyUserModuleGating = function() {
+            const user = window._currentUser;
+            if (!user) return;
+
+            // Admins/master_admin bypass user-level restrictions
+            const adminRoles = ['master_admin', 'admin', 'pastor_senior', 'church_admin'];
+            if (adminRoles.includes(user.role)) return;
+
+            const userModules = user.modules || [];
+            if (!userModules.length) return; // no restriction = show everything plan allows
+
+            // Map of module key → nav element ID (mirrors PLAN_NAV_MAP)
+            const USER_NAV_MAP = {
+                consolidados:    'nav-dashboard',
+                visitantes:      'nav-visitors',
+                start:           'nav-start',
+                batismo:         'nav-batismo',
+                novos_membros:   'nav-novos-membros',
+                aniversariantes: 'nav-birthdays',
+                ia_chat:         'nav-chat-ao-vivo',
+                transmissao:     'nav-transmissao',
+                crie:            'nav-crie-toggle',
+                cantina:         'nav-cantina-toggle',
+                relatorios:      'nav-relatorios-toggle',
+                financeiro:      'nav-financeiro-toggle',
+                logs:            'nav-logs',
+                wecare:          'nav-wecare',
+                voluntarios:     'nav-voluntarios',
+                tasks:           'nav-tasks',
+            };
+
+            Object.entries(USER_NAV_MAP).forEach(([slug, navId]) => {
+                const navEl = document.getElementById(navId);
+                if (!navEl) return;
+
+                // If user doesn't have this module AND it's not already plan-locked
+                if (!userModules.includes(slug) && navEl.getAttribute('data-locked') !== '1') {
+                    navEl.style.display = 'none'; // hide completely (user access, not plan)
+                } else if (userModules.includes(slug)) {
+                    // If it was user-hidden before, restore it (plan gating still applies)
+                    if (navEl.getAttribute('data-locked') !== '1') {
+                        navEl.style.display = '';
+                    }
+                }
+            });
         };
 
         // ─── LOAD SETTINGS PLAN SECTION ──────────────────────────────────
@@ -2732,10 +2787,13 @@
     }
 
     // Renders module pill toggles (with CRIE submenu expansion)
-    function renderModuleToggles(selectedModules) {
+    // wsModules: list of modules enabled for this workspace (optional — used to lock unavailable ones)
+    function renderModuleToggles(selectedModules, wsModules) {
         const container = document.getElementById('modules-checkboxes');
         if (!container) return;
         const sel = selectedModules || [];
+        // If wsModules not passed, use globally stored workspace modules (or allow all)
+        const wsAllowed = wsModules || window._wsModules || null;
 
         // Set grid layout on container
         container.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:7px;';
@@ -2745,6 +2803,8 @@
             const hasSubActive = m.submodules && m.submodules.some(s => sel.includes(s.key));
             const parentActive = active || hasSubActive;
             const isCrie = !!m.submodules;
+            // Is this module available in the workspace plan?
+            const wsLocked = wsAllowed && !wsAllowed.includes(m.key);
 
             let subHtml = '';
             if (isCrie) {
@@ -2754,17 +2814,22 @@
                            border-radius:10px;margin-top:6px;box-sizing:border-box;width:100%;">
                     ${m.submodules.map(s => {
                         const sActive = sel.includes(s.key);
-                        return `<button type="button" data-module="${s.key}" onclick="window.toggleModulePill(this)"
-                            data-active="${sActive ? '1' : '0'}"
+                        const sLocked = wsAllowed && !wsAllowed.includes(s.key);
+                        return `<button type="button" data-module="${s.key}"
+                            ${sLocked ? '' : 'onclick="window.toggleModulePill(this)"'}
+                            data-active="${sActive && !sLocked ? '1' : '0'}"
+                            title="${sLocked ? 'Módulo não incluído no plano do workspace' : ''}"
                             style="display:flex;align-items:center;gap:5px;padding:5px 10px;
-                                   border-radius:8px;cursor:pointer;font-size:.72rem;font-weight:600;
+                                   border-radius:8px;font-size:.72rem;font-weight:600;
                                    flex:1;min-width:80px;max-width:calc(33% - 5px);
                                    justify-content:center;
-                                   border:1.5px solid ${sActive ? 'var(--accent)' : 'rgba(255,255,255,.1)'};
-                                   background:${sActive ? 'rgba(255,215,0,.12)' : 'rgba(255,255,255,.02)'};
-                                   color:${sActive ? 'var(--accent)' : 'rgba(255,255,255,.45)'};
-                                   box-shadow:${sActive ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
-                            ${s.label}${sActive ? ' ✓' : ''}
+                                   cursor:${sLocked ? 'not-allowed' : 'pointer'};
+                                   opacity:${sLocked ? '0.38' : '1'};
+                                   border:1.5px solid ${sActive && !sLocked ? 'var(--accent)' : 'rgba(255,255,255,.1)'};
+                                   background:${sActive && !sLocked ? 'rgba(255,215,0,.12)' : 'rgba(255,255,255,.02)'};
+                                   color:${sActive && !sLocked ? 'var(--accent)' : 'rgba(255,255,255,.45)'};
+                                   box-shadow:${sActive && !sLocked ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
+                            ${sLocked ? '🔒 ' : ''}${s.label}${sActive && !sLocked ? ' ✓' : ''}
                         </button>`;
                     }).join('')}
                 </div>`;
@@ -2777,18 +2842,21 @@
                 <button type="button"
                     data-module="${m.key}"
                     data-has-sub="${isCrie ? '1' : '0'}"
-                    data-active="${parentActive ? '1' : '0'}"
-                    onclick="window.onModulePillClick(this)"
+                    data-active="${parentActive && !wsLocked ? '1' : '0'}"
+                    ${wsLocked ? '' : 'onclick="window.onModulePillClick(this)"'}
+                    title="${wsLocked ? 'Módulo não disponível no plano atual do workspace' : ''}"
                     style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:11px;
-                           cursor:pointer;font-size:.8rem;font-weight:600;width:100%;
-                           border:1.5px solid ${parentActive ? 'var(--accent)' : 'rgba(255,255,255,.12)'};
-                           background:${parentActive ? 'rgba(255,215,0,.14)' : 'rgba(255,255,255,.03)'};
-                           color:${parentActive ? 'var(--accent)' : 'rgba(255,255,255,.55)'};
-                           box-shadow:${parentActive ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
+                           cursor:${wsLocked ? 'not-allowed' : 'pointer'};opacity:${wsLocked ? '0.35' : '1'};
+                           font-size:.8rem;font-weight:600;width:100%;
+                           border:1.5px solid ${parentActive && !wsLocked ? 'var(--accent)' : 'rgba(255,255,255,.12)'};
+                           background:${parentActive && !wsLocked ? 'rgba(255,215,0,.14)' : 'rgba(255,255,255,.03)'};
+                           color:${parentActive && !wsLocked ? 'var(--accent)' : 'rgba(255,255,255,.55)'};
+                           box-shadow:${parentActive && !wsLocked ? '0 0 0 1px rgba(255,215,0,.2)' : 'none'};">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">${m.svg}</svg>
-                    <span style="flex:1;text-align:left;">${m.label}</span>
-                    ${isCrie ? '<span style="font-size:.65rem;color:rgba(255,255,255,.3);">▼</span>' : ''}
-                    ${parentActive ? '<span class="mod-badge" style="font-size:.58rem;background:rgba(255,215,0,.2);color:var(--accent);padding:1px 5px;border-radius:5px;flex-shrink:0;">✓</span>' : ''}
+                    <span style="flex:1;text-align:left;">${wsLocked ? '🔒 ' : ''}${m.label}</span>
+                    ${isCrie && !wsLocked ? '<span style="font-size:.65rem;color:rgba(255,255,255,.3);">▼</span>' : ''}
+                    ${parentActive && !wsLocked ? '<span class="mod-badge" style="font-size:.58rem;background:rgba(255,215,0,.2);color:var(--accent);padding:1px 5px;border-radius:5px;flex-shrink:0;">✓</span>' : ''}
+                    ${wsLocked ? '<span style="font-size:.6rem;color:rgba(255,255,255,.3);margin-left:auto;padding:1px 6px;background:rgba(255,255,255,.05);border-radius:5px;">Plano</span>' : ''}
                 </button>
                 ${subHtml}
             </div>`;
@@ -2852,8 +2920,8 @@
         document.getElementById('user-modal-subtitle').style.display = 'block';
         document.getElementById('user-status-group').style.display = 'none';
 
-        // Default modules for new user
-        renderModuleToggles(['consolidados', 'visitantes']);
+        // Default modules for new user — filtered by workspace plan
+        renderModuleToggles(['consolidados', 'visitantes'], window._wsModules || null);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
@@ -2873,16 +2941,25 @@
         
         document.getElementById('user-status-group').style.display = 'block';
 
-        // Render modules with the user's existing selection
-        renderModuleToggles(u.modules || []);
+        // Render modules with the user's existing selection — locked by workspace plan
+        renderModuleToggles(u.modules || [], window._wsModules || null);
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
 
     window.onUserRoleChange = function(role) {
-        // If master_admin, auto-select all modules
+        const preset = ROLE_PRESETS[role] || ROLE_PRESETS['user'];
         if (role === 'master_admin') {
-            renderModuleToggles(AVAILABLE_MODULES.map(m => m.key));
+            // master_admin gets all modules (still locked by workspace plan)
+            const allKeys = [];
+            AVAILABLE_MODULES.forEach(m => {
+                allKeys.push(m.key);
+                if (m.submodules) m.submodules.forEach(s => allKeys.push(s.key));
+            });
+            renderModuleToggles(allKeys, window._wsModules || null);
+        } else if (preset && preset.hideSettings) {
+            const cur = _getCurrentModules();
+            renderModuleToggles(cur.filter(k => k !== 'configuracoes'), window._wsModules || null);
         }
     };
 
