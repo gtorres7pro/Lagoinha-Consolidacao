@@ -1146,12 +1146,9 @@ body {
     padding: 4px 0 !important;
     min-height: 0 !important;
   }
-  aside.sidebar.sidebar-collapsed .brand { justify-content: center; padding: 18px 8px; }
+  aside.sidebar.sidebar-collapsed .brand { justify-content: center; padding: 18px 8px; flex-direction: column; gap: 16px; }
   aside.sidebar.sidebar-collapsed .user { justify-content: center; padding: 12px 8px; gap: 0; }
   aside.sidebar.sidebar-collapsed .sidebar-collapse-btn { margin: 0 auto; }
-
-  /* Main content expands */
-  body.sidebar-collapsed .main { margin-left: 64px !important; transition: margin-left .28s cubic-bezier(.4,0,.2,1); }
 }
 
 /* ─────────────────────────────────────────────────────────
