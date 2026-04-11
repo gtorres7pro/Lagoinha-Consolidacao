@@ -393,7 +393,7 @@ async function loadData() {
 function renderData(data) {
   const nameEl = document.getElementById('header-church-name');
   if (nameEl) nameEl.textContent = data.workspace?.name || 'Relatório';
-  document.title = `${data.workspace?.name || 'Relatório'} · Consolidação · Zelo Pro`;
+  document.title = `${data.workspace?.name || 'Relatório'} · Consolidação · Zelo`;
 
   const startLabel = data.workspace?.knowledge_base?.start_label || 'Start';
   const kpiStartLabelEl = document.getElementById('kpi-start-label');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Encontro de Membros — Zelo Pro</title>
+  <title>Encontro de Membros — Zelo</title>
   <meta name="description" content="Registre sua participação no Encontro de Novos Membros e dê o próximo passo na sua jornada de fé.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -237,7 +237,7 @@
             <path d="M4 4 h10 l-10 10 h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <span class="brand-name" id="ws-name-display">Zelo Pro</span>
+        <span class="brand-name" id="ws-name-display">Zelo</span>
       </div>
     </div>
 
@@ -565,7 +565,7 @@
               _personName = leadAny.name;
               _personEmail = email;
               _personPhone = leadAny.phone || '';
-              document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
+              document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo';
               showStep2();
               return;
             }
@@ -579,7 +579,7 @@
           return;
         }
 
-        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo';
         document.title = `Encontro de Membros — ${_ws.name}`;
 
         // Look up in leads
@@ -767,8 +767,8 @@
     async function init() {
       _ws = await HubRouter.getWorkspace();
       if (_ws) {
-        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo Pro';
-        document.title = `Encontro de Membros — ${_ws.name || 'Zelo Pro'}`;
+        document.getElementById('ws-name-display').textContent = _ws.name || 'Zelo';
+        document.title = `Encontro de Membros — ${_ws.name || 'Zelo'}`;
       }
     }
 
