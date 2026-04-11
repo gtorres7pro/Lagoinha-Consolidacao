@@ -321,12 +321,12 @@
                 </div>
             </div>
             <div class="carousel-nav" id="carousel-nav">
-                <button class="btn-nav" id="btn-prev" onclick="carouselPrev()">← Anterior</button>
+                <button class="btn-nav" id="btn-prev">← Anterior</button>
                 <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
                     <div class="nav-dots" id="nav-dots"></div>
                     <span class="slide-counter" id="slide-counter">1 / 10</span>
                 </div>
-                <button class="btn-nav primary" id="btn-next" onclick="carouselNext()">Próximo →</button>
+                <button class="btn-nav primary" id="btn-next">Próximo →</button>
             </div>
         </div>
 
@@ -594,8 +594,9 @@
 
         const isLast = currentSlide === MODULES.length - 1;
         const btnNext = document.getElementById('btn-next');
+        // Use data attribute to signal state — avoid overwriting onclick (conflicts with inline handler)
         btnNext.textContent = isLast ? 'Ver meu acesso →' : 'Próximo →';
-        btnNext.onclick = isLast ? () => showStep(3) : carouselNext;
+        btnNext.setAttribute('data-last', isLast ? '1' : '0');
 
         const btnPrev = document.getElementById('btn-prev');
         btnPrev.style.visibility = currentSlide === 0 ? 'hidden' : 'visible';
@@ -613,6 +614,13 @@
         if (currentSlide > 0) { currentSlide--; updateSlide(); }
     }
     function goToSlide(i) { currentSlide = i; updateSlide(); }
+
+    // Wire nav buttons after DOM is ready (avoids inline onclick conflicts)
+    document.getElementById('btn-next').addEventListener('click', function() {
+        if (this.getAttribute('data-last') === '1') showStep(3);
+        else carouselNext();
+    });
+    document.getElementById('btn-prev').addEventListener('click', carouselPrev);
 
     // Touch/swipe support for mobile
     let touchStartX = 0;
