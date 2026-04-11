@@ -663,30 +663,18 @@
             
             const isFlyoutOpen = group.classList.contains('flyout-open');
             
-            // On mobile (accordion style), we might want to close other open accordions
-            if (window.innerWidth < 1024) {
-                // If opening, close other open submenus first for a cleaner look
-                if (!isFlyoutOpen) {
-                    document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
-                        if (el !== group) el.classList.remove('flyout-open');
-                    });
-                }
-            } else {
-                // On desktop, you typically keep them open or hover based.
-                // Wait, desktop uses CSS hover animation mostly, but since it's a click:
-                // Close others if clicked
-                if (!isFlyoutOpen) {
-                    document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
-                        if (el !== group) el.classList.remove('flyout-open');
-                    });
-                }
+            // Close other open submenus first for a cleaner look
+            if (!isFlyoutOpen) {
+                document.querySelectorAll('.nav-group.flyout-open').forEach(el => {
+                    if (el !== group) el.classList.remove('flyout-open');
+                });
             }
 
             // Toggle current group visibility
             group.classList.toggle('flyout-open');
             
-            // Auto-scroll on mobile if it opened downwards (so it pushes list up if needed)
-            if (window.innerWidth < 1024 && !isFlyoutOpen) {
+            // Auto-scroll so it pushes list up if needed
+            if (!isFlyoutOpen) {
                 setTimeout(() => {
                     const rect = group.getBoundingClientRect();
                     const sidebar = document.querySelector('.sidebar');
