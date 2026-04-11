@@ -913,9 +913,13 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
                             <span class="nav-label">Check-in</span>
                         </li>
+                        <li id="nav-crie-workshop" onclick="switchTab('crie-workshop')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+                            <span class="nav-label">Workshop</span>
+                        </li>
                         <li id="nav-crie-relatorios" onclick="switchTab('crie-relatorios')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                            <span class="nav-label">Relatórios</span>
+                            <span class="nav-label">Controle</span>
                         </li>
                         <li id="nav-crie-connect" onclick="switchTab('crie-connect')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
@@ -926,7 +930,46 @@
                 </div>
             </li>
 
-            <!-- 11. Voluntários (em desenvolvimento) -->
+            <!-- 11. CANTINA (collapsible) -->
+            <li class="nav-group" style="display:block;padding:0;background:none;">
+                <div id="nav-cantina-toggle" onclick="toggleCantinaMenu()" data-submenu-toggle="true" class="nav-item-row" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:12px;transition:background .15s;">
+                    <span class="nav-icon" style="background:rgba(251,113,133,.12); border-radius:8px; padding:4px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; flex-shrink:0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+                    </span>
+                    <span class="nav-label" style="font-weight:800;">Cantina</span>
+                    <span id="cantina-orders-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
+                    <span id="cantina-arrow" style="margin-left:auto; color:rgba(255,255,255,.3); font-size:.6rem; transition:transform .2s;">▶</span>
+                </div>
+                <div class="nav-submenu-wrap" id="cantina-submenu-wrap" style="display:none;">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-cantina-pedidos" onclick="switchTab('cantina-pedidos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+                            <span class="nav-label">Pedidos</span>
+                            <span id="cantina-pending-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#fb7185;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
+                        </li>
+                        <li id="nav-cantina-estoque" onclick="switchTab('cantina-estoque')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+                            <span class="nav-label">Estoque</span>
+                        </li>
+                        <li id="nav-cantina-financeiro" onclick="switchTab('cantina-financeiro')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+                            <span class="nav-label">Financeiro</span>
+                        </li>
+                        <li id="nav-cantina-pos" onclick="switchTab('cantina-pos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+                            <span class="nav-label" style="font-weight:700;">POS</span>
+                            <span style="font-size:.55rem;background:rgba(251,113,133,.15);color:#fb7185;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">CAIXA</span>
+                        </li>
+                        <li id="nav-cantina-config" onclick="switchTab('cantina-config')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+                            <span class="nav-label">Configurar</span>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- 12. Voluntários (em desenvolvimento) -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -4082,21 +4125,61 @@
                     <div><label class="hub-field-label">Capacidade</label><input id="dedit-capacity" type="number" min="0" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
                 </div>
                 <div><label class="hub-field-label">Local</label><input id="dedit-location" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div><label class="hub-field-label">Preço</label><input id="dedit-price" type="number" min="0" step="0.01" style="width:100%;color-scheme:dark;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
-                    <div>
-                        <label class="hub-field-label">Moeda</label>
-                        <div style="position:relative;">
-                            <select id="dedit-currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;cursor:pointer;appearance:none;-webkit-appearance:none;">
-                                <option value="BRL" style="background:#1a1c23;color:#fff;">BRL (R$)</option>
-                                <option value="EUR" style="background:#1a1c23;color:#fff;">EUR (€)</option>
-                                <option value="USD" style="background:#1a1c23;color:#fff;">USD ($)</option>
-                                <option value="GBP" style="background:#1a1c23;color:#fff;">GBP (£)</option>
-                            </select>
-                            <svg style="position:absolute;right:14px;top:13px;pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <!-- ─── Payment Configuration ─────────────────────────── -->
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+                    <p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.3);margin:0;">Pagamentos &amp; Visibilidade</p>
+
+                    <!-- Toggle: Gratuito -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;color:#fff;">Evento Gratuito</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Não regista pagamento</div>
+                        </div>
+                        <div onclick="toggleEventoGratuito(this)" id="toggle-is-free" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+
+                    <!-- Price + Currency (hidden when free) -->
+                    <div id="dedit-price-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div><label class="hub-field-label">Preço</label><input id="dedit-price" type="number" min="0" step="0.01" style="width:100%;color-scheme:dark;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                        <div>
+                            <label class="hub-field-label">Moeda</label>
+                            <div style="position:relative;">
+                                <select id="dedit-currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;cursor:pointer;appearance:none;-webkit-appearance:none;">
+                                    <option value="BRL" style="background:#1a1c23;color:#fff;">BRL (R$)</option>
+                                    <option value="EUR" style="background:#1a1c23;color:#fff;">EUR (€)</option>
+                                    <option value="USD" style="background:#1a1c23;color:#fff;">USD ($)</option>
+                                    <option value="GBP" style="background:#1a1c23;color:#fff;">GBP (£)</option>
+                                </select>
+                                <svg style="position:absolute;right:14px;top:13px;pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Toggle: Pagamento Online -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;color:#fff;">Pagamento Online</div>
+                            <div id="dedit-online-pay-hint" style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Requer Stripe conectado</div>
+                        </div>
+                        <div onclick="toggleEventoOnlinePayment(this)" id="toggle-online-payment" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+
+                    <!-- Toggle: Aberto a Convidados -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;color:#fff;">Aberto a Convidados</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Visível na página pública de inscrição</div>
+                        </div>
+                        <div onclick="toggleEventoOpenToGuests(this)" id="toggle-open-to-guests" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
                 </div>
+
                 <div>
                     <label class="hub-field-label">Status</label>
                     <div style="position:relative;">
@@ -4252,12 +4335,38 @@
             </div>
         </div>
 
+        <!-- ═══ View: CRIE Workshop ═══ -->
+        <div id="view-crie-workshop" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#F59E0B;">C*</span> Workshop</h1>
+                    <p>Biblioteca de conteúdos e playlists do CRIE</p>
+                </div>
+                <div class="actions">
+                    <button style="background:rgba(245,158,11,0.1);color:#F59E0B;border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer;opacity:.5;pointer-events:none;">
+                        + Adicionar Conteúdo
+                    </button>
+                </div>
+            </header>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;gap:20px;text-align:center;">
+                <div style="width:64px;height:64px;border-radius:16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;font-size:2rem;">📚</div>
+                <h2 style="font-size:1.2rem;font-weight:800;color:#fff;margin:0;">Workshop em breve</h2>
+                <p style="color:rgba(255,255,255,0.4);font-size:0.88rem;max-width:380px;line-height:1.6;">A biblioteca de conteúdos e playlists do CRIE está a ser construída. Em breve poderás publicar vídeos, PDFs e séries de ensinos aqui.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🎥 Vídeos</span>
+                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">📋 Playlists</span>
+                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🔒 Exclusivo Membros</span>
+                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🌍 Conteúdo Global</span>
+                </div>
+            </div>
+        </div>
+
         <!-- ═══ View: CRIE Relatórios ═══ -->
         <div id="view-crie-relatorios" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1><span style="color:#F59E0B;">C*</span> Relatórios</h1>
-                    <p>KPIs consolidados e histórico financeiro do CRIE</p>
+                    <h1><span style="color:#F59E0B;">C*</span> Controle</h1>
+                    <p>KPIs, histórico financeiro e configurações do CRIE</p>
                 </div>
                 <div class="actions">
                     <button onclick="loadCrieRelatorios()" style="background:rgba(245,158,11,0.08);color:#F59E0B;border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.78rem;cursor:pointer;">↻ Atualizar</button>
@@ -4308,6 +4417,7 @@
                 <div style="display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:20px;">
                     <button id="rel-tab-resumo" onclick="switchRelTab('resumo')" style="background:rgba(245,158,11,0.12);color:#F59E0B;border:none;border-bottom:2px solid #F59E0B;border-radius:8px 8px 0 0;padding:9px 18px;font-weight:700;font-size:0.78rem;cursor:pointer;font-family:inherit;">📊 Por Evento</button>
                     <button id="rel-tab-financeiro" onclick="switchRelTab('financeiro')" style="background:transparent;color:rgba(255,255,255,0.4);border:none;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;padding:9px 18px;font-weight:600;font-size:0.78rem;cursor:pointer;font-family:inherit;">💰 Financeiro</button>
+                    <button id="rel-tab-config" onclick="switchRelTab('config')" style="background:transparent;color:rgba(255,255,255,0.4);border:none;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;padding:9px 18px;font-weight:600;font-size:0.78rem;cursor:pointer;font-family:inherit;">⚙️ Configurações</button>
                 </div>
             </div>
 
@@ -4372,7 +4482,161 @@
                     </table>
                 </div>
             </div>
-        </div>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- Tab: Configurações CRIE                                    -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <div id="rel-pane-config" style="display:none;padding:0 24px 80px;">
+
+                <!-- ─── STRIPE ───────────────────────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:rgba(99,91,255,0.15);border:1px solid rgba(99,91,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1rem;">⚡</div>
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:700;color:#fff;margin:0;">Stripe — Pagamentos Online</p>
+                            <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin:0;">Conecte a conta Stripe do seu workspace para activar pagamentos</p>
+                        </div>
+                        <div id="stripe-connection-status" style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:700;"></div>
+                    </div>
+                    <div id="stripe-connect-form" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Publishable Key</label>
+                                <input id="stripe-pk-input" type="text" placeholder="pk_live_..." autocomplete="off"
+                                    style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.82rem;outline:none;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='rgba(99,91,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Secret Key</label>
+                                <div style="position:relative;">
+                                    <input id="stripe-sk-input" type="password" placeholder="sk_live_..." autocomplete="new-password"
+                                        style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 40px 10px 14px;color:#fff;font-family:inherit;font-size:0.82rem;outline:none;box-sizing:border-box;"
+                                        onfocus="this.style.borderColor='rgba(99,91,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                                    <button onclick="toggleSkVisibility()" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);font-size:0.8rem;padding:2px;">👁</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <button id="btn-stripe-connect" onclick="connectStripe()" style="background:linear-gradient(135deg,#6350FF,#9B8FFF);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">⚡ Conectar Stripe</button>
+                            <button id="btn-stripe-disconnect" onclick="disconnectStripe()" style="display:none;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:10px 18px;font-weight:600;font-size:0.82rem;cursor:pointer;font-family:inherit;">Desconectar</button>
+                            <span id="stripe-connect-msg" style="font-size:0.78rem;color:rgba(255,255,255,0.4);"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─── MEMBRESÍA ──────────────────────────────────── -->
+                <div style="margin-bottom:24px;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);display:flex;align-items:center;justify-content:center;font-size:1rem;">⭐</div>
+                        <div>
+                            <p style="font-size:0.9rem;font-weight:700;color:#fff;margin:0;">Membresía — Valor Mensal</p>
+                            <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin:0;">Defina o valor padrão da mensalidade para este workspace</p>
+                        </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;">
+                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;align-items:end;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Valor da Mensalidade</label>
+                                <input id="membership-fee-input" type="number" min="0" step="0.01" placeholder="0.00"
+                                    style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='rgba(245,158,11,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Moeda</label>
+                                <select id="membership-currency-select" style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="BRL">R$ BRL</option>
+                                    <option value="USD">$ USD</option>
+                                    <option value="GBP">£ GBP</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button onclick="saveMembershipSettings()" style="width:100%;background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(245,158,11,0.25)'" onmouseout="this.style.background='rgba(245,158,11,0.15)'">Salvar</button>
+                            </div>
+                        </div>
+                        <div id="membership-save-msg" style="font-size:0.78rem;min-height:16px;"></div>
+                    </div>
+                </div>
+
+                <!-- ─── CUPONS ─────────────────────────────────────── -->
+                <div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);display:flex;align-items:center;justify-content:center;font-size:1rem;">🎁</div>
+                        <div style="flex:1;">
+                            <p style="font-size:0.9rem;font-weight:700;color:#fff;margin:0;">Cupons de Desconto</p>
+                            <p style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin:0;">Cria cupons aplicáveis a eventos e mensalidades (sincroniza com Stripe)</p>
+                        </div>
+                        <button onclick="openCrieCreateCouponModal()" style="background:rgba(52,211,153,0.1);color:#34D399;border:1px solid rgba(52,211,153,0.25);border-radius:10px;padding:8px 14px;font-weight:700;font-size:0.78rem;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Criar Cupom
+                        </button>
+                    </div>
+                    <div id="crie-coupons-list" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;min-height:80px;">
+                        <p style="text-align:center;color:rgba(255,255,255,0.2);font-size:0.82rem;padding:20px 0;" id="crie-coupons-empty">Nenhum cupom criado ainda. Conecte o Stripe para criar cupons.</p>
+                    </div>
+                </div>
+
+            </div><!-- /rel-pane-config -->
+
+            <!-- Modal: Criar Cupom -->
+            <div id="modal-crie-coupon" style="display:none;position:fixed;inset:0;z-index:3100;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+                <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:440px;">
+                    <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:12px;">
+                        <span style="font-size:1rem;font-weight:800;color:#fff;flex:1;">🎁 Criar Cupom de Desconto</span>
+                        <button onclick="document.getElementById('modal-crie-coupon').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.2rem;cursor:pointer;">✕</button>
+                    </div>
+                    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:13px;">
+                        <div>
+                            <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Código do Cupom</label>
+                            <input id="coupon-code-input" type="text" placeholder="Ex: AMIGO20" maxlength="20"
+                                style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;text-transform:uppercase;"
+                                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+                                onfocus="this.style.borderColor='rgba(52,211,153,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Tipo</label>
+                                <select id="coupon-type-select" onchange="updateCouponTypeUI()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                                    <option value="percent">% Percentual</option>
+                                    <option value="amount">€ Valor Fixo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;" id="coupon-discount-label">Desconto (%)</label>
+                                <input id="coupon-discount-input" type="number" min="1" max="100" placeholder="20"
+                                    style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='rgba(52,211,153,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Aplica-se a</label>
+                                <select id="coupon-applicable-select" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                                    <option value="both">Ambos</option>
+                                    <option value="events">Só Eventos</option>
+                                    <option value="memberships">Só Mensalidades</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Máx. Usos</label>
+                                <input id="coupon-max-uses-input" type="number" min="1" placeholder="∞ Ilimitado"
+                                    style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='rgba(52,211,153,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Data de Expiração (opcional)</label>
+                            <input id="coupon-expires-input" type="date"
+                                style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"
+                                onfocus="this.style.borderColor='rgba(52,211,153,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        </div>
+                        <div id="coupon-create-msg" style="font-size:0.78rem;min-height:16px;"></div>
+                        <button onclick="saveCrieCoupon()" style="background:linear-gradient(135deg,#34D399,#10b981);color:#000;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:0.88rem;cursor:pointer;font-family:inherit;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Criar Cupom</button>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /view-crie-relatorios -->
 
         <!-- Modal: Lançamento Avulso -->
         <div id="modal-avulso" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
@@ -4621,35 +4885,64 @@
                         <div><label class="hub-field-label">Data & Hora</label><input name="date" type="datetime-local" required style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.88rem; outline:none; box-sizing:border-box;"></div>
                         <div><label class="hub-field-label">Capacidade</label><input name="capacity" type="number" min="0" placeholder="0 = ilimitado" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                        <div><label class="hub-field-label">Local</label><input name="location" required placeholder="Endereço ou link" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
-                        <div>
-                            <label class="hub-field-label">Preço & Moeda</label>
-                            <div style="display:flex; gap:8px;">
-                                <select name="currency" style="width:40%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 6px; color:#fff; font-size:.85rem; outline:none; box-sizing:border-box;">
-                                    <optgroup label="Principais">
-                                        <option value="US$">US$</option>
-                                        <option value="€">Euro (€)</option>
-                                        <option value="R$" selected>Real (R$)</option>
-                                        <option value="CAD$">Canada$</option>
-                                        <option value="£">Libras (£)</option>
-                                    </optgroup>
-                                    <optgroup label="Outras">
-                                        <option value="ARS$">ARS$</option>
-                                        <option value="AUD$">AUD$</option>
-                                        <option value="CHF">CHF</option>
-                                        <option value="CLP$">CLP$</option>
-                                        <option value="COP$">COP$</option>
-                                        <option value="¥">¥ (JPY)</option>
-                                        <option value="MXN$">MXN$</option>
-                                        <option value="PYG">PYG</option>
-                                        <option value="$U">$U (UYU)</option>
-                                    </optgroup>
+                    <div><label class="hub-field-label">Local</label><input name="location" required placeholder="Endereço ou link" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;"></div>
+                    <!-- Payment & Visibility section -->
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+                        <p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.3);margin:0;">Pagamentos &amp; Visibilidade</p>
+
+                        <!-- Toggle: Gratuito -->
+                        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                            <div>
+                                <div style="font-size:0.85rem;font-weight:600;color:#fff;">Evento Gratuito</div>
+                                <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Não regista pagamento</div>
+                            </div>
+                            <div onclick="toggleCreateEvtField(this,'is_free','#F59E0B','create-price-row')" id="ctoggle-is-free" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                                <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.8);transition:all .2s;"></div>
+                            </div>
+                        </label>
+
+                        <!-- Price row (hidden when free) -->
+                        <div id="create-price-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div><label class="hub-field-label">Preço</label><input name="price" type="number" min="0" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                            <div>
+                                <label class="hub-field-label">Moeda</label>
+                                <select name="currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;">
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="BRL" selected>BRL (R$)</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="GBP">GBP (£)</option>
                                 </select>
-                                <input name="price" type="number" min="0" step="0.01" placeholder="0.00" style="flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;">
                             </div>
                         </div>
+
+                        <!-- Toggle: Pagamento Online -->
+                        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                            <div>
+                                <div style="font-size:0.85rem;font-weight:600;color:#fff;">Pagamento Online</div>
+                                <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Requer Stripe conectado</div>
+                            </div>
+                            <div onclick="toggleCreateEvtField(this,'online_payment_enabled','#6350FF',null,true)" id="ctoggle-online-payment" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                                <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.8);transition:all .2s;"></div>
+                            </div>
+                        </label>
+
+                        <!-- Toggle: Aberto a Convidados -->
+                        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                            <div>
+                                <div style="font-size:0.85rem;font-weight:600;color:#fff;">Aberto a Convidados</div>
+                                <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);">Visível públicamente</div>
+                            </div>
+                            <div onclick="toggleCreateEvtField(this,'open_to_guests','#34D399')" id="ctoggle-open-to-guests" data-active="true" style="width:42px;height:24px;border-radius:12px;background:#34D399;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                                <div style="position:absolute;top:3px;left:21px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                            </div>
+                        </label>
+
+                        <!-- Hidden fields to hold toggle state -->
+                        <input type="hidden" name="is_free" id="create-is-free-val" value="false">
+                        <input type="hidden" name="online_payment_enabled" id="create-online-pay-val" value="false">
+                        <input type="hidden" name="open_to_guests" id="create-open-guests-val" value="true">
                     </div>
+
                     <div><label class="hub-field-label">Status</label>
                         <select name="status" style="width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 14px; color:#fff; font-size:.9rem; outline:none; box-sizing:border-box;">
                             <option value="DRAFT">Rascunho</option>
@@ -5430,8 +5723,565 @@
         </div>
     </div>
 
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CANTINA MODULE — Views
+    ═══════════════════════════════════════════════════════════ -->
+
+    <!-- View: Cantina — Pedidos -->
+    <div id="view-cantina-pedidos" class="view-section">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>🛒 Pedidos</h1>
+                <p>Encomendas online e controle de entregas</p>
+            </div>
+            <div class="actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+                    <button id="cantina-pedidos-filter-all" onclick="filterCantinaPedidos('all',this)" class="hub-period-tab active" style="font-size:0.75rem;">Todos</button>
+                    <button onclick="filterCantinaPedidos('pending',this)" class="hub-period-tab" style="font-size:0.75rem;">Pendentes</button>
+                    <button onclick="filterCantinaPedidos('confirmed',this)" class="hub-period-tab" style="font-size:0.75rem;">Confirmados</button>
+                    <button onclick="filterCantinaPedidos('ready',this)" class="hub-period-tab" style="font-size:0.75rem;">Prontos</button>
+                    <button onclick="filterCantinaPedidos('delivered',this)" class="hub-period-tab" style="font-size:0.75rem;">Entregues</button>
+                </div>
+                <button onclick="loadCantinaPedidos()" style="background:rgba(251,113,133,0.1);color:#fb7185;border:1px solid rgba(251,113,133,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Atualizar
+                </button>
+            </div>
+        </header>
+
+        <!-- KPIs -->
+        <div class="crie-dashboard-row" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:0 24px 16px;">
+            <div class="crie-kpi-card" style="border-top:2px solid #fb7185;padding:18px;">
+                <h3 style="font-size:0.75rem;">Hoje</h3>
+                <div id="cantina-kpi-hoje" class="crie-kpi-val" style="color:#fb7185;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Pedidos hoje</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #fbbf24;padding:18px;">
+                <h3 style="font-size:0.75rem;">Pendentes</h3>
+                <div id="cantina-kpi-pendentes" class="crie-kpi-val" style="color:#fbbf24;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Aguardando</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #34d399;padding:18px;">
+                <h3 style="font-size:0.75rem;">Prontos</h3>
+                <div id="cantina-kpi-prontos" class="crie-kpi-val" style="color:#34d399;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Para retirar</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #60a5fa;padding:18px;">
+                <h3 style="font-size:0.75rem;">Receita Hoje</h3>
+                <div id="cantina-kpi-receita" class="crie-kpi-val" style="color:#60a5fa;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Total pago</div>
+            </div>
+        </div>
+
+        <!-- Orders list -->
+        <div style="padding:0 24px 40px;">
+            <div id="cantina-pedidos-list" style="display:flex;flex-direction:column;gap:10px;">
+                <div style="text-align:center;padding:60px;color:rgba(255,255,255,0.3);">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
+                    <div>Carregando pedidos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Cantina — Estoque -->
+    <div id="view-cantina-estoque" class="view-section">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>📦 Estoque</h1>
+                <p>Produtos disponíveis na Cantina</p>
+            </div>
+            <div class="actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+                    <button onclick="filterCantinaEstoque('active',this)" class="hub-period-tab active" style="font-size:0.75rem;">Ativos</button>
+                    <button onclick="filterCantinaEstoque('all',this)" class="hub-period-tab" style="font-size:0.75rem;">Todos</button>
+                    <button onclick="filterCantinaEstoque('archived',this)" class="hub-period-tab" style="font-size:0.75rem;">Arquivados</button>
+                </div>
+                <button onclick="openProductModal()" style="background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Novo Produto
+                </button>
+            </div>
+        </header>
+
+        <!-- Stock KPIs -->
+        <div class="crie-dashboard-row" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;padding:0 24px 16px;">
+            <div class="crie-kpi-card" style="border-top:2px solid #fb7185;padding:16px;">
+                <h3 style="font-size:0.75rem;">Total Produtos</h3>
+                <div id="estoque-kpi-total" class="crie-kpi-val" style="color:#fb7185;font-size:1.8rem;">-</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #34d399;padding:16px;">
+                <h3 style="font-size:0.75rem;">Online</h3>
+                <div id="estoque-kpi-online" class="crie-kpi-val" style="color:#34d399;font-size:1.8rem;">-</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #fbbf24;padding:16px;">
+                <h3 style="font-size:0.75rem;">Estoque Baixo</h3>
+                <div id="estoque-kpi-baixo" class="crie-kpi-val" style="color:#fbbf24;font-size:1.8rem;">-</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #a78bfa;padding:16px;">
+                <h3 style="font-size:0.75rem;">Valor Total</h3>
+                <div id="estoque-kpi-valor" class="crie-kpi-val" style="color:#a78bfa;font-size:1.8rem;">-</div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div style="padding:0 24px 16px;">
+            <input id="estoque-search" type="search" placeholder="🔍 Buscar produto..." oninput="searchCantinaEstoque()"
+                style="width:100%;max-width:400px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:.85rem;outline:none;box-sizing:border-box;">
+        </div>
+
+        <!-- Products Grid -->
+        <div id="cantina-produtos-grid" style="padding:0 24px 40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+            <div style="grid-column:1/-1;text-align:center;padding:60px;color:rgba(255,255,255,0.3);">
+                <div style="font-size:2.5rem;margin-bottom:12px;">📦</div>
+                <div>Carregando produtos...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Cantina — Financeiro -->
+    <div id="view-cantina-financeiro" class="view-section">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>💰 Financeiro</h1>
+                <p>Caixa, receitas, despesas e fechamentos</p>
+            </div>
+            <div class="actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <button onclick="openLancamentoModal('expense')" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;">
+                    ➖ Lançar Despesa
+                </button>
+                <button onclick="openLancamentoModal('income')" style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;">
+                    ➕ Lançar Receita
+                </button>
+                <button onclick="fecharCaixa()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    🔒 Fechar Caixa
+                </button>
+            </div>
+        </header>
+
+        <!-- Financial KPIs -->
+        <div class="crie-dashboard-row" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:0 24px 16px;">
+            <div class="crie-kpi-card" style="border-top:2px solid #34d399;padding:18px;">
+                <h3 style="font-size:0.75rem;">Receitas</h3>
+                <div id="fin-kpi-receitas" class="crie-kpi-val" style="color:#34d399;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Entradas</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #f87171;padding:18px;">
+                <h3 style="font-size:0.75rem;">Despesas</h3>
+                <div id="fin-kpi-despesas" class="crie-kpi-val" style="color:#f87171;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Saídas</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #fbbf24;padding:18px;">
+                <h3 style="font-size:0.75rem;">Saldo</h3>
+                <div id="fin-kpi-saldo" class="crie-kpi-val" style="font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Líquido</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #60a5fa;padding:18px;">
+                <h3 style="font-size:0.75rem;">Vendas POS</h3>
+                <div id="fin-kpi-pos" class="crie-kpi-val" style="color:#60a5fa;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Balcão</div>
+            </div>
+            <div class="crie-kpi-card" style="border-top:2px solid #a78bfa;padding:18px;">
+                <h3 style="font-size:0.75rem;">Doações</h3>
+                <div id="fin-kpi-doacoes" class="crie-kpi-val" style="color:#a78bfa;font-size:1.8rem;">-</div>
+                <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">Recebidas</div>
+            </div>
+        </div>
+
+        <!-- Filter tabs + table -->
+        <div style="padding:0 24px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+                <button onclick="filterCantinaFin('all',this)" class="hub-period-tab active" style="font-size:0.75rem;">Tudo</button>
+                <button onclick="filterCantinaFin('sale',this)" class="hub-period-tab" style="font-size:0.75rem;">Vendas</button>
+                <button onclick="filterCantinaFin('expense',this)" class="hub-period-tab" style="font-size:0.75rem;">Despesas</button>
+                <button onclick="filterCantinaFin('donation',this)" class="hub-period-tab" style="font-size:0.75rem;">Doações</button>
+            </div>
+            <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;margin-left:auto;">
+                <button onclick="setFinPeriod(7,this)" class="hub-period-tab active" style="font-size:0.75rem;">7d</button>
+                <button onclick="setFinPeriod(30,this)" class="hub-period-tab" style="font-size:0.75rem;">30d</button>
+                <button onclick="setFinPeriod(0,this)" class="hub-period-tab" style="font-size:0.75rem;">Tudo</button>
+            </div>
+        </div>
+        <div style="padding:0 24px 40px;overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
+                <thead>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                        <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Data</th>
+                        <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Tipo</th>
+                        <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Descrição</th>
+                        <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Pagamento</th>
+                        <th style="padding:10px 12px;text-align:right;color:rgba(255,255,255,.4);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Valor</th>
+                    </tr>
+                </thead>
+                <tbody id="cantina-fin-tbody">
+                    <tr><td colspan="5" style="padding:40px;text-align:center;color:rgba(255,255,255,.3);">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- View: Cantina — POS -->
+    <div id="view-cantina-pos" class="view-section">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>🖥️ POS — Ponto de Venda</h1>
+                <p>Registrar vendas no balcão e entregar encomendas</p>
+            </div>
+            <div class="actions" style="display:flex;align-items:center;gap:10px;">
+                <div style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+                    <button onclick="switchPOSMode('sale',this)" id="pos-mode-sale" class="hub-period-tab active" style="font-size:0.75rem;">💰 Venda</button>
+                    <button onclick="switchPOSMode('delivery',this)" id="pos-mode-delivery" class="hub-period-tab" style="font-size:0.75rem;">📦 Entrega</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:0;height:calc(100vh - 130px);overflow:hidden;" id="pos-layout">
+            <!-- Products Panel -->
+            <div style="overflow-y:auto;padding:16px 20px;">
+                <!-- Sale mode: product grid -->
+                <div id="pos-sale-panel">
+                    <div style="margin-bottom:12px;">
+                        <input id="pos-search" type="search" placeholder="🔍 Buscar produto..." oninput="searchPOSProducts()"
+                            style="width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:.85rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div id="pos-products-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+                        <div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,0.3);">Carregando produtos...</div>
+                    </div>
+                </div>
+                <!-- Delivery mode: pending orders list -->
+                <div id="pos-delivery-panel" style="display:none;">
+                    <h3 style="font-size:0.85rem;color:rgba(255,255,255,0.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Encomendas Pendentes</h3>
+                    <div id="pos-orders-list" style="display:flex;flex-direction:column;gap:10px;">
+                        <div style="text-align:center;padding:40px;color:rgba(255,255,255,0.3);">Carregando encomendas...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Panel -->
+            <div style="background:rgba(0,0,0,0.3);border-left:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;">
+                <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-weight:700;font-size:0.9rem;color:#fff;">🛒 Carrinho</div>
+                    <div id="pos-cart-count" style="font-size:0.75rem;color:rgba(255,255,255,0.4);">0 itens</div>
+                </div>
+                <div id="pos-cart-items" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2);font-size:0.85rem;">Carrinho vazio</div>
+                </div>
+                <!-- Cart total + payment -->
+                <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06);">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                        <span style="font-weight:700;font-size:1rem;">Total</span>
+                        <span id="pos-cart-total" style="font-weight:800;font-size:1.2rem;color:#fb7185;">R$ 0,00</span>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Forma de Pagamento</label>
+                        <div id="pos-payment-methods" style="display:flex;flex-wrap:wrap;gap:6px;">
+                            <!-- populated by JS from cantina_config -->
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Cliente (opcional)</label>
+                        <input id="pos-customer-name" type="text" placeholder="Nome do cliente"
+                            style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;color:#fff;font-size:0.85rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <button id="pos-checkout-btn" onclick="processPOSSale()" style="width:100%;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:12px;padding:14px;font-weight:800;font-size:0.95rem;cursor:pointer;transition:opacity .2s;">
+                        ✓ Finalizar Venda
+                    </button>
+                    <button onclick="clearPOSCart()" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);border-radius:10px;padding:8px;font-size:0.78rem;cursor:pointer;margin-top:6px;">
+                        Limpar carrinho
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Cantina — Configurações -->
+    <div id="view-cantina-config" class="view-section">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>⚙️ Cantina — Configurações</h1>
+                <p>Pagamentos, moeda, notificações e responsável</p>
+            </div>
+            <div class="actions">
+                <button onclick="saveCantinaConfig()" style="background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:10px;padding:8px 18px;font-weight:700;font-size:0.85rem;cursor:pointer;">
+                    💾 Salvar Configurações
+                </button>
+            </div>
+        </header>
+
+        <div style="padding:24px;max-width:780px;display:flex;flex-direction:column;gap:20px;">
+
+            <!-- Store identity -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;background:rgba(251,113,133,0.03);border-color:rgba(251,113,133,0.15);">
+                <h3 style="font-size:0.85rem;font-weight:700;color:#fb7185;text-transform:uppercase;letter-spacing:.05em;">🏪 Identidade da Loja</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Nome da Cantina</label>
+                        <input id="cc-store-name" type="text" placeholder="Cantina Igreja" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição (pública)</label>
+                        <input id="cc-store-desc" type="text" placeholder="Ex: Snacks e bebidas pós culto" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Moeda</label>
+                        <select id="cc-currency" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                            <option value="BRL">🇧🇷 BRL — Real</option>
+                            <option value="EUR">🇪🇺 EUR — Euro</option>
+                            <option value="USD">🇺🇸 USD — Dólar</option>
+                            <option value="GBP">🇬🇧 GBP — Libra</option>
+                            <option value="AOA">🇦🇴 AOA — Kwanza</option>
+                            <option value="MZN">🇲🇿 MZN — Metical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Código de País Padrão</label>
+                        <select id="cc-country-code" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                            <option value="+55">🇧🇷 +55 Brasil</option>
+                            <option value="+351">🇵🇹 +351 Portugal</option>
+                            <option value="+1">🇺🇸 +1 EUA/Canadá</option>
+                            <option value="+44">🇬🇧 +44 Reino Unido</option>
+                            <option value="+244">🇦🇴 +244 Angola</option>
+                            <option value="+258">🇲🇿 +258 Moçambique</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment methods -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;background:rgba(251,191,36,0.03);border-color:rgba(251,191,36,0.12);">
+                <h3 style="font-size:0.85rem;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.05em;">💳 Formas de Pagamento</h3>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;width:100%;">
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                        <input type="checkbox" id="pm-cash" value="cash" style="accent-color:#fb7185;"> 💵 Dinheiro
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                        <input type="checkbox" id="pm-pix" value="pix" style="accent-color:#fb7185;"> 📲 Pix
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                        <input type="checkbox" id="pm-card" value="card" style="accent-color:#fb7185;"> 💳 Cartão
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                        <input type="checkbox" id="pm-stripe" value="stripe" style="accent-color:#fb7185;"> ⚡ Stripe (online)
+                    </label>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;width:100%;box-sizing:border-box;">
+                    <input type="checkbox" id="cc-allow-counter" style="accent-color:#fbbf24;">
+                    <div>
+                        <div style="font-size:0.85rem;color:#fff;font-weight:600;">Aceitar pagamento no balcão mesmo com Stripe ativo</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Se desativado, pagamento online via Stripe será obrigatório</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stripe -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;background:rgba(96,165,250,0.03);border-color:rgba(96,165,250,0.12);">
+                <div style="display:flex;align-items:center;gap:12px;width:100%;">
+                    <h3 style="font-size:0.85rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.05em;flex:1;">⚡ Stripe</h3>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="cc-stripe-enabled" onchange="toggleStripeSection(this.checked)" style="accent-color:#60a5fa;">
+                        <span style="font-size:0.82rem;color:rgba(255,255,255,0.6);">Ativar Stripe</span>
+                    </label>
+                </div>
+                <div id="stripe-config-section" style="width:100%;display:flex;flex-direction:column;gap:10px;opacity:0.4;pointer-events:none;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Publishable Key</label>
+                        <input id="cc-stripe-pub" type="text" placeholder="pk_live_..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Secret Key</label>
+                        <input id="cc-stripe-sec" type="password" placeholder="sk_live_..." style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reservations -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;">
+                <h3 style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.05em;">⏱️ Reservas Online</h3>
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Tempo de reserva (minutos)</label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input id="cc-reservation-min" type="number" min="5" max="120" value="20"
+                            style="width:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                        <span style="font-size:0.85rem;color:rgba(255,255,255,0.4);">minutos após o pedido</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Responsible -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;background:rgba(167,139,250,0.03);border-color:rgba(167,139,250,0.12);">
+                <h3 style="font-size:0.85rem;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.05em;">👤 Responsável & Notificações</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Nome</label>
+                        <input id="cc-resp-name" type="text" placeholder="Nome do responsável" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Email (notificações)</label>
+                        <input id="cc-resp-email" type="email" placeholder="email@igreja.com" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Telefone</label>
+                    <input id="cc-resp-phone" type="tel" placeholder="+55 11 99999-9999" style="width:280px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="checkbox" id="cc-notif-stock" style="accent-color:#a78bfa;">
+                        <div>
+                            <div style="font-size:0.85rem;color:#fff;">Alertas de estoque baixo</div>
+                            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Email quando produto atingir quantidade mínima</div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                        <input type="checkbox" id="cc-notif-closing" style="accent-color:#a78bfa;">
+                        <div>
+                            <div style="font-size:0.85rem;color:#fff;">Relatório de fechamento de caixa</div>
+                            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Email automático ao fechar caixa</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;">
+                <h3 style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.05em;">📱 QR Code da Loja Pública</h3>
+                <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);line-height:1.6;">Use este QR Code para divulgar a cantina no culto ou em cartazes.</p>
+                <div style="display:flex;align-items:center;gap:16px;">
+                    <canvas id="qr-cantina-public" width="120" height="120" style="border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#fff;padding:6px;"></canvas>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div id="cantina-public-url" style="font-size:0.78rem;color:rgba(255,255,255,0.4);word-break:break-all;max-width:300px;"></div>
+                        <button onclick="copyCantinaPublicUrl()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px 14px;font-size:0.78rem;cursor:pointer;">📋 Copiar Link</button>
+                        <button onclick="downloadQR('qr-cantina-public','cantina')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px 14px;font-size:0.78rem;cursor:pointer;">⬇️ Baixar QR Code</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal: Produto (criar/editar) -->
+    <div id="modal-cantina-produto" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#111;border:1px solid rgba(251,113,133,0.2);border-radius:20px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;">
+            <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#111;z-index:1;">
+                <span id="modal-produto-title" style="font-size:1rem;font-weight:800;color:#fff;flex:1;">➕ Novo Produto</span>
+                <button onclick="closeProductModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+            </div>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
+                <input type="hidden" id="produto-id">
+
+                <!-- Photos -->
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Fotos do Produto *</label>
+                    <div id="produto-photos-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
+                    <label for="produto-photo-input" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(251,113,133,0.08);border:1px dashed rgba(251,113,133,0.3);border-radius:10px;cursor:pointer;font-size:0.82rem;color:#fb7185;transition:all .2s;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Adicionar Foto
+                    </label>
+                    <input type="file" id="produto-photo-input" accept="image/*" multiple style="display:none;" onchange="handleProductPhotoUpload(event)">
+                    <div id="produto-upload-progress" style="display:none;margin-top:6px;font-size:0.75rem;color:#fb7185;">⏳ Fazendo upload...</div>
+                </div>
+
+                <!-- Name & Price -->
+                <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Nome *</label>
+                        <input id="produto-name" type="text" placeholder="Nome do produto" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Preço *</label>
+                        <input id="produto-price" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição</label>
+                    <textarea id="produto-desc" placeholder="Ex: Coxinha de frango, tamanho médio..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;min-height:80px;resize:vertical;box-sizing:border-box;"></textarea>
+                </div>
+
+                <!-- Stock quantities -->
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Quantidades em Estoque</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div style="background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px;">
+                            <label style="font-size:0.7rem;color:#34d399;display:block;margin-bottom:6px;font-weight:600;">🌐 Online</label>
+                            <input id="produto-qty-online" type="number" min="0" value="0" style="width:100%;background:transparent;border:none;color:#fff;font-size:1.2rem;font-weight:700;outline:none;text-align:center;">
+                            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;margin-top:4px;">Disponível no link público</div>
+                        </div>
+                        <div style="background:rgba(251,113,133,0.05);border:1px solid rgba(251,113,133,0.15);border-radius:10px;padding:12px;">
+                            <label style="font-size:0.7rem;color:#fb7185;display:block;margin-bottom:6px;font-weight:600;">🏪 Físico</label>
+                            <input id="produto-qty-physical" type="number" min="0" value="0" style="width:100%;background:transparent;border:none;color:#fff;font-size:1.2rem;font-weight:700;outline:none;text-align:center;">
+                            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;margin-top:4px;">Reservas no balcão</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.78rem;color:rgba(255,255,255,0.4);">
+                        Total em estoque: <span id="produto-qty-total" style="color:#fff;font-weight:700;">0</span> unidades
+                    </div>
+                </div>
+
+                <!-- Online toggle -->
+                <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;">
+                    <input type="checkbox" id="produto-available-online" checked style="accent-color:#34d399;width:16px;height:16px;">
+                    <div>
+                        <div style="font-size:0.88rem;color:#fff;font-weight:600;">Disponível online</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Aparecer no link público da cantina</div>
+                    </div>
+                    <div id="produto-online-badge" style="margin-left:auto;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,0.15);color:#34d399;">ONLINE</div>
+                </label>
+
+                <div id="produto-modal-msg" style="font-size:0.8rem;min-height:16px;text-align:center;"></div>
+
+                <div style="display:flex;gap:10px;">
+                    <button onclick="closeProductModal()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border-radius:12px;padding:12px;font-size:0.9rem;cursor:pointer;">Cancelar</button>
+                    <button onclick="saveProduct()" id="produto-save-btn" style="flex:2;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:0.9rem;cursor:pointer;">
+                        💾 Salvar Produto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Lançamento Financeiro -->
+    <div id="modal-cantina-lancamento" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:420px;">
+            <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;">
+                <span id="lancamento-modal-title" style="font-size:1rem;font-weight:800;color:#fff;flex:1;">➕ Lançar</span>
+                <button onclick="document.getElementById('modal-cantina-lancamento').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.3rem;cursor:pointer;">✕</button>
+            </div>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+                <input type="hidden" id="lancamento-type">
+                <div>
+                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição *</label>
+                    <input id="lancamento-desc" type="text" placeholder="Ex: Compra de ingredientes" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Valor *</label>
+                        <input id="lancamento-amount" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Pagamento</label>
+                        <select id="lancamento-payment" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
+                            <option value="cash">💵 Dinheiro</option>
+                            <option value="pix">📲 Pix</option>
+                            <option value="card">💳 Cartão</option>
+                            <option value="other">Outro</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="lancamento-msg" style="font-size:0.8rem;min-height:16px;text-align:center;"></div>
+                <button onclick="saveLancamento()" style="background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:0.9rem;cursor:pointer;">Salvar Lançamento</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/hub-dashboard.js?v=20260407v1"></script>
+
     <script src="/hub-start.js?v=1"></script>
+    <script src="/hub-cantina.js?v=20260411v1"></script>
     <script src="/task-manager.js?v=20260401v1"></script>
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
