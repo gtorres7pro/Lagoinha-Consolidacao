@@ -92,6 +92,9 @@ function getSupabase() {
 }
 
 async function getWorkspaceId() {
+  // Always respect the workspace switcher (master admin may switch workspaces)
+  if (window.currentWorkspaceId) return window.currentWorkspaceId;
+  // Fallback: query DB for the user's own workspace
   const sb = getSupabase();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
@@ -141,7 +144,23 @@ async function loadCantinaConfigView() {
     if (el) el.checked = methods.includes(m);
   });
 
-  toggleStripeSection(cfg.stripe_enabled);
+  // ── Stripe connection status ──────────────────────────────
+  const statusEl  = document.getElementById('cantina-stripe-connection-status');
+  const btnConn   = document.getElementById('btn-cantina-stripe-connect');
+  const btnDisc   = document.getElementById('btn-cantina-stripe-disconnect');
+
+  if (cfg.stripe_connected) {
+    const displayName = cfg.stripe_account_name || cfg.stripe_account_email || 'Conta Stripe';
+    if (statusEl) statusEl.innerHTML = `<span style="color:#4ade80;">⬤</span><span style="color:#4ade80;">Conectado: ${displayName}</span>`;
+    if (btnConn)  btnConn.style.display  = 'none';
+    if (btnDisc)  btnDisc.style.display  = 'inline-flex';
+  } else {
+    if (statusEl) statusEl.innerHTML = `<span style="color:rgba(255,255,255,0.2);">⬤</span><span style="color:rgba(255,255,255,0.3);">Não conectado</span>`;
+    if (btnConn)  btnConn.style.display  = 'inline-flex';
+    if (btnDisc)  btnDisc.style.display  = 'none';
+  }
+
+  window._cantinaStripeConnected = !!cfg.stripe_connected;
 
   // QR Code — using qrserver.com API (no library needed)
   const publicUrl = `${location.origin}/cantina.html?ws=${cfg.workspace_id}`;
@@ -156,12 +175,91 @@ async function loadCantinaConfigView() {
   }
 }
 
+// toggleStripeSection is kept for the checkbox (enable/disable in orders), but no longer dims keys
 function toggleStripeSection(enabled) {
-  const section = document.getElementById('stripe-config-section');
-  if (!section) return;
-  section.style.opacity = enabled ? '1' : '0.4';
-  section.style.pointerEvents = enabled ? 'auto' : 'none';
+  // No-op: kept for backward compat with the checkbox onchange handler
 }
+
+// ── Stripe Connect / Disconnect ─────────────────────────────
+
+window.toggleCantinaSkVisibility = function() {
+  const inp = document.getElementById('cc-stripe-sec');
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+};
+
+window.connectCantinaStripe = async function() {
+  const pk  = (document.getElementById('cc-stripe-pub')?.value || '').trim();
+  const sk  = (document.getElementById('cc-stripe-sec')?.value || '').trim();
+  const msg = document.getElementById('cantina-stripe-connect-msg');
+  const btn = document.getElementById('btn-cantina-stripe-connect');
+
+  if (!pk || !sk) {
+    if (msg) { msg.textContent = '⚠️ Insere ambas as chaves.'; msg.style.color = '#f87171'; }
+    return;
+  }
+  if (!pk.startsWith('pk_')) {
+    if (msg) { msg.textContent = '⚠️ Publishable Key inválida (deve começar com pk_).'; msg.style.color = '#f87171'; }
+    return;
+  }
+  if (!sk.startsWith('sk_')) {
+    if (msg) { msg.textContent = '⚠️ Secret Key inválida (deve começar com sk_).'; msg.style.color = '#f87171'; }
+    return;
+  }
+
+  if (btn) { btn.textContent = '⏳ A conectar...'; btn.disabled = true; }
+  if (msg) { msg.textContent = ''; }
+
+  const wsId = await getWorkspaceId();
+  const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+  const { data: { session } } = await getSupabase().auth.getSession();
+
+  try {
+    const res = await fetch(`${EDGE}/cantina-stripe-connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ workspace_id: wsId, publishable_key: pk, secret_key: sk })
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const rawText = await res.text();
+      console.error('[Cantina stripe] Non-JSON response:', res.status, rawText.substring(0, 200));
+      throw new Error(`Erro de servidor (${res.status}) — tente novamente.`);
+    }
+
+    const json = await res.json();
+    if (!res.ok || !json.success) throw new Error(json.error || 'Erro desconhecido');
+
+    if (msg) { msg.textContent = `✓ Conectado como: ${json.account_name || json.email || 'Conta Stripe'}`; msg.style.color = '#4ade80'; }
+    // Reload config to refresh status indicator (also updates _cantinaConfig cache)
+    await loadCantinaConfigView();
+  } catch (err) {
+    if (msg) { msg.textContent = `❌ ${err.message}`; msg.style.color = '#f87171'; }
+  } finally {
+    if (btn) { btn.textContent = '⚡ Conectar Stripe'; btn.disabled = false; }
+  }
+};
+
+window.disconnectCantinaStripe = async function() {
+  if (!confirm('Desconectar o Stripe desta Cantina? Os pedidos e transações existentes não serão afetados.')) return;
+  const sb   = getSupabase();
+  const wsId = await getWorkspaceId();
+  const { error } = await sb.from('cantina_config').update({
+    stripe_connected: false,
+    stripe_publishable_key: null,
+    stripe_secret_key_enc: null,
+    stripe_account_id: null,
+    stripe_account_name: null,
+    stripe_account_email: null,
+  }).eq('workspace_id', wsId);
+
+  if (error) { showToast('Erro ao desconectar: ' + error.message, 'error'); return; }
+  window._cantinaStripeConnected = false;
+  await loadCantinaConfigView();
+  const msg = document.getElementById('cantina-stripe-connect-msg');
+  if (msg) { msg.textContent = 'Stripe desconectado.'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+};
 
 function copyCantinaPublicUrl() {
   const urlEl = document.getElementById('cantina-public-url');
@@ -320,11 +418,26 @@ function renderProductCard(p) {
         </span>
       </div>
       <!-- Actions -->
-      <div style="display:flex;gap:6px;">
-        <button onclick="openProductModal('${p.id}')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px;font-size:0.75rem;cursor:pointer;" title="Editar">✏️ Editar</button>
-        <button onclick="toggleProductOnline('${p.id}', ${!p.available_online})" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px;font-size:0.75rem;cursor:pointer;width:36px;" title="${p.available_online ? 'Tirar do online' : 'Colocar online'}">${p.available_online ? '🔒' : '🌐'}</button>
-        <button onclick="duplicateProduct('${p.id}')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px;font-size:0.75rem;cursor:pointer;width:36px;" title="Duplicar">📋</button>
-        <button onclick="archiveProduct('${p.id}', ${!p.archived})" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border-radius:8px;padding:7px;font-size:0.75rem;cursor:pointer;width:36px;" title="${p.archived ? 'Desarquivar' : 'Arquivar'}">${p.archived ? '♻️' : '🗄️'}</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="openProductModal('${p.id}')"
+          title="Editar produto"
+          style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.75);border-radius:8px;padding:7px 10px;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.12)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)'">✏️ Editar</button>
+        <button onclick="toggleProductOnline('${p.id}', ${!p.available_online})"
+          title="${p.available_online ? '🔒 Tirar do Online — o produto ficará indisponível no portal público' : '🌐 Colocar Online — o produto ficará visível no portal público'}"
+          style="background:${p.available_online ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.04)'};border:1px solid ${p.available_online ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.08)'};color:${p.available_online ? '#34d399' : 'rgba(255,255,255,0.5)'};border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
+          onmouseover="this.style.filter='brightness(1.3)'"
+          onmouseout="this.style.filter='brightness(1)'">${p.available_online ? '🌐' : '🔒'}</button>
+        <button onclick="duplicateProduct('${p.id}')"
+          title="📋 Duplicar — cria uma cópia deste produto (offline por padrão)"
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">📋</button>
+        <button onclick="archiveProduct('${p.id}', ${!p.archived})"
+          title="${p.archived ? '♻️ Restaurar — tira do arquivo e volta para Ativos' : '🗄️ Arquivar — oculta o produto sem apagar. Acesse em "Arquivados"'}"
+          style="background:${p.archived ? 'rgba(251,191,36,0.08)' : 'rgba(255,255,255,0.04)'};border:1px solid ${p.archived ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'};color:${p.archived ? '#fbbf24' : 'rgba(255,255,255,0.4)'};border-radius:8px;padding:7px;font-size:0.85rem;cursor:pointer;width:36px;transition:all .15s;"
+          onmouseover="this.style.filter='brightness(1.3)'"
+          onmouseout="this.style.filter='brightness(1)'">${p.archived ? '♻️' : '🗄️'}</button>
       </div>
     </div>
   </div>`;
@@ -1108,6 +1221,8 @@ async function processPOSSale() {
   const btn = document.getElementById('pos-checkout-btn');
   if (btn) { btn.textContent = '⏳ Processando...'; btn.disabled = true; }
 
+  const isStripe = window._posPaymentMethod === 'stripe';
+
   const { data: order, error: orderError } = await sb.from('cantina_orders').insert({
     workspace_id: wsId,
     customer_name: customerName,
@@ -1116,7 +1231,7 @@ async function processPOSSale() {
     total,
     status: 'delivered',
     payment_method: window._posPaymentMethod,
-    payment_status: 'paid',
+    payment_status: isStripe ? 'unpaid' : 'paid',
     order_type: 'pos',
   }).select().single();
 
@@ -1126,21 +1241,66 @@ async function processPOSSale() {
     return;
   }
 
-  // Log financial transaction
-  await sb.from('cantina_transactions').insert({
-    workspace_id: wsId,
-    type: 'sale',
-    description: `Venda POS — ${customerName} — ${order.order_number || order.id.substr(0,6)}`,
-    amount: total,
-    payment_method: window._posPaymentMethod,
-    order_id: order.id,
-    created_by: user?.id,
-  });
+  if (isStripe) {
+    btn.textContent = '🔗 Gerando Pagamento...';
+    try {
+      const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+      const res = await fetch(`${EDGE_URL}/cantina-stripe-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace_id: wsId,
+          order_id: order.id,
+          order_number: order.order_number || order.id.substring(0,6),
+          items: window._posCart.map(i => ({ name: i.name, qty: i.qty, unit_price: i.unit_price })),
+          total,
+          currency: window._cantinaConfig?.currency || 'BRL',
+          success_url: location.origin + location.pathname,
+          cancel_url: location.origin + location.pathname
+        })
+      });
+
+      if (!res.ok) throw new Error('Erro ao gerar link Stripe');
+      const data = await res.json();
+      
+      if (data.url) {
+        const modal = document.getElementById('modal-pos-stripe-qr');
+        const qrImg = document.getElementById('pos-stripe-qr-img');
+        const amtEl = document.getElementById('pos-stripe-amount');
+        if (modal && qrImg && amtEl) {
+          const sym = window._cantinaConfig?.currency_symbol || 'R$';
+          amtEl.textContent = `${sym} ${total.toFixed(2).replace('.',',')}`;
+          qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(data.url)}`;
+          modal.style.display = 'flex';
+          showToast('💳 Mostre o QR Code ao cliente', 'success');
+        }
+      } else {
+        throw new Error('URL Stripe não retornada');
+      }
+    } catch (err) {
+      showToast('❌ Falha ao criar link Stripe', 'error');
+      console.error(err);
+      if (btn) { btn.textContent = '✓ Finalizar Venda'; btn.disabled = false; }
+      return;
+    }
+  } else {
+    // Log financial transaction for non-Stripe
+    await sb.from('cantina_transactions').insert({
+      workspace_id: wsId,
+      type: 'sale',
+      description: `Venda POS — ${customerName} — ${order.order_number || order.id.substr(0,6)}`,
+      amount: total,
+      payment_method: window._posPaymentMethod,
+      order_id: order.id,
+      created_by: user?.id,
+    });
+    
+    showToast('✅ Venda registrada! ' + (window._cantinaConfig?.currency_symbol || 'R$') + ' ' + total.toFixed(2).replace('.',','), 'success');
+    if (typeof triggerConfetti === 'function') triggerConfetti();
+  }
 
   if (btn) { btn.textContent = '✓ Finalizar Venda'; btn.disabled = false; }
-  showToast('✅ Venda registrada! ' + (window._cantinaConfig?.currency_symbol || 'R$') + ' ' + total.toFixed(2).replace('.',','), 'success');
   clearPOSCart();
-  if (typeof triggerConfetti === 'function') triggerConfetti();
 }
 
 async function loadPOSDeliveries() {

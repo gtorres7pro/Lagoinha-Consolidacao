@@ -6457,6 +6457,29 @@
         </div>
     </div>
 
+    <!-- Modal: POS Stripe QR Code -->
+    <div id="modal-pos-stripe-qr" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#111;border:1px solid rgba(99,102,241,0.3);border-radius:20px;width:100%;max-width:380px;text-align:center;padding:30px 24px;">
+            <div style="width:50px;height:50px;border-radius:25px;background:rgba(99,102,241,0.15);color:#818cf8;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 16px;">
+                🟣
+            </div>
+            <h3 style="font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:8px;">Pagamento Online</h3>
+            <p style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:24px;line-height:1.5;">Peque o cliente para apontar a câmera do telemóvel para este código QR e pagar via Stripe.</p>
+            
+            <div style="background:#fff;padding:16px;border-radius:16px;display:inline-block;margin-bottom:24px;">
+                <img id="pos-stripe-qr-img" src="" alt="QR Code" width="200" height="200" style="display:block;">
+            </div>
+
+            <div style="font-size:0.9rem;font-weight:700;color:#fb7185;margin-bottom:24px;" id="pos-stripe-amount">R$ 0,00</div>
+
+            <div style="display:flex;gap:10px;">
+                <button onclick="document.getElementById('modal-pos-stripe-qr').style.display='none'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border-radius:12px;padding:12px;font-size:0.9rem;cursor:pointer;">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Lançamento Financeiro -->
     <div id="modal-cantina-lancamento" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
         <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:420px;">
@@ -6494,7 +6517,7 @@
     <script src="/hub-dashboard.js?v=20260407v1"></script>
 
     <script src="/hub-start.js?v=1"></script>
-    <script src="/hub-cantina.js?v=20260411v2"></script>
+    <script src="/hub-cantina.js?v=20260411v5"></script>
     <script src="/task-manager.js?v=20260401v1"></script>
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
