@@ -111,47 +111,130 @@ serve(async (req) => {
                 from: "Zelo Pro <equipe@7pro.tech>",
                 to: email,
                 subject: `Bem-vindo ao Zelo Pro: Seu Trial Começou!`,
-                html: `
-<!DOCTYPE html>
-<html>
+                html: `<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bem-vindo ao Zelo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bem-vindo ao Zelo</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #111113; color: #f3f4f6;">
-    <div style="width: 100%; background-color: #111113; padding: 40px 0;">
-        <center>
-            <div style="max-width: 600px; margin: 0 auto; background-color: #1e1b24; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);">
-                <div style="padding: 40px 40px 20px 40px; text-align: center;">
-                    <h1 style="margin: 0; color: #f59e0b; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Bem-vindo ao Zelo</h1>
-                </div>
-                <div style="padding: 20px 40px 40px 40px;">
-                    <p style="font-size: 16px; line-height: 1.6; color: #d1d5db; margin: 0 0 20px 0;">Olá <strong style="color: #f9fafb; font-weight: 600;">${user_name}</strong>, é incrível ter você com a gente!</p>
-                    <p style="font-size: 16px; line-height: 1.6; color: #d1d5db; margin: 0 0 20px 0;">Seu workspace <strong style="color: #f9fafb; font-weight: 600;">${workspace_name}</strong> foi criado com sucesso. O seu período de <strong style="color: #f9fafb; font-weight: 600;">Trial Gratuito de 7 dias</strong> (Plano Founders) já está ativo.</p>
-                    
-                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 24px; margin-bottom: 30px;">
-                        <p style="margin: 0 0 5px 0; text-align: center; font-size: 14px; color: #9ca3af; font-weight: 600; letter-spacing: 1px;">SUA SENHA INICIAL DE ACESSO</p>
-                        <div style="display: block; text-align: center; font-family: monospace; font-size: 24px; font-weight: bold; color: #f59e0b; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 16px; margin: 20px 0; letter-spacing: 2px;">
-                            ${genPassword}
-                        </div>
-                        <p style="margin: 0; font-size: 13px; text-align: center; color: #9ca3af;">Recomendamos alterar sua senha após o primeiro login.</p>
-                    </div>
+<body style="margin:0;padding:0;background:#0a0a0d;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0a0d;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;">
 
-                    <div style="text-align: center; margin-top: 10px;">
-                        <a href="https://zelo.7prolabs.com" style="display: inline-block; background-color: #f59e0b; color: #000000; text-decoration: none; padding: 16px 32px; border-radius: 50px; font-weight: 600; font-size: 16px; letter-spacing: 0.5px;">Acessar Meu Painel</a>
-                    </div>
+        <!-- LOGO HEADER -->
+        <tr><td align="center" style="padding-bottom:32px;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background:linear-gradient(135deg,#FBBF24,#F59E0B);border-radius:14px;width:48px;height:48px;text-align:center;vertical-align:middle;">
+                <span style="color:#000;font-size:22px;font-weight:900;line-height:48px;display:block;">Z</span>
+              </td>
+              <td style="padding-left:12px;vertical-align:middle;">
+                <span style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;">Zelo</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- CARD -->
+        <tr><td style="background:#111117;border:1px solid rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;">
+
+          <!-- GOLD TOP BAR -->
+          <tr><td style="height:3px;background:linear-gradient(90deg,#FBBF24,#F59E0B,rgba(251,191,36,0.1));"></td></tr>
+
+          <!-- BODY -->
+          <tr><td style="padding:40px 40px 32px;">
+
+            <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#fff;letter-spacing:-0.8px;">Bem-vindo ao Zelo, ${user_name}! 🎉</h1>
+            <p style="margin:0 0 28px;font-size:15px;color:rgba(255,255,255,0.55);line-height:1.6;">Seu workspace está pronto. O trial de 7 dias (Plano Founders) já está ativo — explore todos os módulos gratuitamente.</p>
+
+            <!-- WORKSPACE PILL -->
+            <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+              <tr>
+                <td style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:50px;padding:8px 16px;">
+                  <span style="font-size:12px;font-weight:700;color:#FBBF24;text-transform:uppercase;letter-spacing:1px;">⛪ ${workspace_name}</span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- PASSWORD BOX -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:32px;">
+              <tr><td style="padding:24px;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1.5px;text-align:center;">Sua Senha Inicial</p>
+                <div style="text-align:center;margin:14px 0;">
+                  <span style="display:inline-block;font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#FBBF24;background:rgba(251,191,36,0.08);border:1px dashed rgba(251,191,36,0.3);border-radius:10px;padding:12px 24px;letter-spacing:3px;">${genPassword}</span>
                 </div>
-                <div style="padding: 30px 40px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-                    <p style="margin: 0 0 5px 0; font-size: 13px; color: #6b7280;">Zelo - Plataforma de Gestão e Consolidação</p>
-                    <p style="margin: 0; font-size: 13px; color: #6b7280;">Desenvolvido por 7 Pro Labs</p>
-                </div>
-            </div>
-        </center>
-    </div>
+                <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.3);text-align:center;">Recomendamos alterar sua senha após o primeiro login.</p>
+              </td></tr>
+            </table>
+
+            <!-- FEATURE HIGHLIGHTS -->
+            <p style="margin:0 0 16px;font-size:12px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1.2px;">O que você pode explorar:</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+              <tr>
+                <td width="50%" style="padding:0 6px 10px 0;vertical-align:top;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
+                      <span style="font-size:18px;">⚡</span>
+                      <p style="margin:8px 0 0;font-size:13px;font-weight:700;color:#fff;">Consolidação</p>
+                      <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.4);">Gerencie decisões e acompanhe salvos em tempo real.</p>
+                    </td></tr>
+                  </table>
+                </td>
+                <td width="50%" style="padding:0 0 10px 6px;vertical-align:top;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
+                      <span style="font-size:18px;">🤝</span>
+                      <p style="margin:8px 0 0;font-size:13px;font-weight:700;color:#fff;">Visitantes</p>
+                      <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.4);">Fluxo completo de follow-up por WhatsApp.</p>
+                    </td></tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td width="50%" style="padding:0 6px 0 0;vertical-align:top;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
+                      <span style="font-size:18px;">🎪</span>
+                      <p style="margin:8px 0 0;font-size:13px;font-weight:700;color:#fff;">CRIE Eventos</p>
+                      <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.4);">Inscrições, pagamentos e relatórios em um lugar.</p>
+                    </td></tr>
+                  </table>
+                </td>
+                <td width="50%" style="padding:0 0 0 6px;vertical-align:top;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;">
+                      <span style="font-size:18px;">🤖</span>
+                      <p style="margin:8px 0 0;font-size:13px;font-weight:700;color:#fff;">Mila (IA)</p>
+                      <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.4);">Suporte inteligente disponível a qualquer hora.</p>
+                    </td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA BUTTON -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td align="center">
+                <a href="https://zelo.7prolabs.com" style="display:inline-block;background:linear-gradient(135deg,#FBBF24,#F59E0B);color:#000;text-decoration:none;padding:15px 40px;border-radius:50px;font-size:15px;font-weight:800;letter-spacing:0.3px;">Acessar Meu Painel →</a>
+              </td></tr>
+            </table>
+
+          </td></tr>
+
+          <!-- FOOTER -->
+          <tr><td style="padding:24px 40px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+            <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.2);">Zelo · Gestão de Ministérios</p>
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.15);">Desenvolvido por <a href="https://7prolabs.com" style="color:rgba(255,255,255,0.3);text-decoration:none;">7 Pro Labs</a></p>
+          </td></tr>
+
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
-</html>
-                `
+</html>`
             })
         });
     }
