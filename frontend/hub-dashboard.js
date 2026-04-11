@@ -11589,3 +11589,562 @@ async function sendMilaMessage() {
     });
 
 })();
+
+// ════════════════════════════════════════════════════════════════════
+//  FASE 4 — WORKSHOP ADMIN + CANDIDATURAS (global scope)
+// ════════════════════════════════════════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────────────
+let _wsAllContent   = [];
+let _wsAllPlaylists = [];
+let _wsComments     = [];
+let _wsToggleStates = {}; // id → bool
+
+// ── Tab switcher ──────────────────────────────────────────────────
+function switchWorkshopTab(tab) {
+    ['conteudos','playlists','comentarios'].forEach(t => {
+        const btn   = document.getElementById('wtab-' + t);
+        const panel = document.getElementById('wpanel-' + t);
+        const isActive = t === tab;
+        if (btn) {
+            btn.style.borderBottom  = isActive ? '2px solid #F59E0B' : '2px solid transparent';
+            btn.style.color         = isActive ? '#F59E0B' : 'rgba(255,255,255,.4)';
+        }
+        if (panel) panel.style.display = isActive ? (t === 'comentarios' ? 'flex' : 'block') : 'none';
+    });
+    if (tab === 'playlists'   && !_wsAllPlaylists.length) loadWsPlaylists();
+    if (tab === 'comentarios' && !_wsComments.length)     loadWsComments();
+}
+
+// ── Main load (called by router) ──────────────────────────────────
+async function loadCrieWorkshop() {
+    // Reset tabs to first
+    switchWorkshopTab('conteudos');
+    await loadWsContent();
+    // Preload playlists for the add-content modal select
+    await loadWsPlaylists(true);
+}
+
+// ── Workshop Content ──────────────────────────────────────────────
+async function loadWsContent() {
+    const grid = document.getElementById('workshop-content-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</div>';
+
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    if (!wsId) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.3);">Sem workspace activo.</div>'; return; }
+
+    const { data } = await sb().from('crie_workshop_content')
+        .select('id, title, description, youtube_url, youtube_thumbnail, is_members_only, visibility, is_published, view_count, created_at')
+        .eq('workspace_id', wsId)
+        .order('position').order('created_at', { ascending: false });
+
+    _wsAllContent = data || [];
+    renderWsContentGrid(_wsAllContent);
+}
+
+function renderWsContentGrid(items) {
+    const grid = document.getElementById('workshop-content-grid');
+    if (!grid) return;
+    if (!items.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:rgba(255,255,255,.3);">
+            <div style="font-size:2.5rem;margin-bottom:12px;">🎬</div>
+            <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">Sem conteúdos publicados</div>
+            <div style="font-size:0.82rem;">Clica em "Adicionar Vídeo" para começar.</div>
+        </div>`;
+        return;
+    }
+    grid.innerHTML = items.map(c => {
+        const thumbSrc = c.youtube_thumbnail || '';
+        const membersLabel = c.is_members_only ? '<span style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#a78bfa;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">🔒 Membros</span>' : '<span style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);color:#34d399;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">🌐 Público</span>';
+        const globalLabel  = c.visibility === 'global' ? '<span style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);color:#60a5fa;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">🌍 Global</span>' : '';
+        const pubBadge     = c.is_published ? '' : '<span style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">Rascunho</span>';
+        return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;transition:transform .15s;" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform=''">
+            <div style="position:relative;width:100%;padding-top:56.25%;background:#000;">
+                ${thumbSrc ? `<img src="${thumbSrc}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy">` : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2rem;background:rgba(245,158,11,.05);">▶️</div>`}
+                <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                    ${membersLabel} ${globalLabel} ${pubBadge}
+                </div>
+            </div>
+            <div style="padding:12px;">
+                <div style="font-size:0.88rem;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
+                <div style="font-size:0.72rem;color:rgba(255,255,255,.3);margin-bottom:10px;">${c.view_count || 0} visualizações · ${new Date(c.created_at).toLocaleDateString('pt-PT')}</div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="toggleWsPublish('${c.id}',${!c.is_published})" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);font-size:0.72rem;font-weight:700;cursor:pointer;">${c.is_published ? '⬇ Despublicar' : '✅ Publicar'}</button>
+                    <button onclick="deleteWsContent('${c.id}')" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(248,113,113,.2);background:rgba(248,113,113,.06);color:#f87171;font-size:0.72rem;cursor:pointer;">🗑</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function filterWsContent(btn, filter) {
+    document.querySelectorAll('[data-wsc]').forEach(b => {
+        b.style.background = 'rgba(255,255,255,.04)';
+        b.style.borderColor = 'rgba(255,255,255,.08)';
+        b.style.color = 'rgba(255,255,255,.4)';
+    });
+    btn.style.background   = 'rgba(245,158,11,.12)';
+    btn.style.borderColor  = 'rgba(245,158,11,.3)';
+    btn.style.color        = '#F59E0B';
+    let filtered = _wsAllContent;
+    if (filter === 'global')    filtered = _wsAllContent.filter(c => c.visibility === 'global');
+    if (filter === 'workspace') filtered = _wsAllContent.filter(c => c.visibility === 'workspace');
+    if (filter === 'members')   filtered = _wsAllContent.filter(c => c.is_members_only);
+    renderWsContentGrid(filtered);
+}
+
+async function toggleWsPublish(id, newState) {
+    await sb().from('crie_workshop_content').update({ is_published: newState }).eq('id', id);
+    const item = _wsAllContent.find(c => c.id === id);
+    if (item) item.is_published = newState;
+    renderWsContentGrid(_wsAllContent);
+}
+
+async function deleteWsContent(id) {
+    if (!confirm('Eliminar este conteúdo?')) return;
+    await sb().from('crie_workshop_content').delete().eq('id', id);
+    _wsAllContent = _wsAllContent.filter(c => c.id !== id);
+    renderWsContentGrid(_wsAllContent);
+    showHubToast('Conteúdo eliminado.', 'info');
+}
+
+// ── Add Content Modal ─────────────────────────────────────────────
+function openAddWorkshopContent() {
+    // Reset form
+    ['ws-youtube-url','ws-content-title','ws-content-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const preview = document.getElementById('ws-yt-preview');
+    if (preview) preview.style.display = 'none';
+    const msgEl = document.getElementById('ws-content-msg');
+    if (msgEl) msgEl.textContent = '';
+
+    // Reset toggles
+    setWsToggle('wst-members-only', false);
+    setWsToggle('wst-published', true);
+
+    // Populate playlist select
+    const sel = document.getElementById('ws-content-playlist');
+    if (sel) {
+        sel.innerHTML = '<option value="">Sem playlist</option>';
+        _wsAllPlaylists.forEach(pl => {
+            const opt = document.createElement('option');
+            opt.value = pl.id; opt.textContent = pl.title;
+            sel.appendChild(opt);
+        });
+    }
+
+    openCrieModal('modal-add-workshop-content');
+}
+
+function clearYtPreview() {
+    const el = document.getElementById('ws-yt-preview');
+    if (el) el.style.display = 'none';
+}
+
+async function fetchYouTubeMeta() {
+    const url = document.getElementById('ws-youtube-url')?.value?.trim();
+    if (!url) return;
+    const ytId = extractYtId(url);
+    if (!ytId) { showHubToast('URL do YouTube inválido.', 'error'); return; }
+
+    // Use oEmbed (no API key needed)
+    try {
+        const res  = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`);
+        const data = await res.json();
+
+        // Populate fields
+        const titleEl = document.getElementById('ws-content-title');
+        if (titleEl && !titleEl.value) titleEl.value = data.title || '';
+
+        const thumbEl  = document.getElementById('ws-yt-thumb');
+        const titlePre = document.getElementById('ws-yt-fetched-title');
+        const preview  = document.getElementById('ws-yt-preview');
+        if (thumbEl) thumbEl.src = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        if (titlePre) titlePre.textContent = data.title || '';
+        if (preview) preview.style.display = 'flex';
+    } catch(e) {
+        // Fallback: just show thumbnail
+        const thumb   = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        const thumbEl = document.getElementById('ws-yt-thumb');
+        const preview = document.getElementById('ws-yt-preview');
+        if (thumbEl) thumbEl.src = thumb;
+        if (preview) preview.style.display = 'flex';
+    }
+}
+
+function extractYtId(url) {
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+}
+
+async function saveWorkshopContent() {
+    const url     = document.getElementById('ws-youtube-url')?.value?.trim();
+    const title   = document.getElementById('ws-content-title')?.value?.trim();
+    const desc    = document.getElementById('ws-content-desc')?.value?.trim();
+    const plId    = document.getElementById('ws-content-playlist')?.value || null;
+    const vis     = document.getElementById('ws-content-visibility')?.value || 'workspace';
+    const membersOnly = document.getElementById('wst-members-only')?.dataset.active === 'true';
+    const published   = document.getElementById('wst-published')?.dataset.active !== 'false';
+    const msgEl   = document.getElementById('ws-content-msg');
+
+    if (!url)   { if(msgEl) msgEl.textContent = 'URL do YouTube é obrigatório.'; return; }
+    if (!title) { if(msgEl) msgEl.textContent = 'Título é obrigatório.'; return; }
+
+    const ytId   = extractYtId(url);
+    const thumb  = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+    const wsId   = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+
+    const { data, error } = await sb().from('crie_workshop_content').insert({
+        workspace_id:       wsId,
+        title,
+        description:        desc || null,
+        youtube_url:        url,
+        youtube_thumbnail:  thumb,
+        visibility:         vis,
+        is_members_only:    membersOnly,
+        is_published:       published,
+        position:           _wsAllContent.length,
+    }).select().single();
+
+    if (error) { if(msgEl) msgEl.textContent = '❌ ' + error.message; return; }
+
+    // Link to playlist if chosen
+    if (plId && data?.id) {
+        await sb().from('crie_workshop_playlist_items').insert({ playlist_id: plId, content_id: data.id, position: 0 });
+    }
+
+    closeCrieModal('modal-add-workshop-content');
+    showHubToast('🎉 Conteúdo publicado com sucesso!', 'success');
+    await loadWsContent();
+}
+
+// ── Workshop Playlists ────────────────────────────────────────────
+async function loadWsPlaylists(silentMode = false) {
+    const grid = document.getElementById('workshop-playlists-grid');
+    if (grid && !silentMode) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</div>';
+
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    if (!wsId) return;
+
+    const { data } = await sb().from('crie_workshop_playlists')
+        .select('id, title, description, is_members_only, is_published, created_at')
+        .eq('workspace_id', wsId).order('position').order('created_at', { ascending: false });
+
+    _wsAllPlaylists = data || [];
+    if (!silentMode) renderWsPlaylistGrid(_wsAllPlaylists);
+}
+
+function renderWsPlaylistGrid(playlists) {
+    const grid = document.getElementById('workshop-playlists-grid');
+    if (!grid) return;
+    if (!playlists.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:rgba(255,255,255,.3);">
+            <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+            <div style="font-weight:700;">Sem playlists criadas</div>
+        </div>`;
+        return;
+    }
+    grid.innerHTML = playlists.map(pl => `
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">📋</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.9rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pl.title}</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.3);margin-top:2px;">${pl.description || '—'}</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${pl.is_members_only ? '<span style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);color:#a78bfa;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">🔒 Membros</span>' : ''}
+                ${pl.is_published ? '<span style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);color:#34d399;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">✅ Publicada</span>' : '<span style="background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:6px;">Rascunho</span>'}
+            </div>
+            <button onclick="deleteWsPlaylist('${pl.id}')" style="padding:7px;border-radius:8px;border:1px solid rgba(248,113,113,.15);background:rgba(248,113,113,.05);color:#f87171;font-size:0.72rem;cursor:pointer;">🗑 Eliminar</button>
+        </div>`).join('');
+}
+
+function openAddPlaylist() {
+    ['pl-title','pl-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    setWsToggle('wst-pl-members', false);
+    document.getElementById('pl-msg').textContent = '';
+    openCrieModal('modal-add-playlist');
+}
+
+async function savePlaylist() {
+    const title       = document.getElementById('pl-title')?.value?.trim();
+    const desc        = document.getElementById('pl-desc')?.value?.trim();
+    const membersOnly = document.getElementById('wst-pl-members')?.dataset.active === 'true';
+    const msgEl       = document.getElementById('pl-msg');
+    if (!title) { if(msgEl) msgEl.textContent = 'Título é obrigatório.'; return; }
+
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    const { error } = await sb().from('crie_workshop_playlists').insert({
+        workspace_id:    wsId,
+        title,
+        description:     desc || null,
+        is_members_only: membersOnly,
+        is_published:    true,
+        position:        _wsAllPlaylists.length,
+    });
+
+    if (error) { if(msgEl) msgEl.textContent = '❌ ' + error.message; return; }
+    closeCrieModal('modal-add-playlist');
+    showHubToast('📋 Playlist criada!', 'success');
+    await loadWsPlaylists();
+}
+
+async function deleteWsPlaylist(id) {
+    if (!confirm('Eliminar esta playlist? Os vídeos não serão eliminados.')) return;
+    await sb().from('crie_workshop_playlist_items').delete().eq('playlist_id', id);
+    await sb().from('crie_workshop_playlists').delete().eq('id', id);
+    _wsAllPlaylists = _wsAllPlaylists.filter(p => p.id !== id);
+    renderWsPlaylistGrid(_wsAllPlaylists);
+    showHubToast('Playlist eliminada.', 'info');
+}
+
+// ── Workshop Comments ─────────────────────────────────────────────
+async function loadWsComments() {
+    const list = document.getElementById('workshop-comments-list');
+    if (list) list.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</div>';
+
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    if (!wsId) return;
+
+    const { data } = await sb().from('crie_workshop_comments')
+        .select('id, message, reply, reply_at, reply_by, created_at, crie_app_users(name, email), crie_workshop_content(title)')
+        .eq('workspace_id', wsId)
+        .order('created_at', { ascending: false }).limit(50);
+
+    _wsComments = data || [];
+
+    // Update pending badge (comments without reply)
+    const pending = _wsComments.filter(c => !c.reply).length;
+    const badge   = document.getElementById('comments-pending-badge');
+    if (badge) {
+        badge.style.display = pending > 0 ? 'inline-block' : 'none';
+        badge.textContent   = pending;
+    }
+
+    renderWsComments(_wsComments);
+}
+
+function renderWsComments(comments) {
+    const list = document.getElementById('workshop-comments-list');
+    if (!list) return;
+    if (!comments.length) {
+        list.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);"><div style="font-size:2rem;margin-bottom:10px;">💬</div><div>Sem comentários ainda.</div></div>';
+        return;
+    }
+    list.innerHTML = comments.map(cm => {
+        const userName    = cm.crie_app_users?.name  || 'Anónimo';
+        const contentName = cm.crie_workshop_content?.title || '—';
+        const dateStr     = new Date(cm.created_at).toLocaleString('pt-PT');
+        const hasReply    = !!cm.reply;
+        return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,${hasReply?'.06':'.12'});border-radius:14px;padding:14px;">
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;flex-shrink:0;">${userName.charAt(0).toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.82rem;font-weight:700;">${userName}</div>
+                    <div style="font-size:0.7rem;color:rgba(255,255,255,.3);">Em: ${contentName} · ${dateStr}</div>
+                </div>
+                ${!hasReply ? '<span style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:6px;">Pendente</span>' : '<span style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);color:#34d399;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:6px;">Respondido</span>'}
+            </div>
+            <div style="font-size:0.85rem;color:rgba(255,255,255,.7);margin-bottom:10px;padding-left:42px;">${cm.message}</div>
+            ${hasReply
+                ? `<div style="padding:10px 12px 10px 42px;background:rgba(245,158,11,.05);border-left:3px solid rgba(245,158,11,.3);border-radius:6px;margin-bottom:8px;">
+                        <div style="font-size:0.72rem;font-weight:800;color:#F59E0B;margin-bottom:4px;">${cm.reply_by || 'Admin'} · ${cm.reply_at ? new Date(cm.reply_at).toLocaleDateString('pt-PT') : ''}</div>
+                        <div style="font-size:0.82rem;color:rgba(255,255,255,.6);">${cm.reply}</div>
+                    </div>`
+                : `<div style="padding-left:42px;">
+                        <div style="display:flex;gap:8px;">
+                            <input id="reply-input-${cm.id}" class="hub-field-input" placeholder="Escreve uma resposta…" style="flex:1;padding:8px 12px;font-size:0.82rem;" onkeydown="if(event.key==='Enter'){submitCommentReply('${cm.id}')}">
+                            <button onclick="submitCommentReply('${cm.id}')" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#F59E0B;border-radius:8px;padding:8px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">Responder</button>
+                        </div>
+                    </div>`}
+        </div>`;
+    }).join('');
+}
+
+async function submitCommentReply(commentId) {
+    const input   = document.getElementById('reply-input-' + commentId);
+    const reply   = input?.value?.trim();
+    if (!reply) return;
+    const userData = window._currentUserData || {};
+    const replyBy  = userData.name || userData.email || 'Admin';
+
+    await sb().from('crie_workshop_comments').update({
+        reply,
+        reply_by: replyBy,
+        reply_at: new Date().toISOString(),
+    }).eq('id', commentId);
+
+    showHubToast('✓ Resposta enviada!', 'success');
+    await loadWsComments();
+}
+
+// ── Toggle helpers ────────────────────────────────────────────────
+function wsToggle(toggleEl, fieldId) {
+    // toggleEl.parentElement calls this with 'this' = the toggle div
+    const el      = document.getElementById('wst-' + fieldId.replace('ws-','').replace('pl-','pl-').replace(/^ws-/,''));
+    // Resolve: fieldId can be 'ws-members-only', 'ws-published', 'pl-members'
+    const toggleDiv = toggleEl;
+    const current   = toggleDiv.dataset.active === 'true';
+    const next      = !current;
+    toggleDiv.dataset.active = next;
+    const knob = toggleDiv.querySelector('div');
+    if (next) {
+        toggleDiv.style.background = fieldId === 'ws-published' ? '#34D399' : '#8B5CF6';
+        if (knob) knob.style.left = '21px';
+    } else {
+        toggleDiv.style.background = 'rgba(255,255,255,.1)';
+        if (knob) knob.style.left = '3px';
+    }
+}
+
+function setWsToggle(elId, state) {
+    const el   = document.getElementById(elId);
+    if (!el) return;
+    const knob = el.querySelector('div');
+    el.dataset.active = state;
+    if (state) {
+        el.style.background = elId === 'wst-published' ? '#34D399' : '#8B5CF6';
+        if (knob) knob.style.left = '21px';
+    } else {
+        el.style.background = 'rgba(255,255,255,.1)';
+        if (knob) knob.style.left = '3px';
+    }
+}
+
+// ── Modal helpers (workshop uses standard closeModal pattern) ─────
+function openCrieModal(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'flex'; }
+}
+function closeCrieModal(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; }
+}
+// Also hook generic closeModal for workshop modals
+const _origCloseModal = window.closeModal;
+window.closeModal = function(id) {
+    const workshopModals = ['modal-add-workshop-content','modal-add-playlist'];
+    if (workshopModals.includes(id)) { closeCrieModal(id); return; }
+    if (typeof _origCloseModal === 'function') _origCloseModal(id);
+    else { const el=document.getElementById(id); if(el) el.style.display='none'; }
+};
+
+// ── Pending Member Applications ───────────────────────────────────
+async function loadPendingApplications() {
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    if (!wsId) return;
+
+    const { data } = await sb().from('crie_member_applications')
+        .select('id, status, motivation, created_at, app_user_id, crie_app_users(name, email)')
+        .eq('workspace_id', wsId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+    const pending = data || [];
+
+    const banner = document.getElementById('pending-apps-banner');
+    const label  = document.getElementById('pending-apps-label');
+    const list   = document.getElementById('pending-apps-list');
+
+    if (!banner || !label || !list) return;
+
+    if (!pending.length) { banner.style.display = 'none'; return; }
+
+    banner.style.display = 'block';
+    label.textContent    = `${pending.length} candidatura${pending.length>1?'s':''} pendente${pending.length>1?'s':''}`;
+
+    list.innerHTML = pending.map(app => {
+        const name  = app.crie_app_users?.name  || 'Desconhecido';
+        const email = app.crie_app_users?.email || '—';
+        const dateStr = new Date(app.created_at).toLocaleDateString('pt-PT');
+        return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;flex-shrink:0;">${name.charAt(0).toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.85rem;font-weight:700;">${name}</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.3);">${email} · ${dateStr}</div>
+                </div>
+            </div>
+            ${app.motivation ? `<div style="font-size:0.8rem;color:rgba(255,255,255,.5);margin-bottom:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;font-style:italic;">"${app.motivation}"</div>` : ''}
+            <div style="display:flex;gap:8px;">
+                <button onclick="reviewApplication('${app.id}','${app.app_user_id}','approved')" style="flex:1;padding:8px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:0.78rem;font-weight:700;cursor:pointer;">✅ Aprovar</button>
+                <button onclick="reviewApplication('${app.id}','${app.app_user_id}','rejected')" style="flex:1;padding:8px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.78rem;font-weight:700;cursor:pointer;">❌ Rejeitar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function togglePendingApps() {
+    const list = document.getElementById('pending-apps-list');
+    if (!list) return;
+    const isOpen = list.style.display !== 'none';
+    list.style.display = isOpen ? 'none' : 'flex';
+}
+
+async function reviewApplication(appId, appUserId, decision) {
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+
+    // 1. Update the application status
+    await sb().from('crie_member_applications')
+        .update({ status: decision, reviewed_at: new Date().toISOString() })
+        .eq('id', appId);
+
+    if (decision === 'approved') {
+        // 2. Get the app user profile
+        const { data: appUser } = await sb().from('crie_app_users')
+            .select('name, email, phone')
+            .eq('id', appUserId).single();
+
+        if (appUser) {
+            // 3. Create crie_members entry (or link if already exists)
+            const { data: existing } = await sb().from('crie_members')
+                .select('id').eq('workspace_id', wsId).eq('email', appUser.email).single();
+
+            if (existing) {
+                // Link existing member
+                await sb().from('crie_members').update({ app_user_id: appUserId }).eq('id', existing.id);
+            } else {
+                // Create new member entry
+                await sb().from('crie_members').insert({
+                    workspace_id: wsId,
+                    name:         appUser.name,
+                    email:        appUser.email,
+                    phone:        appUser.phone || null,
+                    app_user_id:  appUserId,
+                    status:       'ativo',
+                    source:       'app',
+                });
+            }
+        }
+        showHubToast('✅ Membro aprovado com sucesso!', 'success');
+    } else {
+        showHubToast('Candidatura rejeitada.', 'info');
+    }
+
+    // Reload both lists
+    await loadPendingApplications();
+    if (typeof loadCrieMembros === 'function') loadCrieMembros();
+}
+
+// ── Patch loadCrieMembros to also load pending apps ───────────────
+const _origLoadCrieMembros = window.loadCrieMembros;
+if (typeof _origLoadCrieMembros === 'function') {
+    window.loadCrieMembros = async function() {
+        await _origLoadCrieMembros();
+        await loadPendingApplications();
+    };
+}
+
+// ── Toast fallback if not in scope ───────────────────────────────
+function showHubToast(msg, type = 'info') {
+    if (typeof showToast === 'function') { showToast(msg, type); return; }
+    const colors = { success:'#34D399', error:'#F87171', info:'#F59E0B' };
+    const toast  = document.createElement('div');
+    toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111318;border:1px solid rgba(255,255,255,.1);color:${colors[type]||colors.info};padding:12px 20px;border-radius:12px;font-size:0.85rem;font-weight:700;z-index:9999;animation:fadeIn .3s;`;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+

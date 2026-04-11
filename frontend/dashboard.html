@@ -3876,7 +3876,18 @@
                     </button>
                 </div>
             </header>
-            <div style="padding:24px 40px;">
+            <!-- 🔴 Pending Applications Banner -->
+            <div id="pending-apps-banner" style="display:none; margin:0 24px 0; padding:16px 20px; background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.2); border-radius:14px; margin-bottom:18px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#F87171;animation:pulse 1.5s ease infinite;"></div>
+                        <span style="font-size:0.82rem;font-weight:800;color:#F87171;" id="pending-apps-label">0 candidaturas pendentes</span>
+                    </div>
+                    <button onclick="togglePendingApps()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:0.78rem;">Ver todas ↓</button>
+                </div>
+                <div id="pending-apps-list" style="display:none;flex-direction:column;gap:10px;"></div>
+            </div>
+            <div style="padding:0 24px 24px;">
                 <input id="crie-membro-search" type="text" placeholder="Buscar membro…" oninput="filterCrieMembros()" style="width:100%; max-width:400px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.84rem; outline:none; margin-bottom:20px;">
                 <div id="crie-membros-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
                     <div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">A carregar membros…</div>
@@ -4343,22 +4354,148 @@
                     <p>Biblioteca de conteúdos e playlists do CRIE</p>
                 </div>
                 <div class="actions">
-                    <button style="background:rgba(245,158,11,0.1);color:#F59E0B;border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer;opacity:.5;pointer-events:none;">
-                        + Adicionar Conteúdo
+                    <button onclick="openAddWorkshopContent()" class="hub-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Adicionar Vídeo
                     </button>
                 </div>
             </header>
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;gap:20px;text-align:center;">
-                <div style="width:64px;height:64px;border-radius:16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;font-size:2rem;">📚</div>
-                <h2 style="font-size:1.2rem;font-weight:800;color:#fff;margin:0;">Workshop em breve</h2>
-                <p style="color:rgba(255,255,255,0.4);font-size:0.88rem;max-width:380px;line-height:1.6;">A biblioteca de conteúdos e playlists do CRIE está a ser construída. Em breve poderás publicar vídeos, PDFs e séries de ensinos aqui.</p>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
-                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🎥 Vídeos</span>
-                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">📋 Playlists</span>
-                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🔒 Exclusivo Membros</span>
-                    <span style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:20px;font-size:0.75rem;">🌍 Conteúdo Global</span>
+
+            <!-- Workshop Tabs -->
+            <div style="padding:0 24px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; gap:0; margin-bottom:24px;">
+                <button onclick="switchWorkshopTab('conteudos')" id="wtab-conteudos" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid #F59E0B; color:#F59E0B; font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s;">🎥 Conteúdos</button>
+                <button onclick="switchWorkshopTab('playlists')" id="wtab-playlists" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid transparent; color:rgba(255,255,255,.4); font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s;">📋 Playlists</button>
+                <button onclick="switchWorkshopTab('comentarios')" id="wtab-comentarios" style="padding:12px 20px; background:none; border:none; border-bottom:2px solid transparent; color:rgba(255,255,255,.4); font-size:0.85rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s; position:relative;">
+                    💬 Comentários
+                    <span id="comments-pending-badge" style="display:none; position:absolute; top:8px; right:6px; background:#F87171; color:#fff; font-size:0.55rem; font-weight:800; padding:1px 5px; border-radius:8px; min-width:16px; text-align:center;"></span>
+                </button>
+            </div>
+
+            <!-- Tab: Conteúdos -->
+            <div id="wpanel-conteudos" style="padding:0 24px 24px;">
+                <!-- Filter bar -->
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                    <button onclick="filterWsContent(this,'all')" data-wsc="all" style="padding:6px 14px;border-radius:20px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#F59E0B;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;">Todos</button>
+                    <button onclick="filterWsContent(this,'global')" data-wsc="global" style="padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;">🌍 Global</button>
+                    <button onclick="filterWsContent(this,'workspace')" data-wsc="workspace" style="padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;">🏠 Workspace</button>
+                    <button onclick="filterWsContent(this,'members')" data-wsc="members" style="padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;">🔒 Membros</button>
+                </div>
+                <div id="workshop-content-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
+                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);grid-column:1/-1;">A carregar conteúdos…</div>
                 </div>
             </div>
+
+            <!-- Tab: Playlists -->
+            <div id="wpanel-playlists" style="display:none;padding:0 24px 24px;">
+                <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+                    <button onclick="openAddPlaylist()" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#F59E0B;border-radius:10px;padding:8px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">+ Nova Playlist</button>
+                </div>
+                <div id="workshop-playlists-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);grid-column:1/-1;">A carregar playlists…</div>
+                </div>
+            </div>
+
+            <!-- Tab: Comentários -->
+            <div id="wpanel-comentarios" style="display:none;padding:0 24px 24px;">
+                <div id="workshop-comments-list" style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar comentários…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ MODAL: Add Workshop Content ══════════════════════════════ -->
+        <div id="modal-add-workshop-content" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+            <div style="background:#111318;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px;width:100%;max-width:520px;display:flex;flex-direction:column;gap:16px;position:relative;">
+                <button onclick="closeModal('modal-add-workshop-content')" style="position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,.3);font-size:1.2rem;cursor:pointer;">✕</button>
+                <h3 style="font-size:1rem;font-weight:800;margin:0;">🎥 Adicionar Conteúdo</h3>
+
+                <!-- YouTube URL with auto-fetch -->
+                <div>
+                    <label class="hub-field-label">URL do YouTube *</label>
+                    <div style="display:flex;gap:8px;">
+                        <input id="ws-youtube-url" class="hub-field-input" type="url" placeholder="https://youtube.com/watch?v=..." style="flex:1;" oninput="clearYtPreview()">
+                        <button onclick="fetchYouTubeMeta()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:10px;padding:8px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">▶ Carregar</button>
+                    </div>
+                </div>
+
+                <!-- Auto-fetched preview -->
+                <div id="ws-yt-preview" style="display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;">
+                    <img id="ws-yt-thumb" src="" style="width:80px;height:54px;object-fit:cover;border-radius:8px;" alt="">
+                    <div style="flex:1;min-width:0;">
+                        <div id="ws-yt-fetched-title" style="font-size:0.85rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+                        <div style="font-size:0.72rem;color:rgba(255,255,255,.3);margin-top:3px;">✓ Dados carregados do YouTube</div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="hub-field-label">Título *</label>
+                    <input id="ws-content-title" class="hub-field-input" placeholder="Título do vídeo">
+                </div>
+                <div>
+                    <label class="hub-field-label">Descrição</label>
+                    <textarea id="ws-content-desc" class="hub-field-input" rows="2" style="resize:none;" placeholder="Descrição breve…"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="hub-field-label">Playlist (opcional)</label>
+                        <select id="ws-content-playlist" class="hub-field-input">
+                            <option value="">Sem playlist</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="hub-field-label">Visibilidade</label>
+                        <select id="ws-content-visibility" class="hub-field-input">
+                            <option value="workspace">🏠 Só este workspace</option>
+                            <option value="global">🌍 Global (todos os CRIEs)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Toggles row -->
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;">
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;">🔒 Exclusivo para Membros</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,.3);">Só membros ativos têm acesso</div>
+                        </div>
+                        <div onclick="wsToggle(this,'ws-members-only')" id="wst-members-only" data-active="false" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.8);transition:all .2s;"></div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;">✅ Publicado</div>
+                            <div style="font-size:0.72rem;color:rgba(255,255,255,.3);">Visível no app imediatamente</div>
+                        </div>
+                        <div onclick="wsToggle(this,'ws-published')" id="wst-published" data-active="true" style="width:42px;height:24px;border-radius:12px;background:#34D399;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:21px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="ws-content-msg" style="font-size:0.82rem;min-height:16px;color:#f87171;"></div>
+                <button onclick="saveWorkshopContent()" class="hub-btn" style="width:100%;padding:13px;">Publicar Conteúdo</button>
+            </div>
+        </div>
+
+        <!-- ══ MODAL: Add Playlist ═══════════════════════════════════════ -->
+        <div id="modal-add-playlist" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+            <div style="background:#111318;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;position:relative;">
+                <button onclick="closeModal('modal-add-playlist')" style="position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,.3);font-size:1.2rem;cursor:pointer;">✕</button>
+                <h3 style="font-size:1rem;font-weight:800;margin:0;">📋 Nova Playlist / Série</h3>
+                <div><label class="hub-field-label">Título *</label><input id="pl-title" class="hub-field-input" placeholder="Nome da série…"></div>
+                <div><label class="hub-field-label">Descrição</label><textarea id="pl-desc" class="hub-field-input" rows="2" style="resize:none;" placeholder="Sobre esta série…"></textarea></div>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px;">
+                    <div>
+                        <div style="font-size:0.85rem;font-weight:600;">🔒 Exclusivo para Membros</div>
+                    </div>
+                    <div onclick="wsToggle(this,'pl-members')" id="wst-pl-members" data-active="false" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;flex-shrink:0;">
+                        <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.8);transition:all .2s;"></div>
+                    </div>
+                </label>
+                <div id="pl-msg" style="font-size:0.82rem;min-height:16px;color:#f87171;"></div>
+                <button onclick="savePlaylist()" class="hub-btn" style="width:100%;padding:13px;">Criar Playlist</button>
+            </div>
+        </div>            </div>
         </div>
 
         <!-- ═══ View: CRIE Relatórios ═══ -->
