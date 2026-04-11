@@ -143,15 +143,16 @@ async function loadCantinaConfigView() {
 
   toggleStripeSection(cfg.stripe_enabled);
 
-  // QR Code
+  // QR Code — using qrserver.com API (no library needed)
   const publicUrl = `${location.origin}/cantina.html?ws=${cfg.workspace_id}`;
   const urlEl = document.getElementById('cantina-public-url');
   if (urlEl) urlEl.textContent = publicUrl;
-  if (typeof QRCode !== 'undefined') {
-    const canvas = document.getElementById('qr-cantina-public');
-    if (canvas) {
-      try { QRCode.toCanvas(canvas, publicUrl, { width: 120, margin: 1 }); } catch(e) {}
-    }
+
+  const qrImg = document.getElementById('qr-cantina-public');
+  if (qrImg) {
+    const encoded = encodeURIComponent(publicUrl);
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=6&data=${encoded}`;
+    qrImg.style.display = 'block';
   }
 }
 
@@ -160,6 +161,24 @@ function toggleStripeSection(enabled) {
   if (!section) return;
   section.style.opacity = enabled ? '1' : '0.4';
   section.style.pointerEvents = enabled ? 'auto' : 'none';
+}
+
+function copyCantinaPublicUrl() {
+  const urlEl = document.getElementById('cantina-public-url');
+  const url = urlEl?.textContent?.trim();
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 Link copiado!', 'success');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast('🔗 Link copiado!', 'success');
+  });
 }
 
 async function saveCantinaConfig() {

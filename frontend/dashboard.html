@@ -6287,12 +6287,12 @@
             <div class="kpi-box" style="flex-direction:column;align-items:flex-start;gap:14px;">
                 <h3 style="font-size:0.85rem;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.05em;">📱 QR Code da Loja Pública</h3>
                 <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);line-height:1.6;">Use este QR Code para divulgar a cantina no culto ou em cartazes.</p>
-                <div style="display:flex;align-items:center;gap:16px;">
-                    <canvas id="qr-cantina-public" width="120" height="120" style="border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#fff;padding:6px;"></canvas>
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <img id="qr-cantina-public" src="" alt="QR Code" width="120" height="120"
+                        style="border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#fff;padding:6px;display:none;">
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div id="cantina-public-url" style="font-size:0.78rem;color:rgba(255,255,255,0.4);word-break:break-all;max-width:300px;"></div>
                         <button onclick="copyCantinaPublicUrl()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px 14px;font-size:0.78rem;cursor:pointer;">📋 Copiar Link</button>
-                        <button onclick="downloadQR('qr-cantina-public','cantina')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border-radius:8px;padding:7px 14px;font-size:0.78rem;cursor:pointer;">⬇️ Baixar QR Code</button>
                     </div>
                 </div>
             </div>
