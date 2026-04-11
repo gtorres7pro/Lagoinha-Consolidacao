@@ -1154,5 +1154,177 @@ body {
   body.sidebar-collapsed .main { margin-left: 64px !important; transition: margin-left .28s cubic-bezier(.4,0,.2,1); }
 }
 
+/* ─────────────────────────────────────────────────────────
+   FASE 4 — Workshop Admin + Field Inputs Premium Styles
+───────────────────────────────────────────────────────── */
 
+/* Universal dark field input — replaces browser default white */
+.hub-field-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #fff;
+  font-family: var(--font, 'Outfit', sans-serif);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.hub-field-input::placeholder { color: rgba(255,255,255,0.22); }
+.hub-field-input:focus {
+  border-color: rgba(245,158,11,0.55);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+  background: rgba(255,255,255,0.06);
+}
+.hub-field-input:hover:not(:focus) { border-color: rgba(255,255,255,0.16); }
+select.hub-field-input { cursor: pointer; }
+
+/* Premium modal container — Workshop modals only */
+@keyframes wsModalIn {
+  from { opacity:0; transform:scale(0.95) translateY(12px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+
+#modal-add-workshop-content > div,
+#modal-add-playlist > div {
+  animation: wsModalIn 0.28s cubic-bezier(0.16,1,0.3,1) both;
+  background: linear-gradient(180deg, #161820 0%, #111318 100%) !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  box-shadow:
+    0 0 0 1px rgba(245,158,11,0.06),
+    0 24px 48px rgba(0,0,0,0.55),
+    0 8px 16px rgba(0,0,0,0.3) !important;
+  border-radius: 22px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gold accent top-line */
+#modal-add-workshop-content > div::before,
+#modal-add-playlist > div::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(245,158,11,0.6) 20%,
+    rgba(245,158,11,0.9) 50%,
+    rgba(245,158,11,0.6) 80%,
+    transparent 100%);
+  border-radius: 2px;
+}
+
+/* Modal h3 title improvement */
+#modal-add-workshop-content h3,
+#modal-add-playlist h3 {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 4px !important;
+}
+
+/* Modal overlay backdrop */
+#modal-add-workshop-content,
+#modal-add-playlist {
+  background: rgba(0,0,0,0.8) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Hub-field-label refined */
+.hub-field-label {
+  display: block;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  color: rgba(255,255,255,0.4) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  margin-bottom: 7px !important;
+}
+
+/* Toggle switch elegant style — workshop modals */
+.ws-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ws-toggle-row:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* YouTube preview card inside modal */
+#ws-yt-preview {
+  background: rgba(245,158,11,0.04) !important;
+  border: 1px solid rgba(245,158,11,0.18) !important;
+  border-radius: 14px !important;
+}
+
+/* Workshop tab bar */
+#view-crie-workshop [id^="wtab-"] {
+  font-family: var(--font, 'Outfit', sans-serif);
+}
+
+/* Workshop content card hover */
+#workshop-content-grid > div {
+  cursor: default;
+}
+
+/* Workshop publish btn */
+#modal-add-workshop-content .hub-btn,
+#modal-add-playlist .hub-btn {
+  padding: 14px !important;
+  font-size: 0.92rem !important;
+  border-radius: 14px !important;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px rgba(245,158,11,0.25);
+}
+#modal-add-workshop-content .hub-btn:hover,
+#modal-add-playlist .hub-btn:hover {
+  box-shadow: 0 6px 24px rgba(245,158,11,0.35);
+}
+
+/* Close X button in modals */
+#modal-add-workshop-content button[onclick*="closeModal"],
+#modal-add-playlist button[onclick*="closeModal"] {
+  width: 32px; height: 32px;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.4) !important;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s !important;
+  font-size: 0.85rem !important;
+}
+#modal-add-workshop-content button[onclick*="closeModal"]:hover,
+#modal-add-playlist button[onclick*="closeModal"]:hover {
+  background: rgba(248,113,113,0.12) !important;
+  color: #f87171 !important;
+  border-color: rgba(248,113,113,0.3) !important;
+}
+
+/* Pending applications pulsing dot */
+@keyframes pulse {
+  0%, 100% { opacity:1; box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+  50%       { opacity:0.8; box-shadow: 0 0 0 5px rgba(248,113,113,0); }
+}
+
+/* Workshop comment reply input */
+#workshop-comments-list .hub-field-input {
+  background: rgba(255,255,255,0.03);
+  font-size: 0.82rem;
+  padding: 9px 13px;
+}
 
