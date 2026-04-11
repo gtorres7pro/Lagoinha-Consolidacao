@@ -4,149 +4,255 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bem-vindo ao Zelo Pro 🎉</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#030508">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --gold: #FBBF24;
+            --gold-dim: #F59E0B;
+            --surface: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.08);
+            --text-dim: rgba(255,255,255,0.45);
+        }
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: #030508;
             color: #fff;
             min-height: 100dvh;
-            display: flex; align-items: center; justify-content: center;
-            padding: 24px 16px;
-            overflow: hidden;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
         }
 
+        /* ── Background ── */
         .bg-grid {
-            position: fixed; inset: 0; pointer-events: none;
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
             background-image:
-                linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(251,191,36,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251,191,36,0.025) 1px, transparent 1px);
+            background-size: 44px 44px;
         }
         .bg-glow {
-            position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
-            width: 700px; height: 500px; pointer-events: none;
-            background: radial-gradient(ellipse, rgba(251,191,36,0.08) 0%, transparent 70%);
+            position: fixed; top: -300px; left: 50%; transform: translateX(-50%);
+            width: 900px; height: 600px; pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse, rgba(251,191,36,0.07) 0%, transparent 70%);
         }
 
-        /* ── Confetti canvas ── */
-        #confetti-canvas {
-            position: fixed; inset: 0; pointer-events: none; z-index: 50;
+        /* ── Confetti ── */
+        #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+        /* ── Wrapper ── */
+        .onboarding-wrapper {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 960px;
+            padding: 32px 24px;
+            display: flex; flex-direction: column; align-items: stretch; gap: 0;
         }
 
         /* ── Step system ── */
-        .container {
-            position: relative; z-index: 1;
-            width: 100%; max-width: 460px;
-            display: flex; flex-direction: column; align-items: center;
-            gap: 28px;
+        .step { display: none; flex-direction: column; align-items: center; gap: 28px; }
+        .step.active {
+            display: flex;
+            animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
         }
-
-        .step { width: 100%; display: none; flex-direction: column; align-items: center; gap: 24px; }
-        .step.active { display: flex; animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
-
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(18px); }
+            from { opacity: 0; transform: translateY(20px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Logo */
+        /* ── Logo ── */
         .logo {
-            width: 64px; height: 64px;
-            background: linear-gradient(135deg, #FBBF24, #F59E0B);
-            border-radius: 20px;
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            border-radius: 18px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 32px rgba(251,191,36,0.35), 0 0 0 1px rgba(251,191,36,0.2);
-            animation: logoZoom 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+            box-shadow: 0 8px 32px rgba(251,191,36,0.3), 0 0 0 1px rgba(251,191,36,0.15);
         }
-        @keyframes logoZoom {
-            from { transform: scale(0.6) rotate(-10deg); opacity: 0; }
-            to   { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        .logo svg { width: 28px; height: 28px; color: #000; }
+        .logo svg { width: 24px; height: 24px; color: #000; }
 
-        .headline { text-align: center; }
-        .headline h1 { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1.05; }
-        .headline .sub { color: rgba(255,255,255,0.45); font-size: 0.9rem; margin-top: 8px; line-height: 1.5; }
-        .headline .workspace-name {
-            display: inline-block; color: #FBBF24; font-weight: 800;
+        /* ── Step 1 — Welcome ── */
+        .welcome-layout {
+            width: 100%; display: grid; gap: 32px;
+            align-items: start;
+            grid-template-columns: 1fr;
         }
-        .emoji-big { font-size: 3.5rem; margin-bottom: 4px; display: block; }
+        @media (min-width: 700px) {
+            .welcome-layout { grid-template-columns: 1fr 1fr; }
+        }
 
-        /* Info card */
-        .info-card {
-            width: 100%;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px; padding: 20px 22px;
+        .welcome-left { display: flex; flex-direction: column; gap: 18px; }
+        .welcome-right { display: flex; flex-direction: column; gap: 14px; }
+
+        .emoji-big { font-size: 3rem; display: block; }
+        h1.main-title {
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 900; letter-spacing: -0.05em; line-height: 1.05;
         }
-        .info-row {
-            display: flex; align-items: flex-start; gap: 14px; padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+        .sub-text { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; }
+        .ws-highlight { color: var(--gold); font-weight: 800; }
+
+        .trial-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 16px;
+            background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 40px; font-size: 0.8rem; font-weight: 700; color: var(--gold);
+            width: fit-content;
         }
-        .info-row:last-child { border-bottom: none; }
-        .info-icon {
-            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+
+        /* Info tiles */
+        .info-tile {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px;
+            display: flex; align-items: center; gap: 14px;
+        }
+        .info-tile-icon {
+            width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        }
+        .ic-gold   { background: rgba(251,191,36,0.12); }
+        .ic-blue   { background: rgba(96,165,250,0.12); }
+        .ic-green  { background: rgba(52,211,153,0.12); }
+        .info-tile-label { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .info-tile-value { font-size: 0.9rem; font-weight: 700; color: #fff; word-break: break-all; }
+        .info-tile-value.mono { font-family: 'Courier New', monospace; letter-spacing: 0.05em; }
+
+        .password-warn {
+            background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 11px; padding: 10px 14px;
+            font-size: 0.8rem; color: rgba(255,255,255,0.5); line-height: 1.5; text-align: center;
+        }
+        .password-warn strong { color: var(--gold); }
+
+        /* ── Module Carousel (Step 2) ── */
+        .carousel-outer {
+            width: 100%; overflow: hidden; position: relative;
+        }
+        .carousel-track {
+            display: flex; transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
+            will-change: transform;
+        }
+        .module-slide {
+            min-width: 100%; padding: 4px 2px;
+            display: flex; justify-content: center;
+        }
+        .module-card {
+            width: 100%; max-width: 640px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 24px; padding: 36px 40px;
+            display: flex; flex-direction: column; gap: 18px;
+            position: relative; overflow: hidden;
+        }
+        .module-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: var(--card-accent, linear-gradient(90deg, var(--gold), var(--gold-dim)));
+            border-radius: 24px 24px 0 0;
+        }
+        .module-icon-wrap {
+            width: 56px; height: 56px; border-radius: 16px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1.6rem;
+            background: var(--icon-bg, rgba(251,191,36,0.1));
         }
-        .info-icon.gold { background: rgba(251,191,36,0.12); }
-        .info-icon.blue { background: rgba(96,165,250,0.12); }
-        .info-icon.green { background: rgba(52,211,153,0.12); }
-        .info-icon.purple { background: rgba(167,139,250,0.12); }
-        .info-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
-        .info-value { font-size: 0.88rem; font-weight: 600; color: #fff; word-break: break-all; }
-        .info-value.mono { font-family: 'Courier New', monospace; letter-spacing: 0.03em; }
+        .module-tag {
+            font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--text-dim); padding: 3px 10px;
+            background: rgba(255,255,255,0.05); border-radius: 20px; width: fit-content;
+        }
+        .module-name {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+        }
+        .module-tagline {
+            font-size: 1rem; color: rgba(255,255,255,0.7); line-height: 1.6; font-weight: 500;
+        }
+        .module-features {
+            display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+        }
+        .module-feat {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.85rem; color: rgba(255,255,255,0.55); line-height: 1.4;
+        }
+        .module-feat .dot-check { color: var(--gold); font-weight: 900; flex-shrink: 0; }
+        .module-soon-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+            background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); width: fit-content;
+        }
 
-        /* Progress steps */
-        .progress-dots {
-            display: flex; gap: 8px; align-items: center; justify-content: center;
+        /* Carousel nav */
+        .carousel-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; max-width: 640px;
         }
-        .dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: rgba(255,255,255,0.15); transition: all 0.3s;
+        .nav-dots {
+            display: flex; gap: 6px; align-items: center;
         }
-        .dot.active { background: #FBBF24; width: 24px; border-radius: 4px; }
-        .dot.done { background: rgba(52,211,153,0.6); }
+        .nav-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); transition: all 0.3s; cursor: pointer;
+        }
+        .nav-dot.active { background: var(--gold); width: 22px; border-radius: 4px; }
 
-        /* Button */
+        .btn-nav {
+            display: flex; align-items: center; gap: 6px;
+            padding: 9px 18px;
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            border-radius: 10px; color: rgba(255,255,255,0.7); font-family: inherit;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-nav:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn-nav.primary {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            color: #000; border: none; font-weight: 800;
+        }
+        .btn-nav.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(251,191,36,0.3); }
+
+        /* Slide counter */
+        .slide-counter { font-size: 0.78rem; color: var(--text-dim); }
+
+        /* ── Final Step (Step 3) ── */
+        .final-layout {
+            width: 100%; display: grid; gap: 32px;
+            grid-template-columns: 1fr;
+            align-items: center; justify-items: center;
+        }
+        @media (min-width: 700px) {
+            .final-layout { grid-template-columns: 1fr 1fr; justify-items: stretch; }
+        }
+
+        .final-left { display: flex; flex-direction: column; gap: 18px; text-align: center; }
+        @media (min-width: 700px) { .final-left { text-align: left; } }
+
         .btn-main {
-            width: 100%; padding: 14px;
-            background: linear-gradient(135deg, #FBBF24, #F59E0B);
-            color: #000; font-family: inherit; font-size: 0.95rem; font-weight: 800;
-            border: none; border-radius: 13px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 15px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            color: #000; font-family: inherit; font-size: 1rem; font-weight: 800;
+            border: none; border-radius: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
             transition: all 0.2s; letter-spacing: -0.01em;
         }
-        .btn-main:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(251,191,36,0.35); }
+        .btn-main:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(251,191,36,0.3); }
         .btn-main:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-main .spinner {
+
+        .spin {
             width: 18px; height: 18px;
-            border: 2.5px solid rgba(0,0,0,0.2); border-top-color: #000;
+            border: 2.5px solid rgba(0,0,0,0.15); border-top-color: #000;
             border-radius: 50%; animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Trial badge */
-        .trial-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 6px 14px;
-            background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2);
-            border-radius: 20px; font-size: 0.8rem; font-weight: 700;
-            color: #FBBF24; letter-spacing: 0.03em;
+        /* ── Global progress bar ── */
+        .progress-bar-outer {
+            width: 100%; max-width: 960px;
+            padding: 0 24px;
+            position: relative; z-index: 1; margin-bottom: 8px;
         }
-
-        .password-warn {
-            background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2);
-            border-radius: 10px; padding: 10px 14px;
-            font-size: 0.8rem; color: rgba(255,255,255,0.55); line-height: 1.5; text-align: center;
-        }
-        .password-warn strong { color: #FBBF24; }
+        .progress-bg { height: 3px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--gold); border-radius: 10px; transition: width 0.4s ease; }
+        .progress-label { font-size: 0.72rem; color: var(--text-dim); text-align: right; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -154,185 +260,435 @@
     <div class="bg-glow"></div>
     <canvas id="confetti-canvas"></canvas>
 
-    <div class="container">
-        <!-- STEP 1 — Welcome & account details -->
-        <div class="step active" id="step-1">
-            <div class="logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 5h14L5 19h14"/>
-                </svg>
-            </div>
-            <div class="headline">
-                <span class="emoji-big">🎉</span>
-                <h1>Conta criada com sucesso!</h1>
-                <p class="sub">
-                    Bem-vindo ao Zelo Pro, <strong id="welcome-name">—</strong>.<br>
-                    O workspace <span class="workspace-name" id="welcome-ws">—</span> está pronto.
-                </p>
-            </div>
-            <div class="trial-badge">⚡ Trial gratuito de 7 dias ativo</div>
-            <div class="info-card">
-                <div class="info-row">
-                    <div class="info-icon gold">🔑</div>
-                    <div>
-                        <div class="info-label">Sua Senha de Acesso</div>
-                        <div class="info-value mono" id="show-password">—</div>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-icon blue">✉️</div>
-                    <div>
-                        <div class="info-label">E-mail de Login</div>
-                        <div class="info-value" id="show-email">—</div>
-                    </div>
-                </div>
-                <div class="info-row">
-                    <div class="info-icon green">🏠</div>
-                    <div>
-                        <div class="info-label">URL do seu Workspace</div>
-                        <div class="info-value mono" id="show-url">—</div>
-                    </div>
-                </div>
-            </div>
-            <div class="password-warn">
-                ⚠️ <strong>Anote sua senha agora.</strong> Um e-mail foi enviado para você, mas guarde-a em local seguro.
-            </div>
-            <div class="progress-dots">
-                <div class="dot active" id="dot-1"></div>
-                <div class="dot" id="dot-2"></div>
-            </div>
-            <button class="btn-main" onclick="goToStep2()">Continuar →</button>
-        </div>
-
-        <!-- STEP 2 — Logging in & redirecting -->
-        <div class="step" id="step-2">
-            <div class="logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 5h14L5 19h14"/>
-                </svg>
-            </div>
-            <div class="headline">
-                <span class="emoji-big">🚀</span>
-                <h1>Entrando no Zelo Pro...</h1>
-                <p class="sub">Aguarde enquanto seu ambiente é preparado.<br>Você será redirecionado automaticamente.</p>
-            </div>
-            <div class="info-card" style="display:flex;align-items:center;justify-content:center;padding:28px;">
-                <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
-                    <div class="spinner" style="width:36px;height:36px;border-width:3px;border-color:rgba(251,191,36,0.15);border-top-color:#FBBF24;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-                    <div style="font-size:0.82rem;color:rgba(255,255,255,0.4);" id="loading-step">Autenticando...</div>
-                </div>
-            </div>
-            <div class="progress-dots">
-                <div class="dot done" id="dot-1b"></div>
-                <div class="dot active" id="dot-2b"></div>
-            </div>
-        </div>
+    <!-- Global progress -->
+    <div class="progress-bar-outer" id="progress-outer">
+        <div class="progress-bg"><div class="progress-fill" id="prog-fill" style="width:8%"></div></div>
+        <div class="progress-label" id="prog-label">Passo 1 de 3</div>
     </div>
 
+    <div class="onboarding-wrapper">
+
+        <!-- ═══════════════════════ STEP 1 — Welcome ════════════════════════ -->
+        <div class="step active" id="step-1">
+            <div class="welcome-layout">
+                <div class="welcome-left">
+                    <div class="logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14L5 19h14"/></svg>
+                    </div>
+                    <div>
+                        <span class="emoji-big">🎉</span>
+                        <h1 class="main-title" style="margin-top:8px;">Sua conta foi criada!</h1>
+                        <p class="sub-text" style="margin-top:10px;">
+                            Bem-vindo ao Zelo Pro, <strong id="welcome-name">—</strong>.<br>
+                            O workspace <span class="ws-highlight" id="welcome-ws">—</span> está pronto e ativo.
+                        </p>
+                    </div>
+                    <div class="trial-badge">⚡ Trial completo de 7 dias — sem cartão</div>
+                    <p class="sub-text" style="font-size:0.82rem;">
+                        Enquanto você explora os módulos do Zelo, seus dados de acesso já foram enviados para o seu e-mail.
+                    </p>
+                </div>
+                <div class="welcome-right">
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-blue">✉️</div>
+                        <div>
+                            <div class="info-tile-label">E-mail de Login</div>
+                            <div class="info-tile-value" id="show-email">—</div>
+                        </div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-green">🌐</div>
+                        <div>
+                            <div class="info-tile-label">URL do seu Workspace</div>
+                            <div class="info-tile-value mono" id="show-url">—</div>
+                        </div>
+                    </div>
+                    <div class="password-warn">
+                        ✉️ Um e-mail com sua senha foi enviado agora. Verifique sua caixa de entrada (e o spam).
+                    </div>
+                    <button class="btn-main" onclick="goToModules()">
+                        Conhecer os módulos →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════ STEP 2 — Modules Carousel ═══════════════════════ -->
+        <div class="step" id="step-2">
+            <div class="carousel-outer" style="width:100%;max-width:640px;">
+                <div class="carousel-track" id="carousel-track">
+                    <!-- Slides injected by JS -->
+                </div>
+            </div>
+            <div class="carousel-nav" id="carousel-nav">
+                <button class="btn-nav" id="btn-prev" onclick="carouselPrev()">← Anterior</button>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                    <div class="nav-dots" id="nav-dots"></div>
+                    <span class="slide-counter" id="slide-counter">1 / 10</span>
+                </div>
+                <button class="btn-nav primary" id="btn-next" onclick="carouselNext()">Próximo →</button>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════ STEP 3 — Credentials & Access ══════════════════ -->
+        <div class="step" id="step-3">
+            <div class="final-layout">
+                <div class="final-left">
+                    <div class="logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14L5 19h14"/></svg>
+                    </div>
+                    <h1 class="main-title">Tudo pronto.<br>Hora de começar.</h1>
+                    <p class="sub-text">
+                        Sua senha de acesso inicial está abaixo. Recomendamos que você a altere após o primeiro login em <strong>Configurações → Minha Conta</strong>.
+                    </p>
+                    <p class="sub-text" style="font-size:0.8rem;color:rgba(255,255,255,0.3);">
+                        Esta senha também foi enviada para o seu e-mail.
+                    </p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:14px;width:100%;">
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-gold">🔑</div>
+                        <div>
+                            <div class="info-tile-label">Sua Senha de Acesso</div>
+                            <div class="info-tile-value mono" id="show-password">—</div>
+                        </div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-blue">✉️</div>
+                        <div>
+                            <div class="info-tile-label">E-mail de Login</div>
+                            <div class="info-tile-value" id="show-email-2">—</div>
+                        </div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-green">🌐</div>
+                        <div>
+                            <div class="info-tile-label">URL do Workspace</div>
+                            <div class="info-tile-value mono small" id="show-url-2">—</div>
+                        </div>
+                    </div>
+                    <div class="password-warn">
+                        ⚠️ <strong>Anote sua senha agora.</strong> Guarde em local seguro antes de continuar.
+                    </div>
+                    <button class="btn-main" id="btn-access" onclick="doLogin()">
+                        <span id="btn-text">Acessar meu workspace →</span>
+                        <div class="spin" id="btn-spin" style="display:none;"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /wrapper -->
+
     <script>
-        const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
-        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    // ─── Supabase ──────────────────────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        // Read data from sessionStorage (passed from register.html)
-        const slug     = sessionStorage.getItem('_reg_slug')     || '';
-        const email    = sessionStorage.getItem('_reg_email')    || '';
-        const password = sessionStorage.getItem('_reg_password') || '';
-        const name     = sessionStorage.getItem('_reg_name')     || 'Usuário';
-        const wsName   = sessionStorage.getItem('_reg_workspace') || 'seu workspace';
+    // ─── Session data ──────────────────────────────────────────────────────────
+    const slug     = sessionStorage.getItem('_reg_slug')      || '';
+    const email    = sessionStorage.getItem('_reg_email')     || '';
+    const password = sessionStorage.getItem('_reg_password')  || '';
+    const name     = sessionStorage.getItem('_reg_name')      || 'Usuário';
+    const wsName   = sessionStorage.getItem('_reg_workspace') || 'seu workspace';
 
-        // If missing data → back to register
-        if (!slug || !email || !password) {
-            window.location.replace('/register.html');
+    if (!slug || !email || !password) {
+        window.location.replace('/register.html');
+    }
+
+    const fullUrl = `https://zelo.7prolabs.com/${slug}/dashboard.html`;
+
+    // Populate Step 1
+    document.getElementById('welcome-name').textContent = name.split(' ')[0];
+    document.getElementById('welcome-ws').textContent   = wsName;
+    document.getElementById('show-email').textContent   = email;
+    document.getElementById('show-url').textContent     = fullUrl;
+
+    // Populate Step 3
+    document.getElementById('show-password').textContent = password;
+    document.getElementById('show-email-2').textContent  = email;
+    document.getElementById('show-url-2').textContent    = fullUrl;
+
+    // ─── Step navigation ───────────────────────────────────────────────────────
+    let currentStep = 1;
+    const totalSteps = 3;
+    const TOTAL_MODULE_SLIDES = 10; // updated after build
+
+    function showStep(n) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById(`step-${n}`).classList.add('active');
+        currentStep = n;
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const pct = currentStep === 1 ? 8 : currentStep === 2 ? 50 : 95;
+        document.getElementById('prog-fill').style.width = pct + '%';
+        document.getElementById('prog-label').textContent = `Passo ${currentStep} de ${totalSteps}`;
+    }
+
+    function goToModules() {
+        buildCarousel();
+        showStep(2);
+    }
+
+    // ─── Module data ───────────────────────────────────────────────────────────
+    const MODULES = [
+      {
+        icon: '🛤️', iconBg: 'rgba(251,191,36,0.12)', accent: 'linear-gradient(90deg,#FBBF24,#F59E0B)',
+        tag: 'Módulo Principal',
+        name: 'Jornada',
+        tagline: 'O cuidado que cada vida merece — sem deixar ninguém para trás.',
+        features: [
+          'Acompanhe salvos, visitantes e candidatos ao batismo em um único painel',
+          'Automatize tarefas de follow-up para garantir que toda vida seja cuidada',
+          'Fluxo de Novos Membros integrado ao processo de discipulado da sua igreja',
+        ]
+      },
+      {
+        icon: '💬', iconBg: 'rgba(96,165,250,0.12)', accent: 'linear-gradient(90deg,#60a5fa,#3b82f6)',
+        tag: 'Comunicação',
+        name: 'Chat ao Vivo com IA',
+        tagline: 'Nunca mais uma vida sem resposta — mesmo quando sua equipe está descansando.',
+        features: [
+          'WhatsApp com IA que responde, acolhe e encaminha automaticamente',
+          'Mensagens de boas-vindas, aniversário e follow-up no piloto automático',
+          'Inbox unificado para toda a equipe acompanhar em tempo real',
+        ]
+      },
+      {
+        icon: '📆', iconBg: 'rgba(167,139,250,0.12)', accent: 'linear-gradient(90deg,#a78bfa,#7c3aed)',
+        tag: 'Comunidade',
+        name: 'CRIE',
+        tagline: 'Sua comunidade vai além do culto — agora ela tem uma casa digital.',
+        features: [
+          'Eventos com inscrições online, controle financeiro e relatórios',
+          'Área exclusiva de conteúdo (vídeos e playlists) para seus membros',
+          'CRIE Connect: diretório de negócios e ministérios da comunidade',
+        ]
+      },
+      {
+        icon: '🍽️', iconBg: 'rgba(251,113,133,0.12)', accent: 'linear-gradient(90deg,#fb7185,#f43f5e)',
+        tag: 'Hospitalidade',
+        name: 'Cantina',
+        tagline: 'Gestão completa do seu ministério de hospitalidade — do cardápio ao caixa.',
+        features: [
+          'Pedidos online com contagem regressiva e confirmação em tempo real',
+          'POS integrado para vendas no balcão com múltiplas formas de pagamento',
+          'Fechamento de caixa automático com relatório por e-mail',
+        ]
+      },
+      {
+        icon: '📨', iconBg: 'rgba(52,211,153,0.12)', accent: 'linear-gradient(90deg,#34d399,#10b981)',
+        tag: 'Comunicação',
+        name: 'Transmissão',
+        tagline: 'A mensagem certa, para a pessoa certa, na hora certa.',
+        features: [
+          'Envio de e-mails segmentados para toda a sua base de contatos',
+          'Templates editáveis com personalização por nome e perfil',
+          'Histórico de campanhas com métricas de envio',
+        ]
+      },
+      {
+        icon: '🎂', iconBg: 'rgba(251,191,36,0.12)', accent: 'linear-gradient(90deg,#FBBF24,#F59E0B)',
+        tag: 'Relacionamento',
+        name: 'Aniversariantes',
+        tagline: 'Celebre cada vida que faz parte da sua família.',
+        features: [
+          'Alertas diários automáticos de aniversariantes da semana',
+          'Segmentação por workspace, grupo de célula ou faixa etária',
+          'Integração com WhatsApp para mensagem personalizada de parabéns',
+        ]
+      },
+      {
+        icon: '✅', iconBg: 'rgba(96,165,250,0.12)', accent: 'linear-gradient(90deg,#60a5fa,#3b82f6)',
+        tag: 'Produtividade',
+        name: 'Tasks',
+        tagline: 'Organize sua equipe com a eficiência que o ministério merece.',
+        features: [
+          'Kanban e lista de tarefas com prioridades e responsáveis',
+          'Atribuição por membro, departamento ou módulo do sistema',
+          'Notificações e prazo de entrega integrados',
+        ]
+      },
+      {
+        icon: '📊', iconBg: 'rgba(167,139,250,0.12)', accent: 'linear-gradient(90deg,#a78bfa,#7c3aed)',
+        tag: 'Gestão',
+        name: 'Relatórios',
+        tagline: 'Tome decisões pastorais com clareza, dados e confiança.',
+        features: [
+          'Dashboards de crescimento: conversões, batismos e novos membros',
+          'Exportação CSV com filtros por período, grupo e tipo',
+          'Relatório público compartilhável para liderança',
+        ]
+      },
+      {
+        icon: '💛', iconBg: 'rgba(251,113,133,0.12)', accent: 'linear-gradient(90deg,#fb7185,#f43f5e)',
+        tag: 'Em breve',
+        name: 'We Care',
+        tagline: 'Cuidado pastoral estruturado para os momentos que mais importam.',
+        features: [
+          'Fluxo de acompanhamento para famílias em situações delicadas',
+          'Designação de pastores e equipe de cuidado por caso',
+          'Histórico de visitas, orações e intervenções pastorais',
+        ],
+        soon: true
+      },
+      {
+        icon: '🤝', iconBg: 'rgba(52,211,153,0.12)', accent: 'linear-gradient(90deg,#34d399,#10b981)',
+        tag: 'Em breve',
+        name: 'Voluntários',
+        tagline: 'A equipe certa, no lugar certo, na hora certa.',
+        features: [
+          'Gestão de escalas de serviço e ministérios por culto',
+          'Confirmação automática por WhatsApp',
+          'Histórico de serviço e reconhecimento de voluntários ativos',
+        ],
+        soon: true
+      },
+    ];
+
+    // ─── Build Carousel ────────────────────────────────────────────────────────
+    let currentSlide = 0;
+
+    function buildCarousel() {
+        const track = document.getElementById('carousel-track');
+        const dots  = document.getElementById('nav-dots');
+
+        track.innerHTML = MODULES.map((m, i) => `
+          <div class="module-slide">
+            <div class="module-card" style="--card-accent:${m.accent};--icon-bg:${m.iconBg};">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div class="module-icon-wrap">${m.icon}</div>
+                <div class="module-tag">${m.tag}</div>
+              </div>
+              <div>
+                <h2 class="module-name">${m.name}</h2>
+                <p class="module-tagline" style="margin-top:8px;">${m.tagline}</p>
+              </div>
+              <div class="module-features">
+                ${m.features.map(f => `
+                  <div class="module-feat">
+                    <span class="dot-check">✦</span>
+                    <span>${f}</span>
+                  </div>
+                `).join('')}
+              </div>
+              ${m.soon ? `<div class="module-soon-badge">🚧 Em desenvolvimento — chegando em breve</div>` : ''}
+            </div>
+          </div>
+        `).join('');
+
+        dots.innerHTML = MODULES.map((_, i) =>
+          `<div class="nav-dot${i===0?' active':''}" onclick="goToSlide(${i})"></div>`
+        ).join('');
+
+        updateSlide();
+    }
+
+    function updateSlide() {
+        document.getElementById('carousel-track').style.transform = `translateX(-${currentSlide * 100}%)`;
+        document.getElementById('slide-counter').textContent = `${currentSlide + 1} / ${MODULES.length}`;
+        document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+
+        const isLast = currentSlide === MODULES.length - 1;
+        const btnNext = document.getElementById('btn-next');
+        btnNext.textContent = isLast ? 'Ver meu acesso →' : 'Próximo →';
+        btnNext.onclick = isLast ? () => showStep(3) : carouselNext;
+
+        const btnPrev = document.getElementById('btn-prev');
+        btnPrev.style.visibility = currentSlide === 0 ? 'hidden' : 'visible';
+
+        // update global progress based on slide
+        const pct = 9 + Math.round((currentSlide / (MODULES.length - 1)) * 75);
+        document.getElementById('prog-fill').style.width = pct + '%';
+    }
+
+    function carouselNext() {
+        if (currentSlide < MODULES.length - 1) { currentSlide++; updateSlide(); }
+        else showStep(3);
+    }
+    function carouselPrev() {
+        if (currentSlide > 0) { currentSlide--; updateSlide(); }
+    }
+    function goToSlide(i) { currentSlide = i; updateSlide(); }
+
+    // Touch/swipe support for mobile
+    let touchStartX = 0;
+    document.getElementById('carousel-track') && document.getElementById('carousel-track').addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+    }, {passive: true});
+    document.addEventListener('touchend', e => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
+        if (currentStep === 2) {
+            if (diff > 50) carouselNext();
+            else if (diff < -50) carouselPrev();
         }
+    });
 
-        // Populate step 1 fields
-        document.getElementById('welcome-name').textContent   = name.split(' ')[0];
-        document.getElementById('welcome-ws').textContent     = wsName;
-        document.getElementById('show-password').textContent  = password;
-        document.getElementById('show-email').textContent     = email;
-        document.getElementById('show-url').textContent       = `/${slug}/dashboard.html`;
+    // ─── Login & redirect ──────────────────────────────────────────────────────
+    async function doLogin() {
+        const btn  = document.getElementById('btn-access');
+        const text = document.getElementById('btn-text');
+        const spin = document.getElementById('btn-spin');
+        btn.disabled = true;
+        text.style.display = 'none';
+        spin.style.display = 'inline-block';
 
-        // Step navigation
-        function goToStep2() {
-            document.getElementById('step-1').classList.remove('active');
-            document.getElementById('step-2').classList.add('active');
-            doLogin();
+        try {
+            const { error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+
+            sessionStorage.removeItem('_reg_password');
+            await new Promise(r => setTimeout(r, 600));
+            window.location.replace(fullUrl);
+        } catch (err) {
+            text.textContent = '⚠️ Erro — ir para login';
+            text.style.display = 'inline';
+            spin.style.display = 'none';
+            btn.disabled = false;
+            setTimeout(() => window.location.replace(`/login.html?email=${encodeURIComponent(email)}`), 2000);
         }
+    }
 
-        async function doLogin() {
-            const loadingEl = document.getElementById('loading-step');
-            try {
-                loadingEl.textContent = 'Autenticando...';
-                const { error } = await sb.auth.signInWithPassword({ email, password });
+    // ─── Confetti ─────────────────────────────────────────────────────────────
+    (function(){
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+        resize(); addEventListener('resize', resize);
 
-                if (error) throw error;
+        const cols = ['#FBBF24','#F59E0B','#34d399','#60a5fa','#fb7185','#a78bfa','#fff'];
+        const pieces = Array.from({length:90}, () => ({
+            x: Math.random() * innerWidth, y: -30 - Math.random()*120,
+            r: 5 + Math.random()*6, d: 1.2 + Math.random()*2,
+            c: cols[Math.floor(Math.random()*cols.length)],
+            t: 0, ts: 0.08 + Math.random()*0.15,
+        }));
 
-                loadingEl.textContent = 'Sessão iniciada. Redirecionando...';
-
-                // Clear sensitive data from sessionStorage
-                sessionStorage.removeItem('_reg_password');
-
-                await new Promise(r => setTimeout(r, 1000));
-
-                window.location.replace(`/${slug}/dashboard.html`);
-
-            } catch (err) {
-                loadingEl.textContent = '⚠️ Erro ao autenticar. Redirecionando para login...';
-                await new Promise(r => setTimeout(r, 2500));
-                window.location.replace(`/login.html?email=${encodeURIComponent(email)}`);
-            }
-        }
-
-        // ── Confetti ─────────────────────────────────────────────────
-        (function confetti() {
-            const canvas = document.getElementById('confetti-canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            const pieces = Array.from({length: 80}, () => ({
-                x: Math.random() * canvas.width,
-                y: -20 - Math.random() * 100,
-                r: 6 + Math.random() * 6,
-                d: 1.5 + Math.random() * 2,
-                color: ['#FBBF24','#F59E0B','#34d399','#60a5fa','#fb7185','#a78bfa'][Math.floor(Math.random()*6)],
-                tilt: Math.random() * 10 - 5,
-                tiltAngle: 0,
-                tiltSpeed: 0.1 + Math.random() * 0.2,
-                opacity: 1,
-            }));
-
-            let frame = 0;
-            function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                pieces.forEach(p => {
-                    p.y += p.d * 0.8;
-                    p.tiltAngle += p.tiltSpeed;
-                    p.tilt = Math.sin(p.tiltAngle) * 12;
-                    p.x += Math.sin(frame * 0.02 + p.tiltAngle) * 0.5;
-                    if (p.y > canvas.height + 20) {
-                        p.y = -20; p.x = Math.random() * canvas.width;
-                    }
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(0, p.opacity - frame / 400);
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.ellipse(p.x, p.y, p.r, p.r * 0.5, p.tilt * Math.PI / 180, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                });
-                frame++;
-                if (frame < 400) requestAnimationFrame(animate);
-                else ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            animate();
-
-            window.addEventListener('resize', () => {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
+        let f = 0;
+        (function draw(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            const fade = Math.max(0, 1 - f/300);
+            pieces.forEach(p => {
+                p.y += p.d * 0.7;
+                p.t += p.ts;
+                p.x += Math.sin(p.t) * 0.8;
+                if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random()*canvas.width; }
+                ctx.save();
+                ctx.globalAlpha = fade * 0.9;
+                ctx.fillStyle = p.c;
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, p.r, p.r*0.45, p.t, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
             });
+            f++;
+            if (f < 320) requestAnimationFrame(draw);
+            else ctx.clearRect(0,0,canvas.width,canvas.height);
         })();
+    })();
     </script>
 </body>
 </html>
