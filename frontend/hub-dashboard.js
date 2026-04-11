@@ -4154,6 +4154,9 @@ window.switchTab = function(tab) {
         if (navItem) navItem.classList.add('active');
         // Open CRIE submenu if not already
         if (!crieMenuOpen) toggleCrieMenu();
+        // Pre-load Stripe connection state so toggleEventoOnlinePayment works
+        // regardless of whether the user has visited Configurações tab yet.
+        _initCrieStripeState();
         // Load data for the view
         const loaders = {
             'crie-inscritos': loadCrieInscritos,
@@ -4169,6 +4172,31 @@ window.switchTab = function(tab) {
     }
     if (_originalSwitchTab) _originalSwitchTab(tab);
 };
+
+/**
+ * Lightweight initializer — fetches only the stripe_connected flag from
+ * crie_settings once per page-load and caches it in window._crieStripeConnected.
+ * Called on every CRIE tab switch so the Eventos drawer toggle always works.
+ */
+let _crieStripeStateLoading = false;
+async function _initCrieStripeState() {
+    if (window._crieStripeConnected !== undefined) return; // already loaded
+    if (_crieStripeStateLoading) return;
+    _crieStripeStateLoading = true;
+    try {
+        const wsId = getCrieWorkspaceId() || window.currentWorkspaceId;
+        if (!wsId) return;
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+        const s = ws?.crie_settings || {};
+        window._crieStripeConnected      = !!s.stripe_connected;
+        window._crieStripePublishableKey = s.stripe_publishable_key || '';
+    } catch(e) {
+        window._crieStripeConnected = false;
+    } finally {
+        _crieStripeStateLoading = false;
+    }
+}
 
 // ── Helper: get current workspace_id ───────────────────────
 function getCrieWorkspaceId() {
@@ -6284,8 +6312,10 @@ async function loadCrieSettings() {
         if (btnDisc)  btnDisc.style.display = 'none';
     }
 
-    window._crieStripeConnected = !!s.stripe_connected;
-    window._crieStripePublishableKey = s.stripe_publishable_key || '';
+    window._crieStripeConnected       = !!s.stripe_connected;
+    window._crieStripePublishableKey   = s.stripe_publishable_key || '';
+    // Reset init cache so _initCrieStripeState reflects any changes made here
+    _crieStripeStateLoading = false;
 
     // ── Membership fee ────────────────────────────────────────
     const feeInput = document.getElementById('membership-fee-input');

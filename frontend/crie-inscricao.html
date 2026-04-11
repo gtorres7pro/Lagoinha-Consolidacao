@@ -17,6 +17,8 @@
             --border: rgba(255,255,255,0.08);
             --text: #ffffff;
             --muted: rgba(255,255,255,0.45);
+            --green: #4ade80;
+            --red: #f87171;
             --font: 'Inter', sans-serif;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -57,7 +59,7 @@
         .logo-text .sub { font-size:.7rem; color:var(--muted); font-weight:500; letter-spacing:.06em; text-transform:uppercase; margin-top:1px; }
 
         /* ── States ── */
-        #loading-state, #no-event-state, #form-state, #success-state { display:none; }
+        #loading-state, #no-event-state, #form-state, #success-state, #payment-success-state, #payment-cancelled-state { display:none; }
         #loading-state { display:flex; flex-direction:column; align-items:center; gap:16px; padding:60px 0; animation:fadeUp .4s ease both; }
         .spinner { width:36px; height:36px; border:3px solid rgba(255,215,0,.15); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
 
@@ -92,6 +94,36 @@
         }
         .price-pill.free { background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.25); color:#4ade80; }
         .price-pill.paid { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); color:#F59E0B; }
+
+        /* ── Payment Notice Banner ── */
+        .payment-notice {
+            background: linear-gradient(135deg, rgba(99,80,255,.12), rgba(139,92,246,.08));
+            border: 1px solid rgba(99,80,255,.3);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeUp .5s .07s ease both;
+        }
+        .payment-notice .pay-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .payment-notice .pay-text strong {
+            display: block;
+            font-size: .85rem;
+            font-weight: 800;
+            color: #a78bfa;
+            margin-bottom: 3px;
+        }
+        .payment-notice .pay-text span {
+            font-size: .78rem;
+            color: rgba(255,255,255,.5);
+            line-height: 1.5;
+        }
 
         /* ── Banner Image ── */
         .event-banner {
@@ -176,6 +208,14 @@
         .btn-submit:active { transform:scale(.98); }
         .btn-submit:disabled { opacity:.5; pointer-events:none; }
 
+        /* Payment button variant (purple) */
+        .btn-submit.pay-mode {
+            background: linear-gradient(135deg, #6350FF, #8B5CF6);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(99,80,255,.25);
+        }
+        .btn-submit.pay-mode:hover { box-shadow: 0 8px 28px rgba(99,80,255,.4); }
+
         /* ── No event state ── */
         #no-event-state {
             text-align:center; padding:80px 20px;
@@ -186,7 +226,7 @@
         #no-event-state p { color:var(--muted); font-size:.9rem; line-height:1.7; }
 
         /* ── Success state ── */
-        #success-state {
+        #success-state, #payment-success-state, #payment-cancelled-state {
             text-align:center; padding:80px 20px;
             animation:fadeUp .5s ease both;
         }
@@ -196,9 +236,27 @@
             display:flex; align-items:center; justify-content:center;
             margin:0 auto 24px; font-size:2rem;
         }
-        #success-state h2 { font-size:1.5rem; font-weight:900; letter-spacing:-.04em; margin-bottom:10px; }
-        #success-state p { color:var(--muted); font-size:.9rem; line-height:1.7; }
-        #success-state strong { color:var(--accent); }
+        .success-icon.purple {
+            background:rgba(99,80,255,.1); border-color:rgba(99,80,255,.3);
+        }
+        .success-icon.red-icon {
+            background:rgba(248,113,113,.1); border-color:rgba(248,113,113,.3);
+        }
+        #success-state h2, #payment-success-state h2, #payment-cancelled-state h2 {
+            font-size:1.5rem; font-weight:900; letter-spacing:-.04em; margin-bottom:10px;
+        }
+        #success-state p, #payment-success-state p, #payment-cancelled-state p {
+            color:var(--muted); font-size:.9rem; line-height:1.7;
+        }
+        #success-state strong, #payment-success-state strong { color:var(--accent); }
+        .btn-ghost-sm {
+            margin-top:28px; display:inline-flex; align-items:center; gap:8px;
+            background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+            color:rgba(255,255,255,.7); border-radius:14px; padding:12px 24px;
+            font-family:var(--font); font-size:.88rem; font-weight:600;
+            cursor:pointer; transition:all .2s;
+        }
+        .btn-ghost-sm:hover { background:rgba(255,255,255,.1); color:#fff; }
 
         .footer-note {
             margin-top:32px; text-align:center;
@@ -263,12 +321,21 @@
                 <div id="ev-price-wrap"></div>
             </div>
 
-            <!-- 2. Optional banner image (hidden when no banner) -->
+            <!-- 2. Optional banner image -->
             <div class="event-banner" id="ev-banner-wrap" style="display:none;">
                 <img id="ev-banner-img" src="" alt="Banner do evento">
             </div>
 
-            <!-- 3. Registration form -->
+            <!-- 3. Payment notice (shown when online payment enabled) -->
+            <div class="payment-notice" id="payment-notice" style="display:none;">
+                <div class="pay-icon">💳</div>
+                <div class="pay-text">
+                    <strong>Pagamento Online Obrigatório</strong>
+                    <span>Este evento requer pagamento via Stripe. Após preencher os teus dados serás redirecionado para a página de pagamento seguro.</span>
+                </div>
+            </div>
+
+            <!-- 4. Registration form -->
             <div class="form-card">
                 <h2>Dados de Inscrição</h2>
                 <form id="crie-reg-form" onsubmit="submitCrieForm(event)">
@@ -284,7 +351,7 @@
                             <div class="phone-wrap">
                                 <select id="cr-phone-country" class="country-sel">
                                     <option value="+351">🇵🇹 +351</option>
-                                    <option value="+55">🇧🇷 +55</option>
+                                    <option value="+55" selected>🇧🇷 +55</option>
                                     <option value="+1">🇺🇸 +1</option>
                                     <option value="+44">🇬🇧 +44</option>
                                     <option value="+34">🇪🇸 +34</option>
@@ -340,16 +407,40 @@
             </div>
         </div>
 
-        <!-- Success -->
+        <!-- Success (free events) -->
         <div id="success-state">
             <div class="success-icon">🎉</div>
             <h2>Inscrição confirmada!</h2>
             <p>Obrigado, <strong id="success-name">—</strong>!<br>
                Estamos à tua espera no evento.<br>
                Até breve! 🙏</p>
-            <button onclick="location.reload()" style="margin-top:28px; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.7); border-radius:14px; padding:12px 24px; font-family:var(--font); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'; this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,.06)'; this.style.color='rgba(255,255,255,.7)'">
+            <button onclick="location.reload()" class="btn-ghost-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Nova Inscrição
+            </button>
+        </div>
+
+        <!-- Payment success (returned from Stripe) -->
+        <div id="payment-success-state">
+            <div class="success-icon purple">💳</div>
+            <h2>Pagamento confirmado!</h2>
+            <p>Obrigado, <strong id="pay-success-name">—</strong>!<br>
+               A tua inscrição e pagamento foram registados com sucesso.<br>
+               Até breve no evento! 🙏</p>
+            <button onclick="window.location.href=window.location.pathname" class="btn-ghost-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Inscrição
+            </button>
+        </div>
+
+        <!-- Payment cancelled -->
+        <div id="payment-cancelled-state">
+            <div class="success-icon red-icon">↩</div>
+            <h2>Pagamento cancelado</h2>
+            <p>O teu pagamento foi cancelado.<br>
+               Podes tentar novamente quando quiseres.</p>
+            <button onclick="window.location.href=window.location.pathname" class="btn-ghost-sm">
+                Tentar novamente
             </button>
         </div>
 
@@ -358,23 +449,25 @@
 
     <script src="hub-router.js"></script>
     <script>
-    const SUPA_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
-    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
-    // Isolated client — never inherits admin JWT from localStorage (Safari shared-storage fix)
+    const SUPA_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+    const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+    const EDGE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+
+    // Isolated client — never inherits admin JWT from localStorage
     const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
-        auth: {
-            persistSession: false,
-            detectSessionInUrl: false,
-            autoRefreshToken: false,
-        }
+        auth: { persistSession: false, detectSessionInUrl: false, autoRefreshToken: false }
     });
 
-    let _workspaceId   = null;
-    let _workspaceName = null;
-    let _eventId       = null;
+    let _workspaceId      = null;
+    let _workspaceName    = null;
+    let _eventId          = null;
+    let _onlinePayEnabled = false;
+    let _eventPrice       = 0;
+    let _eventCurrency    = 'BRL';
+    let _isFree           = false;
 
     function show(id) {
-        ['loading-state','no-event-state','form-state','success-state']
+        ['loading-state','no-event-state','form-state','success-state','payment-success-state','payment-cancelled-state']
             .forEach(s => {
                 const el = document.getElementById(s);
                 if (!el) return;
@@ -388,11 +481,31 @@
         if (!iso) return '—';
         return new Date(iso).toLocaleDateString('pt-PT', {
             weekday:'long', day:'numeric', month:'long', year:'numeric',
-            hour:'2-digit', minute:'2-digit', timeZone: 'Europe/Lisbon'
+            hour:'2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo'
         });
     }
 
+    // ── Handle return from Stripe Checkout ───────────────────────────
+    function checkPaymentReturn() {
+        const params = new URLSearchParams(window.location.search);
+        const payment = params.get('payment');
+        if (payment === 'success') {
+            const name = params.get('attendee') || '';
+            document.getElementById('pay-success-name').textContent = decodeURIComponent(name).split(' ')[0] || 'Participante';
+            show('payment-success-state');
+            return true;
+        }
+        if (payment === 'cancelled') {
+            show('payment-cancelled-state');
+            return true;
+        }
+        return false;
+    }
+
     async function init() {
+        // Check if returning from Stripe first
+        if (checkPaymentReturn()) return;
+
         show('loading-state');
         try {
             // 1. Resolve workspace from URL slug
@@ -408,11 +521,11 @@
                 document.title = `Inscrição CRIE ${ws.name} — Zelo Pro`;
             }
 
-            // 3. Load next ACTIVE future event
+            // 3. Load next ACTIVE future event (now also fetches online_payment_enabled + is_free)
             const now = new Date().toISOString();
             const { data: events, error: evErr } = await sb
                 .from('crie_events')
-                .select('id, title, date, location, price, currency, description, status, banner_url')
+                .select('id, title, date, location, price, currency, description, status, banner_url, online_payment_enabled, is_free')
                 .eq('workspace_id', _workspaceId)
                 .eq('status', 'ACTIVE')
                 .gte('date', now)
@@ -422,8 +535,12 @@
             if (evErr) throw evErr;
             if (!events || events.length === 0) { show('no-event-state'); return; }
 
-            const ev = events[0];
-            _eventId = ev.id;
+            const ev    = events[0];
+            _eventId          = ev.id;
+            _onlinePayEnabled = !!ev.online_payment_enabled;
+            _isFree           = !!ev.is_free;
+            _eventPrice       = parseFloat(ev.price) || 0;
+            _eventCurrency    = ev.currency || 'BRL';
 
             // 4. Populate event card
             document.getElementById('ev-title').textContent = ev.title;
@@ -443,15 +560,15 @@
 
             // Price pill
             const priceWrap = document.getElementById('ev-price-wrap');
-            if (ev.price > 0) {
-                priceWrap.innerHTML = `<span class="price-pill paid">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    ${ev.currency || '€'} ${parseFloat(ev.price).toFixed(2)}
-                </span>`;
-            } else {
+            if (_isFree || _eventPrice === 0) {
                 priceWrap.innerHTML = `<span class="price-pill free">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                     Gratuito
+                </span>`;
+            } else {
+                priceWrap.innerHTML = `<span class="price-pill paid">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    ${_eventCurrency} ${_eventPrice.toFixed(2)}
                 </span>`;
             }
 
@@ -459,6 +576,18 @@
             if (ev.banner_url) {
                 document.getElementById('ev-banner-img').src = ev.banner_url;
                 document.getElementById('ev-banner-wrap').style.display = 'block';
+            }
+
+            // 6. Show payment notice + update button if online payment is required
+            if (_onlinePayEnabled && !_isFree && _eventPrice > 0) {
+                document.getElementById('payment-notice').style.display = 'flex';
+                const btn = document.getElementById('cr-submit-btn');
+                btn.classList.add('pay-mode');
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                    Pagar e Inscrever · ${_eventCurrency} ${_eventPrice.toFixed(2)}`;
             }
 
             show('form-state');
@@ -473,72 +602,115 @@
         e.preventDefault();
         if (!_workspaceId || !_eventId) return;
 
-        const btn      = document.getElementById('cr-submit-btn');
-        const name     = document.getElementById('cr-name').value.trim();
+        const btn       = document.getElementById('cr-submit-btn');
+        const name      = document.getElementById('cr-name').value.trim();
         const phoneNum  = document.getElementById('cr-phone').value.trim();
         const countryCode = document.getElementById('cr-phone-country').value;
-        const email    = document.getElementById('cr-email').value.trim().toLowerCase();
+        const email     = document.getElementById('cr-email').value.trim().toLowerCase();
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> A enviar…';
 
         try {
-            // Build full phone from country selector + number input
-            const numClean = phoneNum.replace(/[\s\-().]/g, '');
-            // If user already typed a + prefix, use as-is; otherwise prepend country code
-            let phoneFinal = numClean.startsWith('+') ? numClean : countryCode + numClean;
+            // Build full phone
+            const numClean   = phoneNum.replace(/[\s\-().]/g, '');
+            const phoneFinal = numClean.startsWith('+') ? numClean : countryCode + numClean;
 
-            // Auto-detect member via phone/email match in crie_members
+            // Auto-detect member via phone/email
             let isMember = false;
             const phoneClean = phoneFinal.replace(/\D/g,'');
-            const orFilters = [];
+            const orFilters  = [];
             if (phoneFinal) orFilters.push(`phone.eq.${phoneFinal}`);
             if (phoneClean && phoneClean !== phoneFinal) orFilters.push(`phone.eq.${phoneClean}`);
             if (email) orFilters.push(`email.eq.${email}`);
-
             if (orFilters.length) {
                 const { data: mem } = await sb.from('crie_members')
-                    .select('id')
-                    .eq('workspace_id', _workspaceId)
-                    .or(orFilters.join(','))
-                    .maybeSingle();
+                    .select('id').eq('workspace_id', _workspaceId)
+                    .or(orFilters.join(',')).maybeSingle();
                 if (mem) isMember = true;
             }
 
-            // City auto-set from workspace name
-            const city = _workspaceName || null;
-
             const industry = document.getElementById('cr-industry').value || null;
+            const city     = _workspaceName || null;
 
-            const payload = {
+            // ── Case 1: Online payment required → create attendee (pending) + redirect to Stripe ──
+            if (_onlinePayEnabled && !_isFree && _eventPrice > 0) {
+                // Insert attendee with payment_status = Pendente
+                const { error: insErr } = await sb.from('crie_attendees').insert({
+                    event_id:        _eventId,
+                    workspace_id:    _workspaceId,
+                    name,
+                    phone:           phoneFinal,
+                    email:           email || null,
+                    city,
+                    industry,
+                    is_member:       isMember,
+                    payment_status:  'Pendente',
+                    presence_status: 'Pendente',
+                });
+                if (insErr && insErr.code !== '23505') throw insErr; // ignore duplicate
+
+                // Get Stripe checkout URL from Edge Function
+                btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> A processar pagamento…';
+
+                const pageUrl = window.location.href.split('?')[0];
+                const res = await fetch(`${EDGE_URL}/crie-event-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_id:       _eventId,
+                        workspace_id:   _workspaceId,
+                        attendee_name:  name,
+                        attendee_email: email || undefined,
+                        attendee_phone: phoneFinal,
+                        success_url:    `${pageUrl}?payment=success`,
+                        cancel_url:     `${pageUrl}?payment=cancelled`,
+                    })
+                });
+
+                const json = await res.json();
+                if (json.error) throw new Error(json.error);
+                if (json.payment_url) {
+                    // Fire Google Sheets webhook
+                    fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            formUsed: 'CRIE Inscrição (c/ pagamento)', date: new Date().toISOString(),
+                            workspace: _workspaceName, workspaceId: _workspaceId,
+                            name, whatsapp: phoneFinal, email: email || 'N/A'
+                        })
+                    }).catch(() => {});
+                    // Redirect to Stripe
+                    window.location.href = json.payment_url;
+                    return;
+                }
+                throw new Error('URL de pagamento não recebido.');
+            }
+
+            // ── Case 2: Free / no online payment → insert directly and show success ──
+            const { error } = await sb.from('crie_attendees').insert({
                 event_id:        _eventId,
                 workspace_id:    _workspaceId,
-                name:            name,
+                name,
                 phone:           phoneFinal,
                 email:           email || null,
-                city:            city,
-                industry:        industry,
+                city,
+                industry,
                 is_member:       isMember,
                 payment_status:  'Pendente',
                 presence_status: 'Pendente',
-            };
-
-            const { error } = await sb.from('crie_attendees').insert(payload);
+            });
             if (error) throw error;
 
-            // 🔔 Fire & Forget: Notify webhook (Google Sheets)
+            // Google Sheets webhook
             fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
-                method: 'POST',
-                mode: 'no-cors',
+                method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
-                    formUsed: 'CRIE Inscrição',
-                    date: new Date().toISOString(),
-                    workspace: _workspaceName,
-                    workspaceId: _workspaceId,
-                    name: name,
-                    whatsapp: phoneFinal,
-                    email: email || "N/A"
+                    formUsed: 'CRIE Inscrição', date: new Date().toISOString(),
+                    workspace: _workspaceName, workspaceId: _workspaceId,
+                    name, whatsapp: phoneFinal, email: email || 'N/A'
                 })
             }).catch(() => {});
 
@@ -548,8 +720,12 @@
         } catch (err) {
             console.error('[CRIE-FORM] submit error:', err);
             btn.disabled = false;
-            btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Confirmar Inscrição`;
-            alert('Erro ao enviar: ' + (err.message || 'tente novamente'));
+            const isPayMode = _onlinePayEnabled && !_isFree && _eventPrice > 0;
+            btn.classList.toggle('pay-mode', isPayMode);
+            btn.innerHTML = isPayMode
+                ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Pagar e Inscrever · ${_eventCurrency} ${_eventPrice.toFixed(2)}`
+                : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Confirmar Inscrição`;
+            alert('Erro: ' + (err.message || 'tente novamente'));
         }
     }
 
