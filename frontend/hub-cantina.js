@@ -1015,8 +1015,8 @@ async function sendCashClosingEmail({ totalSales, totalExpenses, totalDonations,
   `;
 
   // Use the existing Resend function pattern from the project
-  const SUPABASE_URL = getSupabase().supabaseUrl || window.SUPABASE_URL;
-  const anon = window.SUPABASE_ANON_KEY || '';
+  const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+  const anon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
   await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anon}` },

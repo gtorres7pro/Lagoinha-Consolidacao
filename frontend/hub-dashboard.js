@@ -5891,7 +5891,7 @@ h1{font-size:1.8rem;font-weight:900;color:#fff;margin-bottom:4px;}
     // 4. Send report automatically via Edge Function
     if (email) {
         try {
-            const supabaseUrl = window.SUPABASE_URL || sb.supabaseUrl || 'https://uyseheucqikgcorrygzc.supabase.co';
+            const supabaseUrl = 'https://uyseheucqikgcorrygzc.supabase.co';
             const { data: { session } } = await sb.auth.getSession();
             const subject = `Relatório CRIE — ${ev.title}`;
             
@@ -12364,7 +12364,7 @@ async function reviewApplication(appId, appUserId, decision) {
             }
 
             // 4. Send welcome email via Edge Function (fire-and-forget)
-            const SUPABASE_URL = window.SUPABASE_URL || document.querySelector('meta[name="supabase-url"]')?.content || '';
+            const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
             const wsName = (() => {
                 const allWs = window._allWorkspaces || [];
                 const ws = allWs.find(w => w.id === wsId);
