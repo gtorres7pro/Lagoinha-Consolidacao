@@ -474,8 +474,9 @@
             if (pillNameEl) pillNameEl.textContent = ws.name;
             const sidebarLabel = document.getElementById('sidebar-workspace-name');
             if (sidebarLabel) sidebarLabel.textContent = displayWsName(ws.name);
-            // Store workspace modules globally so user-modal and sidebar gating can use them
+            // Store workspace modules & plan globally
             window._wsModules = ws.modules || [];
+            window._currentWorkspacePlan = ws.plan || 'free';
             if (window.applyPlanGating) window.applyPlanGating(ws.plan || 'free', ws.modules || []);
             // Re-apply user-level gating on top of plan gating
             if (window.applyUserModuleGating) window.applyUserModuleGating();
@@ -1098,102 +1099,191 @@
         // ─── UPGRADE MODAL ────────────────────────────────────────────────
         window.showUpgradeModal = function() {
             const o = document.getElementById('upgrade-modal-overlay');
-            if (o) { o.style.display='flex'; }
+            if (!o) return;
+            _renderPlansModal();
+            o.style.display = 'flex';
         };
         window.closeUpgradeModal = function() {
             const o = document.getElementById('upgrade-modal-overlay');
-            if (o) { o.style.display='none'; }
+            if (o) o.style.display = 'none';
         };
-        // Close on overlay click
         document.getElementById('upgrade-modal-overlay')?.addEventListener('click', function(e) {
             if (e.target === this) closeUpgradeModal();
         });
 
-        // Trigger SaaS Checkout
-        window.startSaasCheckout = async function(priceId) {
+        // ─── PLANS DATA ───────────────────────────────────────────────────────
+        const SAAS_PLANS = [
+            {
+                slug: 'free', name: 'Gratuito', price: 0, badge: '',
+                tagline: 'O essencial para começar a cuidar de vidas.',
+                color: 'rgba(255,255,255,0.08)', accent: '#aaa',
+                features: ['Jornada completa (consolidados, visitantes, start)', 'Batismo e Novos Membros', 'Até 3 usuários'],
+                price_id: null,
+            },
+            {
+                slug: 'starter', name: 'Starter', price: 27, badge: '',
+                tagline: 'Para igrejas que querem ir além da jornada básica.',
+                color: 'rgba(96,165,250,0.08)', accent: '#60a5fa',
+                features: ['Tudo do Gratuito', 'Aniversariantes', 'Transmissão (email broadcast)', 'Tasks & Kanban', 'Até 5 usuários'],
+                price_id: 'price_STARTER_MONTHLY', // replace with real Stripe price ID
+            },
+            {
+                slug: 'essencial', name: 'Essencial', price: 47, badge: 'Mais popular',
+                tagline: 'Dados, relatórios e gestão financeira na palma da mão.',
+                color: 'rgba(167,139,250,0.1)', accent: '#a78bfa',
+                features: ['Tudo do Starter', 'Relatórios avançados', 'Financeiro', 'Logs de atividade', 'Voluntários', 'Usuários ilimitados'],
+                price_id: 'price_ESSENCIAL_MONTHLY',
+            },
+            {
+                slug: 'founders', name: 'Founders ⭐', price: 97, badge: 'Tempo limitado',
+                tagline: 'Tudo que sua igreja precisa. Por um preço de pioneiro.',
+                color: 'rgba(251,191,36,0.08)', accent: '#FBBF24',
+                features: ['Tudo do Essencial', 'CRIE (eventos, membros, workshop)', 'Cantina', 'We Care', 'Chat ao Vivo com IA (1 canal)', 'Suporte prioritário'],
+                price_id: 'price_FOUNDERS_MONTHLY',
+            },
+        ];
+
+        const SAAS_ADDONS = [
+            { slug: 'wecare', name: 'We Care', price: 5, icon: '💛', desc: 'Cuidado pastoral estruturado' },
+            { slug: 'crie', name: 'CRIE', price: 27, icon: '🌟', desc: 'Eventos, membros, workshop e connect' },
+            { slug: 'cantina', name: 'Cantina', price: 27, icon: '🍽️', desc: 'Gestão de hospitalidade completa' },
+            { slug: 'ia_chat', name: 'Chat IA', price: 97, icon: '🤖', desc: 'WhatsApp automatizado por canal' },
+        ];
+
+        function _renderPlansModal() {
+            const currentPlan = (window._currentWorkspacePlan || 'trial').toLowerCase();
+            const o = document.getElementById('upgrade-modal-overlay');
+            if (!o) return;
+
+            const isSubscribed = !['free','trial'].includes(currentPlan);
+
+            o.innerHTML = `
+              <div style="background:rgba(10,10,14,0.97);border:1px solid rgba(255,255,255,0.08);border-radius:24px;
+                          width:min(96vw,900px);max-height:90vh;overflow-y:auto;padding:32px 28px;position:relative;
+                          scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;">
+                <button onclick="closeUpgradeModal()" style="position:absolute;top:16px;right:18px;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.5rem;cursor:pointer;line-height:1;">×</button>
+
+                <div style="text-align:center;margin-bottom:28px;">
+                  <div style="font-size:.72rem;color:#FBBF24;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">⚡ Planos &amp; Assinatura</div>
+                  <h2 style="font-size:1.6rem;font-weight:900;letter-spacing:-.04em;margin:0;">Escolha o plano ideal para sua igreja</h2>
+                  <p style="color:rgba(255,255,255,.4);font-size:.85rem;margin-top:6px;">Cobrado mensalmente · Cancele a qualquer momento</p>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:28px;">
+                  ${SAAS_PLANS.map(p => {
+                    const isCurrent = currentPlan === p.slug;
+                    return `<div style="background:${p.color};border:1.5px solid ${isCurrent ? p.accent : 'rgba(255,255,255,.08)'};
+                                        border-radius:18px;padding:20px 18px;position:relative;display:flex;flex-direction:column;gap:12px;">
+                      ${p.badge ? `<span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:${p.accent};color:#000;font-size:.62rem;font-weight:900;padding:2px 10px;border-radius:20px;white-space:nowrap;">${p.badge}</span>` : ''}
+                      ${isCurrent ? `<span style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:10px;">Atual</span>` : ''}
+                      <div>
+                        <div style="font-size:.95rem;font-weight:800;color:${p.accent};">${p.name}</div>
+                        <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:3px;">${p.tagline}</div>
+                      </div>
+                      <div style="font-size:1.7rem;font-weight:900;letter-spacing:-.05em;">${p.price === 0 ? 'Grátis' : `<span style="font-size:.8rem;font-weight:600;vertical-align:super;">$</span>${p.price}<span style="font-size:.7rem;font-weight:500;color:rgba(255,255,255,.4);">/mês</span>`}</div>
+                      <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;flex:1;">
+                        ${p.features.map(f => `<li style="font-size:.75rem;color:rgba(255,255,255,.6);display:flex;align-items:flex-start;gap:6px;"><span style="color:${p.accent};flex-shrink:0;font-size:.8rem;">✦</span>${f}</li>`).join('')}
+                      </ul>
+                      ${isCurrent
+                        ? `<div style="text-align:center;font-size:.75rem;color:rgba(255,255,255,.3);padding:8px;background:rgba(255,255,255,.04);border-radius:10px;">Plano Ativo</div>`
+                        : p.price === 0
+                          ? `<div style="text-align:center;font-size:.75rem;color:rgba(255,255,255,.3);padding:8px;">Plano base (sempre disponível)</div>`
+                          : `<button onclick="startSaasCheckout('${p.slug}','${p.price_id}')" style="width:100%;padding:10px;background:${p.accent};color:${p.accent === '#FBBF24' ? '#000' : '#fff'};border:none;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                            Assinar ${p.name} →
+                          </button>`
+                      }
+                    </div>`;
+                  }).join('')}
+                </div>
+
+                <!-- Add-ons -->
+                <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:22px;margin-bottom:22px;">
+                  <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">Add-ons opcionais</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;">
+                    ${SAAS_ADDONS.map(a => `
+                      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                        <div style="font-size:1.2rem;">${a.icon}</div>
+                        <div style="font-weight:700;font-size:.85rem;">${a.name} <span style="color:rgba(255,255,255,.4);font-size:.75rem;font-weight:500;">+$${a.price}/mês</span></div>
+                        <div style="font-size:.72rem;color:rgba(255,255,255,.4);">${a.desc}</div>
+                        <button onclick="startSaasCheckout('addon_${a.slug}', null)" style="padding:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:rgba(255,255,255,.6);font-size:.72rem;font-weight:600;cursor:pointer;">Adicionar</button>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- Manage subscription -->
+                ${isSubscribed ? `
+                <div style="text-align:center;padding-top:4px;">
+                  <button onclick="startSaasPortal()" style="padding:10px 22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;">
+                    💳 Gerenciar Assinatura / Trocar Cartão
+                  </button>
+                </div>` : ''}
+
+                <div style="text-align:center;margin-top:18px;font-size:.72rem;color:rgba(255,255,255,.25);">
+                  Dúvidas? <a href="https://wa.me/5511999999999" target="_blank" style="color:#FBBF24;text-decoration:none;">Fale com nossa equipe</a>
+                </div>
+              </div>
+            `;
+        }
+
+        // Trigger SaaS Checkout — routes to new saas-stripe-checkout function
+        window.startSaasCheckout = async function(planSlug, priceId) {
+            if (!priceId || priceId.startsWith('price_') && priceId.includes('MONTHLY')) {
+                // Real price IDs not configured yet
+                alert('⚙️ Configure os Planos do Stripe no painel de Desenvolvimento para ativar o Checkout.\n\nVá em: Dashboard → Desenvolvimento → Stripe SaaS');
+                return;
+            }
+            const wsId = window.currentWorkspaceId;
+            if (!wsId) return;
+
+            const wsSlug = window._allWorkspaces?.find(w => w.id === wsId)?.slug || wsId;
+            const token = window._localToken;
+
+            // Find the overlay & show loading
+            const o = document.getElementById('upgrade-modal-overlay');
+            if (o) o.innerHTML = `<div style="color:#fff;font-size:1rem;display:flex;align-items:center;gap:14px;"><div class="hub-loader" style="width:28px;height:28px;border-width:3px;"></div> Redirecionando para o Checkout seguro...</div>`;
+
             try {
-                // Determine price mapping (these IDs will be configured in Stripe)
-                const priceMap = {
-                    'price_starter': 'price_starter_MONTHLY', // Replace with real price_id
-                    'price_advanced': 'price_advanced_MONTHLY', // Replace with real price_id
-                    'price_founders': 'price_founders_MONTHLY' // Replace with real price_id
-                };
-                
-                const finalPriceId = priceMap[priceId] || priceId;
-                
-                // Show loading state
-                const overlay = document.getElementById('upgrade-modal-overlay');
-                if(overlay) overlay.innerHTML = '<div style="color:#fff; font-size:1.2rem; display:flex; align-items:center; justify-content:center; height:100%;"><div class="hub-loader" style="margin-right:15px;"></div> Redirecionando para o Checkout seguro...</div>';
-
-                const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-handler', {
+                const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-checkout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        auth_token: _localToken,
-                        action: 'create_checkout',
-                        price_id: finalPriceId,
-                        cancel_url: window.location.href,
-                        success_url: window.location.href + '?success=true'
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ workspace_id: wsId, plan: planSlug, price_id: priceId, slug: wsSlug }),
                 });
-
-                if(!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Erro ao gerar checkout');
-                }
-
-                const data = await response.json();
-                if(data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error('URL de checkout inválida');
-                }
-
-            } catch (error) {
-                console.error("Erro no checkout:", error);
-                alert("Erro ao iniciar assinatura: " + error.message);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                if (data.url) window.location.href = data.url;
+            } catch (err) {
+                alert('Erro ao iniciar checkout: ' + err.message);
                 closeUpgradeModal();
-                // Optionally reload to restore modal
-                location.reload();
             }
         };
 
-        // Trigger SaaS Portal
+        // Open Stripe Customer Portal
         window.startSaasPortal = async function() {
+            const wsId = window.currentWorkspaceId;
+            if (!wsId) return;
+            const wsSlug = window._allWorkspaces?.find(w => w.id === wsId)?.slug || wsId;
+            const token = window._localToken;
+
+            const btn = event?.target;
+            if (btn) { btn.disabled = true; btn.textContent = 'Carregando...'; }
+
             try {
-                const oldText = event.target.innerHTML;
-                event.target.innerHTML = '<div class="hub-loader" style="width:16px;height:16px;border-width:2px;"></div>';
-                event.target.disabled = true;
-
-                const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-handler', {
+                const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-checkout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        auth_token: _localToken,
-                        action: 'create_portal',
-                        return_url: window.location.href
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ workspace_id: wsId, plan: 'any', action: 'portal', slug: wsSlug }),
                 });
-
-                if(!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || 'Erro ao gerar portal');
-                }
-
-                const data = await response.json();
-                if(data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error('URL de portal inválida');
-                }
-
-            } catch (error) {
-                console.error("Erro no portal:", error);
-                alert("Erro ao acessar assinaturas: " + error.message);
-                event.target.innerHTML = '💳 Gerenciar Assinatura';
-                event.target.disabled = false;
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                if (data.url) window.open(data.url, '_blank');
+            } catch (err) {
+                alert('Erro ao abrir portal: ' + err.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '💳 Gerenciar Assinatura / Trocar Cartão'; }
             }
         };
+
 
         // ─── WIRE applyPlanGating into loadWorkspaces flow ───────────────
         // (called from loadWorkspaces when workspace is resolved)
