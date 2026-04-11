@@ -146,17 +146,18 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 16px;
-            border-radius: 12px;
+            /* Match .nav li padding exactly so icons line up */
+            padding: 9px 12px;
+            border-radius: 10px;
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
             color: var(--text-dim);
-            font-size: 0.82rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            letter-spacing: 0.01em;
         }
-        .nav-item-row:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .nav-item-row:hover { background: rgba(255,255,255,0.04); color: #fff; }
         .nav-item-row.active, .nav li.active .nav-item-row { color: var(--accent); background: rgba(251,191,36,0.08); font-weight: 600; }
+
 
 
         .nav-section-label {
