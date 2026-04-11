@@ -1330,10 +1330,11 @@ select.hub-field-input { cursor: pointer; }
 
 /* ── Secondary Sidebar (Dual Pane Submenus) ── */
 .sidebar-secondary {
-    width: 240px;
+    width: 220px;
     background: #0d0d0d;
     border-right: 1px solid var(--card-border);
-    display: none; /* toggled inline to flex or via class */
+    /* Hidden by default via CSS — revealed by .show */
+    display: none;
     flex-direction: column;
     z-index: 9;
     height: 100dvh;
@@ -1342,42 +1343,81 @@ select.hub-field-input { cursor: pointer; }
 }
 .sidebar-secondary.show {
     display: flex;
-    animation: slideInRight 0.2s cubic-bezier(0.16,1,0.3,1);
+    animation: secSidebarIn 0.22s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes secSidebarIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 .sec-sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 24px 16px;
+    padding: 20px 14px 18px;
     border-bottom: 1px solid var(--card-border);
-    min-height: 75px; 
+    min-height: 72px;
+    flex-shrink: 0;
 }
 .sec-sidebar-title {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     font-weight: 800;
     color: #fff;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
 }
 .sec-sidebar-close {
     background: rgba(255,255,255,.04);
     border: 1px solid rgba(255,255,255,.08);
     border-radius: 8px;
-    color: #888;
+    color: #777;
     cursor: pointer;
     width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.15s;
+    flex-shrink: 0;
 }
 .sec-sidebar-close:hover {
-    background: rgba(255,215,0,.12); color: #FFD700; border-color: rgba(255,215,0,.3);
-}
-@keyframes slideInRight {
-    from { margin-left: -20px; opacity: 0; }
-    to { margin-left: 0; opacity: 1; }
+    background: rgba(255,215,0,.12);
+    color: #FFD700;
+    border-color: rgba(255,215,0,.3);
 }
 
-/* On mobile, lay the secondary sidebar right on top of everything but main sidebar */
-@media (max-width: 768px) {
-    .sidebar-secondary { position: fixed; left: 64px; top: 0; bottom: 0; z-index: 99; box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
+/* List items inside secondary nav inherit main nav styles */
+#sec-sidebar-nav li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    font-weight: 500;
+    list-style: none;
 }
+#sec-sidebar-nav li:hover { background: rgba(255,255,255,0.05); color: #fff; }
+#sec-sidebar-nav li.active { color: var(--accent); background: rgba(251,191,36,0.08); }
+#sec-sidebar-nav .nav-icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+#sec-sidebar-nav .nav-icon svg { width: 15px; height: 15px; }
+#sec-sidebar-nav li:hover .nav-icon,
+#sec-sidebar-nav li.active .nav-icon { opacity: 1; }
+/* Hide nav-item-arrow inside secondary pane (no submenus of submenus) */
+#sec-sidebar-nav .nav-item-arrow { display: none; }
+
+/* Mobile: secondary sidebar overlays on top of collapsed main sidebar */
+@media (max-width: 768px) {
+    .sidebar-secondary {
+        position: fixed;
+        left: 64px; top: 0; bottom: 0;
+        z-index: 99;
+        box-shadow: 12px 0 40px rgba(0,0,0,0.8);
+    }
+}
+
+
 

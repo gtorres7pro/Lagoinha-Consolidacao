@@ -118,52 +118,26 @@
 
         /* ── Nav Groups (menus with submenus) ──────── */
         .nav-group { display: flex; flex-direction: column; position: relative; }
-        .nav-submenu-wrap {
-            display: none;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .nav-submenu-wrap {
-            display: none;
-            flex-direction: row;
-            padding-left: 20px;
-            margin: 2px 0 4px;
-            gap: 0;
-        }
-        .nav-group.flyout-open .nav-submenu-wrap { display: none !important; }
-        .nav-submenu-line {
-            width: 1px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 1px;
-            margin-right: 10px;
+        /* Submenu wraps are always hidden — content is served via the secondary sidebar */
+        .nav-submenu-wrap { display: none !important; }
+
+        .nav-item-arrow {
+            margin-left: auto;
+            color: rgba(255,255,255,.35);
+            font-size: .65rem;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), color 0.2s;
             flex-shrink: 0;
-            position: relative;
         }
-        .nav-submenu-line::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 40%;
-            background: linear-gradient(to bottom, rgba(251,191,36,0.25), transparent);
-            border-radius: 1px;
-        }
-        .nav-submenu-wrap ul { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-        .nav-submenu-wrap ul li { padding: 4px 12px; border-radius: 8px; padding-left: 8px; }
-        
-        .nav-item-arrow { margin-left: auto; color: rgba(255,255,255,.3); font-size: .6rem; transition: transform 0.2s; }
-        .nav-group.flyout-open .nav-item-arrow { transform: rotate(90deg); color: var(--accent); }
+        /* When open, arrow flips 180deg to show < direction */
+        .nav-group.flyout-open .nav-item-arrow { transform: rotate(180deg); color: var(--accent); }
+        .nav-group.flyout-open .nav-item-row { color: var(--accent); background: rgba(251,191,36,0.07); }
+
         @keyframes badgePulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,.5); }
             50%       { box-shadow: 0 0 0 5px rgba(255,215,0,0); }
         }
         .kanban-col-drop-target { outline: 2px dashed rgba(255,215,0,.5) !important; background: rgba(255,215,0,.04) !important; }
         .kanban-card-dragging   { opacity: .4; cursor: grabbing !important; }
-        .nav-submenu-wrap ul li {
-            padding-left: 4px;
-        }
         .nav li.disabled { opacity: 0.25; cursor: not-allowed; }
         .nav li.disabled:hover { background: transparent; color: var(--text-dim); }
 
@@ -1061,7 +1035,7 @@
     </aside>
 
     <!-- Secondary Sidebar (Dual Pane) -->
-    <aside class="sidebar-secondary" id="secondary-sidebar" style="display:none;">
+    <aside class="sidebar-secondary" id="secondary-sidebar">
         <div class="sec-sidebar-header">
            <span class="sec-sidebar-title" id="sec-sidebar-title">Menu</span>
            <button class="sec-sidebar-close" onclick="closeSecondarySidebar()" title="Voltar">
