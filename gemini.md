@@ -198,6 +198,9 @@ Platform-level multi-tenant subscription control. Allows Zelo to charge workspac
 
 ## 5. Architectural Invariants & Rules ⚠️
 
+> 🔴 **RULE #0 — NEW MODULE PROTOCOL (MANDATORY)**
+> Whenever a new module is being added to the platform, you MUST follow every step in `MODULE_PROTOCOL.md` located at the project root. Do NOT skip steps or implement a module ad-hoc. The checklist in that file must be completed in full before the module is considered done. This includes: defining the module key, adding it to the plan matrix, wiring the sidebar gate, registering in team permissions, implementing lazy-load, and updating GEMINI.md.
+
 1.  **No Vanilla Breakage:** Features must be built cleanly over the established Vanilla JS + Supabase JS SDK architectures. Do not inject heavy frameworks inside established monolithic dashboard files.
 2.  **Front-end Filter Fidelity:** When building exporters (like the CSV download) or charts, they MUST adhere to the globally scoped filtered arrays (e.g., `window._filteredConsolidados`, `window._filteredPublicLeads`) — never bypass visual filters to dump the raw DB.
 3.  **Graceful Degradation:** Features reliant on API tokens (WAHA WhatsApp, Resend Emails) must fail gracefully with appropriate user feedback rather than blanking the screen.
