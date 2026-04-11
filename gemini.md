@@ -1,6 +1,6 @@
 # Zelo Pro (formerly Lagoinha Consolidação) Constitution & Blueprint
 
-## Document Scope (Last Updated: 2026-04-11)
+## Document Scope (Last Updated: 2026-04-12)
 This file represents the absolute source of truth for the **Zelo Pro** platform. It documents structural logic, behavioral rules, UI/UX aesthetics, database schema expectations, and core functional invariant features implemented.
 
 ---
@@ -86,6 +86,39 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 
 **Coolify Integration:** Module sidebar patching via `patchSwitchTab()` in `hub-cantina.js` — hooks into `window.switchTab` to trigger lazy-loading per tab.
 
+### F. SaaS Subscription & Billing ⭐ NEW (2026-04-12)
+Platform-level multi-tenant subscription control. Allows Zelo to charge workspaces per plan.
+
+**Plans:**
+| Plan | Price | Key Modules |
+|---|---|---|
+| `free` | Free | Consolidação, Visitantes, Start |
+| `starter` | $27/mo | + Tasks, Transmissão, Aniversariantes |
+| `essencial` | $47/mo | + Financeiro, Relatórios, Voluntários |
+| `founders` | $97/mo | Everything + CRIE, Cantina, WAHA/IA, We Care |
+| `trial` | Free for 7 days | All Founders features, expires automatically |
+
+**Gating Logic:**
+- `workspaces.plan` holds the current plan slug.
+- `workspaces.modules` (`text[]`) holds explicit module overrides (for manual override by Master Admin or ad-hoc add-ons).
+- `window._currentWorkspacePlan` and `window._wsModules` are set globally on workspace load in `hub-dashboard.js`.
+- `applyUserModuleGating()` runs on login to hide sidebar items not accessible to the user.
+- The plans modal is shown via `showUpgradeModal()` (sidebar "Ver Planos" button).
+- Checkout triggers `saas-stripe-checkout` Edge Function → redirects to Stripe Checkout.
+- After payment, `saas-stripe-webhook` updates `workspaces.plan` and `workspaces.modules`.
+
+**onboarding.html:**
+- Route: `/onboarding.html` — redirected here after successful registration.
+- Step 1: Collects user name, phone, email, church name. Creates workspace + admin user via Supabase.
+- Step 2: Horizontal carousel (10 slides) presenting each Zelo module visually. Bug fix (2026-04-12): inline `onclick` conflict resolved — nav uses `addEventListener` + `data-last` attribute pattern.
+- Step 3: Access confirmation screen showing workspace slug URL.
+- **Important:** Registration URL must redirect to `/onboarding` not directly to `/dashboard.html`.
+
+**Key Files:**
+- `frontend/onboarding.html` — Full self-contained onboarding flow
+- `frontend/register.html` — Registration page; redirects to `/onboarding.html` on success
+- `frontend/hub-dashboard.js` — `showUpgradeModal()`, `startSaasCheckout()`, `applyUserModuleGating()`
+
 ---
 
 ## 3. Database Schema Mapping (Supabase) 🗄️
@@ -93,14 +126,18 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 *All tables employ Row Level Security (RLS) bound to `workspace_id` except for Master Admin override policies.*
 
 ### Key Tables
-*   **workspaces:** `id, name, status, credentials (json), knowledge_base (json), crie_settings (jsonb)`
-    - `crie_settings` stores: `stripe_connected`, `stripe_publishable_key`, `stripe_secret_key_enc` (base64), `stripe_account_id`, `stripe_account_name`, `stripe_account_email`, `membership_fee`, `membership_currency`.
+*   **workspaces:** `id, name, slug, status, plan (text), modules (text[]), addon_modules (text[]), credentials (json), knowledge_base (json), crie_settings (jsonb), created_at`
+    - `plan` values: `free | trial | starter | essencial | founders`
+    - `modules` — explicit module list (used for gating UI and feature access)
+    - `addon_modules` — additional paid add-ons activated outside of base plan
+    - `crie_settings` stores: `stripe_connected`, `stripe_publishable_key`, `stripe_secret_key_enc` (base64), `stripe_account_id`, `stripe_account_name`, `stripe_account_email`, `membership_fee`, `membership_currency`, `default_country_code`, `default_currency`.
 *   **leads:** `id, workspace_id, name, phone, email, type (saved|visitor), tags (jsonb), batizado, culto, decisao, etc.`
 *   **app_logs / tickets:** `id, workspace_id, type (bug|feature), status, description, attachments (text[]), public_roadmap (boolean)`
 *   **tasks:** Universal tasks table. `id, workspace_id, lead_id, task_title, status, due_date, context`
 *   **messages:** `id, workspace_id, lead_id, direction, content, type (text|audio|image|template), automated, created_at`
 *   **start_participants:** `id, workspace_id, name, email, phone, source`
 *   **start_progress:** `participant_id, lesson_number, status, timestamp`
+*   **saas_payments:** `id, workspace_id, stripe_session_id, plan, amount, currency, status (pending|paid|failed), created_at`
 
 ### CRIE Tables
 *   **crie_members:** `id, workspace_id, name, email, phone, app_user_id (fk), status (ativo|inativo), source (manual|app), stripe_customer_id, created_at`
@@ -153,6 +190,9 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 | `crie-membership-webhook` | false | Stripe webhook listener: handles `payment_intent.succeeded/failed`, `invoice.payment_succeeded/failed`, `customer.subscription.deleted`. Requires `STRIPE_WEBHOOK_SECRET` env var. |
 | `crie-member-welcome` | false | Sends branded HTML welcome email via Resend when a member application is approved. Requires `RESEND_API_KEY` + `APP_FROM_EMAIL` env vars. |
 | `crie-membership-payment` | **false** | Processes CRIE membership payments via Stripe Checkout. Accepts `{workspace_id, app_user_id, amount, currency, coupon_code, type}`. Creates/reuses Stripe Customer, generates Checkout Session (one-time or recurring), records pending row in `crie_membership_payments`. Called from `crie-app.html`. |
+| `saas-stripe-checkout` | **false** | Creates Stripe Checkout Session or Customer Portal URL for the SaaS subscription flow. Accepts `{workspace_id, price_id, action}`. Requires `STRIPE_SECRET_KEY_SAAS`. |
+| `saas-stripe-webhook` | false | Processes Stripe webhook events for SaaS billing: `checkout.session.completed`, `customer.subscription.deleted`, `invoice.payment_failed`. Updates `workspaces.plan` + `workspaces.modules`. CC email to `g@7proservices.com`. Requires `STRIPE_WEBHOOK_SECRET_SAAS`. |
+| `saas-trial-cron` | false | Scheduled cron job: finds workspaces on `trial` plan older than 7 days, downgrades to `free`, and sends expiry notification emails (CC: `g@7proservices.com`). |
 
 ---
 
@@ -170,6 +210,8 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 10. **Edge Function JWT:** New Edge Functions that handle sensitive operations should use `verify_jwt: false` + manual validation via `supabaseAdmin.auth.getUser(token)` inside the function body. This avoids Supabase gateway rejecting tokens from local dev environments or clock-skewed clients.
 11. **hub-field-input CSS class:** All `<input>`, `<textarea>`, and `<select>` elements inside CRIE modals must use the class `hub-field-input` (defined in `hub.css`). This ensures dark glassmorphism styling (no browser-default white background). Focus state uses gold accent `rgba(245,158,11,0.55)`.
 12. **`_crieStripeConnected` Global State:** This flag is initialized lazily via `_initCrieStripeState()` called on every CRIE tab switch. It is cached after first fetch (guarded by `_crieStripeStateLoading`). `loadCrieSettings()` always resets `_crieStripeStateLoading = false` so that connect/disconnect actions immediately refresh the cached value. Never assume the flag is true just because the Configurações tab was never visited.
+13. **SaaS Plan Gating:** When reading `workspaces.modules`, always merge base plan modules + `addon_modules` before checking access. Never hardcode module access by plan name alone — always derive from the `modules` array. The source of truth is `window._wsModules` (set in `hub-dashboard.js` on workspace load).
+14. **Onboarding Flow:** After user registration, always redirect to `/onboarding.html` (not directly to `dashboard.html`). The onboarding captures church details, creates the workspace, walks the user through a module carousel, then delivers the workspace URL at the end.
 
 ---
 
@@ -192,6 +234,15 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 *   **Supabase Project:** `uyseheucqikgcorrygzc` (us-east-1)
 *   **Coolify Panel:** `http://187.77.54.196:8000` (access by IP to avoid DNS issues)
 
+### Required Supabase Secrets (Edge Function env vars)
+| Key | Used By |
+|---|---|
+| `STRIPE_SECRET_KEY_SAAS` | `saas-stripe-checkout`, `saas-stripe-webhook` |
+| `STRIPE_WEBHOOK_SECRET_SAAS` | `saas-stripe-webhook` |
+| `STRIPE_WEBHOOK_SECRET` | `crie-membership-webhook` |
+| `RESEND_API_KEY` | All email Edge Functions |
+| `APP_FROM_EMAIL` | `crie-member-welcome` |
+
 ---
 
 ## 8. Maintenance Log 🛠️
@@ -209,3 +260,142 @@ Full canteen/food-service management module. Sidebar entry below CRIE, with 5 su
 *   **2026-04-11:** **CSS premium refinement.** Added `.hub-field-input` class to `hub.css` (dark glassmorphism inputs, gold focus ring). Workshop modals upgraded with animated entry (`wsModalIn`), gold accent top line, and deep shadow. Fixed `hub-field-label` text style.
 *   **2026-04-11:** **Bug fix — Stripe Connect 401/HTML error.** Root cause: `window.SUPABASE_URL` was `undefined` → malformed EDGE URL → Nginx returned HTML 404 → `res.json()` threw `Unexpected token '<'`. Fixed by hardcoding the Supabase URL. Also changed `crie-stripe-connect` to `verify_jwt: false` with internal auth to prevent Supabase gateway rejecting valid tokens during local dev.
 *   **2026-04-11:** **Bug fix — Pagamento Online toggle bloqueado mesmo com Stripe conectado.** Root cause: `window._crieStripeConnected` era `undefined` até o utilizador abrir CRIE → Controle → Configurações. Fix: adicionada função `_initCrieStripeState()` chamada em cada `switchTab` de CRIE (lazy, cached, guarded by flag). `loadCrieSettings()` invalida o cache após connect/disconnect. **New Edge Function:** `crie-membership-payment` (deployed) — processa pagamentos de membresia via Stripe Checkout Sessions (one-time e recurring) a partir do crie-app.html.
+*   **2026-04-12:** **SaaS Subscription & Billing infrastructure.** Plans modal (Free/Starter/Essencial/Founders), `saas-stripe-checkout` + `saas-stripe-webhook` + `saas-trial-cron` Edge Functions deployed. `saas_payments` table created. `addon_modules` column added to `workspaces`. `applyUserModuleGating()` function implemented for per-user sidebar gating. Master Admin dev panel expanded with plan labels, trial countdown, user count, Extend Trial (+7d) and direct workspace links. Email CC to `g@7proservices.com` on trial expiry. Bug fix: onboarding carousel Step 2 navigation (inline onclick vs addEventListener conflict resolved using `data-last` attribute pattern).
+
+---
+
+## 9. New Module Protocol 🆕
+
+> **Use this checklist every time a new module is added to Zelo Pro.** Following this order guarantees the module is properly gated, documented, and accessible to the right users.
+
+---
+
+### Step 1 — Define the Module Key
+
+Choose a `snake_case` key for the module. This key will be used: in `workspaces.modules[]`, in the sidebar `data-module` attribute, and in `applyUserModuleGating()`.
+
+**Example:** `financeiro`, `cantina`, `crie`, `we_care`, `voluntarios`
+
+---
+
+### Step 2 — Add to Plan Matrix
+
+Update the plan matrix in `hub-dashboard.js` inside `showUpgradeModal()`:
+
+```js
+// In the PLANS definition:
+{ plan: 'starter',  modules: ['consolidados','visitantes','start','batismo','novos_membros','tasks','transmissao','aniversariantes'] }
+{ plan: 'essencial', modules: [..., 'financeiro', 'relatorios', 'voluntarios', '<NEW_MODULE_KEY>'] }
+```
+
+Also add the new module to the correct tier's `<ul>` in the plans modal HTML in `dashboard.html`.
+
+---
+
+### Step 3 — Add Sidebar Entry with `data-module`
+
+In `dashboard.html`, add the sidebar nav item:
+
+```html
+<div class="nav-item" data-module="<new_module_key>" onclick="switchTab('<new_module_key>')">
+  <span class="nav-icon">🆕</span>
+  <span class="nav-label">Nome do Módulo</span>
+</div>
+```
+
+The `data-module` attribute is what `applyUserModuleGating()` reads to hide/show items.
+
+---
+
+### Step 4 — Register in `applyUserModuleGating()`
+
+In `hub-dashboard.js`, inside `applyUserModuleGating()`, the function already reads `data-module` from all nav items and hides those not in `window._wsModules`. No additional code needed **as long as `data-module` is set in step 3**.
+
+However, if the module has **sub-items or secondary views** that need gating, add entries:
+
+```js
+// Example: gate a specific view div, not just nav item
+const moduleViewMap = {
+  cantina: '#view-cantina',
+  crie: '#view-crie',
+  '<new_module_key>': '#view-<new_module_key>'
+};
+```
+
+---
+
+### Step 5 — Per-User Access Control
+
+In the **Manage Team** modal (`hub-dashboard.js`, `openManageTeam()` function), add the new module to the user permissions checklist:
+
+```js
+const MODULE_OPTIONS = [
+  { key: 'consolidados', label: 'Consolidação' },
+  { key: 'visitantes',   label: 'Visitantes' },
+  // ... existing modules ...
+  { key: '<new_module_key>', label: 'Nome do Módulo' }, // ← ADD HERE
+];
+```
+
+This allows the workspace admin to grant or revoke per-user access to this module independently of the workspace plan.
+
+---
+
+### Step 6 — Master Admin: Override Panel
+
+Manually activate the module for a workspace from the Dev panel:
+
+1. Go to `dashboard.html` → Desenvolvedor tab
+2. Click **"Plano"** button next to the target workspace
+3. In the Override modal, select the appropriate plan OR add the module key to `addon_modules` via Supabase Studio directly.
+
+For permanent enablement, use Supabase:
+```sql
+UPDATE workspaces
+SET modules = array_append(modules, '<new_module_key>')
+WHERE id = '<workspace_id>';
+```
+
+---
+
+### Step 7 — Lazy Load in hub-<module>.js
+
+The module's JS file must follow the lazy-load pattern:
+
+```js
+(function() {
+  const _orig = window.switchTab;
+  window.switchTab = function(tab) {
+    _orig && _orig(tab);
+    if (tab === '<new_module_key>' && !window._<module>Loaded) {
+      window._<module>Loaded = true;
+      load<Module>Data();
+    }
+  };
+})();
+```
+
+---
+
+### Step 8 — Update GEMINI.md
+
+After implementing, update:
+1. **Section 2** — add the module description under the appropriate subsection.
+2. **Section 3** — add any new DB tables or columns.
+3. **Section 4** — add any new Edge Functions.
+4. **Section 8 (Maintenance Log)** — add a dated entry.
+
+---
+
+### Quick Reference Checklist
+
+```
+[ ] 1. Defined module key (snake_case)
+[ ] 2. Added to plan matrix in showUpgradeModal()
+[ ] 3. Sidebar nav item with data-module attribute
+[ ] 4. Verified applyUserModuleGating() will pick it up automatically
+[ ] 5. Added to MODULE_OPTIONS in team management modal
+[ ] 6. Tested Master Admin override via Dev panel or SQL
+[ ] 7. Lazy-load pattern implemented in hub-<module>.js
+[ ] 8. GEMINI.md updated (sections 2, 3, 4, 8)
+```
