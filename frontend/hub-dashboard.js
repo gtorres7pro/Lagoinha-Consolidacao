@@ -8417,14 +8417,24 @@ window.loadDevPanel = async function() {
         setKpi('dkpi-users', users.length);
         setKpi('dkpi-ai-msgs', (aiMsgs || 0).toLocaleString('pt-BR'));
 
-        // Build table
+        // Build maps
         const leadsPerWs = {};
         leads.forEach(l => { leadsPerWs[l.workspace_id] = (leadsPerWs[l.workspace_id]||0)+1; });
         const lastActPerWs = {};
         leads.forEach(l => { if (!lastActPerWs[l.workspace_id]) lastActPerWs[l.workspace_id] = l.created_at; });
         const regionMap = Object.fromEntries(regionals.map(r => [r.id, r.name]));
+        const usersPerWs = {};
+        users.forEach(u => { usersPerWs[u.workspace_id] = (usersPerWs[u.workspace_id]||0)+1; });
 
-        renderDevWorkspacesTable(workspaces, leadsPerWs, lastActPerWs, regionMap);
+        // KPI patches
+        const paidWs = workspaces.filter(w => !['free','trial'].includes(w.plan||'free')).length;
+        setKpi('dev-kpi-paid', paidWs);
+        setKpi('dev-kpi-workspaces', workspaces.length);
+        setKpi('dev-kpi-leads', totalLeads.toLocaleString('pt-BR'));
+        setKpi('dev-kpi-users', users.length);
+
+        renderDevWorkspacesTable(workspaces, leadsPerWs, lastActPerWs, regionMap, usersPerWs);
+
 
     } catch(e) {
         console.error('loadDevPanel error', e);
@@ -8432,45 +8442,83 @@ window.loadDevPanel = async function() {
     }
 };
 
-window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs, regionMap) {
-    const tbody = document.getElementById('dev-workspaces-tbody');
+window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs, regionMap, usersPerWs) {
+    const tbody = document.getElementById('dev-workspaces-tbody') || document.getElementById('dev-ws-tbody');
     if (!tbody) return;
     if (!workspaces.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.3);">Nenhum workspace encontrado</td></tr>';
         return;
     }
-    const planColor = { free:'#60A5FA', medium:'#F59E0B', premium:'#FFD700' };
-    const statusColor = { active:'#34D399', draft:'rgba(255,255,255,.3)', inactive:'#EF4444' };
+
+    const PLAN_LABELS = { free:'Free', starter:'Starter', essencial:'Essencial', founders:'Founders ⭐', trial:'Trial', basic:'Starter', medium:'Essencial', premium:'Founders' };
+    const PLAN_COLORS = { free:'#60A5FA', starter:'#60A5FA', essencial:'#a78bfa', founders:'#FBBF24', trial:'#34D399', basic:'#60A5FA', medium:'#a78bfa', premium:'#FBBF24' };
+    const STATUS_COLOR = { active:'#34D399', draft:'rgba(255,255,255,.3)', inactive:'#EF4444' };
+
     tbody.innerHTML = workspaces.map(ws => {
-        const modules = ws.modules || [];
-        const hasAi = modules.includes('ai_whatsapp');
         const plan = ws.plan || 'free';
+        const planLabel = PLAN_LABELS[plan] || plan;
+        const planColor = PLAN_COLORS[plan] || '#aaa';
         const status = ws.status || 'draft';
-        const regional = regionMap[ws.regional_id] || '—';
         const leadsCount = leadsPerWs[ws.id] || 0;
-        const lastAct = lastActPerWs[ws.id]
-            ? new Date(lastActPerWs[ws.id]).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'})
-            : '—';
-        const moduleIcons = {visitantes:'👋',consolidados:'🤝',start:'🚀',batismo:'🙏',novos_membros:'🏛️',crie:'C*',ai_whatsapp:'🤖'};
-        const modBadges = modules.map(m => `<span title="${m}" style="font-size:.65rem;padding:1px 6px;background:rgba(255,255,255,.06);border-radius:6px;">${moduleIcons[m]||m}</span>`).join('');
+        const usersCount = (usersPerWs || {})[ws.id] || 0;
+
+        // Trial expiry
+        let trialInfo = '';
+        if (plan === 'trial' && ws.created_at) {
+            const created = new Date(ws.created_at);
+            const expires = new Date(created.getTime() + 7 * 24 * 3600 * 1000);
+            const now = new Date();
+            const daysLeft = Math.ceil((expires - now) / (1000 * 3600 * 24));
+            const isExpired = daysLeft <= 0;
+            trialInfo = isExpired
+                ? `<div style="font-size:.6rem;color:#f87171;margin-top:2px;">Expirado há ${Math.abs(daysLeft)}d</div>`
+                : `<div style="font-size:.6rem;color:#34D399;margin-top:2px;">${daysLeft}d restantes</div>`;
+        }
+        if (['free','starter','essencial','founders','basic','medium','premium'].includes(plan) && plan !== 'trial') {
+            trialInfo = '';
+        }
+
+        // Slug URL
+        const wsUrl = ws.slug ? `https://zelo.7prolabs.com/${ws.slug}/dashboard.html` : '';
+
         return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
-            <td style="padding:12px 16px;font-weight:600;">${ws.name}</td>
-            <td style="padding:12px 16px;color:rgba(255,255,255,.5);font-size:.8rem;">${regional}</td>
-            <td style="padding:12px 16px;text-align:center;"><span style="padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(0,0,0,.3);color:${planColor[plan]||'#fff'};border:1px solid ${planColor[plan]||'#fff'}30;">${plan.toUpperCase()}</span></td>
-            <td style="padding:12px 16px;text-align:center;font-weight:700;">${leadsCount.toLocaleString('pt-BR')}</td>
-            <td style="padding:12px 16px;text-align:center;">${modBadges||'—'}</td>
-            <td style="padding:12px 16px;text-align:center;">${hasAi ? '<span style="color:#FFD700;font-size:1rem;" title="IA WhatsApp ativo">🤖</span>' : '<span style="color:rgba(255,255,255,.15);">—</span>'}</td>
-            <td style="padding:12px 16px;text-align:center;color:rgba(255,255,255,.4);font-size:.8rem;">${lastAct}</td>
-            <td style="padding:12px 16px;text-align:center;"><span style="width:8px;height:8px;border-radius:50%;background:${statusColor[status]||'gray'};display:inline-block;" title="${status}"></span></td>
+            <td style="padding:10px 14px;">
+              <div style="font-weight:600;font-size:.85rem;">${ws.name}</div>
+              ${wsUrl ? `<div style="font-size:.68rem;color:rgba(255,255,255,.25);margin-top:2px;">${ws.slug}</div>` : ''}
+            </td>
+            <td style="padding:10px 14px;text-align:center;">
+              <span style="padding:2px 10px;border-radius:20px;font-size:.68rem;font-weight:700;background:rgba(0,0,0,.3);color:${planColor};border:1px solid ${planColor}30;">${planLabel}</span>
+              ${trialInfo}
+            </td>
+            <td style="padding:10px 14px;text-align:center;font-size:.82rem;"><span style="color:rgba(255,255,255,.5);">👥</span> ${usersCount}</td>
+            <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:.85rem;">${leadsCount.toLocaleString('pt-BR')}</td>
+            <td style="padding:10px 14px;text-align:center;"><span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[status]||'gray'};display:inline-block;" title="${status}"></span></td>
+            <td style="padding:10px 14px;text-align:center;">
+              <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+                ${plan === 'trial' ? `<button onclick="extendTrial('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34D399;border-radius:8px;cursor:pointer;font-weight:700;">+7d Trial</button>` : ''}
+                <button onclick="openOverrideModal('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
+                ${wsUrl ? `<a href="${wsUrl}" target="_blank" style="font-size:.68rem;padding:3px 9px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);color:#FBBF24;border-radius:8px;cursor:pointer;text-decoration:none;">Abrir</a>` : ''}
+              </div>
+            </td>
         </tr>`;
     }).join('');
+};
+
+window.extendTrial = async function(wsId, wsName) {
+    if (!confirm(`Estender o trial de "${wsName}" por mais 7 dias?`)) return;
+    const sb = window.supabaseClient;
+    const { error } = await sb.from('workspaces').update({ plan: 'trial', created_at: new Date().toISOString() }).eq('id', wsId);
+    if (error) { alert('Erro: ' + error.message); return; }
+    alert(`✅ Trial de "${wsName}" estendido por mais 7 dias!`);
+    loadDevPanel();
 };
 
 window.filterDevWorkspaces = function() {
     const q = document.getElementById('dev-ws-search')?.value?.toLowerCase() || '';
     const filtered = _devWorkspacesAll.filter(w => w.name.toLowerCase().includes(q) || (w.slug||'').includes(q));
-    renderDevWorkspacesTable(filtered, {}, {}, {});
+    renderDevWorkspacesTable(filtered, {}, {}, {}, {});
 };
+
 
 // ── Create Workspace Drawer ───────────────────────────────────────
 window.openCreateWorkspaceDrawer = function() {
