@@ -6319,7 +6319,7 @@ window.connectStripe = async function() {
     if (msg) { msg.textContent = ''; }
 
     const wsId = getCrieWorkspaceId();
-    const EDGE = (window.SUPABASE_URL || '').replace('.supabase.co','') + '.supabase.co/functions/v1';
+    const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
     const { data: { session } } = await window.supabaseClient.auth.getSession();
 
     try {
@@ -6328,6 +6328,15 @@ window.connectStripe = async function() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
             body: JSON.stringify({ workspace_id: wsId, publishable_key: pk, secret_key: sk })
         });
+
+        // Guard against HTML error pages (Nginx 404/502, etc.)
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            const rawText = await res.text();
+            console.error('[Stripe connect] Non-JSON response:', res.status, rawText.substring(0, 200));
+            throw new Error(`Erro de servidor (${res.status}) — tente novamente.`);
+        }
+
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.error || 'Erro desconhecido');
 
@@ -6463,7 +6472,7 @@ window.saveCrieCoupon = async function() {
 
     const sb = window.supabaseClient;
     const { data: { session } } = await sb.auth.getSession();
-    const EDGE = (window.SUPABASE_URL || '').replace('.supabase.co','') + '.supabase.co/functions/v1';
+    const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
     const stripeConnected = window._crieStripeConnected;
 
     let stripe_coupon_id = null;
