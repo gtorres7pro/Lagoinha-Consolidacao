@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao Zelo Pro 🎉</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a0a0a">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #030508;
+            color: #fff;
+            min-height: 100dvh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px 16px;
+            overflow: hidden;
+        }
+
+        .bg-grid {
+            position: fixed; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .bg-glow {
+            position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 500px; pointer-events: none;
+            background: radial-gradient(ellipse, rgba(251,191,36,0.08) 0%, transparent 70%);
+        }
+
+        /* ── Confetti canvas ── */
+        #confetti-canvas {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50;
+        }
+
+        /* ── Step system ── */
+        .container {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 460px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 28px;
+        }
+
+        .step { width: 100%; display: none; flex-direction: column; align-items: center; gap: 24px; }
+        .step.active { display: flex; animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Logo */
+        .logo {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 32px rgba(251,191,36,0.35), 0 0 0 1px rgba(251,191,36,0.2);
+            animation: logoZoom 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+        }
+        @keyframes logoZoom {
+            from { transform: scale(0.6) rotate(-10deg); opacity: 0; }
+            to   { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .logo svg { width: 28px; height: 28px; color: #000; }
+
+        .headline { text-align: center; }
+        .headline h1 { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1.05; }
+        .headline .sub { color: rgba(255,255,255,0.45); font-size: 0.9rem; margin-top: 8px; line-height: 1.5; }
+        .headline .workspace-name {
+            display: inline-block; color: #FBBF24; font-weight: 800;
+        }
+        .emoji-big { font-size: 3.5rem; margin-bottom: 4px; display: block; }
+
+        /* Info card */
+        .info-card {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px; padding: 20px 22px;
+        }
+        .info-row {
+            display: flex; align-items: flex-start; gap: 14px; padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-icon {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .info-icon.gold { background: rgba(251,191,36,0.12); }
+        .info-icon.blue { background: rgba(96,165,250,0.12); }
+        .info-icon.green { background: rgba(52,211,153,0.12); }
+        .info-icon.purple { background: rgba(167,139,250,0.12); }
+        .info-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
+        .info-value { font-size: 0.88rem; font-weight: 600; color: #fff; word-break: break-all; }
+        .info-value.mono { font-family: 'Courier New', monospace; letter-spacing: 0.03em; }
+
+        /* Progress steps */
+        .progress-dots {
+            display: flex; gap: 8px; align-items: center; justify-content: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); transition: all 0.3s;
+        }
+        .dot.active { background: #FBBF24; width: 24px; border-radius: 4px; }
+        .dot.done { background: rgba(52,211,153,0.6); }
+
+        /* Button */
+        .btn-main {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            color: #000; font-family: inherit; font-size: 0.95rem; font-weight: 800;
+            border: none; border-radius: 13px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s; letter-spacing: -0.01em;
+        }
+        .btn-main:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(251,191,36,0.35); }
+        .btn-main:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-main .spinner {
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(0,0,0,0.2); border-top-color: #000;
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Trial badge */
+        .trial-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px;
+            background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+            color: #FBBF24; letter-spacing: 0.03em;
+        }
+
+        .password-warn {
+            background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 10px; padding: 10px 14px;
+            font-size: 0.8rem; color: rgba(255,255,255,0.55); line-height: 1.5; text-align: center;
+        }
+        .password-warn strong { color: #FBBF24; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="container">
+        <!-- STEP 1 — Welcome & account details -->
+        <div class="step active" id="step-1">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 5h14L5 19h14"/>
+                </svg>
+            </div>
+            <div class="headline">
+                <span class="emoji-big">🎉</span>
+                <h1>Conta criada com sucesso!</h1>
+                <p class="sub">
+                    Bem-vindo ao Zelo Pro, <strong id="welcome-name">—</strong>.<br>
+                    O workspace <span class="workspace-name" id="welcome-ws">—</span> está pronto.
+                </p>
+            </div>
+            <div class="trial-badge">⚡ Trial gratuito de 7 dias ativo</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <div class="info-icon gold">🔑</div>
+                    <div>
+                        <div class="info-label">Sua Senha de Acesso</div>
+                        <div class="info-value mono" id="show-password">—</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon blue">✉️</div>
+                    <div>
+                        <div class="info-label">E-mail de Login</div>
+                        <div class="info-value" id="show-email">—</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon green">🏠</div>
+                    <div>
+                        <div class="info-label">URL do seu Workspace</div>
+                        <div class="info-value mono" id="show-url">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="password-warn">
+                ⚠️ <strong>Anote sua senha agora.</strong> Um e-mail foi enviado para você, mas guarde-a em local seguro.
+            </div>
+            <div class="progress-dots">
+                <div class="dot active" id="dot-1"></div>
+                <div class="dot" id="dot-2"></div>
+            </div>
+            <button class="btn-main" onclick="goToStep2()">Continuar →</button>
+        </div>
+
+        <!-- STEP 2 — Logging in & redirecting -->
+        <div class="step" id="step-2">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 5h14L5 19h14"/>
+                </svg>
+            </div>
+            <div class="headline">
+                <span class="emoji-big">🚀</span>
+                <h1>Entrando no Zelo Pro...</h1>
+                <p class="sub">Aguarde enquanto seu ambiente é preparado.<br>Você será redirecionado automaticamente.</p>
+            </div>
+            <div class="info-card" style="display:flex;align-items:center;justify-content:center;padding:28px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+                    <div class="spinner" style="width:36px;height:36px;border-width:3px;border-color:rgba(251,191,36,0.15);border-top-color:#FBBF24;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                    <div style="font-size:0.82rem;color:rgba(255,255,255,0.4);" id="loading-step">Autenticando...</div>
+                </div>
+            </div>
+            <div class="progress-dots">
+                <div class="dot done" id="dot-1b"></div>
+                <div class="dot active" id="dot-2b"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL  = 'https://uyseheucqikgcorrygzc.supabase.co';
+        const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // Read data from sessionStorage (passed from register.html)
+        const slug     = sessionStorage.getItem('_reg_slug')     || '';
+        const email    = sessionStorage.getItem('_reg_email')    || '';
+        const password = sessionStorage.getItem('_reg_password') || '';
+        const name     = sessionStorage.getItem('_reg_name')     || 'Usuário';
+        const wsName   = sessionStorage.getItem('_reg_workspace') || 'seu workspace';
+
+        // If missing data → back to register
+        if (!slug || !email || !password) {
+            window.location.replace('/register.html');
+        }
+
+        // Populate step 1 fields
+        document.getElementById('welcome-name').textContent   = name.split(' ')[0];
+        document.getElementById('welcome-ws').textContent     = wsName;
+        document.getElementById('show-password').textContent  = password;
+        document.getElementById('show-email').textContent     = email;
+        document.getElementById('show-url').textContent       = `/${slug}/dashboard.html`;
+
+        // Step navigation
+        function goToStep2() {
+            document.getElementById('step-1').classList.remove('active');
+            document.getElementById('step-2').classList.add('active');
+            doLogin();
+        }
+
+        async function doLogin() {
+            const loadingEl = document.getElementById('loading-step');
+            try {
+                loadingEl.textContent = 'Autenticando...';
+                const { error } = await sb.auth.signInWithPassword({ email, password });
+
+                if (error) throw error;
+
+                loadingEl.textContent = 'Sessão iniciada. Redirecionando...';
+
+                // Clear sensitive data from sessionStorage
+                sessionStorage.removeItem('_reg_password');
+
+                await new Promise(r => setTimeout(r, 1000));
+
+                window.location.replace(`/${slug}/dashboard.html`);
+
+            } catch (err) {
+                loadingEl.textContent = '⚠️ Erro ao autenticar. Redirecionando para login...';
+                await new Promise(r => setTimeout(r, 2500));
+                window.location.replace(`/login.html?email=${encodeURIComponent(email)}`);
+            }
+        }
+
+        // ── Confetti ─────────────────────────────────────────────────
+        (function confetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const pieces = Array.from({length: 80}, () => ({
+                x: Math.random() * canvas.width,
+                y: -20 - Math.random() * 100,
+                r: 6 + Math.random() * 6,
+                d: 1.5 + Math.random() * 2,
+                color: ['#FBBF24','#F59E0B','#34d399','#60a5fa','#fb7185','#a78bfa'][Math.floor(Math.random()*6)],
+                tilt: Math.random() * 10 - 5,
+                tiltAngle: 0,
+                tiltSpeed: 0.1 + Math.random() * 0.2,
+                opacity: 1,
+            }));
+
+            let frame = 0;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.y += p.d * 0.8;
+                    p.tiltAngle += p.tiltSpeed;
+                    p.tilt = Math.sin(p.tiltAngle) * 12;
+                    p.x += Math.sin(frame * 0.02 + p.tiltAngle) * 0.5;
+                    if (p.y > canvas.height + 20) {
+                        p.y = -20; p.x = Math.random() * canvas.width;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, p.opacity - frame / 400);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.ellipse(p.x, p.y, p.r, p.r * 0.5, p.tilt * Math.PI / 180, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                frame++;
+                if (frame < 400) requestAnimationFrame(animate);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        })();
+    </script>
+</body>
+</html>
