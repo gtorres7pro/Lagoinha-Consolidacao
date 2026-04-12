@@ -2,9 +2,10 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FBBF24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' fill='%23000'%3EZ%3C/text%3E%3C/svg%3E">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bem-vindo ao Zelo 🎉</title>
-    <meta name="theme-color" content="black">
+    <meta name="theme-color" content="#0a0a0d">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -24,12 +25,13 @@
 
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: #000;
+            background: #0a0a0d;
             color: #fff;
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
+            -webkit-font-smoothing: antialiased;
             /* Safe area for iOS home bar */
             padding-bottom: env(safe-area-inset-bottom, 16px);
         }
@@ -89,13 +91,14 @@
 
         /* ── Logo ── */
         .logo {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-            border-radius: 16px; flex-shrink: 0;
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            border-radius: 15px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 32px rgba(251,191,36,0.3), 0 0 0 1px rgba(251,191,36,0.15);
+            box-shadow: 0 8px 28px rgba(251,191,36,0.28), 0 0 0 1px rgba(251,191,36,0.15);
+            font-size: 1.6rem; font-weight: 900; color: #000;
+            letter-spacing: -1px; line-height: 1;
         }
-        .logo svg { width: 22px; height: 22px; color: #000; }
 
         /* ── Step 1 — Welcome ── */
         .welcome-layout {
@@ -129,10 +132,12 @@
 
         /* Info tiles */
         .info-tile {
-            background: var(--surface); border: 1px solid var(--border);
+            background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
             border-radius: 14px; padding: 14px 16px;
             display: flex; align-items: center; gap: 14px;
+            transition: border-color .2s;
         }
+        .info-tile:hover { border-color: rgba(255,255,255,0.12); }
         .info-tile-icon {
             width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
@@ -316,18 +321,16 @@
         <div class="step active" id="step-1">
             <div class="welcome-layout">
                 <div class="welcome-left">
-                    <div class="logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14L5 19h14"/></svg>
-                    </div>
+                    <div class="logo">Z</div>
                     <div>
-                        <span class="emoji-big">🎉</span>
-                        <h1 class="main-title" style="margin-top:8px;">Sua conta foi criada!</h1>
-                        <p class="sub-text" style="margin-top:10px;">
+                        <span class="emoji-big" id="welcome-emoji">🎉</span>
+                        <h1 class="main-title" id="welcome-title" style="margin-top:8px;">Sua conta foi criada!</h1>
+                        <p class="sub-text" id="welcome-msg" style="margin-top:10px;">
                             Bem-vindo ao Zelo, <strong id="welcome-name">—</strong>.<br>
                             O workspace <span class="ws-highlight" id="welcome-ws">—</span> está pronto e ativo.
                         </p>
                     </div>
-                    <div class="trial-badge">⚡ Trial completo de 7 dias — sem cartão</div>
+                    <div class="trial-badge" id="welcome-badge">⚡ Trial completo de 7 dias — sem cartão</div>
                     <p class="sub-text" style="font-size:0.82rem;">
                         Enquanto você explora os módulos do Zelo, seus dados de acesso já foram enviados para o seu e-mail.
                     </p>
@@ -378,18 +381,21 @@
         <div class="step" id="step-3">
             <div class="final-layout">
                 <div class="final-left">
-                    <div class="logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14L5 19h14"/></svg>
-                    </div>
-                    <h1 class="main-title">Tudo pronto.<br>Hora de começar.</h1>
-                    <p class="sub-text">
+                    <div class="logo">Z</div>
+                    <h1 class="main-title" id="step3-title">Tudo pronto.<br>Hora de começar.</h1>
+                    <p class="sub-text" id="step3-owner-desc">
                         Sua senha de acesso inicial está abaixo. Recomendamos que você a altere após o primeiro login em <strong>Configurações → Minha Conta</strong>.
                     </p>
-                    <p class="sub-text" style="font-size:0.8rem;color:rgba(255,255,255,0.3);">
+                    <p class="sub-text" id="step3-owner-subdesc" style="font-size:0.8rem;color:rgba(255,255,255,0.3);">
                         Esta senha também foi enviada para o seu e-mail.
                     </p>
+                    <p class="sub-text" id="step3-user-desc" style="display:none;">
+                        Digite a senha temporária que você recebeu no e-mail de convite.
+                    </p>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:14px;width:100%;">
+
+                <!-- Owner mode: credentials display -->
+                <div id="step3-owner-panel" style="display:flex;flex-direction:column;gap:14px;width:100%;">
                     <div class="info-tile">
                         <div class="info-tile-icon ic-gold">🔑</div>
                         <div>
@@ -419,6 +425,35 @@
                         <div class="spin" id="btn-spin" style="display:none;"></div>
                     </button>
                 </div>
+
+                <!-- User (invited) mode: login form -->
+                <div id="step3-user-panel" style="display:none;flex-direction:column;gap:14px;width:100%;">
+                    <div class="info-tile">
+                        <div class="info-tile-icon ic-blue">✉️</div>
+                        <div style="flex:1;min-width:0;">
+                            <div class="info-tile-label">Seu E-mail</div>
+                            <div class="info-tile-value" id="show-email-inv" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+                        </div>
+                    </div>
+                    <div class="info-tile" style="flex-direction:column;align-items:flex-start;gap:10px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div class="info-tile-icon ic-gold">🔑</div>
+                            <div class="info-tile-label" style="margin-bottom:0;">Senha do e-mail de convite</div>
+                        </div>
+                        <input type="password" id="inv-pw-input"
+                            placeholder="••••••••"
+                            style="width:100%;padding:13px 16px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.12);border-radius:11px;color:#fff;font-size:1rem;font-family:inherit;outline:none;transition:border-color .2s;"
+                            onfocus="this.style.borderColor='rgba(251,191,36,0.5)'"
+                            onblur="this.style.borderColor='rgba(255,255,255,0.12)'"
+                            onkeydown="if(event.key==='Enter')doInvitedLogin()">
+                        <input type="hidden" id="inv-email-input">
+                    </div>
+                    <div id="inv-login-msg" style="display:none;font-size:0.82rem;text-align:center;padding:10px 14px;border-radius:10px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:#fb7185;"></div>
+                    <button class="btn-main" id="btn-inv-access" onclick="doInvitedLogin()">
+                        <span id="btn-inv-text">Acessar meu painel →</span>
+                        <div class="spin" id="btn-inv-spin" style="display:none;"></div>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -430,29 +465,74 @@
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // ─── Session data ──────────────────────────────────────────────────────────
+    // ─── Mode detection ───────────────────────────────────────────────────────────
+    const urlParams  = new URLSearchParams(window.location.search);
+    const MODE       = urlParams.get('mode') || 'owner'; // 'owner' | 'user'
+    const invWsSlug  = urlParams.get('ws') || '';
+    const invWsName  = decodeURIComponent(urlParams.get('wn') || '');
+    const invEmail   = decodeURIComponent(urlParams.get('e')  || '');
+    const invName    = decodeURIComponent(urlParams.get('n')  || '');
+    const invRole    = decodeURIComponent(urlParams.get('r')  || '');
+    const ROLE_LABELS = {
+        pastor_senior: 'Pastor Sênior', admin: 'Administrador', pastor: 'Pastor',
+        lider_ministerio: 'Líder de Ministério', user: 'Voluntário'
+    };
+
+    // ─── Session data (owner mode) ─────────────────────────────────────────────
     const slug     = sessionStorage.getItem('_reg_slug')      || '';
     const email    = sessionStorage.getItem('_reg_email')     || '';
     const password = sessionStorage.getItem('_reg_password')  || '';
     const name     = sessionStorage.getItem('_reg_name')      || 'Usuário';
     const wsName   = sessionStorage.getItem('_reg_workspace') || 'seu workspace';
 
-    if (!slug || !email || !password) {
+    // ─── Guards ───────────────────────────────────────────────────────────────
+    if (MODE === 'owner' && (!slug || !email || !password)) {
         window.location.replace('/register.html');
     }
+    if (MODE === 'user' && (!invEmail || !invWsSlug)) {
+        window.location.replace('/login.html');
+    }
 
-    const fullUrl = `https://zelo.7prolabs.com/${slug}/dashboard.html`;
+    const fullUrl = MODE === 'owner'
+        ? `https://zelo.7prolabs.com/${slug}/dashboard.html`
+        : `https://zelo.7prolabs.com/${invWsSlug}/dashboard.html`;
 
-    // Populate Step 1
-    document.getElementById('welcome-name').textContent = name.split(' ')[0];
-    document.getElementById('welcome-ws').textContent   = wsName;
-    document.getElementById('show-email').textContent   = email;
-    document.getElementById('show-url').textContent     = fullUrl;
+    // ─── Populate Step 1 ──────────────────────────────────────────────────────
+    if (MODE === 'owner') {
+        document.getElementById('welcome-name').textContent = name.split(' ')[0];
+        document.getElementById('welcome-ws').textContent   = wsName;
+        document.getElementById('show-email').textContent   = email;
+        document.getElementById('show-url').textContent     = fullUrl;
+    } else {
+        document.getElementById('welcome-emoji').textContent  = '👋';
+        document.getElementById('welcome-title').textContent  = 'Você foi convidado!';
+        const roleStr = invRole ? ` como <strong>${ROLE_LABELS[invRole] || invRole}</strong>` : '';
+        document.getElementById('welcome-msg').innerHTML =
+            `Você foi adicionado à equipe de <strong>${invWsName || invWsSlug}</strong>${roleStr}.`;
+        document.getElementById('welcome-badge').innerHTML   = '📩 Confira as credenciais no e-mail recebido';
+        document.getElementById('show-email').textContent    = invEmail;
+        document.getElementById('show-url').textContent      = fullUrl;
+        document.querySelector('#step-1 .password-warn').innerHTML =
+            '🔑 Sua <strong>senha temporária</strong> está no e-mail de convite. Você vai usá-la no último passo.';
+    }
 
-    // Populate Step 3
-    document.getElementById('show-password').textContent = password;
-    document.getElementById('show-email-2').textContent  = email;
-    document.getElementById('show-url-2').textContent    = fullUrl;
+    // ─── Populate Step 3 ──────────────────────────────────────────────────────
+    if (MODE === 'owner') {
+        document.getElementById('show-password').textContent = password;
+        document.getElementById('show-email-2').textContent  = email;
+        document.getElementById('show-url-2').textContent    = fullUrl;
+    } else {
+        // Swap panels
+        document.getElementById('step3-owner-panel').style.display = 'none';
+        document.getElementById('step3-user-panel').style.display  = 'flex';
+        document.getElementById('step3-owner-desc').style.display   = 'none';
+        document.getElementById('step3-owner-subdesc').style.display = 'none';
+        document.getElementById('step3-user-desc').style.display     = 'block';
+        document.getElementById('step3-title').innerHTML =
+            `Hora de entrar.<br><span style="color:var(--gold)">Seu primeiro acesso.</span>`;
+        document.getElementById('show-email-inv').textContent = invEmail;
+        document.getElementById('inv-email-input').value      = invEmail;
+    }
 
     // ─── Step navigation ───────────────────────────────────────────────────────
     let currentStep = 1;
@@ -711,6 +791,39 @@
             spin.style.display = 'none';
             btn.disabled = false;
             setTimeout(() => window.location.replace(`/login.html?email=${encodeURIComponent(email)}`), 2000);
+        }
+    }
+
+    // ─── doInvitedLogin (user mode) ─────────────────────────────────────────────
+    async function doInvitedLogin() {
+        const btn  = document.getElementById('btn-inv-access');
+        const text = document.getElementById('btn-inv-text');
+        const spin = document.getElementById('btn-inv-spin');
+        const pw   = (document.getElementById('inv-pw-input').value || '').trim();
+        const em   = (document.getElementById('inv-email-input').value || invEmail).trim();
+        const msg  = document.getElementById('inv-login-msg');
+
+        if (!pw) {
+            msg.textContent    = '⚠️ Insira a senha do e-mail de convite para continuar.';
+            msg.style.display  = 'block';
+            return;
+        }
+        msg.style.display = 'none';
+        btn.disabled      = true;
+        text.style.display = 'none';
+        spin.style.display = 'inline-block';
+
+        try {
+            const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
+            if (error) throw error;
+            await new Promise(r => setTimeout(r, 500));
+            window.location.replace(fullUrl);
+        } catch (_) {
+            msg.textContent    = '⚠️ Senha incorreta. Confira o e-mail de convite e tente novamente.';
+            msg.style.display  = 'block';
+            text.style.display = 'inline';
+            spin.style.display = 'none';
+            btn.disabled       = false;
         }
     }
 

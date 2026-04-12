@@ -2,328 +2,380 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FBBF24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' fill='%23000'%3EZ%3C/text%3E%3C/svg%3E">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Zelo</title>
-    
-    <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#0a0a0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zelo">
     <link rel="apple-touch-icon" href="/icon-192.png">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/hub.css">
     <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0d;
+            color: #fff;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100dvh;
-            padding: 24px;
+            padding: 24px 16px;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Animated grid background */
+        /* Subtle background grid */
         .bg-grid {
-            position: fixed; inset: 0;
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
             background-image:
-                linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            z-index: 0;
+                linear-gradient(rgba(251,191,36,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251,191,36,0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+        /* Gold glow from top */
+        .bg-glow {
+            position: fixed; top: -180px; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 500px; pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse at center, rgba(251,191,36,0.07) 0%, transparent 70%);
         }
 
+        /* Main container */
         .login-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 28px;
+            position: relative; z-index: 1;
+            width: 100%; max-width: 400px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 24px;
             animation: fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
         }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
 
-        /* Logo mark */
+        /* Z Logo box */
+        .login-logo-wrap {
+            display: flex; flex-direction: column; align-items: center; gap: 14px;
+        }
         .login-logo {
-            width: 64px; height: 64px;
+            width: 68px; height: 68px;
             background: linear-gradient(135deg, #FBBF24, #F59E0B);
-            border-radius: 18px;
+            border-radius: 20px;
             display: flex; align-items: center; justify-content: center;
-            box-shadow:
-                0 8px 32px rgba(251,191,36,0.25),
-                0 0 0 1px rgba(251,191,36,0.2);
-            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
-                        box-shadow 0.3s ease;
+            box-shadow: 0 8px 36px rgba(251,191,36,0.28), 0 0 0 1px rgba(251,191,36,0.18);
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
             cursor: default;
         }
         .login-logo:hover {
-            transform: scale(1.08) rotate(-3deg);
-            box-shadow: 0 12px 40px rgba(251,191,36,0.35), 0 0 0 1px rgba(251,191,36,0.3);
+            transform: scale(1.07) rotate(-3deg);
+            box-shadow: 0 14px 48px rgba(251,191,36,0.38), 0 0 0 1px rgba(251,191,36,0.28);
         }
-        .login-logo svg {
-            width: 28px; height: 28px;
-            color: #000;
-            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        .login-logo-letter {
+            font-size: 2rem; font-weight: 900; color: #000;
+            letter-spacing: -2px; line-height: 1;
         }
-        .login-logo:hover svg { transform: rotate(12deg) scale(1.1); }
+        .login-brand {
+            font-size: 1.1rem; font-weight: 800; letter-spacing: -0.03em; color: #fff;
+        }
 
         /* Headline */
         .login-headline { text-align: center; }
         .login-headline h1 {
-            font-size: 2rem;
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            line-height: 1.05;
+            font-size: 2rem; font-weight: 900;
+            letter-spacing: -0.05em; line-height: 1.05;
         }
         .login-headline p {
-            color: var(--text-muted);
-            font-size: 0.84rem;
-            font-weight: 500;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.84rem; font-weight: 500;
             margin-top: 6px;
-            letter-spacing: 0.01em;
         }
-
-        /* Card */
-        .login-card {
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 24px;
-            padding: 32px 28px;
-            width: 100%;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            backdrop-filter: blur(20px);
-        }
-
-        .field-group { display: flex; flex-direction: column; gap: 7px; }
-
-        /* Input wrapper with animated bottom border */
-        .hub-input-wrap { position: relative; }
-        .hub-input-wrap .hub-input { 
-            padding-left: 44px; 
-            background: rgba(0,0,0,0.2) !important;
-            border: 1px solid transparent !important;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .hub-input-wrap .hub-input:hover { border-color: rgba(251,191,36,0.1) !important; }
-        .hub-input-wrap .hub-input:focus { border-color: rgba(251,191,36,0.4) !important; box-shadow: 0 0 0 3px rgba(251,191,36,0.08) !important; }
-        
-        .hub-input-icon {
-            position: absolute;
-            left: 14px; top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-dim);
-            pointer-events: none;
-            transition: color 0.2s;
-            display: flex; align-items: center;
-        }
-        .hub-input-icon svg { width: 16px; height: 16px; }
-        .hub-input-wrap:focus-within .hub-input-icon { color: var(--accent); }
-
-        /* Submit button with shimmer */
-        .btn-submit {
-            position: relative;
-            width: 100%;
-            padding: 14px;
-            background: var(--accent);
-            color: #000;
-            font-family: var(--font);
-            font-size: 0.9rem;
-            font-weight: 800;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            letter-spacing: 0.03em;
-            overflow: hidden;
-            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-submit::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
-            background-size: 200% 100%;
-            background-position: 200% center;
-            transition: background-position 0.5s;
-        }
-        .btn-submit:hover::after { background-position: -200% center; }
-        .btn-submit:hover {
-            background: #F59E0B;
-            box-shadow: 0 4px 16px rgba(251,191,36,0.15);
-            transform: translateY(-1px);
-        }
-        .btn-submit:active { transform: translateY(0) scale(0.98); }
-        .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-        .btn-submit svg { width: 16px; height: 16px; transition: transform 0.2s; flex-shrink: 0; }
-        .btn-submit:hover svg { transform: translateX(3px); }
-
-        /* Loading spinner */
-        .spinner {
-            width: 16px; height: 16px;
-            border: 2px solid rgba(0,0,0,0.2);
-            border-top-color: #000;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: none;
-        }
-
-        .pw-toggle {
-            position: absolute; right: 12px; top: 50%;
-            transform: translateY(-50%);
-            background: none; border: none;
-            color: var(--text-dim); cursor: pointer;
-            padding: 4px; border-radius: 6px;
-            transition: color 0.15s, background 0.15s;
-            display: flex; align-items: center;
-        }
-        .pw-toggle:hover { color: var(--text-label); background: rgba(255,255,255,0.04); }
-        .pw-toggle svg { width: 15px; height: 15px; }
-
-        .forgot-btn {
-            background: none; border: none;
-            color: var(--text-muted);
-            font-family: var(--font); font-size: 0.8rem; font-weight: 500;
-            cursor: pointer; text-align: center;
-            transition: color 0.15s;
-            letter-spacing: 0.01em;
-        }
-        .forgot-btn:hover { color: var(--accent); }
 
         /* Workspace pill */
         .ws-pill {
             display: flex; align-items: center; gap: 8px;
             padding: 6px 14px;
             background: rgba(251,191,36,0.06);
-            border: 1px solid rgba(251,191,36,0.16);
+            border: 1px solid rgba(251,191,36,0.18);
             border-radius: 999px;
-            font-size: 0.73rem; font-weight: 600;
-            color: var(--accent);
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
+            font-size: 0.73rem; font-weight: 700;
+            color: #FBBF24;
+            letter-spacing: 0.04em; text-transform: uppercase;
             animation: scaleIn 0.4s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
         }
         .ws-pill .dot {
             width: 5px; height: 5px;
-            background: var(--accent);
-            border-radius: 50%;
+            background: #FBBF24; border-radius: 50%;
             animation: pulseGlow 2s ease-in-out infinite;
         }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(251,191,36,0.4); }
+            50%       { opacity: 0.6; box-shadow: 0 0 0 4px rgba(251,191,36,0); }
+        }
 
-        .footer-note { font-size: 0.7rem; color: var(--text-dim); text-align: center; letter-spacing: 0.02em; }
+        /* Card */
+        .login-card {
+            width: 100%;
+            background: #111117;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column;
+        }
+        /* Gold top accent bar */
+        .card-accent { height: 3px; background: linear-gradient(90deg,#FBBF24,rgba(251,191,36,0.1)); }
+        .card-body { padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+        /* Fields */
+        .field-group { display: flex; flex-direction: column; gap: 7px; }
+        .field-label {
+            font-size: 0.71rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.07em;
+            color: rgba(255,255,255,0.45);
+        }
+
+        /* Input with icon */
+        .input-wrap { position: relative; }
+        .input-icon {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.25); pointer-events: none;
+            display: flex; align-items: center; transition: color 0.2s;
+        }
+        .input-icon svg { width: 15px; height: 15px; }
+        .input-wrap:focus-within .input-icon { color: #FBBF24; }
+
+        .hub-input {
+            width: 100%; padding: 13px 14px 13px 42px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 13px;
+            color: #fff; font-family: 'Inter', sans-serif;
+            font-size: 0.92rem; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            -webkit-appearance: none;
+        }
+        .hub-input:hover { border-color: rgba(251,191,36,0.12); }
+        .hub-input:focus {
+            border-color: rgba(251,191,36,0.45);
+            background: rgba(255,255,255,0.04);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.07);
+        }
+        .hub-input::placeholder { color: rgba(255,255,255,0.2); }
+
+        /* Password toggle */
+        .pw-toggle {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none;
+            color: rgba(255,255,255,0.25); cursor: pointer;
+            padding: 4px; border-radius: 6px;
+            display: flex; align-items: center;
+            transition: color 0.15s;
+        }
+        .pw-toggle:hover { color: rgba(255,255,255,0.6); }
+        .pw-toggle svg { width: 15px; height: 15px; }
+
+        /* Error */
+        .hub-error {
+            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 10px; padding: 10px 14px;
+            color: #fca5a5; font-size: 0.82rem;
+            display: none; text-align: center;
+        }
+        .hub-error:not(:empty) { display: block; }
+
+        /* Submit */
+        .btn-submit {
+            position: relative; width: 100%; padding: 14px;
+            background: linear-gradient(135deg, #FFD700, #F59E0B);
+            color: #000; font-family: 'Inter', sans-serif;
+            font-size: 0.92rem; font-weight: 800;
+            border: none; border-radius: 14px; cursor: pointer;
+            letter-spacing: 0.02em; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(251,191,36,0.2);
+        }
+        .btn-submit::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+            background-size: 200% 100%; background-position: 200% center;
+            transition: background-position 0.5s;
+        }
+        .btn-submit:hover::after { background-position: -200% center; }
+        .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(251,191,36,0.25); }
+        .btn-submit:active { transform: translateY(0) scale(0.98); }
+        .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-submit svg { width: 16px; height: 16px; transition: transform 0.2s; }
+        .btn-submit:hover svg { transform: translateX(3px); }
+
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(0,0,0,0.2); border-top-color: #000;
+            border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer links inside card */
+        .card-links {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 0 28px 22px;
+        }
+        .card-link {
+            background: none; border: none; font-family: 'Inter', sans-serif;
+            font-size: 0.8rem; font-weight: 500; cursor: pointer;
+            color: rgba(255,255,255,0.35); transition: color 0.15s; text-decoration: none;
+        }
+        .card-link:hover { color: rgba(255,255,255,0.7); }
+        .card-link.gold { color: #FBBF24; font-weight: 700; }
+        .card-link.gold:hover { color: #FFD700; }
+
+        /* Footer note */
+        .footer-note { font-size: 0.7rem; color: rgba(255,255,255,0.2); text-align: center; }
+
+        /* Support links */
+        .support-row {
+            display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+        }
+        .support-link {
+            display: flex; align-items: center; gap: 7px;
+            padding: 8px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 999px;
+            font-size: 0.72rem; color: rgba(255,255,255,0.4);
+            text-decoration: none; transition: 0.2s;
+        }
+        .support-link:hover {
+            background: rgba(251,191,36,0.05);
+            border-color: rgba(251,191,36,0.2);
+            color: #FBBF24;
+        }
+        .support-link-wa {
+            background: rgba(37,211,102,0.04);
+            border-color: rgba(37,211,102,0.15);
+            color: rgba(37,211,102,0.6);
+        }
+        .support-link-wa:hover {
+            background: rgba(37,211,102,0.08);
+            border-color: rgba(37,211,102,0.35);
+            color: #25d366;
+        }
 
         @media (max-width: 440px) {
-            .login-card { padding: 24px 18px; }
+            .card-body { padding: 24px 20px 18px; }
             .login-headline h1 { font-size: 1.7rem; }
         }
     </style>
 </head>
 <body>
-    <div class="hub-glow"></div>
+    <div class="bg-glow"></div>
     <div class="bg-grid"></div>
 
     <div class="login-container">
-        <!-- Logo -->
-        <div class="login-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 5 h14 l-14 14 h14"/>
-            </svg>
+
+        <!-- Logo + Brand -->
+        <div class="login-logo-wrap">
+            <div class="login-logo">
+                <span class="login-logo-letter">Z</span>
+            </div>
+            <span class="login-brand">Zelo</span>
         </div>
 
+        <!-- Headline -->
         <div class="login-headline">
             <h1>Bem-vindo<br>de volta</h1>
-            <p>Controle de Múltiplos Ministérios</p>
+            <p>Gestão de Ministérios e Consolidação</p>
         </div>
 
-        <!-- Workspace badge -->
+        <!-- Workspace Badge (shown only when workspace param in URL) -->
         <div class="ws-pill" id="workspace-badge" style="display:none">
             <span class="dot"></span>
             <span id="workspace-name">—</span>
         </div>
 
+        <!-- Card -->
         <div class="login-card">
-            <!-- Email -->
-            <div class="field-group">
-                <label class="hub-label" for="email">E-mail</label>
-                <div class="hub-input-wrap">
-                    <span class="hub-input-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="4" width="20" height="16" rx="2"/>
-                            <polyline points="2,4 12,13 22,4"/>
-                        </svg>
-                    </span>
-                    <input class="hub-input" type="email" id="email"
-                        placeholder="seu@email.com" autocomplete="email" autofocus>
+            <div class="card-accent"></div>
+            <div class="card-body">
+
+                <!-- Email -->
+                <div class="field-group">
+                    <label class="field-label" for="email">E-mail</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
+                            </svg>
+                        </span>
+                        <input class="hub-input" type="email" id="email"
+                            placeholder="seu@email.com" autocomplete="email" autofocus>
+                    </div>
                 </div>
+
+                <!-- Password -->
+                <div class="field-group">
+                    <label class="field-label" for="password">Senha</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </span>
+                        <input class="hub-input" type="password" id="password"
+                            placeholder="••••••••" autocomplete="current-password"
+                            style="padding-right: 42px;">
+                        <button class="pw-toggle" type="button" id="pw-toggle-btn" aria-label="Mostrar senha">
+                            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div class="hub-error" id="error-msg"></div>
+
+                <!-- Submit -->
+                <button class="btn-submit" id="login-btn" onclick="doLogin()">
+                    <span id="btn-text">Entrar</span>
+                    <div class="spinner" id="btn-spinner"></div>
+                    <svg id="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
             </div>
 
-            <!-- Password -->
-            <div class="field-group">
-                <label class="hub-label" for="password">Senha</label>
-                <div class="hub-input-wrap">
-                    <span class="hub-input-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                    </span>
-                    <input class="hub-input" type="password" id="password"
-                        placeholder="••••••••" autocomplete="current-password"
-                        style="padding-right: 44px;">
-                    <button class="pw-toggle" type="button" id="pw-toggle-btn" aria-label="Mostrar senha">
-                        <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                    </button>
-                </div>
+            <!-- Card footer links -->
+            <div class="card-links">
+                <button class="card-link" onclick="goForgot()">Esqueci minha senha</button>
+                <a href="/register.html" class="card-link gold">Criar Conta · Iniciar Trial Gratuito →</a>
             </div>
-
-            <!-- Error -->
-            <div class="hub-error" id="error-msg"></div>
-
-            <!-- Submit -->
-            <button class="btn-submit" id="login-btn" onclick="doLogin()">
-                <span id="btn-text">Entrar</span>
-                <div class="spinner" id="btn-spinner"></div>
-                <svg id="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-            </button>
-
-            <button class="forgot-btn" onclick="goForgot()">
-                Esqueci minha senha
-            </button>
-            <a href="/register.html" class="forgot-btn" style="color:var(--accent); text-decoration:none; margin-top: -5px; font-weight: 700;">
-                Criar Conta / Iniciar Trial
-            </a>
         </div>
 
         <p class="footer-note">Acesso restrito a pessoas autorizadas</p>
 
         <!-- Support buttons -->
-        <div style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
-            <a href="mailto:g@7proservices.com"
-               style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;font-size:0.72rem;color:rgba(255,255,255,0.55);text-decoration:none;transition:.2s;"
-               onmouseover="this.style.borderColor='rgba(251,191,36,.4)';this.style.color='var(--accent)'"
-               onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='rgba(255,255,255,0.55)'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        <div class="support-row">
+            <a href="mailto:g@7proservices.com" class="support-link">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
                 g@7proservices.com
             </a>
-            <a href="https://wa.me/13214443034"
-               target="_blank"
-               style="display:flex;align-items:center;gap:7px;padding:8px 14px;background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.2);border-radius:999px;font-size:0.72rem;color:rgba(37,211,102,0.7);text-decoration:none;transition:.2s;"
-               onmouseover="this.style.borderColor='rgba(37,211,102,.5)';this.style.color='#25d366'"
-               onmouseout="this.style.borderColor='rgba(37,211,102,.2)';this.style.color='rgba(37,211,102,0.7)'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.918-1.41A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.182a8.172 8.172 0 0 1-4.162-1.138l-.298-.178-3.097.89.843-3.204-.196-.313A8.179 8.179 0 0 1 3.818 12C3.818 7.477 7.477 3.818 12 3.818c4.522 0 8.181 3.659 8.181 8.182 0 4.522-3.659 8.182-8.182 8.182z"/></svg>
+            <a href="https://wa.me/13214443034" target="_blank" class="support-link support-link-wa">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.999 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.918-1.41A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.182a8.172 8.172 0 0 1-4.162-1.138l-.298-.178-3.097.89.843-3.204-.196-.313A8.179 8.179 0 0 1 3.818 12C3.818 7.477 7.477 3.818 12 3.818c4.522 0 8.181 3.659 8.181 8.182 0 4.522-3.659 8.182-8.182 8.182z"/></svg>
                 WhatsApp Suporte
             </a>
         </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"

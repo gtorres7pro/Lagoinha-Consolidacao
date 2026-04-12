@@ -2,143 +2,195 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
     <title>Criar Conta — Zelo</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0f0f13">
+    <meta name="theme-color" content="#0a0a0d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="stylesheet" href="/hub.css">
+    <!-- Favicon: Zelo yellow Z -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FBBF24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' fill='%23000'%3EZ%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* Force dark mode — prevent browser/OS light theme overrides */
+        html {
+            background: #0a0a0d;
+            color-scheme: dark;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: #030508;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0d;
             color: #fff;
             min-height: 100dvh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 24px 16px;
+            padding: 32px 20px 60px;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Subtle background */
         .bg-grid {
             position: fixed; inset: 0; pointer-events: none; z-index: 0;
             background-image:
-                linear-gradient(rgba(251,191,36,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(251,191,36,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(251,191,36,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251,191,36,0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
         }
         .bg-glow {
-            position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
-            width: 600px; height: 400px; pointer-events: none; z-index: 0;
-            background: radial-gradient(ellipse at center, rgba(251,191,36,0.06) 0%, transparent 70%);
+            position: fixed; top: -180px; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 500px; pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse at center, rgba(251,191,36,0.07) 0%, transparent 70%);
         }
 
+        /* Container */
         .container {
             position: relative; z-index: 1;
-            width: 100%; max-width: 420px;
-            display: flex; flex-direction: column; align-items: center; gap: 24px;
+            width: 100%; max-width: 440px;
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
             animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
         }
-
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(24px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
         /* Logo */
-        .logo {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #FBBF24, #F59E0B);
-            border-radius: 18px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 32px rgba(251,191,36,0.3), 0 0 0 1px rgba(251,191,36,0.2);
+        .logo-wrap {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
         }
-        .logo svg { width: 26px; height: 26px; color: #000; }
+        .logo-box {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #FBBF24, #F59E0B);
+            border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 36px rgba(251,191,36,0.35), 0 0 0 1px rgba(251,191,36,0.18);
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: default;
+        }
+        .logo-box:hover { transform: scale(1.07) rotate(-3deg); }
+        .logo-letter { font-size: 2.1rem; font-weight: 900; color: #000; letter-spacing: -2px; line-height: 1; }
+        .logo-name { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.03em; color: #fff; }
 
+        /* Trial badge */
+        .trial-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 16px;
+            background: rgba(251,191,36,0.1);
+            border: 1px solid rgba(251,191,36,0.28);
+            border-radius: 999px;
+            font-size: 0.75rem; font-weight: 700;
+            color: #FBBF24; letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        .trial-dot {
+            width: 6px; height: 6px; background: #FBBF24; border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        /* Headline */
         .headline { text-align: center; }
-        .headline h1 { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1.05; }
-        .headline p { color: rgba(255,255,255,0.45); font-size: 0.85rem; margin-top: 6px; }
+        .headline h1 {
+            font-size: 2rem; font-weight: 900;
+            letter-spacing: -0.05em; line-height: 1.1;
+            color: #ffffff;
+        }
+        .headline h1 span { color: #FBBF24; }
+        .headline p { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-top: 8px; }
 
         /* Card */
         .card {
             width: 100%;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 24px;
-            padding: 32px 28px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            backdrop-filter: blur(20px);
-            display: flex; flex-direction: column; gap: 16px;
+            background: #111117;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px; overflow: hidden;
+            box-shadow: 0 12px 50px rgba(0,0,0,0.6);
         }
+        .card-accent { height: 3px; background: linear-gradient(90deg,#FBBF24,rgba(251,191,36,0.1)); }
+        .card-body { padding: 28px 28px 24px; display: flex; flex-direction: column; gap: 18px; }
 
-        /* Field */
-        .field { display: flex; flex-direction: column; gap: 6px; }
+        /* Fields */
+        .field { display: flex; flex-direction: column; gap: 7px; }
         .label {
-            font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em;
-            text-transform: uppercase; color: rgba(255,255,255,0.5);
+            font-size: 0.73rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.07em;
+            color: rgba(255,255,255,0.5);
         }
-
         .input-wrap { position: relative; }
         .input-icon {
-            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
-            color: rgba(255,255,255,0.3); pointer-events: none;
-            display: flex; align-items: center;
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.25); pointer-events: none;
+            display: flex; align-items: center; transition: color 0.2s;
         }
-        .input-icon svg { width: 15px; height: 15px; }
+        .input-icon svg { width: 16px; height: 16px; }
+        .input-wrap:focus-within .input-icon { color: #FBBF24; }
 
         input[type="text"], input[type="email"] {
-            width: 100%; padding: 12px 14px 12px 40px;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid transparent;
-            border-radius: 12px;
-            color: #fff; font-family: inherit; font-size: 0.9rem;
-            outline: none; transition: border-color 0.2s, background 0.2s;
+            width: 100%; padding: 15px 14px 15px 44px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 13px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             -webkit-appearance: none;
+            /* Prevent iOS from overriding colors */
+            -webkit-text-fill-color: #fff;
+        }
+        input[type="text"]:hover, input[type="email"]:hover {
+            border-color: rgba(251,191,36,0.2);
         }
         input[type="text"]:focus, input[type="email"]:focus {
             border-color: rgba(251,191,36,0.5);
-            background: rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.06);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.08);
         }
-        input::placeholder { color: rgba(255,255,255,0.22); }
+        input::placeholder {
+            color: rgba(255,255,255,0.28);
+            -webkit-text-fill-color: rgba(255,255,255,0.28);
+        }
 
-        /* Phone field — custom, no external lib */
-        .phone-row {
-            display: flex; gap: 8px; align-items: stretch;
-        }
+        /* Phone field */
+        .phone-row { display: flex; gap: 8px; align-items: stretch; }
         .country-btn {
             display: flex; align-items: center; gap: 6px;
             padding: 0 12px;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid transparent;
-            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 13px;
             cursor: pointer; white-space: nowrap;
-            font-family: inherit; font-size: 0.88rem;
-            color: #fff; transition: border-color 0.2s, background 0.2s;
-            flex-shrink: 0; height: 46px;
-            position: relative;
+            font-family: 'Inter', sans-serif; font-size: 0.88rem;
+            color: #fff;
+            transition: border-color 0.2s, background 0.2s;
+            flex-shrink: 0; height: 50px; position: relative;
         }
         .country-btn:hover, .country-btn.open {
-            border-color: rgba(251,191,36,0.5);
-            background: rgba(255,255,255,0.08);
+            border-color: rgba(251,191,36,0.45);
+            background: rgba(255,255,255,0.07);
         }
         .country-flag { font-size: 1.1rem; line-height: 1; }
-        .country-code { font-weight: 700; font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+        .country-code { font-weight: 700; font-size: 0.85rem; color: rgba(255,255,255,0.8); }
         .country-chevron { font-size: 0.55rem; color: rgba(255,255,255,0.3); margin-left: 2px; }
 
         /* Dropdown */
         .country-dropdown {
             position: absolute; top: calc(100% + 6px); left: 0;
-            width: 240px; max-height: 220px; overflow-y: auto;
-            background: #1a1a1f; border: 1px solid rgba(255,255,255,0.1);
+            width: 260px; max-height: 240px; overflow-y: auto;
+            background: #1a1a22; border: 1px solid rgba(255,255,255,0.1);
             border-radius: 14px; z-index: 100;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
             display: none;
             scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
         }
@@ -149,158 +201,228 @@
         }
         .country-option {
             display: flex; align-items: center; gap: 10px;
-            padding: 10px 14px; cursor: pointer;
-            font-size: 0.84rem; transition: background 0.1s;
+            padding: 11px 14px; cursor: pointer;
+            font-size: 0.85rem; transition: background 0.1s;
         }
-        .country-option:hover { background: rgba(251,191,36,0.08); }
+        .country-option:hover { background: rgba(251,191,36,0.07); }
         .country-option .opt-flag { font-size: 1rem; }
-        .country-option .opt-name { flex: 1; color: rgba(255,255,255,0.8); }
+        .country-option .opt-name { flex: 1; color: rgba(255,255,255,0.85); }
         .country-option .opt-code { color: rgba(255,255,255,0.4); font-size: 0.78rem; font-weight: 600; }
 
         input#phone-number {
-            flex: 1; padding: 12px 14px; height: 46px;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid transparent;
-            border-radius: 12px;
-            color: #fff; font-family: inherit; font-size: 0.9rem;
-            outline: none; transition: border-color 0.2s, background 0.2s;
+            flex: 1; padding: 15px 14px; height: 50px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 13px;
+            color: #fff;
+            -webkit-text-fill-color: #fff;
+            font-family: 'Inter', sans-serif; font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             -webkit-appearance: none;
         }
+        input#phone-number:hover { border-color: rgba(251,191,36,0.2); }
         input#phone-number:focus {
             border-color: rgba(251,191,36,0.5);
-            background: rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.06);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.08);
         }
 
         /* Error box */
         .error-box {
             background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
-            border-radius: 10px; padding: 10px 14px;
-            color: #fca5a5; font-size: 0.82rem; text-align: center;
+            border-radius: 10px; padding: 12px 14px;
+            color: #fca5a5; font-size: 0.85rem; text-align: center;
             display: none;
         }
 
         /* Submit button */
         .btn-submit {
-            width: 100%; padding: 14px;
-            background: linear-gradient(135deg, #FBBF24, #F59E0B);
-            color: #000; font-family: inherit; font-size: 0.95rem; font-weight: 800;
-            border: none; border-radius: 13px; cursor: pointer;
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #FFD700, #F59E0B);
+            color: #000; font-family: 'Inter', sans-serif;
+            font-size: 1rem; font-weight: 800;
+            border: none; border-radius: 14px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all 0.2s; margin-top: 4px;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 24px rgba(251,191,36,0.25);
+            margin-top: 4px;
             letter-spacing: -0.01em;
+            min-height: 52px;
         }
-        .btn-submit:hover:not(:disabled) { 
-            transform: translateY(-1px); 
-            box-shadow: 0 4px 16px rgba(251,191,36,0.15);
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px rgba(251,191,36,0.35);
         }
-        .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+        .btn-submit:active { transform: translateY(0) scale(0.98); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         .spinner {
-            width: 18px; height: 18px;
-            border: 2.5px solid rgba(0,0,0,0.2);
-            border-top-color: #000; border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: none;
+            width: 20px; height: 20px;
+            border: 2.5px solid rgba(0,0,0,0.2); border-top-color: #000;
+            border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Features row */
+        .features-row {
+            display: flex; justify-content: center; gap: 12px;
+            flex-wrap: wrap; padding: 0 24px 22px;
+        }
+        .feature-chip {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.73rem; color: rgba(255,255,255,0.4);
+            font-weight: 600;
+        }
+        .feature-chip svg { width: 13px; height: 13px; color: #4ade80; flex-shrink: 0; }
+
+        /* Login link */
+        .login-link-row { text-align: center; }
         .login-link {
-            display: block; text-align: center;
-            color: rgba(255,255,255,0.4); font-size: 0.83rem;
-            text-decoration: none; transition: color 0.2s;
-            padding: 4px;
+            color: rgba(255,255,255,0.4); font-size: 0.88rem;
+            text-decoration: none; transition: color 0.15s;
         }
         .login-link:hover { color: #FBBF24; }
+        .login-link strong { color: #FBBF24; font-weight: 700; }
+
+        /* ── Mobile Responsive ── */
+        @media (max-width: 480px) {
+            body { padding: 24px 16px 48px; }
+            .logo-box { width: 64px; height: 64px; border-radius: 18px; }
+            .logo-letter { font-size: 1.9rem; }
+            .logo-name { font-size: 1rem; }
+            .headline h1 { font-size: 1.75rem; }
+            .headline p { font-size: 0.85rem; }
+            .card-body { padding: 22px 18px 20px; gap: 16px; }
+            .label { font-size: 0.7rem; }
+            input[type="text"], input[type="email"] { font-size: 16px; padding: 14px 14px 14px 42px; } /* 16px prevents iOS zoom */
+            input#phone-number { font-size: 16px; height: 48px; }
+            .country-btn { height: 48px; }
+            .btn-submit { font-size: 0.97rem; padding: 15px; min-height: 50px; }
+            .features-row { gap: 8px; padding: 0 14px 18px; }
+            .feature-chip { font-size: 0.7rem; }
+            .trial-badge { font-size: 0.7rem; padding: 6px 12px; }
+        }
+
+        @media (max-width: 360px) {
+            .headline h1 { font-size: 1.5rem; }
+            .card-body { padding: 18px 14px 16px; }
+        }
     </style>
 </head>
 <body>
-    <div class="bg-grid"></div>
     <div class="bg-glow"></div>
+    <div class="bg-grid"></div>
 
     <div class="container">
-        <div class="logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 5h14L5 19h14"/>
-            </svg>
+
+        <!-- Logo -->
+        <div class="logo-wrap">
+            <div class="logo-box"><span class="logo-letter">Z</span></div>
+            <span class="logo-name">Zelo</span>
         </div>
 
+        <!-- Trial Badge -->
+        <div class="trial-badge">
+            <span class="trial-dot"></span>
+            7 Dias de Trial Gratuito
+        </div>
+
+        <!-- Headline -->
         <div class="headline">
-            <h1>Iniciar Trial de 7 Dias</h1>
+            <h1>Iniciar <span>Trial</span><br>de 7 Dias</h1>
             <p>Junte-se à nova era de gestão de igrejas.</p>
         </div>
 
+        <!-- Card -->
         <div class="card">
-            <!-- Name -->
-            <div class="field">
-                <label class="label">Seu Nome Completo</label>
-                <div class="input-wrap">
-                    <span class="input-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </span>
-                    <input type="text" id="reg-name" placeholder="Ex: João da Silva" autocomplete="name">
+            <div class="card-accent"></div>
+            <div class="card-body">
+
+                <!-- Name -->
+                <div class="field">
+                    <label class="label">Seu Nome Completo</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </span>
+                        <input type="text" id="reg-name" placeholder="Ex: João da Silva" autocomplete="name">
+                    </div>
                 </div>
+
+                <!-- Church / Workspace -->
+                <div class="field">
+                    <label class="label">Nome da Igreja (Workspace)</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </span>
+                        <input type="text" id="reg-church" placeholder="Ex: Igreja Batista Central" autocomplete="organization">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="field">
+                    <label class="label">E-mail</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
+                            </svg>
+                        </span>
+                        <input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email">
+                    </div>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="field">
+                    <label class="label">WhatsApp</label>
+                    <div class="phone-row">
+                        <button type="button" class="country-btn" id="country-btn" onclick="toggleCountryDropdown()">
+                            <span class="country-flag" id="sel-flag">🇧🇷</span>
+                            <span class="country-code" id="sel-code">+55</span>
+                            <span class="country-chevron">▼</span>
+                            <div class="country-dropdown" id="country-dropdown"></div>
+                        </button>
+                        <input type="tel" id="phone-number" placeholder="(11) 99999-9999" autocomplete="tel-national" inputmode="numeric">
+                    </div>
+                </div>
+
+                <div class="error-box" id="reg-error"></div>
+
+                <button class="btn-submit" id="btn-create" onclick="createAccount()">
+                    <span id="btn-text">Criar Minha Conta Grátis</span>
+                    <div class="spinner" id="btn-spinner"></div>
+                </button>
+
             </div>
 
-            <!-- Church/Workspace -->
-            <div class="field">
-                <label class="label">Nome da Igreja (Workspace)</label>
-                <div class="input-wrap">
-                    <span class="input-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                            <polyline points="9 22 9 12 15 12 15 22"/>
-                        </svg>
-                    </span>
-                    <input type="text" id="reg-church" placeholder="Ex: Igreja Batista Central" autocomplete="organization">
+            <!-- Features -->
+            <div class="features-row">
+                <div class="feature-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Sem cartão de crédito
+                </div>
+                <div class="feature-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Acesso total por 7 dias
+                </div>
+                <div class="feature-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Suporte incluso
                 </div>
             </div>
-
-            <!-- Email -->
-            <div class="field">
-                <label class="label">E-mail</label>
-                <div class="input-wrap">
-                    <span class="input-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <rect x="2" y="4" width="20" height="16" rx="2"/>
-                            <polyline points="2,4 12,13 22,4"/>
-                        </svg>
-                    </span>
-                    <input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email">
-                </div>
-            </div>
-
-            <!-- Phone — custom -->
-            <div class="field">
-                <label class="label">WhatsApp</label>
-                <div class="phone-row">
-                    <!-- Country selector -->
-                    <button type="button" class="country-btn" id="country-btn" onclick="toggleCountryDropdown()">
-                        <span class="country-flag" id="sel-flag">🇧🇷</span>
-                        <span class="country-code" id="sel-code">+55</span>
-                        <span class="country-chevron">▼</span>
-
-                        <!-- Dropdown (inside btn for relative positioning) -->
-                        <div class="country-dropdown" id="country-dropdown">
-                            <!-- populated by JS -->
-                        </div>
-                    </button>
-                    <!-- Number -->
-                    <input type="tel" id="phone-number" placeholder="(11) 99999-9999" autocomplete="tel-national" inputmode="numeric">
-                </div>
-            </div>
-
-            <div class="error-box" id="reg-error"></div>
-
-            <button class="btn-submit" id="btn-create" onclick="createAccount()">
-                <span id="btn-text">Criar Minha Conta Grátis</span>
-                <div class="spinner" id="btn-spinner"></div>
-            </button>
-
-            <a href="/login.html" class="login-link">Já possui conta? Fazer Login</a>
         </div>
+
+        <!-- Login link -->
+        <div class="login-link-row">
+            <a href="/login.html" class="login-link">Já possui conta? <strong>Fazer Login →</strong></a>
+        </div>
+
     </div>
 
     <script>
@@ -309,7 +431,7 @@
         const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        // ── Country data ─────────────────────────────────────────────
+        // Country data
         const COUNTRIES = [
             { flag:'🇧🇷', name:'Brasil',         code:'+55',  iso:'BR' },
             { flag:'🇺🇸', name:'EUA',             code:'+1',   iso:'US' },
@@ -337,7 +459,7 @@
             { flag:'🇯🇵', name:'Japão',           code:'+81',  iso:'JP' },
         ];
 
-        let selectedCountry = COUNTRIES[0]; // Default: Brasil
+        let selectedCountry = COUNTRIES[0];
 
         function buildDropdown() {
             const dd = document.getElementById('country-dropdown');
@@ -368,7 +490,6 @@
             document.getElementById('phone-number').focus();
         }
 
-        // Close dropdown on outside click
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#country-btn')) {
                 document.getElementById('country-dropdown')?.classList.remove('open');
@@ -378,14 +499,14 @@
 
         buildDropdown();
 
-        // ── Form submission ───────────────────────────────────────────
+        // Form submission
         async function createAccount() {
-            const name    = document.getElementById('reg-name').value.trim();
-            const church  = document.getElementById('reg-church').value.trim();
-            const email   = document.getElementById('reg-email').value.trim();
-            const rawNum  = document.getElementById('phone-number').value.trim().replace(/\D/g,'');
-            const phone   = selectedCountry.code + rawNum;
-            const errBox  = document.getElementById('reg-error');
+            const name   = document.getElementById('reg-name').value.trim();
+            const church = document.getElementById('reg-church').value.trim();
+            const email  = document.getElementById('reg-email').value.trim();
+            const rawNum = document.getElementById('phone-number').value.trim().replace(/\D/g,'');
+            const phone  = selectedCountry.code + rawNum;
+            const errBox = document.getElementById('reg-error');
 
             errBox.style.display = 'none';
 
@@ -395,9 +516,9 @@
                 return;
             }
 
-            const btn    = document.getElementById('btn-create');
-            const text   = document.getElementById('btn-text');
-            const spin   = document.getElementById('btn-spinner');
+            const btn  = document.getElementById('btn-create');
+            const text = document.getElementById('btn-text');
+            const spin = document.getElementById('btn-spinner');
             btn.disabled = true;
             text.style.display = 'none';
             spin.style.display = 'block';
@@ -410,12 +531,8 @@
                 });
 
                 const data = await res.json();
+                if (data.error) throw new Error(data.error);
 
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // Redirect to onboarding, passing credentials via sessionStorage
                 sessionStorage.setItem('_reg_slug', data.slug);
                 sessionStorage.setItem('_reg_email', email);
                 sessionStorage.setItem('_reg_password', data.generated_password);
@@ -434,7 +551,6 @@
             }
         }
 
-        // Allow Enter key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !document.getElementById('btn-create').disabled) {
                 createAccount();
