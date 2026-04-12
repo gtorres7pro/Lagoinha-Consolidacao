@@ -1,0 +1,19 @@
+{
+  "name": "crie-ios",
+  "version": "1.0.0",
+  "description": "CRIE Member App — iOS wrapper via Capacitor",
+  "scripts": {
+    "sync": "cap sync ios",
+    "open": "cap open ios",
+    "build": "cap sync ios && cap open ios",
+    "copy": "cp ../frontend/crie-app.html www/index.html && cap sync ios"
+  },
+  "keywords": ["crie", "ios", "capacitor"],
+  "author": "7 Pro Labs",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/cli": "^7.6.1",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0"
+  }
+}

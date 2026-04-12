@@ -1,0 +1,32 @@
+{
+  "appId": "com.zelopro.crie",
+  "appName": "CRIE",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false,
+    "backgroundColor": "#0f0f13",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "server": {
+    "allowNavigation": [
+      "*.supabase.co",
+      "*.googleapis.com",
+      "*.youtube.com",
+      "*.youtu.be",
+      "*.stripe.com",
+      "*.7prolabs.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "backgroundColor": "#0f0f13",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    }
+  }
+}

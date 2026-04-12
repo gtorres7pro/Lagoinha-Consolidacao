@@ -139,37 +139,39 @@
         // ─── DAILY VERSE SYSTEM ──────────────────────────────────────────
         function loadDailyVerse() {
             const VERSES = [
-                { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
-                { text: "O SENHOR é o meu pastor e nada me faltará.", ref: "Salmos 23:1" },
-                { text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a minha diestra fiel.", ref: "Isaías 41:10" },
-                { text: "Porque eu bem sei os planos que tenho a vosso respeito, diz o SENHOR; planos de paz e não de mal, para vos dar um futuro e uma esperança.", ref: "Jeremias 29:11" },
-                { text: "Buscai, pois, em primeiro lugar, o seu reino e a sua justiça, e todas estas coisas vos serão acrescentadas.", ref: "Mateus 6:33" },
-                { text: "Vinde a mim, todos os que estais cansados e sobrecarregados, e eu vos aliviarei.", ref: "Mateus 11:28" },
-                { text: "Mas os que esperam no SENHOR renovam as suas forças, sobem com asas como águias, correm e não se cansam, caminham e não se fatigam.", ref: "Isaías 40:31" },
-                { text: "Porque o SENHOR, vosso Deus, é o que vai convosco, para pelegar por vós contra os vossos inimigos, para salvar-vos.", ref: "Deuteronômio 20:4" },
-                { text: "Entreguem ao SENHOR tudo o que fazem, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3" },
-                { text: "Porque Deus tanto amou o mundo que deu o seu Filho Unigênito, para que todo o que nele crer não pereça, mas tenha a vida eterna.", ref: "João 3:16" },
-                { text: "O ladrão não vem senão para roubar, matar e destruir; eu vim para que tenham vida e a tenham em abundância.", ref: "João 10:10" },
-                { text: "Mas graças a Deus que, em Cristo, sempre nos leva em triunfo e, por nosso intermédio, manifesta em todo lugar o perfume do seu conhecimento.", ref: "2 Coríntios 2:14" },
-                { text: "Confie no SENHOR de todo o seu coração e não se apoie no seu próprio entendimento.", ref: "Provérbios 3:5" },
-                { text: "Não vos conformeis com este século, mas transformai-vos pela renovação da vossa mente.", ref: "Romanos 12:2" },
-                { text: "Porque não nos deu Deus espírito de covardia, mas de poder, de amor e de moderação.", ref: "2 Timóteo 1:7" },
-                { text: "Fui crucificado com Cristo; e vivo, não mais eu, mas Cristo vive em mim.", ref: "Gálatas 2:20" },
-                { text: "O SENHOR é a minha luz e a minha salvação; a quem temerei?", ref: "Salmos 27:1" },
-                { text: "Alegrai-vos sempre no Senhor; outra vez digo: alegrai-vos.", ref: "Filipenses 4:4" },
-                { text: "Maior é o que está em vós do que o que está no mundo.", ref: "1 João 4:4" },
-                { text: "Este é o dia que o Senhor fez; regozijemo-nos e alegremo-nos nele.", ref: "Salmos 118:24" },
-                { text: "E tudo o que pedirdes em meu nome, eu o farei, para que o Pai seja glorificado no Filho.", ref: "João 14:13" },
-                { text: "Sede fortes e corajosos. Não temais, nem vos assusteis por causa deles, porque o SENHOR, teu Deus, é quem marcha contigo; não te deixará, nem te abandonará.", ref: "Deuteronômio 31:6" },
-                { text: "Ora, àquele que é poderoso para fazer tudo muito mais abundantemente além do que pedimos ou pensamos, segundo o poder que opera em nós, a ele seja a glória.", ref: "Efésios 3:20-21" },
-                { text: "Produzi, pois, frutos dignos de arrependimento.", ref: "Mateus 3:8" },
-                { text: "Mas recebereis poder, ao descer sobre vós o Espírito Santo, e sereis minhas testemunhas.", ref: "Atos 1:8" },
-                { text: "Não se turbe o vosso coração; credes em Deus, crede também em mim.", ref: "João 14:1" },
-                { text: "A graça do Senhor Jesus Cristo, o amor de Deus e a comunhão do Espírito Santo sejam com todos vós.", ref: "2 Coríntios 13:14" },
-                { text: "Sejam gratos em qualquer situação, pois esta é a vontade de Deus em Cristo Jesus para vocês.", ref: "1 Tessalonicenses 5:18" },
-                { text: "Nenhuma arma forjada contra ti prosperará.", ref: "Isaías 54:17" },
-                { text: "Porque onde dois ou três estão reunidos em meu nome, aí estou eu no meio deles.", ref: "Mateus 18:20" }
+                { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13", encouragement: "Lembre-se: não há desafio ou barreira no seu caminho que seja maior do que a força que Deus colocou dentro de você. Confie no Seu poder ilimitado." },
+                { text: "O SENHOR é o meu pastor e nada me faltará.", ref: "Salmos 23:1", encouragement: "Descanse na provisão divina. Nada do que você realmente precisa faltará quando a sua segurança e guia estão nas mãos do Supremo Pastor." },
+                { text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus; eu te fortaleço, e te ajudo, e te sustento com a minha diestra fiel.", ref: "Isaías 41:10", encouragement: "O medo tenta nos paralisar, mas a promessa de Deus é a Sua presença constante. Levante a cabeça, pois quem segura a sua mão é o Criador do universo." },
+                { text: "Porque eu bem sei os planos que tenho a vosso respeito, diz o SENHOR; planos de paz e não de mal, para vos dar um futuro e uma esperança.", ref: "Jeremias 29:11", encouragement: "Em momentos de incerteza, lembre-se que o Autor da Vida já desenhou um amanhã de paz e esperança para você." },
+                { text: "Buscai, pois, em primeiro lugar, o seu reino e a sua justiça, e todas estas coisas vos serão acrescentadas.", ref: "Mateus 6:33", encouragement: "Ao focar na eternidade e no que verdadeiramente importa, os detalhes e necessidades do dia a dia encontram o seu lugar sob a Sua maravilhosa provisão." },
+                { text: "Vinde a mim, todos os que estais cansados e sobrecarregados, e eu vos aliviarei.", ref: "Mateus 11:28", encouragement: "Deixe o peso daquilo que você não pode controlar aos pés Daquele que controla tudo. O Seu fardo é leve." },
+                { text: "Mas os que esperam no SENHOR renovam as suas forças, sobem com asas como águias, correm e não se cansam, caminham e não se fatigam.", ref: "Isaías 40:31", encouragement: "A espera nunca é perda de tempo quando estamos esperando em Deus. Suas forças serão renovadas de maneiras que você nem imaginava." },
+                { text: "Porque o SENHOR, vosso Deus, é o que vai convosco, para pelegar por vós contra os vossos inimigos, para salvar-vos.", ref: "Deuteronômio 20:4", encouragement: "Você nunca entra em uma batalha sozinho. O Campeão Mestre vai à sua frente." },
+                { text: "Entreguem ao SENHOR tudo o que fazem, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3", encouragement: "O segredo do verdadeiro sucesso não está nas nossas capacidades, mas na nossa capacidade de consagração e entrega dos nossos projetos a Ele." },
+                { text: "Porque Deus tanto amou o mundo que deu o seu Filho Unigênito, para que todo o que nele crer não pereça, mas tenha a vida eterna.", ref: "João 3:16", encouragement: "Você é amado com um amor que a mente humana não consegue mensurar. Esse amor trouxe redenção e vida." },
+                { text: "O ladrão não vem senão para roubar, matar e destruir; eu vim para que tenham vida e a tenham em abundância.", ref: "João 10:10", encouragement: "A vida abundante prometida por Jesus é mais do que bens materiais; é plenitude de propósito, paz e verdadeira alegria em meio ao caos." },
+                { text: "Mas graças a Deus que, em Cristo, sempre nos leva em triunfo e, por nosso intermédio, manifesta em todo lugar o perfume do seu conhecimento.", ref: "2 Coríntios 2:14", encouragement: "A sua jornada diária, com seus altos e baixos, é utilizada para exalar o bom perfume de Cristo para aqueles ao seu redor. A vitória já é sua Nele." },
+                { text: "Confie no SENHOR de todo o seu coração e não se apoie no seu próprio entendimento.", ref: "Provérbios 3:5", encouragement: "Nem sempre teremos todas as respostas. A confiança se fortalece no momento em que decidimos descansar a mente inquieta no coração de Deus." },
+                { text: "Não vos conformeis com este século, mas transformai-vos pela renovação da vossa mente.", ref: "Romanos 12:2", encouragement: "Deixe a Palavra ser a fonte que renova e reestrutura seus pensamentos. O que preenche a mente guia o destino." },
+                { text: "Porque não nos deu Deus espírito de covardia, mas de poder, de amor e de moderação.", ref: "2 Timóteo 1:7", encouragement: "O medo não é a sua herança espiritual. Levante-se hoje com intrepidez e sensatez." },
+                { text: "Fui crucificado com Cristo; e vivo, não mais eu, mas Cristo vive em mim.", ref: "Gálatas 2:20", encouragement: "Sua vida hoje é um reflexo vivo do amor sacrifical. Aquele que conquistou a morte vive dentro de você." },
+                { text: "O SENHOR é a minha luz e a minha salvação; a quem temerei?", ref: "Salmos 27:1", encouragement: "Quando a luz inesgotável brilha através de você, as trevas do medo e da ansiedade se dissipam imediatamente." },
+                { text: "Alegrai-vos sempre no Senhor; outra vez digo: alegrai-vos.", ref: "Filipenses 4:4", encouragement: "A alegria não é baseada nas circunstâncias da vida, mas na imutável bondade daquele que te chamou para perto." },
+                { text: "Maior é o que está em vós do que o que está no mundo.", ref: "1 João 4:4", encouragement: "As resistências parecem grandes, mas a grandeza Daquele que habita dentro do seu coração tem a palavra final." },
+                { text: "Este é o dia que o Senhor fez; regozijemo-nos e alegremo-nos nele.", ref: "Salmos 118:24", encouragement: "Cada manhã é uma tela em branco pintada pela graça. Escolha o regozijo neste presente diário." },
+                { text: "E tudo o que pedirdes em meu nome, eu o farei, para que o Pai seja glorificado no Filho.", ref: "João 14:13", encouragement: "A oração sincera move mãos celestiais. Peça com a fé de que Deus tem o melhor e será glorificado através da sua vida." },
+                { text: "Sede fortes e corajosos... porque o SENHOR, teu Deus, é quem marcha contigo...", ref: "Deuteronômio 31:6", encouragement: "Nunca avance com intimidação. O próprio Deus acompanha seus passos e garante sua base de apoio." },
+                { text: "Ora, àquele que é poderoso para fazer tudo muito mais abundantemente além do que pedimos ou pensamos...", ref: "Efésios 3:20", encouragement: "Seus maiores sonhos são pequenos diante daquilo que Deus é capaz de fazer fluir pela sua vida hoje. Sonhe grande, mas com Ele." },
+                { text: "Produzi, pois, frutos dignos de arrependimento.", ref: "Mateus 3:8", encouragement: "As ações falam mais alto. Permita que as mudanças no interior floresçam como ações dignas no seu dia a dia." },
+                { text: "Mas recebereis poder, ao descer sobre vós o Espírito Santo, e sereis minhas testemunhas.", ref: "Atos 1:8", encouragement: "O poder que reside em você não é meramente força, é a manifestação constante da glória e verdade divinas." },
+                { text: "Não se turbe o vosso coração; credes em Deus, crede também em mim.", ref: "João 14:1", encouragement: "Em meio à tempestade, Cristo é a âncora firme da alma. Deixe Sua paz acalmar o seu interior e aquietar as ondas do estresse." },
+                { text: "A graça do Senhor Jesus Cristo, o amor de Deus e a comunhão do Espírito Santo sejam com todos vós.", ref: "2 Coríntios 13:14", encouragement: "Nesse ciclo de graça e comunhão a plenitude se manifesta na nossa fragilidade. Caminhe sob esse manto trinitário." },
+                { text: "Sejam gratos em qualquer situação, pois esta é a vontade de Deus em Cristo Jesus para vocês.", ref: "1 Tessalonicenses 5:18", encouragement: "A gratidão é a chave que abre e alarga o coração e a visão, mesmo no meio dos desafios e complexidades da vida." },
+                { text: "Nenhuma arma forjada contra ti prosperará.", ref: "Isaías 54:17", encouragement: "A proteção de Deus funciona como um escudo blindado em torno dos Seus propósitos para você." },
+                { text: "Porque onde dois ou três estão reunidos em meu nome, aí estou eu no meio deles.", ref: "Mateus 18:20", encouragement: "Nunca subestime o poder da união, fraternidade e comunidade — aí que o extraordinário se revela com força." },
+                { text: "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3", encouragement: "Coloque seus projetos no Altar. Quando as mãos de Deus tocam nossos esforços, os mesmos se enchem de eternidade e sucesso." }
             ];
+
 
             // Use day-of-year as index (stable across page reloads, changes daily)
             const now = new Date();
@@ -187,12 +189,15 @@
             const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
 
             let verse;
-            if (cached.key === todayKey) {
+            if (cached.key === todayKey && cached.verse && cached.verse.encouragement) {
                 verse = cached.verse;
             } else {
                 verse = VERSES[idx];
                 localStorage.setItem(cacheKey, JSON.stringify({ key: todayKey, verse }));
             }
+
+            // Store globally for modal access (always use latest from VERSES array)
+            window._todayVerse = VERSES[idx];
 
             const textEl = document.getElementById('verse-text');
             const refEl  = document.getElementById('verse-ref');
@@ -202,7 +207,174 @@
         // Expose globally and call immediately (does not depend on async profile fetch)
         window.loadDailyVerse = loadDailyVerse;
         // Small defer to ensure DOM is ready (script loads at bottom of body)
-        setTimeout(loadDailyVerse, 0);
+        setTimeout(() => {
+            loadDailyVerse();
+        }, 0);
+
+        window.showVerseEncouragement = function() {
+            // Get verse from window (set by loadDailyVerse), or rebuild from VERSES array
+            const verse = window._todayVerse;
+            if (!verse) return;
+            const encourageEl = document.getElementById('verse-encourage-text');
+            const quoteEl     = document.getElementById('verse-dialog-quote');
+            const refEl       = document.getElementById('verse-dialog-ref');
+            if (encourageEl) encourageEl.textContent = verse.encouragement || 'Que esta palavra seja uma fonte de força e paz para você hoje.';
+            if (quoteEl)     quoteEl.textContent   = `"${verse.text}"`;
+            if (refEl)       refEl.textContent      = `— ${verse.ref}`;
+            document.getElementById('verse-encourage-overlay').style.display = 'flex';
+        };
+
+        window.renderHomeDashboard = function() {
+            // Render Lottie animation if not loaded yet
+            if (!window._lottieHomeLoaded && typeof window.lottie !== 'undefined') {
+                const lContainer = document.getElementById('home-lottie-bg');
+                if (lContainer) {
+                    try {
+                        window.lottie.loadAnimation({
+                            container: lContainer,
+                            renderer: 'svg',
+                            loop: true,
+                            autoplay: true,
+                            path: 'https://lottie.host/8cd5f4cc-3991-4e78-83b6-2003c2ab279e/xP1q2NlUu2.json'
+                        });
+                        window._lottieHomeLoaded = true;
+                    } catch (e) { console.error('Lottie error:', e); }
+                }
+            }
+
+            // ── Module Pills ────────────────────────────────────────────
+            const roleta = document.getElementById('home-module-roleta');
+            if (roleta) {
+                roleta.innerHTML = '';
+                const modules = window._wsModules || [];
+                const plan = window._currentWorkspacePlan || 'founders'; // default to show all if plan unknown
+                const startLabel = window._wsStartLabel || 'Start';
+
+                // Each module can have multiple shortcut pills
+                const moduleShortcuts = [
+                    { key: 'consolidacao', label: 'Consolidação', emoji: '🔥', tab: 'v2',      color: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.25)' },
+                    { key: 'visitantes',   label: 'Visitantes',   emoji: '👋', tab: 'visitantes', color: 'rgba(99,179,237,0.12)', border: 'rgba(99,179,237,0.25)' },
+                    { key: 'start',        label: startLabel,     emoji: '🌱', tab: 'start',     color: 'rgba(110,231,183,0.12)', border: 'rgba(110,231,183,0.25)' },
+                    { key: 'batismo',      label: 'Batismo',      emoji: '💧', tab: 'batismo',   color: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.25)' },
+                    { key: 'membros',      label: 'Novos Membros', emoji: '✅', tab: 'membros',  color: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)' },
+                    { key: 'tarefas',      label: 'Tarefas',      emoji: '📋', tab: 'tasks',     color: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.18)' },
+                    { key: 'crie',         label: 'CRIE Eventos',  emoji: '🎟️', tab: 'crie',     color: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.25)' },
+                    { key: 'crie',         label: 'CRIE Connect',  emoji: '🔗', tab: 'crie',     color: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.18)' },
+                    { key: 'cantina',      label: 'Cantina',      emoji: '🍽️', tab: 'cantina',   color: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
+                    { key: 'financeiro',   label: 'Financeiro',   emoji: '💰', tab: 'financeiro', color: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
+                    { key: 'aniversariantes', label: 'Aniversários', emoji: '🎂', tab: 'aniversariantes', color: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)' },
+                    { key: 'transmissao',  label: 'Transmissão',  emoji: '📡', tab: 'transmissao', color: 'rgba(99,179,237,0.1)', border: 'rgba(99,179,237,0.2)' },
+                ];
+
+                const hasAccess = (mod) => {
+                    if (plan === 'founders' || plan === 'trial') return true;
+                    if (plan === 'essencial' && ['start','visitantes','consolidacao','batismo','membros','tarefas','financeiro','aniversariantes'].includes(mod)) return true;
+                    if (plan === 'starter' && ['start','visitantes','consolidacao','batismo','tarefas','aniversariantes','transmissao'].includes(mod)) return true;
+                    if (plan === 'free' && ['start','visitantes','consolidacao'].includes(mod)) return true;
+                    return modules.includes(mod);
+                };
+
+                let count = 0;
+                moduleShortcuts.forEach(m => {
+                    if (hasAccess(m.key)) {
+                        count++;
+                        const pill = document.createElement('button');
+                        pill.onclick = () => window.switchTab(m.tab);
+                        pill.title = m.label;
+                        pill.style.cssText = `
+                            display: inline-flex; align-items: center; gap: 7px;
+                            padding: 9px 16px;
+                            background: ${m.color};
+                            border: 1px solid ${m.border};
+                            border-radius: 50px;
+                            cursor: pointer;
+                            white-space: nowrap;
+                            flex-shrink: 0;
+                            transition: all 0.18s ease;
+                            font-family: var(--font);
+                        `;
+                        pill.innerHTML = `
+                            <span style="font-size:0.95rem; line-height:1;">${m.emoji}</span>
+                            <span style="font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.9); letter-spacing:0.01em;">${m.label}</span>
+                        `;
+                        pill.onmouseover = () => { pill.style.transform = 'translateY(-2px)'; pill.style.filter = 'brightness(1.3)'; };
+                        pill.onmouseout  = () => { pill.style.transform = ''; pill.style.filter = ''; };
+                        roleta.appendChild(pill);
+                    }
+                });
+                if (count === 0) {
+                    roleta.innerHTML = '<span style="color:#555; font-size:0.8rem;">Nenhum módulo ativo.</span>';
+                }
+            }
+
+            // ── Tasks Widget ─────────────────────────────────────────────
+            const tasksList = document.getElementById('home-tasks-list');
+            if (tasksList && window.supabaseClient && window.currentWorkspaceId) {
+                tasksList.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:10px; text-align:center;">Carregando...</div>';
+
+                window.supabaseClient.from('tasks')
+                    .select('id, task_title, due_date, status, priority')
+                    .eq('workspace_id', window.currentWorkspaceId)
+                    .neq('status', 'concluida')
+                    .order('due_date', { ascending: true, nullsFirst: false })
+                    .limit(4)
+                    .then(({ data, error }) => {
+                        if (error || !data || data.length === 0) {
+                            tasksList.innerHTML = `
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:20px 0; color:var(--text-dim);">
+                                    <span style="font-size:1.6rem;">✨</span>
+                                    <span style="font-size:0.82rem;">Sem tarefas pendentes</span>
+                                </div>`;
+                            return;
+                        }
+                        tasksList.innerHTML = '';
+
+                        const priorityConfig = {
+                            alta:  { dot: '#f87171', label: 'Alta' },
+                            media: { dot: '#fbbf24', label: 'Média' },
+                            baixa: { dot: '#4ade80', label: 'Baixa' },
+                        };
+
+                        data.forEach(task => {
+                            const now = new Date();
+                            let dateStr = '';
+                            let overdue = false;
+                            if (task.due_date) {
+                                const d = new Date(task.due_date);
+                                d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+                                overdue = d < now;
+                                const diff = Math.ceil((d - now) / 86400000);
+                                if (diff === 0) dateStr = 'Hoje';
+                                else if (diff === 1) dateStr = 'Amanhã';
+                                else if (diff < 0) dateStr = `${Math.abs(diff)}d atraso`;
+                                else dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                            } else {
+                                dateStr = 'Sem data';
+                            }
+
+                            const prio = priorityConfig[task.priority] || null;
+                            const el = document.createElement('div');
+                            el.style.cssText = `
+                                display: flex; align-items: center; gap: 12px;
+                                background: rgba(255,255,255,0.025);
+                                border: 1px solid rgba(255,255,255,0.055);
+                                padding: 12px 14px; border-radius: 10px;
+                                cursor: pointer; transition: background 0.15s;
+                            `;
+                            el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.055)';
+                            el.onmouseout  = () => el.style.background = 'rgba(255,255,255,0.025)';
+                            el.onclick = () => window.switchTab('tasks');
+                            el.innerHTML = `
+                                ${prio ? `<div style="width:7px; height:7px; border-radius:50%; background:${prio.dot}; flex-shrink:0;"></div>` : ''}
+                                <div style="flex:1; font-size:0.83rem; color:rgba(255,255,255,0.9); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${task.task_title || 'Sem título'}</div>
+                                <div style="font-size:0.72rem; font-weight:700; flex-shrink:0; color:${overdue ? '#f87171' : 'var(--accent)'};">${dateStr}</div>
+                            `;
+                            tasksList.appendChild(el);
+                        });
+                    });
+            }
+        };
+
 
 
         // ===== LOGOUT =====
@@ -338,14 +510,14 @@
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, credentials, knowledge_base').order('name');
+                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, credentials, knowledge_base').order('name');
                     if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
                 } else {
                     // Regular user: only their own workspace
                     if (userRow?.workspace_id) {
-                        const { data } = await sb.from('workspaces').select('id, name, slug, status, credentials, knowledge_base').eq('id', userRow.workspace_id);
+                        const { data } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, credentials, knowledge_base').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
@@ -381,6 +553,9 @@
                     window.currentWorkspaceId = initial.id;
                     sessionStorage.setItem('ws_id', initial.id);
                     localStorage.setItem('currentWorkspaceId', initial.id);
+                    // Store plan & modules globally
+                    window._wsModules = initial.modules || [];
+                    window._currentWorkspacePlan = initial.plan || 'free';
                     // Update ws-pill-name in bottom bar
                     const pillName = document.getElementById('ws-pill-name');
                     if (pillName) pillName.textContent = initial.name;
@@ -412,6 +587,9 @@
                 // directly. It's assigned as a window global in that DOMContentLoaded
                 // block — use a retry loop to wait for it to be registered.
                 if (initial) {
+                    // Render home dashboard now that workspace is set
+                    setTimeout(() => { if (window.renderHomeDashboard) window.renderHomeDashboard(); }, 200);
+
                     (function waitAndFetch(attempts) {
                         if (window.fetchLiveLeads) {
                             window.fetchLiveLeads();
@@ -497,6 +675,10 @@
             }
 
             showToast('🏛 ' + ws.name, 2000);
+            
+            // Home Dashboard initializations
+            if (window.renderHomeDashboard) window.renderHomeDashboard();
+
             // Call fetchLiveLeads directly (initEngine is in a different scope)
             if (window.fetchLiveLeads) {
                 window.fetchLiveLeads();
