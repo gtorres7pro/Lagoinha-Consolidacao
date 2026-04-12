@@ -52,15 +52,19 @@
         
         /* ===== HOME MÓDULOS ===== */
         .home-glass-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
-        .home-glass-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
-        .roleta-container { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 12px; scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none; }
-        .roleta-container::-webkit-scrollbar { display: none; }
-        .roleta-card { flex: 0 0 140px; height: 120px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s cubic-bezier(0.16,1,0.3,1); scroll-snap-align: start; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-        .roleta-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.06); border-color: rgba(251,191,36,0.3); box-shadow: 0 10px 24px rgba(0,0,0,0.4); }
-        .roleta-icon { width: 42px; height: 42px; border-radius: 12px; background: rgba(251,191,36,0.1); color: var(--accent); display: flex; align-items: center; justify-content: center; }
-        .roleta-icon svg { width: 22px; height: 22px; }
-        .roleta-title { font-size: 0.75rem; font-weight: 700; color: #fff; text-align: center; }
+        .home-glass-card:hover { border-color: rgba(255,255,255,0.1); }
         .verse-modal-content { animation: fadeInUp 0.3s cubic-bezier(0.16,1,0.3,1); }
+        .home-layout { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+        .home-layout::-webkit-scrollbar { width: 4px; }
+        .home-layout::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        @media (max-width: 768px) {
+            .home-bottom-grid { grid-template-columns: 1fr !important; }
+            .home-layout { height: auto !important; overflow-y: visible !important; padding: 16px !important; }
+        }
+        @media (min-width: 769px) {
+            #view-home { display: flex; flex-direction: column; }
+            .home-layout { flex: 1; }
+        }
 
         
         /* ===== SIDEBAR ===== */
@@ -1301,10 +1305,11 @@
                 </div>
             </header>
             
-            <div style="padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; max-width: 960px; position:relative; z-index:2;">
+            <!-- Home Content Grid -->
+            <div class="home-layout" style="padding: 20px 28px 32px; position:relative; z-index:2; display:flex; flex-direction:column; gap:20px; height: calc(100% - 90px); overflow-y: auto;">
 
-                <!-- Zone 1: Verse of the day -->
-                <div class="home-glass-card verse-card" style="cursor: pointer;" onclick="showVerseEncouragement()">
+                <!-- Zone 1: Verse of the day (full width) -->
+                <div class="home-glass-card verse-card" style="cursor: pointer; flex-shrink:0;" onclick="showVerseEncouragement()">
                     <div style="position:absolute; top:0; left:0; width:3px; height:100%; background: linear-gradient(to bottom, var(--accent), #f43f5e);"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 6px;">
                         <div style="flex: 1;">
@@ -1312,37 +1317,60 @@
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                                 Palavra do Dia
                             </div>
-                            <p id="verse-text" style="font-size: 1.05rem; line-height: 1.65; color: rgba(255,255,255,0.9); font-style: italic; font-weight: 300;">"..."</p>
+                            <p id="verse-text" style="font-size: 1rem; line-height: 1.65; color: rgba(255,255,255,0.9); font-style: italic; font-weight: 300;">"..."</p>
                             <p id="verse-ref" style="font-size: 0.78rem; color: var(--accent); font-weight: 700; margin-top: 10px; letter-spacing: 0.3px;"></p>
                         </div>
                         <div style="margin-left:16px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:4px;">
-                            <div style="width:36px; height:36px; border-radius:50%; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); color:var(--accent); display:flex; align-items:center; justify-content:center;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <div style="width:34px; height:34px; border-radius:50%; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); color:var(--accent); display:flex; align-items:center; justify-content:center;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                             </div>
-                            <span style="font-size:0.58rem; color:rgba(255,255,255,0.3); letter-spacing:0.5px;">EXPANDIR</span>
+                            <span style="font-size:0.55rem; color:rgba(255,255,255,0.25); letter-spacing:0.5px;">EXPANDIR</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Zone 2: Module Pills -->
-                <div id="home-module-roleta" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <div style="font-size: 0.8rem; color: var(--text-dim);">Carregando módulos...</div>
+                <!-- Zone 2: Module Pills (full width, wraps naturally) -->
+                <div id="home-module-roleta" style="display: flex; flex-wrap: wrap; gap: 8px; flex-shrink:0;">
+                    <span style="font-size: 0.8rem; color: var(--text-dim);">Carregando módulos...</span>
                 </div>
 
-                <!-- Zone 3: Tasks Widget -->
-                <div class="home-glass-card tasks-widget" style="padding-bottom: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                            <span style="font-size:0.72rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Tarefas Pendentes</span>
+                <!-- Zone 3: Desktop 2-col — Tasks + Quick Stats | Mobile single col -->
+                <div class="home-bottom-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; flex:1; min-height:0;">
+
+                    <!-- Tasks Widget -->
+                    <div class="home-glass-card" style="padding: 18px 20px; display:flex; flex-direction:column; gap:0; overflow:hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink:0;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                                <span style="font-size:0.68rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Tarefas Pendentes</span>
+                            </div>
+                            <button onclick="switchTab('admin-tarefas')" style="font-size:0.7rem; color:var(--accent); background:none; border:none; cursor:pointer; font-weight:700; opacity:0.8; font-family:var(--font);" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">Ver todas →</button>
                         </div>
-                        <button onclick="switchTab('tasks')" style="font-size:0.72rem; color:var(--accent); background:none; border:none; cursor:pointer; font-weight:700; opacity:0.8; font-family:var(--font);" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">Ver todas →</button>
+                        <div id="home-tasks-list" style="display: flex; flex-direction: column; gap: 7px; overflow-y:auto; flex:1;">
+                            <div style="color:var(--text-dim); font-size:0.8rem; padding: 10px; text-align: center;">Carregando tarefas...</div>
+                        </div>
                     </div>
-                    <div id="home-tasks-list" style="display: flex; flex-direction: column; gap: 7px;">
-                        <div style="color:var(--text-dim); font-size:0.8rem; padding: 10px; text-align: center;">Carregando tarefas...</div>
-                    </div>
-                </div>
 
+                    <!-- Quick Info Card -->
+                    <div class="home-glass-card" style="padding: 18px 20px; display:flex; flex-direction:column; gap:14px;">
+                        <div style="font-size:0.68rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Acesso Rápido</div>
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <button onclick="switchTab('v2')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+                                <span style="font-size:1.1rem;">🔥</span>
+                                <div><div style="font-size:0.78rem; font-weight:600; color:#fff;">Consolidação</div><div style="font-size:0.67rem; color:var(--text-dim);">Ver decisões recentes</div></div>
+                            </button>
+                            <button onclick="switchTab('visitors')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+                                <span style="font-size:1.1rem;">👋</span>
+                                <div><div style="font-size:0.78rem; font-weight:600; color:#fff;">Visitantes</div><div style="font-size:0.67rem; color:var(--text-dim);">Ver visitantes desta semana</div></div>
+                            </button>
+                            <button onclick="switchTab('start')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+                                <span style="font-size:1.1rem;">🌱</span>
+                                <div><div id="home-quick-start-label" style="font-size:0.78rem; font-weight:600; color:#fff;">Start</div><div style="font-size:0.67rem; color:var(--text-dim);">Participantes ativos</div></div>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
 

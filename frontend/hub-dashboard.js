@@ -231,86 +231,79 @@
                 if (lContainer) {
                     try {
                         window.lottie.loadAnimation({
-                            container: lContainer,
-                            renderer: 'svg',
-                            loop: true,
-                            autoplay: true,
+                            container: lContainer, renderer: 'svg', loop: true, autoplay: true,
                             path: 'https://lottie.host/8cd5f4cc-3991-4e78-83b6-2003c2ab279e/xP1q2NlUu2.json'
                         });
                         window._lottieHomeLoaded = true;
-                    } catch (e) { console.error('Lottie error:', e); }
+                    } catch (e) {}
                 }
             }
 
-            // ── Module Pills ────────────────────────────────────────────
+            // ── Module Pills (instant — derived from nav DOM visibility, no network) ────
             const roleta = document.getElementById('home-module-roleta');
             if (roleta) {
-                roleta.innerHTML = '';
-                const modules = window._wsModules || [];
-                const plan = window._currentWorkspacePlan || 'founders'; // default to show all if plan unknown
-                const startLabel = window._wsStartLabel || 'Start';
-
-                // Each module can have multiple shortcut pills
-                const moduleShortcuts = [
-                    { key: 'consolidacao', label: 'Consolidação', emoji: '🔥', tab: 'v2',      color: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.25)' },
-                    { key: 'visitantes',   label: 'Visitantes',   emoji: '👋', tab: 'visitantes', color: 'rgba(99,179,237,0.12)', border: 'rgba(99,179,237,0.25)' },
-                    { key: 'start',        label: startLabel,     emoji: '🌱', tab: 'start',     color: 'rgba(110,231,183,0.12)', border: 'rgba(110,231,183,0.25)' },
-                    { key: 'batismo',      label: 'Batismo',      emoji: '💧', tab: 'batismo',   color: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.25)' },
-                    { key: 'membros',      label: 'Novos Membros', emoji: '✅', tab: 'membros',  color: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)' },
-                    { key: 'tarefas',      label: 'Tarefas',      emoji: '📋', tab: 'tasks',     color: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.18)' },
-                    { key: 'crie',         label: 'CRIE Eventos',  emoji: '🎟️', tab: 'crie',     color: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.25)' },
-                    { key: 'crie',         label: 'CRIE Connect',  emoji: '🔗', tab: 'crie',     color: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.18)' },
-                    { key: 'cantina',      label: 'Cantina',      emoji: '🍽️', tab: 'cantina',   color: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
-                    { key: 'financeiro',   label: 'Financeiro',   emoji: '💰', tab: 'financeiro', color: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
-                    { key: 'aniversariantes', label: 'Aniversários', emoji: '🎂', tab: 'aniversariantes', color: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)' },
-                    { key: 'transmissao',  label: 'Transmissão',  emoji: '📡', tab: 'transmissao', color: 'rgba(99,179,237,0.1)', border: 'rgba(99,179,237,0.2)' },
-                ];
-
-                const hasAccess = (mod) => {
-                    if (plan === 'founders' || plan === 'trial') return true;
-                    if (plan === 'essencial' && ['start','visitantes','consolidacao','batismo','membros','tarefas','financeiro','aniversariantes'].includes(mod)) return true;
-                    if (plan === 'starter' && ['start','visitantes','consolidacao','batismo','tarefas','aniversariantes','transmissao'].includes(mod)) return true;
-                    if (plan === 'free' && ['start','visitantes','consolidacao'].includes(mod)) return true;
-                    return modules.includes(mod);
+                // Helper: is a nav element currently visible to this user?
+                const navVisible = (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return false;
+                    const s = getComputedStyle(el);
+                    return s.display !== 'none' && s.visibility !== 'hidden' && parseFloat(s.opacity) > 0.2;
                 };
 
-                let count = 0;
-                moduleShortcuts.forEach(m => {
-                    if (hasAccess(m.key)) {
+                const startLabel = window._wsStartLabel || 'Start';
+                // Each shortcut maps to a nav item ID that must be visible
+                const shortcuts = [
+                    { nav: 'nav-dashboard',         label: 'Consolidação',    emoji: '🔥', tab: 'v2',            color: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.25)' },
+                    { nav: 'nav-visitors',           label: 'Visitantes',      emoji: '👋', tab: 'visitors',       color: 'rgba(99,179,237,0.12)',  border: 'rgba(99,179,237,0.25)' },
+                    { nav: 'nav-start',              label: startLabel,        emoji: '🌱', tab: 'start',          color: 'rgba(110,231,183,0.12)', border: 'rgba(110,231,183,0.25)' },
+                    { nav: 'nav-batismo',            label: 'Batismo',         emoji: '💧', tab: 'batismo',        color: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.25)' },
+                    { nav: 'nav-membros',            label: 'Novos Membros',   emoji: '✅', tab: 'membros',        color: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.25)' },
+                    { nav: 'nav-tasks',              label: 'Tarefas',         emoji: '📋', tab: 'admin-tarefas',  color: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.18)' },
+                    { nav: 'nav-crie-eventos',       label: 'CRIE Eventos',    emoji: '🎟️', tab: 'crie-eventos',  color: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.25)' },
+                    { nav: 'nav-crie-connect',       label: 'CRIE Connect',    emoji: '🔗', tab: 'crie-connect',  color: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.18)' },
+                    { nav: 'nav-cantina-pedidos',    label: 'Cantina',         emoji: '🍽️', tab: 'cantina-pedidos', color: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
+                    { nav: 'nav-admin-financeiro',   label: 'Financeiro',      emoji: '💰', tab: 'admin-financeiro', color: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
+                    { nav: 'nav-birthdays',          label: 'Aniversários',    emoji: '🎂', tab: 'birthdays',      color: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)' },
+                    { nav: 'nav-transmissao',        label: 'Transmissão',     emoji: '📡', tab: 'transmissao',    color: 'rgba(99,179,237,0.1)',  border: 'rgba(99,179,237,0.2)' },
+                    { nav: 'nav-chat-ao-vivo',       label: 'Mensagens',       emoji: '💬', tab: 'chat-ao-vivo',   color: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)' },
+                ];
+
+                // Render visible pills (instant from DOM state — no network call needed)
+                const renderPills = () => {
+                    roleta.innerHTML = '';
+                    let count = 0;
+                    shortcuts.forEach(m => {
+                        if (!navVisible(m.nav)) return;
                         count++;
                         const pill = document.createElement('button');
                         pill.onclick = () => window.switchTab(m.tab);
-                        pill.title = m.label;
-                        pill.style.cssText = `
-                            display: inline-flex; align-items: center; gap: 7px;
-                            padding: 9px 16px;
-                            background: ${m.color};
-                            border: 1px solid ${m.border};
-                            border-radius: 50px;
-                            cursor: pointer;
-                            white-space: nowrap;
-                            flex-shrink: 0;
-                            transition: all 0.18s ease;
-                            font-family: var(--font);
-                        `;
-                        pill.innerHTML = `
-                            <span style="font-size:0.95rem; line-height:1;">${m.emoji}</span>
-                            <span style="font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.9); letter-spacing:0.01em;">${m.label}</span>
-                        `;
+                        pill.style.cssText = `display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:${m.color};border:1px solid ${m.border};border-radius:50px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.18s ease;font-family:var(--font);`;
+                        pill.innerHTML = `<span style="font-size:0.92rem;line-height:1;">${m.emoji}</span><span style="font-size:0.79rem;font-weight:600;color:rgba(255,255,255,0.88);letter-spacing:0.01em;">${m.label}</span>`;
                         pill.onmouseover = () => { pill.style.transform = 'translateY(-2px)'; pill.style.filter = 'brightness(1.3)'; };
                         pill.onmouseout  = () => { pill.style.transform = ''; pill.style.filter = ''; };
                         roleta.appendChild(pill);
-                    }
-                });
-                if (count === 0) {
-                    roleta.innerHTML = '<span style="color:#555; font-size:0.8rem;">Nenhum módulo ativo.</span>';
-                }
+                    });
+                    if (count === 0) roleta.innerHTML = '<span style="color:#555;font-size:0.8rem;">Nenhum módulo ativo.</span>';
+                };
+
+                // Render immediately, then re-render after plan gating is applied (slight delay)
+                renderPills();
+                setTimeout(renderPills, 800);
             }
 
             // ── Tasks Widget ─────────────────────────────────────────────
             const tasksList = document.getElementById('home-tasks-list');
-            if (tasksList && window.supabaseClient && window.currentWorkspaceId) {
-                tasksList.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:10px; text-align:center;">Carregando...</div>';
+            if (!tasksList) return;
+
+            const loadTasks = (attempt) => {
+                if (!window.supabaseClient || !window.currentWorkspaceId) {
+                    if (attempt < 15) {
+                        setTimeout(() => loadTasks(attempt + 1), 300);
+                    } else {
+                        tasksList.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0;color:var(--text-dim);"><span style="font-size:1.4rem;">✨</span><span style="font-size:0.82rem;">Sem tarefas pendentes</span></div>';
+                    }
+                    return;
+                }
 
                 window.supabaseClient.from('tasks')
                     .select('id, task_title, due_date, status, priority')
@@ -320,59 +313,35 @@
                     .limit(4)
                     .then(({ data, error }) => {
                         if (error || !data || data.length === 0) {
-                            tasksList.innerHTML = `
-                                <div style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:20px 0; color:var(--text-dim);">
-                                    <span style="font-size:1.6rem;">✨</span>
-                                    <span style="font-size:0.82rem;">Sem tarefas pendentes</span>
-                                </div>`;
+                            tasksList.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0;color:var(--text-dim);"><span style="font-size:1.4rem;">✨</span><span style="font-size:0.82rem;">Sem tarefas pendentes</span></div>';
                             return;
                         }
                         tasksList.innerHTML = '';
-
-                        const priorityConfig = {
-                            alta:  { dot: '#f87171', label: 'Alta' },
-                            media: { dot: '#fbbf24', label: 'Média' },
-                            baixa: { dot: '#4ade80', label: 'Baixa' },
-                        };
-
+                        const priorityDot = { alta: '#f87171', media: '#fbbf24', baixa: '#4ade80' };
                         data.forEach(task => {
                             const now = new Date();
-                            let dateStr = '';
-                            let overdue = false;
+                            let dateStr = 'Sem data', overdue = false;
                             if (task.due_date) {
                                 const d = new Date(task.due_date);
                                 d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
                                 overdue = d < now;
                                 const diff = Math.ceil((d - now) / 86400000);
-                                if (diff === 0) dateStr = 'Hoje';
-                                else if (diff === 1) dateStr = 'Amanhã';
-                                else if (diff < 0) dateStr = `${Math.abs(diff)}d atraso`;
-                                else dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-                            } else {
-                                dateStr = 'Sem data';
+                                dateStr = diff === 0 ? 'Hoje' : diff === 1 ? 'Amanhã' : diff < 0 ? `${Math.abs(diff)}d atraso` : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
                             }
-
-                            const prio = priorityConfig[task.priority] || null;
+                            const dot = priorityDot[task.priority];
                             const el = document.createElement('div');
-                            el.style.cssText = `
-                                display: flex; align-items: center; gap: 12px;
-                                background: rgba(255,255,255,0.025);
-                                border: 1px solid rgba(255,255,255,0.055);
-                                padding: 12px 14px; border-radius: 10px;
-                                cursor: pointer; transition: background 0.15s;
-                            `;
+                            el.style.cssText = 'display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);padding:12px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;';
                             el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.055)';
                             el.onmouseout  = () => el.style.background = 'rgba(255,255,255,0.025)';
-                            el.onclick = () => window.switchTab('tasks');
-                            el.innerHTML = `
-                                ${prio ? `<div style="width:7px; height:7px; border-radius:50%; background:${prio.dot}; flex-shrink:0;"></div>` : ''}
-                                <div style="flex:1; font-size:0.83rem; color:rgba(255,255,255,0.9); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${task.task_title || 'Sem título'}</div>
-                                <div style="font-size:0.72rem; font-weight:700; flex-shrink:0; color:${overdue ? '#f87171' : 'var(--accent)'};">${dateStr}</div>
-                            `;
+                            el.onclick = () => window.switchTab('admin-tarefas');
+                            el.innerHTML = `${dot ? `<div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>` : ''}<div style="flex:1;font-size:0.83rem;color:rgba(255,255,255,0.9);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${task.task_title || 'Sem título'}</div><div style="font-size:0.72rem;font-weight:700;flex-shrink:0;color:${overdue ? '#f87171' : 'var(--accent)'};">${dateStr}</div>`;
                             tasksList.appendChild(el);
                         });
                     });
-            }
+            };
+
+            tasksList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:10px;text-align:center;">Carregando...</div>';
+            loadTasks(0);
         };
 
 
