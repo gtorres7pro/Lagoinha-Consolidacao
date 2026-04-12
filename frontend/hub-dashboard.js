@@ -76,9 +76,6 @@
                 const firstName = name.split(' ')[0];
                 const greetingTitle = document.getElementById('home-greeting-title');
                 if (greetingTitle) greetingTitle.textContent = `Bem-vindo, ${firstName}!`;
-
-                // ── Daily Bible Verse ──────────────────────────────────
-                loadDailyVerse();
             })();
 
         })();
@@ -202,6 +199,10 @@
             if (textEl) textEl.textContent = `"${verse.text}"`;
             if (refEl)  refEl.textContent  = `— ${verse.ref}`;
         }
+        // Expose globally and call immediately (does not depend on async profile fetch)
+        window.loadDailyVerse = loadDailyVerse;
+        // Small defer to ensure DOM is ready (script loads at bottom of body)
+        setTimeout(loadDailyVerse, 0);
 
 
         // ===== LOGOUT =====
@@ -3781,22 +3782,37 @@
     })();
 
     // ─── MOBILE SIDEBAR ───────────────────────────────────────────────
-    function toggleSidebar() {
+    // Exposed on window so inline onclick="toggleSidebar()" in dashboard.html works
+    window.toggleSidebar = function() {
         const sb = document.querySelector('.sidebar');
         const ov = document.getElementById('sidebar-overlay');
+        if (!sb || !ov) return;
         sb.classList.toggle('open');
         ov.classList.toggle('show');
-    }
-    function closeSidebar() {
+    };
+    window.closeSidebar = function() {
         document.querySelector('.sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('show');
-    }
+    };
+    // Local aliases so existing internal calls still work
+    const toggleSidebar = window.toggleSidebar;
+    const closeSidebar  = window.closeSidebar;
     // Close sidebar when nav item clicked on mobile — skip submenu toggles
-    document.querySelectorAll('.nav li[onclick], .nav-item-row[onclick]').forEach(el => {
-        el.addEventListener('click', () => {
-            if (window.innerWidth < 1024 && !el.classList.contains('nav-item-row') && !el.dataset.submenuToggle) closeSidebar();
+    // We listen on the sidebar <nav> and use event delegation so we can inspect
+    // the actual click target (not just the registered element).
+    const _mainNav = document.getElementById('sidebar');
+    if (_mainNav) {
+        _mainNav.addEventListener('click', function(e) {
+            if (window.innerWidth >= 1024) return; // desktop — do nothing
+            // If the click hit a submenu-toggle row (or any ancestor of it), keep sidebar open
+            if (e.target.closest('.nav-item-row')) return;
+            // If the click hit an actual nav leaf item (li with onclick or its children), close sidebar
+            const li = e.target.closest('li');
+            if (li && !li.classList.contains('nav-group')) {
+                closeSidebar();
+            }
         });
-    });
+    }
 
     // ─── DESKTOP SIDEBAR COLLAPSE ─────────────────────────────────────
     window.toggleMainSidebar = function() {
