@@ -1098,21 +1098,21 @@
                 tagline: 'Para igrejas que querem ir além da jornada básica.',
                 color: 'rgba(96,165,250,0.08)', accent: '#60a5fa',
                 features: ['Tudo do Gratuito', 'Aniversariantes', 'Transmissão (email broadcast)', 'Tasks & Kanban', 'Até 5 usuários'],
-                price_id: 'price_STARTER_MONTHLY', // replace with real Stripe price ID
+                price_id: 'price_1TLOneHasoZhxk6WKWPcXDqi',
             },
             {
                 slug: 'essencial', name: 'Essencial', price: 47, badge: 'Mais popular',
                 tagline: 'Dados, relatórios e gestão financeira na palma da mão.',
                 color: 'rgba(167,139,250,0.1)', accent: '#a78bfa',
                 features: ['Tudo do Starter', 'Relatórios avançados', 'Financeiro', 'Logs de atividade', 'Voluntários', 'Usuários ilimitados'],
-                price_id: 'price_ESSENCIAL_MONTHLY',
+                price_id: 'price_1TIt6UHasoZhxk6WiQaVmJ0v',
             },
             {
                 slug: 'founders', name: 'Founders ⭐', price: 97, badge: 'Tempo limitado',
                 tagline: 'Tudo que sua igreja precisa. Por um preço de pioneiro.',
                 color: 'rgba(251,191,36,0.08)', accent: '#FBBF24',
                 features: ['Tudo do Essencial', 'CRIE (eventos, membros, workshop)', 'Cantina', 'We Care', 'Chat ao Vivo com IA (1 canal)', 'Suporte prioritário'],
-                price_id: 'price_FOUNDERS_MONTHLY',
+                price_id: 'price_1TIt7kHasoZhxk6W25hWV9oo',
             },
         ];
 
