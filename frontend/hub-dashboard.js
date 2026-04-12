@@ -209,6 +209,9 @@
         // Small defer to ensure DOM is ready (script loads at bottom of body)
         setTimeout(() => {
             loadDailyVerse();
+            // Render home carousel immediately — does not need workspace data
+            // Use tiny extra delay so renderHomeDashboard finishes being defined
+            setTimeout(() => { if (window.renderHomeDashboard) window.renderHomeDashboard(); }, 10);
         }, 0);
 
         window.showVerseEncouragement = function() {
@@ -239,56 +242,55 @@
                 }
             }
 
-            // ── Module Pills (instant — derived from nav DOM visibility, no network) ────
+            // ── Module Carousel (Roleta) — hardcoded, renderiza INSTANTÂNEO ────
             const roleta = document.getElementById('home-module-roleta');
-            if (roleta) {
-                // Helper: is a nav element currently visible to this user?
-                const navVisible = (id) => {
-                    const el = document.getElementById(id);
-                    if (!el) return false;
-                    const s = getComputedStyle(el);
-                    return s.display !== 'none' && s.visibility !== 'hidden' && parseFloat(s.opacity) > 0.2;
-                };
-
+            if (roleta && !roleta.dataset.rendered) {
+                roleta.dataset.rendered = '1';
                 const startLabel = window._wsStartLabel || 'Start';
-                // Each shortcut maps to a nav item ID that must be visible
+
+                // Lista pré-definida — sem checar nav nem banco, zero delay
                 const shortcuts = [
-                    { nav: 'nav-dashboard',         label: 'Consolidação',    emoji: '🔥', tab: 'v2',            color: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.25)' },
-                    { nav: 'nav-visitors',           label: 'Visitantes',      emoji: '👋', tab: 'visitors',       color: 'rgba(99,179,237,0.12)',  border: 'rgba(99,179,237,0.25)' },
-                    { nav: 'nav-start',              label: startLabel,        emoji: '🌱', tab: 'start',          color: 'rgba(110,231,183,0.12)', border: 'rgba(110,231,183,0.25)' },
-                    { nav: 'nav-batismo',            label: 'Batismo',         emoji: '💧', tab: 'batismo',        color: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.25)' },
-                    { nav: 'nav-membros',            label: 'Novos Membros',   emoji: '✅', tab: 'membros',        color: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.25)' },
-                    { nav: 'nav-tasks',              label: 'Tarefas',         emoji: '📋', tab: 'admin-tarefas',  color: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.18)' },
-                    { nav: 'nav-crie-eventos',       label: 'CRIE Eventos',    emoji: '🎟️', tab: 'crie-eventos',  color: 'rgba(244,114,182,0.12)', border: 'rgba(244,114,182,0.25)' },
-                    { nav: 'nav-crie-connect',       label: 'CRIE Connect',    emoji: '🔗', tab: 'crie-connect',  color: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.18)' },
-                    { nav: 'nav-cantina-pedidos',    label: 'Cantina',         emoji: '🍽️', tab: 'cantina-pedidos', color: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
-                    { nav: 'nav-admin-financeiro',   label: 'Financeiro',      emoji: '💰', tab: 'admin-financeiro', color: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)' },
-                    { nav: 'nav-birthdays',          label: 'Aniversários',    emoji: '🎂', tab: 'birthdays',      color: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)' },
-                    { nav: 'nav-transmissao',        label: 'Transmissão',     emoji: '📡', tab: 'transmissao',    color: 'rgba(99,179,237,0.1)',  border: 'rgba(99,179,237,0.2)' },
-                    { nav: 'nav-chat-ao-vivo',       label: 'Mensagens',       emoji: '💬', tab: 'chat-ao-vivo',   color: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)' },
+                    { label: 'Consolidação',    emoji: '🔥', tab: 'v2',              bg: 'rgba(251,191,36,0.14)' },
+                    { label: 'Visitantes',      emoji: '👋', tab: 'visitors',         bg: 'rgba(99,179,237,0.14)' },
+                    { label: startLabel,        emoji: '🌱', tab: 'start',            bg: 'rgba(110,231,183,0.14)' },
+                    { label: 'Batismo',         emoji: '💧', tab: 'batismo',          bg: 'rgba(167,139,250,0.14)' },
+                    { label: 'Novos Membros',   emoji: '✅', tab: 'membros',          bg: 'rgba(52,211,153,0.14)' },
+                    { label: 'Tarefas',         emoji: '📋', tab: 'admin-tarefas',    bg: 'rgba(251,191,36,0.1)' },
+                    { label: 'CRIE Eventos',    emoji: '🎟️', tab: 'crie-eventos',    bg: 'rgba(244,114,182,0.14)' },
+                    { label: 'CRIE Connect',    emoji: '🔗', tab: 'crie-connect',     bg: 'rgba(244,114,182,0.09)' },
+                    { label: 'Cantina',         emoji: '🍽️', tab: 'cantina-pedidos', bg: 'rgba(251,113,133,0.14)' },
+                    { label: 'Financeiro',      emoji: '💰', tab: 'admin-financeiro', bg: 'rgba(251,191,36,0.1)' },
+                    { label: 'Aniversários',    emoji: '🎂', tab: 'birthdays',        bg: 'rgba(167,139,250,0.1)' },
+                    { label: 'Transmissão',     emoji: '📡', tab: 'transmissao',      bg: 'rgba(99,179,237,0.1)' },
+                    { label: 'Mensagens',       emoji: '💬', tab: 'chat-ao-vivo',     bg: 'rgba(52,211,153,0.09)' },
                 ];
 
-                // Render visible pills (instant from DOM state — no network call needed)
-                const renderPills = () => {
-                    roleta.innerHTML = '';
-                    let count = 0;
-                    shortcuts.forEach(m => {
-                        if (!navVisible(m.nav)) return;
-                        count++;
-                        const pill = document.createElement('button');
-                        pill.onclick = () => window.switchTab(m.tab);
-                        pill.style.cssText = `display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:${m.color};border:1px solid ${m.border};border-radius:50px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.18s ease;font-family:var(--font);`;
-                        pill.innerHTML = `<span style="font-size:0.92rem;line-height:1;">${m.emoji}</span><span style="font-size:0.79rem;font-weight:600;color:rgba(255,255,255,0.88);letter-spacing:0.01em;">${m.label}</span>`;
-                        pill.onmouseover = () => { pill.style.transform = 'translateY(-2px)'; pill.style.filter = 'brightness(1.3)'; };
-                        pill.onmouseout  = () => { pill.style.transform = ''; pill.style.filter = ''; };
-                        roleta.appendChild(pill);
-                    });
-                    if (count === 0) roleta.innerHTML = '<span style="color:#555;font-size:0.8rem;">Nenhum módulo ativo.</span>';
-                };
-
-                // Render immediately, then re-render after plan gating is applied (slight delay)
-                renderPills();
-                setTimeout(renderPills, 800);
+                roleta.innerHTML = '';
+                shortcuts.forEach(m => {
+                    const card = document.createElement('button');
+                    card.onclick = () => window.switchTab(m.tab);
+                    card.style.cssText = `
+                        flex: 0 0 auto;
+                        display: flex; flex-direction: column; align-items: center; justify-content: center;
+                        gap: 8px;
+                        width: 88px; height: 80px;
+                        background: ${m.bg};
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 16px;
+                        cursor: pointer;
+                        scroll-snap-align: start;
+                        transition: all 0.18s ease;
+                        font-family: var(--font);
+                        padding: 0;
+                    `;
+                    card.innerHTML = `
+                        <span style="font-size:1.55rem; line-height:1;">${m.emoji}</span>
+                        <span style="font-size:0.62rem; font-weight:600; color:rgba(255,255,255,0.8); text-align:center; line-height:1.25; padding: 0 6px;">${m.label}</span>
+                    `;
+                    card.addEventListener('mouseover', () => { card.style.transform = 'translateY(-3px)'; card.style.borderColor = 'rgba(255,255,255,0.18)'; });
+                    card.addEventListener('mouseout',  () => { card.style.transform = ''; card.style.borderColor = 'rgba(255,255,255,0.08)'; });
+                    roleta.appendChild(card);
+                });
             }
 
             // ── Tasks Widget ─────────────────────────────────────────────

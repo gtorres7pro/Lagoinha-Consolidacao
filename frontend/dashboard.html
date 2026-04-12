@@ -57,8 +57,22 @@
         .home-layout { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
         .home-layout::-webkit-scrollbar { width: 4px; }
         .home-layout::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        /* Roleta horizontal */
+        .home-roleta {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 4px;
+            flex-shrink: 0;
+        }
+        .home-roleta::-webkit-scrollbar { display: none; }
         @media (max-width: 768px) {
-            .home-bottom-grid { grid-template-columns: 1fr !important; }
             .home-layout { height: auto !important; overflow-y: visible !important; padding: 16px !important; }
         }
         @media (min-width: 769px) {
@@ -1329,9 +1343,9 @@
                     </div>
                 </div>
 
-                <!-- Zona 2: Atalhos de módulos (pills, sem espera de rede) -->
-                <div id="home-module-roleta" style="display: flex; flex-wrap: wrap; gap: 8px; flex-shrink:0;">
-                    <span style="font-size: 0.8rem; color: var(--text-dim);">Carregando módulos...</span>
+                <!-- Zona 2: Roleta de módulos (carrossel horizontal, scroll snap) -->
+                <div id="home-module-roleta" class="home-roleta" style="">
+                    <span style="font-size: 0.8rem; color: var(--text-dim); padding: 8px;">Carregando...</span>
                 </div>
 
                 <!-- Zona 3: Widget de Tarefas -->
