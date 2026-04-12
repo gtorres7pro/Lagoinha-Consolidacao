@@ -1201,7 +1201,7 @@
 
         // Trigger SaaS Checkout — routes to new saas-stripe-checkout function
         window.startSaasCheckout = async function(planSlug, priceId) {
-            if (!priceId || priceId.startsWith('price_') && priceId.includes('MONTHLY')) {
+            if (!priceId || (priceId.startsWith('price_') && priceId.includes('MONTHLY'))) {
                 // Real price IDs not configured yet
                 alert('⚙️ Configure os Planos do Stripe no painel de Desenvolvimento para ativar o Checkout.\n\nVá em: Dashboard → Desenvolvimento → Stripe SaaS');
                 return;
@@ -1210,7 +1210,11 @@
             if (!wsId) return;
 
             const wsSlug = window._allWorkspaces?.find(w => w.id === wsId)?.slug || wsId;
-            const token = window._localToken;
+
+            // Fetch real auth token from active session
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) { alert('Sessão expirada. Faça login novamente.'); return; }
+            const token = session.access_token;
 
             // Find the overlay & show loading
             const o = document.getElementById('upgrade-modal-overlay');
@@ -1236,7 +1240,11 @@
             const wsId = window.currentWorkspaceId;
             if (!wsId) return;
             const wsSlug = window._allWorkspaces?.find(w => w.id === wsId)?.slug || wsId;
-            const token = window._localToken;
+
+            // Fetch real auth token from active session
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (!session) { alert('Sessão expirada. Faça login novamente.'); return; }
+            const token = session.access_token;
 
             const btn = event?.target;
             if (btn) { btn.disabled = true; btn.textContent = 'Carregando...'; }
