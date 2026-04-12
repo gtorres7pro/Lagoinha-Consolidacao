@@ -295,53 +295,49 @@
             const tasksList = document.getElementById('home-tasks-list');
             if (!tasksList) return;
 
-            const loadTasks = (attempt) => {
-                if (!window.supabaseClient || !window.currentWorkspaceId) {
-                    if (attempt < 15) {
-                        setTimeout(() => loadTasks(attempt + 1), 300);
-                    } else {
-                        tasksList.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0;color:var(--text-dim);"><span style="font-size:1.4rem;">✨</span><span style="font-size:0.82rem;">Sem tarefas pendentes</span></div>';
-                    }
-                    return;
-                }
+            const emptyState = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0;color:var(--text-dim);"><span style="font-size:1.4rem;">✨</span><span style="font-size:0.82rem;">Sem tarefas pendentes</span></div>';
 
-                window.supabaseClient.from('tasks')
-                    .select('id, task_title, due_date, status, priority')
-                    .eq('workspace_id', window.currentWorkspaceId)
-                    .neq('status', 'concluida')
-                    .order('due_date', { ascending: true, nullsFirst: false })
-                    .limit(4)
-                    .then(({ data, error }) => {
-                        if (error || !data || data.length === 0) {
-                            tasksList.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0;color:var(--text-dim);"><span style="font-size:1.4rem;">✨</span><span style="font-size:0.82rem;">Sem tarefas pendentes</span></div>';
-                            return;
-                        }
-                        tasksList.innerHTML = '';
-                        const priorityDot = { alta: '#f87171', media: '#fbbf24', baixa: '#4ade80' };
-                        data.forEach(task => {
-                            const now = new Date();
-                            let dateStr = 'Sem data', overdue = false;
-                            if (task.due_date) {
-                                const d = new Date(task.due_date);
-                                d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
-                                overdue = d < now;
-                                const diff = Math.ceil((d - now) / 86400000);
-                                dateStr = diff === 0 ? 'Hoje' : diff === 1 ? 'Amanhã' : diff < 0 ? `${Math.abs(diff)}d atraso` : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
-                            }
-                            const dot = priorityDot[task.priority];
-                            const el = document.createElement('div');
-                            el.style.cssText = 'display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);padding:12px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;';
-                            el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.055)';
-                            el.onmouseout  = () => el.style.background = 'rgba(255,255,255,0.025)';
-                            el.onclick = () => window.switchTab('admin-tarefas');
-                            el.innerHTML = `${dot ? `<div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>` : ''}<div style="flex:1;font-size:0.83rem;color:rgba(255,255,255,0.9);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${task.task_title || 'Sem título'}</div><div style="font-size:0.72rem;font-weight:700;flex-shrink:0;color:${overdue ? '#f87171' : 'var(--accent)'};">${dateStr}</div>`;
-                            tasksList.appendChild(el);
-                        });
-                    });
-            };
+            // If workspace not ready, show empty immediately — function will be called again after workspace loads
+            if (!window.supabaseClient || !window.currentWorkspaceId) {
+                tasksList.innerHTML = emptyState;
+                return;
+            }
 
             tasksList.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:10px;text-align:center;">Carregando...</div>';
-            loadTasks(0);
+
+            window.supabaseClient.from('tasks')
+                .select('id, task_title, due_date, status, priority')
+                .eq('workspace_id', window.currentWorkspaceId)
+                .neq('status', 'concluida')
+                .order('due_date', { ascending: true, nullsFirst: false })
+                .limit(5)
+                .then(({ data, error }) => {
+                    if (error || !data || data.length === 0) {
+                        tasksList.innerHTML = emptyState;
+                        return;
+                    }
+                    tasksList.innerHTML = '';
+                    const priorityDot = { alta: '#f87171', media: '#fbbf24', baixa: '#4ade80' };
+                    data.forEach(task => {
+                        const now = new Date();
+                        let dateStr = 'Sem data', overdue = false;
+                        if (task.due_date) {
+                            const d = new Date(task.due_date);
+                            d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+                            overdue = d < now;
+                            const diff = Math.ceil((d - now) / 86400000);
+                            dateStr = diff === 0 ? 'Hoje' : diff === 1 ? 'Amanhã' : diff < 0 ? `${Math.abs(diff)}d atraso` : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+                        }
+                        const dot = priorityDot[task.priority];
+                        const el = document.createElement('div');
+                        el.style.cssText = 'display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);padding:11px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;';
+                        el.onmouseover = () => el.style.background = 'rgba(255,255,255,0.055)';
+                        el.onmouseout  = () => el.style.background = 'rgba(255,255,255,0.025)';
+                        el.onclick = () => window.switchTab('admin-tarefas');
+                        el.innerHTML = `${dot ? `<div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0;"></div>` : ''}<div style="flex:1;font-size:0.83rem;color:rgba(255,255,255,0.9);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${task.task_title || 'Sem título'}</div><div style="font-size:0.72rem;font-weight:700;flex-shrink:0;color:${overdue ? '#f87171' : 'var(--accent)'};">${dateStr}</div>`;
+                        tasksList.appendChild(el);
+                    });
+                });
         };
 
 

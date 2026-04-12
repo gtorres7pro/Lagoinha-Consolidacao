@@ -1306,9 +1306,9 @@
             </header>
             
             <!-- Home Content Grid -->
-            <div class="home-layout" style="padding: 20px 28px 32px; position:relative; z-index:2; display:flex; flex-direction:column; gap:20px; height: calc(100% - 90px); overflow-y: auto;">
+            <div class="home-layout" style="padding: 20px 28px 32px; position:relative; z-index:2; display:flex; flex-direction:column; gap:20px; overflow-y: auto;">
 
-                <!-- Zone 1: Verse of the day (full width) -->
+                <!-- Zona 1: Palavra do Dia -->
                 <div class="home-glass-card verse-card" style="cursor: pointer; flex-shrink:0;" onclick="showVerseEncouragement()">
                     <div style="position:absolute; top:0; left:0; width:3px; height:100%; background: linear-gradient(to bottom, var(--accent), #f43f5e);"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 6px;">
@@ -1329,48 +1329,25 @@
                     </div>
                 </div>
 
-                <!-- Zone 2: Module Pills (full width, wraps naturally) -->
+                <!-- Zona 2: Atalhos de módulos (pills, sem espera de rede) -->
                 <div id="home-module-roleta" style="display: flex; flex-wrap: wrap; gap: 8px; flex-shrink:0;">
                     <span style="font-size: 0.8rem; color: var(--text-dim);">Carregando módulos...</span>
                 </div>
 
-                <!-- Zone 3: Desktop 2-col — Tasks + Quick Stats | Mobile single col -->
-                <div class="home-bottom-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; flex:1; min-height:0;">
-
-                    <!-- Tasks Widget -->
-                    <div class="home-glass-card" style="padding: 18px 20px; display:flex; flex-direction:column; gap:0; overflow:hidden;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink:0;">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                                <span style="font-size:0.68rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Tarefas Pendentes</span>
-                            </div>
-                            <button onclick="switchTab('admin-tarefas')" style="font-size:0.7rem; color:var(--accent); background:none; border:none; cursor:pointer; font-weight:700; opacity:0.8; font-family:var(--font);" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">Ver todas →</button>
+                <!-- Zona 3: Widget de Tarefas -->
+                <div class="home-glass-card" style="padding: 18px 20px; flex-shrink:0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                            <span style="font-size:0.68rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Tarefas Pendentes</span>
                         </div>
-                        <div id="home-tasks-list" style="display: flex; flex-direction: column; gap: 7px; overflow-y:auto; flex:1;">
-                            <div style="color:var(--text-dim); font-size:0.8rem; padding: 10px; text-align: center;">Carregando tarefas...</div>
-                        </div>
+                        <button onclick="switchTab('admin-tarefas')" style="font-size:0.7rem; color:var(--accent); background:none; border:none; cursor:pointer; font-weight:700; opacity:0.8; font-family:var(--font);" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">Ver todas →</button>
                     </div>
-
-                    <!-- Quick Info Card -->
-                    <div class="home-glass-card" style="padding: 18px 20px; display:flex; flex-direction:column; gap:14px;">
-                        <div style="font-size:0.68rem; font-weight:700; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:1.5px;">Acesso Rápido</div>
-                        <div style="display:flex; flex-direction:column; gap:10px;">
-                            <button onclick="switchTab('v2')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                                <span style="font-size:1.1rem;">🔥</span>
-                                <div><div style="font-size:0.78rem; font-weight:600; color:#fff;">Consolidação</div><div style="font-size:0.67rem; color:var(--text-dim);">Ver decisões recentes</div></div>
-                            </button>
-                            <button onclick="switchTab('visitors')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                                <span style="font-size:1.1rem;">👋</span>
-                                <div><div style="font-size:0.78rem; font-weight:600; color:#fff;">Visitantes</div><div style="font-size:0.67rem; color:var(--text-dim);">Ver visitantes desta semana</div></div>
-                            </button>
-                            <button onclick="switchTab('start')" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; transition:background 0.15s; font-family:var(--font);" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                                <span style="font-size:1.1rem;">🌱</span>
-                                <div><div id="home-quick-start-label" style="font-size:0.78rem; font-weight:600; color:#fff;">Start</div><div style="font-size:0.67rem; color:var(--text-dim);">Participantes ativos</div></div>
-                            </button>
-                        </div>
+                    <div id="home-tasks-list" style="display: flex; flex-direction: column; gap: 7px;">
+                        <div style="color:var(--text-dim); font-size:0.8rem; padding: 10px; text-align: center;">Carregando tarefas...</div>
                     </div>
-
                 </div>
+
             </div>
         </div>
 
