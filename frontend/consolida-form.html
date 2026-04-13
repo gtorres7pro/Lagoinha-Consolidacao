@@ -1310,6 +1310,19 @@
 
                 document.getElementById('successScreen').classList.add('active');
 
+                // 📊 Audit log — fire and forget
+                supabase.from('audit_logs').insert({
+                    workspace_id: workspaceId,
+                    user_id: null,
+                    user_email: null,
+                    action: 'lead.form_submitted',
+                    description: `Form de Consolidação preenchido — ${leadData.name}`,
+                    category: 'forms',
+                    entity_type: 'lead',
+                    entity_id: data?.[0]?.id ? String(data[0].id) : null,
+                    metadata: { lead_name: leadData.name, workspace: workspaceName }
+                }).then(() => {}).catch(() => {});
+
                 // Show personalized name message
                 const firstName = document.getElementById('firstName').value.trim();
                 const titleEl = document.querySelector('#successScreen h3');

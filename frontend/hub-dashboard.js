@@ -1828,119 +1828,37 @@
         };
 
         // ============================================================
-        // PHASE 3: LIVE AUDIT LOGS FROM SUPABASE
+        // ACTIVITY LOGS — stub kept for backward compat (resolveTicket used by Dev Hub)
+        // Real implementation is in hub-logs.js (logAudit, refreshLogs, etc.)
         // ============================================================
-        let allAuditLogs = [];
-        let activeLogFilter = 'all';
 
-        window.loadAuditLogs = async function() {
-            const container = document.getElementById('logs-container');
-            if (!container) return;
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">⏳ Carregando...</div>';
-            try {
-                const { data, error } = await window.supabaseClient
-                    .from('app_logs')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(100);
-                if (error) throw error;
-                allAuditLogs = data || [];
-                renderAuditLogs();
-            } catch(e) {
-                container.innerHTML = `<div style="padding:20px;color:#ff6b6b;">❌ Erro ao carregar logs: ${e.message}</div>`;
-            }
-        };
-
-        window.filterLogs = function(type) {
-            activeLogFilter = type;
-            // Update button styles
-            ['all','update','bug','feature_request'].forEach(t => {
-                const btn = document.getElementById(`log-filter-${t}`);
-                if (btn) {
-                    btn.style.background = t === type ? 'rgba(255,215,0,0.15)' : '';
-                    btn.style.borderColor = t === type ? 'var(--accent)' : '';
-                    btn.style.color = t === type ? 'var(--accent)' : '';
-                }
-            });
-            renderAuditLogs();
-        };
-
-        function renderAuditLogs() {
-            const container = document.getElementById('logs-container');
-            if (!container) return;
-            const filtered = activeLogFilter === 'all'
-                ? allAuditLogs
-                : allAuditLogs.filter(l => l.type === activeLogFilter);
-
-            if (filtered.length === 0) {
-                container.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-dim);">Nenhum log encontrado.</div>';
-                return;
-            }
-
-            const typeConfig = {
-                update: { icon: '🆕', color: '#4CAF50', label: 'Atualização' },
-                bug: { icon: '🐛', color: '#FF6B6B', label: 'Bug' },
-                feature_request: { icon: '💡', color: '#FFD700', label: 'Sugestão' }
-            };
-
-            container.innerHTML = filtered.map(log => {
-                const cfg = typeConfig[log.type] || { icon: '📋', color: '#8696a0', label: log.type };
-                const date = new Date(log.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
-                const time = new Date(log.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-                const statusColors = { published: '#4CAF50', in_progress: '#FFD700', pending: '#8696a0' };
-                const statusLabels = { published: 'Resolvido', in_progress: 'Em Progresso', pending: 'Pendente' };
-                return `
-                    <div class="log-item" style="border-left: 3px solid ${cfg.color}; padding: 14px 18px; margin-bottom: 8px; border-radius: 0 10px 10px 0; background: rgba(255,255,255,0.03);">
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
-                            <span style="font-size:1.1rem;">${cfg.icon}</span>
-                            <span style="color:${cfg.color};font-size:0.75rem;font-weight:600;border:1px solid ${cfg.color}40;padding:2px 8px;border-radius:6px;">${cfg.label}</span>
-                            <span style="color:var(--text-main);font-weight:600;">${log.title || '(sem título)'}</span>
-                            <span style="margin-left:auto;color:var(--text-dim);font-size:0.75rem;">${date} ${time}</span>
-                            <span style="color:${statusColors[log.status]||'#8696a0'};font-size:0.75rem;border:1px solid ${statusColors[log.status]||'#8696a0'}40;padding:2px 8px;border-radius:6px;">${statusLabels[log.status]||log.status}</span>
-                            ${log.status === 'pending' ? `<button onclick="window.resolveTicket('${log.id}')" style="background:#4CAF50; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:bold; cursor:pointer;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✔ Resolver</button>` : ''}
-                        </div>
-                        ${log.description ? `<div style="color:var(--text-dim);font-size:0.85rem;line-height:1.5;">${log.description}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
+        // Compat shim: resolveTicket is still used by the Dev Hub tickets tab
         window.resolveTicket = async function(ticketId) {
-            const note = prompt("Deseja adicionar uma nota técnica para o usuário sobre como o problema foi resolvido? (Opcional)");
-            if (note === null) return; // User cancelled
-            
+            const note = prompt("Deseja adicionar uma nota técnica? (Opcional)");
+            if (note === null) return;
             try {
-                if(typeof hubToast !== 'undefined') hubToast("Marcando como resolvido e notificando...", "info");
-                
+                if (typeof hubToast !== 'undefined') hubToast("Marcando como resolvido...", "info");
                 const { data: { session } } = await window.supabaseClient.auth.getSession();
                 if (!session) throw new Error("Não autenticado");
-
                 const response = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/resolve-ticket', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                     body: JSON.stringify({ ticketId, resolutionText: note })
                 });
-
                 if (!response.ok) throw new Error("Falha na API.");
-                
-                if(typeof hubToast !== 'undefined') hubToast("Ticket resolvido com sucesso!", "success");
-                
-                if (window.loadAuditLogs) window.loadAuditLogs();
+                if (typeof hubToast !== 'undefined') hubToast("Ticket resolvido!", "success");
+                // Reload dev hub tickets if visible
+                if (typeof renderDevTickets === 'function') renderDevTickets();
             } catch(e) {
-                console.error(e);
-                if(typeof hubToast !== 'undefined') hubToast("Erro ao resolver: " + e.message, "error");
-                else alert("Erro ao resolver");
+                if (typeof hubToast !== 'undefined') hubToast("Erro: " + e.message, "error");
             }
         };
 
-        // Legacy session logger (kept for internal use)
-        let mockLogs = [];
-        window.addLog = function(msg) {
-            mockLogs.unshift({time: new Date(), msg: msg});
-        };
+        // Temporary logAudit placeholder — will be overridden by hub-logs.js
+        // Ensures calls before hub-logs.js loads don't throw errors
+        if (!window.logAudit) {
+            window.logAudit = function() {};
+        }
 
         // ============================================================
         // PHASE 3: LIVE TEAM LIST FROM SUPABASE
@@ -3441,6 +3359,13 @@
 
             // If creating a new user, show credentials popup
             if (!id && fnData.tempPassword) {
+                // Log user invite
+                window.logAudit && window.logAudit('user.invited', {
+                    description: `Convite enviado para ${name} (${role})`,
+                    category: 'usuarios',
+                    entity_type: 'user',
+                    metadata: { invited_email: email, invited_name: name, role }
+                });
                 showConfirmModal(
                     '✅ Membro adicionado!',
                     `<div style="text-align:left;">
@@ -8395,9 +8320,9 @@ window.sendGeralReportEmail = function(btn) {
         const role = user?.role;
         const RANK = { master_admin:4, pastor_senior:3, church_admin:2, admin:2, pastor:1, lider_ministerio:1, user:0 };
         const rank = RANK[role] || 0;
-        // Desenvolvedor — master_admin only
-        const navDev = document.getElementById('nav-desenvolvedor');
-        if (navDev) navDev.style.display = (role === 'master_admin') ? '' : 'none';
+        // Desenvolvedor — master_admin only (now a nav-group wrapper)
+        const navGroupDev = document.getElementById('nav-group-dev');
+        if (navGroupDev) navGroupDev.style.display = (role === 'master_admin') ? '' : 'none';
         // Hide old nav-dev if still present
         const oldNavDev = document.getElementById('nav-dev');
         if (oldNavDev) oldNavDev.style.display = 'none';
@@ -8412,10 +8337,8 @@ window.sendGeralReportEmail = function(btn) {
 // Also patch initFaseG to set new nav
 window.initFaseG = function(user) {
     if (user?.role === 'master_admin') {
-        ['nav-desenvolvedor'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = '';
-        });
+        const navGroupDev = document.getElementById('nav-group-dev');
+        if (navGroupDev) navGroupDev.style.display = '';
         const navDev = document.getElementById('nav-dev');
         if (navDev) navDev.style.display = 'none';
         const navRelGlobal = document.getElementById('nav-relatorios-global');
@@ -12281,6 +12204,12 @@ async function sendMilaMessage() {
             ]);
             const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
             downloadBlob(csv, `consolidacao_${wsName}_${now}.csv`);
+            window.logAudit && window.logAudit('report.csv_exported', {
+                description: `Relatório CSV exportado — Consolidação (${leads.length} registros)`,
+                category: 'dados',
+                entity_type: 'report',
+                metadata: { module: 'consolidados', count: leads.length }
+            });
             showSuccessPopup(leads.length, 'Consolidação');
         }
 

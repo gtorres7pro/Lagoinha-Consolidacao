@@ -1305,10 +1305,6 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Equipe</span>
                         </li>
-                        <li id="nav-settings" onclick="switchTab('settings')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-                            <span class="nav-label">Base de Conhecimento IA</span>
-                        </li>
                     </ul>
                 </div>
             </li>
@@ -1318,10 +1314,26 @@
                 <span class="nav-label">Planos</span>
             </li>
             <!-- Dev Hub — master_admin only -->
-            <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')" class="master-admin-only" style="display:none;align-items:center;gap:10px;">
-                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-                <span class="nav-label">Dev Hub</span>
-                <span style="font-size:.55rem;background:rgba(255,215,0,.15);color:#FFD700;padding:1px 6px;border-radius:4px;margin-left:auto;font-weight:800;letter-spacing:.03em;">DEV</span>
+            <li class="nav-group master-admin-only" id="nav-group-dev" style="display:none;">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+                    <span class="nav-label">Dev</span>
+                    <span style="font-size:.55rem;background:rgba(255,215,0,.15);color:#FFD700;padding:1px 6px;border-radius:4px;font-weight:800;letter-spacing:.03em;">DEV</span>
+                    <span class="nav-item-arrow">▶</span>
+                </div>
+                <div class="nav-submenu-wrap">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-desenvolvedor" onclick="switchTab('desenvolvedor')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l3 3-3 3"/><line x1="13" y1="15" x2="16" y2="15"/></svg></span>
+                            <span class="nav-label">Dev Hub</span>
+                        </li>
+                        <li id="nav-settings" onclick="switchTab('settings')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                            <span class="nav-label">Base de Conhecimento</span>
+                        </li>
+                    </ul>
+                </div>
             </li>
 
         </ul>
@@ -2291,26 +2303,85 @@
         </div>
 
 
-        <!-- View: Logs -->
+        <!-- View: Logs — Registro de Atividades -->
 
         <div id="view-logs" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Auditoria de Sistema</h1>
-                    <p>Histórico de atualizações, bugs reportados e feedbacks do sistema.</p>
+                    <h1>Registro de Atividades</h1>
+                    <p>Histórico em tempo real de ações, formulários e automações da plataforma.</p>
                 </div>
                 <div class="actions">
-                    <button class="btn-outline" onclick="loadAuditLogs()" style="display:flex;align-items:center;gap:6px;">🔄 Atualizar</button>
+                    <button class="btn-outline" onclick="refreshLogs()" style="display:flex;align-items:center;gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Atualizar
+                    </button>
                 </div>
             </header>
-            <div style="padding: 20px 40px; display:flex; gap:10px; flex-wrap:wrap; margin-bottom:5px;">
-                <button onclick="filterLogs('all')" id="log-filter-all" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;background:rgba(255,215,0,0.15);border-color:var(--accent);color:var(--accent);">Todos</button>
-                <button onclick="filterLogs('update')" id="log-filter-update" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">🆕 Atualizações</button>
-                <button onclick="filterLogs('bug')" id="log-filter-bug" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">🐛 Bugs</button>
-                <button onclick="filterLogs('feature_request')" id="log-filter-feature_request" class="btn-outline" style="padding:6px 14px;font-size:0.8rem;">💡 Sugestões</button>
+
+            <!-- KPI Row -->
+            <div class="kpi-row" style="padding: 24px 32px 0; grid-template-columns: repeat(4, 1fr);" id="logs-kpi-row">
+                <div class="kpi-box" style="border-top: 2px solid #FFD700;">
+                    <div class="kpi-title">Total de Ações</div>
+                    <div class="kpi-number" id="logs-kpi-total" style="color:#FFD700;">—</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">no período</div>
+                </div>
+                <div class="kpi-box" style="border-top: 2px solid #34D399;">
+                    <div class="kpi-title">Hoje</div>
+                    <div class="kpi-number" id="logs-kpi-today" style="color:#34D399;">—</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">ações registradas</div>
+                </div>
+                <div class="kpi-box" style="border-top: 2px solid #60A5FA;">
+                    <div class="kpi-title">Formulários</div>
+                    <div class="kpi-number" id="logs-kpi-forms" style="color:#60A5FA;">—</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">preenchimentos</div>
+                </div>
+                <div class="kpi-box" style="border-top: 2px solid #A78BFA;">
+                    <div class="kpi-title">Automações</div>
+                    <div class="kpi-number" id="logs-kpi-auto" style="color:#A78BFA;">—</div>
+                    <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">disparadas</div>
+                </div>
             </div>
-            <div class="logs-container" id="logs-container">
-                <div style="text-align:center;padding:40px;color:var(--text-dim);">⏳ Carregando logs...</div>
+
+            <!-- Period selector -->
+            <div class="logs-period-row" style="padding: 20px 32px 0;">
+                <button class="logs-period-btn" onclick="setLogsPeriod(7, this)">7d</button>
+                <button class="logs-period-btn active" onclick="setLogsPeriod(30, this)">30d</button>
+                <button class="logs-period-btn" onclick="setLogsPeriod(90, this)">90d</button>
+                <button class="logs-period-btn" onclick="setLogsPeriod(0, this)">Tudo</button>
+            </div>
+
+            <!-- Filter toolbar -->
+            <div class="logs-toolbar" style="padding: 16px 32px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 8px;">
+                <button class="log-filter-btn" data-filter="all"
+                    onclick="setLogsFilter('all')"
+                    style="background:rgba(255,215,0,0.15);border-color:var(--accent);color:var(--accent);font-weight:700;">⚡ Todos</button>
+                <button class="log-filter-btn" data-filter="forms"
+                    onclick="setLogsFilter('forms')">📋 Formulários</button>
+                <button class="log-filter-btn" data-filter="automacoes"
+                    onclick="setLogsFilter('automacoes')">🤖 Automações</button>
+                <button class="log-filter-btn" data-filter="usuarios"
+                    onclick="setLogsFilter('usuarios')">👤 Usuários</button>
+                <button class="log-filter-btn" data-filter="crie"
+                    onclick="setLogsFilter('crie')">🎉 CRIE</button>
+                <button class="log-filter-btn" data-filter="cantina"
+                    onclick="setLogsFilter('cantina')">🍽️ Cantina</button>
+                <button class="log-filter-btn" data-filter="dados"
+                    onclick="setLogsFilter('dados')">📊 Dados</button>
+
+                <!-- Search -->
+                <div class="logs-search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="Buscar ação, usuário..." oninput="onLogsSearch(this.value)">
+                </div>
+            </div>
+
+            <!-- Activity feed (populated by hub-logs.js) -->
+            <div id="activity-feed">
+                <div style="padding:60px;text-align:center;color:rgba(255,255,255,0.25);">
+                    <div style="font-size:2rem;margin-bottom:12px;">📋</div>
+                    <div style="font-size:0.9rem;">Navegue até Logs para carregar as atividades</div>
+                </div>
             </div>
         </div>
 
@@ -7290,6 +7361,7 @@
 
     <script src="/hub-start.js?v=1"></script>
     <script src="/hub-cantina.js?v=20260411v5"></script>
+    <script src="/hub-logs.js?v=20260413v1"></script>
     <script src="/hub-retencao.js?v=20260413v2"></script>
     <script src="/hub-regionais.js?v=20260413v1"></script>
     <script src="/hub-bi.js?v=20260413v1"></script>
