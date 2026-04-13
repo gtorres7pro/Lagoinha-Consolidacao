@@ -5640,7 +5640,120 @@
             </div>
         </div>
 
+        <!-- ── Workspace Plan & Trial Modal (wspm) ──────────────────────── -->
+        <div id="wspm-overlay" onclick="if(event.target===this)closeOverrideModal()"
+             style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75);
+                    backdrop-filter:blur(12px); z-index:9200;
+                    align-items:center; justify-content:center; padding:20px;">
+            <div style="background:#111116; border:1px solid rgba(255,255,255,.08);
+                        border-radius:22px; padding:28px; width:100%; max-width:460px;
+                        box-shadow:0 32px 80px rgba(0,0,0,.6); position:relative;">
 
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:800; margin:0 0 2px; color:#fff;">Configurar Plano</h3>
+                        <p id="wspm-ws-name" style="font-size:.78rem; color:rgba(255,255,255,.35); margin:0;"></p>
+                    </div>
+                    <button onclick="closeOverrideModal()"
+                            style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+                                   color:rgba(255,255,255,.5); width:32px; height:32px; border-radius:8px;
+                                   cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center;">✕</button>
+                </div>
+
+                <!-- Plan Selector -->
+                <div style="margin-bottom:18px;">
+                    <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
+                                  text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
+                        Plano
+                    </label>
+                    <select id="wspm-plan" class="hub-field-input" onchange="wspmToggleTrialPanel(this)"
+                            style="width:100%; padding:10px 14px; border-radius:10px;
+                                   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+                                   color:#fff; font-size:.88rem; cursor:pointer;">
+                        <option value="free">🔵 Free</option>
+                        <option value="starter">🔵 Starter</option>
+                        <option value="essencial">🟣 Essencial</option>
+                        <option value="founders">⭐ Founders</option>
+                        <option value="trial">🟢 Trial (acesso total temporário)</option>
+                    </select>
+                </div>
+
+                <!-- Trial Panel — shown when plan=trial -->
+                <div id="wspm-trial-panel" style="display:none;">
+                    <div style="background:rgba(52,211,153,.06); border:1px solid rgba(52,211,153,.2);
+                                border-radius:14px; padding:18px; margin-bottom:18px;">
+
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                            <span style="font-size:1rem;">🟢</span>
+                            <span style="font-size:.82rem; font-weight:700; color:#34D399;">Configurações do Trial</span>
+                        </div>
+
+                        <!-- Duration presets -->
+                        <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
+                                      text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
+                            Duração rápida
+                        </label>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(15,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">15d</button>
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(30,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">1 mês</button>
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(60,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">2 meses</button>
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(90,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(52,211,153,.15); cursor:pointer; transition:background .15s;">3 meses</button>
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(180,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">6 meses</button>
+                            <button class="wspm-dur-btn" onclick="wspmSetDuration(365,this)"
+                                    style="flex:1; min-width:60px; padding:7px 4px; border-radius:8px; font-size:.75rem;
+                                           font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
+                                           background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">12 meses</button>
+                        </div>
+
+                        <!-- Custom date -->
+                        <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
+                                      text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
+                            Data exata de expiração
+                        </label>
+                        <input id="wspm-expires-date" type="date" class="hub-field-input"
+                               style="width:100%; padding:10px 14px; border-radius:10px;
+                                      background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+                                      color:#fff; font-size:.88rem; box-sizing:border-box;"
+                               oninput="document.querySelectorAll('.wspm-dur-btn').forEach(b=>b.style.background='rgba(255,255,255,.05)')">
+
+                        <p style="font-size:.72rem; color:rgba(255,255,255,.25); margin:10px 0 0; line-height:1.4;">
+                            ⓘ Ao ativar o trial, todos os módulos são liberados. Ao expirar, o sistema rebaixa para <b>Free</b> automaticamente.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="display:flex; gap:10px;">
+                    <button onclick="closeOverrideModal()"
+                            style="flex:1; padding:11px; border-radius:11px; font-size:.85rem; font-weight:600;
+                                   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+                                   color:rgba(255,255,255,.5); cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button id="wspm-save-btn" onclick="saveOverrideModal()" class="hub-btn-primary"
+                            style="flex:2; padding:11px; border-radius:11px; font-size:.88rem; font-weight:700;">
+                        ✓ Salvar Plano
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- ── /Workspace Plan Modal ──────────────────────────────────────── -->
 
 
     <!-- Lead Drawer Overlay + Panel -->
