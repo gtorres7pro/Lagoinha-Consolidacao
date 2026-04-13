@@ -154,6 +154,16 @@
   .tags-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
   /* Horario chip */
   .horario-chip{display:inline-flex;align-items:center;gap:4px;font-size:.65rem;color:#a1a1aa;margin-top:4px;}
+  /* Compact inline row for idade/sexo/batismo */
+  .meta-row-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .meta-inline-item{display:flex;align-items:center;gap:4px;font-size:.72rem;color:#bbb;}
+  .meta-inline-item .meta-icon{font-size:.8rem;}
+  .meta-inline-item .meta-label{color:var(--text-dim);font-size:.65rem;}
+  /* Location row */
+  .location-val{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+  .location-sep{color:rgba(255,255,255,.2);font-size:.65rem;}
+  .location-part{font-size:.72rem;color:#bbb;}
+  .location-country{font-size:.65rem;color:var(--text-dim);background:rgba(255,255,255,.05);padding:1px 6px;border-radius:4px;}
 
   /* Section header */
   .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -575,10 +585,27 @@ function renderLeads(leads) {
 
     // Meta rows
     const cultoHtml = l.culto ? `<div class="meta-row"><span class="meta-icon">⛪</span><span class="meta-label">Culto</span><span class="meta-val">${e(l.culto)}</span></div>` : '';
-    const paisHtml  = l.pais  ? `<div class="meta-row"><span class="meta-icon">🌎</span><span class="meta-label">País</span><span class="meta-val">${e(l.pais)}</span></div>` : '';
-    const idadeHtml = l.idade ? `<div class="meta-row"><span class="meta-icon">🎂</span><span class="meta-label">Idade</span><span class="meta-val">${e(l.idade)} anos</span></div>` : '';
-    const sexoHtml  = l.sexo  ? `<div class="meta-row"><span class="meta-icon">👤</span><span class="meta-label">Sexo</span><span class="meta-val">${e(l.sexo)}</span></div>` : '';
-    const batiHtml  = l.batizado ? `<div class="meta-row"><span class="meta-icon">🕊️</span><span class="meta-label">Batismo</span><span class="meta-val">${e(l.batizado)}</span></div>` : '';
+
+    // Location: cidade, estado · País
+    const locationParts = [l.cidade, l.estado].filter(Boolean).join(', ');
+    const locationFull = locationParts && l.pais
+      ? `${locationParts} <span class="location-sep">·</span> <span class="location-country">${e(l.pais)}</span>`
+      : locationParts
+        ? `<span class="location-part">${e(locationParts)}</span>`
+        : l.pais
+          ? `<span class="location-country">${e(l.pais)}</span>`
+          : '';
+    const paisHtml = locationFull
+      ? `<div class="meta-row"><span class="meta-icon">🌎</span><span class="meta-label">Local</span><span class="meta-val location-val">${locationFull}</span></div>`
+      : '';
+
+    // Compact inline: Idade · Sexo · Batismo
+    const idadeItem = l.idade ? `<span class="meta-inline-item"><span class="meta-icon">🎂</span><span class="meta-label">Idade</span><span>${e(l.idade)}</span></span>` : '';
+    const sexoItem  = l.sexo  ? `<span class="meta-inline-item"><span class="meta-icon">👤</span><span>${e(l.sexo)}</span></span>` : '';
+    const batiItem  = l.batizado ? `<span class="meta-inline-item"><span class="meta-icon">🕊️</span><span>${e(l.batizado)}</span></span>` : '';
+    const compactRowHtml = (idadeItem || sexoItem || batiItem)
+      ? `<div class="meta-row"><div class="meta-row-inline">${idadeItem}${idadeItem && (sexoItem||batiItem) ? '<span class="location-sep">·</span>' : ''}${sexoItem}${sexoItem && batiItem ? '<span class="location-sep">·</span>' : ''}${batiItem}</div></div>`
+      : '';
 
     // Horário
     const horHtml = l.melhor_horario
@@ -628,10 +655,10 @@ function renderLeads(leads) {
         <span class="type-badge ${typeClass}">${typeLabel}</span>
       </div>
 
-      ${(decHtml || cultoHtml || paisHtml || idadeHtml || sexoHtml || batiHtml) ? `
+      ${(decHtml || cultoHtml || paisHtml || compactRowHtml) ? `
       <div class="lead-meta">
         ${decHtml ? `<div class="meta-row" style="flex-wrap:wrap;gap:5px;">${decHtml}</div>` : ''}
-        ${cultoHtml}${paisHtml}${idadeHtml}${sexoHtml}${batiHtml}
+        ${cultoHtml}${paisHtml}${compactRowHtml}
       </div>` : ''}
 
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;">
@@ -741,11 +768,11 @@ function downloadPublicReportCSV() {
   const leads = window._filteredPublicLeads || window._allLeads || [];
   if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
   const now = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
-  const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+  const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','Cidade','Estado','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
   const rows = leads.map(l => [
     _csvEsc(l.name),_csvEsc(l.phone),_csvEsc(l.email),
     _csvEsc(l.type==='saved'?'Salvo':'Visitante'),
-    _csvEsc(l.decisao),_csvEsc(l.culto),_csvEsc(l.pais),
+    _csvEsc(l.decisao),_csvEsc(l.culto),_csvEsc(l.cidade),_csvEsc(l.estado),_csvEsc(l.pais),
     _csvEsc(l.gc_status),_csvEsc(l.batizado),_csvEsc(l.idade),
     _csvEsc(l.sexo),_csvEsc(l.melhor_horario),
     _csvEsc((l.tags||[]).join('; ')),
