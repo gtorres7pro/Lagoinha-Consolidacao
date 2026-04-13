@@ -1043,11 +1043,15 @@
         // ═══════════════════════════════════════════════════════════
 
         const PLAN_CONFIG = {
-            free:     { label:'Gratuito', modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
+            free:     { label:'Gratuito',  modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
             trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
-            starter:  { label:'Starter',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
-            advanced: { label:'Advanced', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            founders: { label:'Founders', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            starter:  { label:'Starter',   modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
+            // 'medium' e 'premium' são os slugs reais usados no banco (workspaces.plan)
+            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            // mantidos para compatibilidade com planos anteriores
+            advanced: { label:'Advanced',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            founders: { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
         const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs'];

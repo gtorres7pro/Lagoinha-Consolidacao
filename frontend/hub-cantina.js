@@ -301,8 +301,8 @@ async function saveCantinaConfig() {
     responsible_email: document.getElementById('cc-resp-email')?.value || null,
     responsible_phone: document.getElementById('cc-resp-phone')?.value || null,
     stripe_enabled: document.getElementById('cc-stripe-enabled')?.checked || false,
-    stripe_publishable_key: document.getElementById('cc-stripe-pub')?.value || null,
-    stripe_secret_key: document.getElementById('cc-stripe-sec')?.value || null,
+    // NOTA: stripe_publishable_key e stripe_secret_key NÃO são salvas aqui.
+    // O fluxo correto é via connectCantinaStripe() → Edge Function → stripe_secret_key_enc (codificado).
     allow_counter_payment: document.getElementById('cc-allow-counter')?.checked || false,
     payment_methods: methods,
     notif_low_stock: document.getElementById('cc-notif-stock')?.checked || false,
