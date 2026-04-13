@@ -481,6 +481,7 @@
                     if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
+                    window._currentWorkspaceLevel = 'global'; // master_admin = global scope
                 } else {
                     // Regular user: only their own workspace
                     if (userRow?.workspace_id) {
@@ -488,6 +489,7 @@
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
+                    window._currentWorkspaceLevel = userRow?.level || 'local';
                 }
 
 
@@ -1189,12 +1191,13 @@
             free:     { label:'Gratuito',  modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
             trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             starter:  { label:'Starter',   modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
-            // 'medium' e 'premium' são os slugs reais usados no banco (workspaces.plan)
-            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
-            // mantidos para compatibilidade com planos anteriores
-            advanced: { label:'Advanced',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            // Planos documentados no GEMINI.md (slugs canônicos do banco)
+            essencial:{ label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
             founders: { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            // Aliases mantidos para compatibilidade com planos legados
+            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            advanced: { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
         const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs'];
@@ -8222,38 +8225,165 @@ window.toggleAdminMenu = function() { /* menus are now fixed/non-collapsible */ 
 (function() {
     const _prev = window.switchTab;
     window.switchTab = function(tab) {
-        const newTabs = ['relatorios-local','relatorios-regional','relatorios-global',
+        const newTabs = ['relatorios-geral','relatorios-local','relatorios-regional','relatorios-global',
                          'admin-tarefas','admin-financeiro','desenvolvedor'];
         if (newTabs.includes(tab)) {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
-            const viewEl = document.getElementById('view-' + tab);
+
+            // Redirect legacy tabs to the unified view
+            const viewId = (tab === 'relatorios-local' || tab === 'relatorios-regional' || tab === 'relatorios-global')
+                ? 'view-relatorios-geral' : ('view-' + tab);
+            const viewEl = document.getElementById(viewId);
             if (viewEl) { viewEl.classList.add('active'); viewEl.style.display = ''; }
 
-            // Highlight nav item — for admin-tarefas, highlight #nav-administrativo (the clickable header)
+            // Highlight nav item
             if (tab === 'admin-tarefas') {
                 const navEl = document.getElementById('nav-administrativo');
                 if (navEl) navEl.classList.add('active');
             } else {
-                const navEl = document.getElementById('nav-' + tab);
+                const navEl = document.getElementById('nav-' + tab) || document.getElementById('nav-relatorios-toggle');
                 if (navEl) navEl.classList.add('active');
             }
-            // Also highlight Relatórios header when on any relatorios-* tab
+            // Highlight Relatórios header when on any relatorios-* tab
             if (tab.startsWith('relatorios-')) {
                 const relToggle = document.getElementById('nav-relatorios-toggle');
                 if (relToggle) relToggle.classList.add('active');
             }
 
             // Load data
-            if (tab === 'relatorios-local')    loadRelatoriosLocal('30d');
-            if (tab === 'relatorios-regional') loadRelatoriosRegional('30d', null);
-            if (tab === 'relatorios-global')   loadRelatoriosGlobal('30d', null);
-            if (tab === 'desenvolvedor')       loadDevPanel();
+            if (tab === 'relatorios-geral') {
+                _initGeralRelatorios();
+            } else if (tab === 'relatorios-local') {
+                _initGeralRelatorios('local');
+            } else if (tab === 'relatorios-regional') {
+                _initGeralRelatorios('regional');
+            } else if (tab === 'relatorios-global') {
+                _initGeralRelatorios('global');
+            }
+            if (tab === 'desenvolvedor') loadDevPanel();
             return;
         }
         if (_prev) _prev(tab);
     };
 })();
+
+// ── Grid ID aliases — redirect old IDs to unified grid ────────────────────────
+// loadRelatoriosLocal uses 'rl-modules-grid', Regional uses 'rr-modules-grid', Global uses 'rg-modules-grid'
+// We intercept getElementById to alias all three to 'relatorios-geral-grid'
+(function() {
+    const _origGetById = document.getElementById.bind(document);
+    document.getElementById = function(id) {
+        const aliases = { 'rl-modules-grid': 'relatorios-geral-grid',
+                          'rr-modules-grid': 'relatorios-geral-grid',
+                          'rg-modules-grid': 'relatorios-geral-grid' };
+        if (aliases[id]) {
+            const el = _origGetById(aliases[id]);
+            if (el) return el;
+        }
+        return _origGetById(id);
+    };
+})();
+
+// ── Geral Relatórios — Scope state ────────────────────────────────────────────
+let _geralRelScope  = 'local';
+let _geralRelPeriod = '30d';
+
+// Called when Geral tab opens — shows correct scope tabs based on workspace level
+function _initGeralRelatorios(forceScope) {
+    const level = window._currentWorkspaceLevel || 'workspace';
+    const RANK  = { workspace: 0, local: 0, regional: 1, global: 2, master: 2, master_admin: 2 };
+    const rank  = RANK[level] || (window._currentUser?.role === 'master_admin' ? 2 : 0);
+
+    // Update scope tab visibility
+    const btnReg = document.getElementById('relatorios-scope-btn-regional');
+    const btnGlo = document.getElementById('relatorios-scope-btn-global');
+    if (btnReg) btnReg.style.display = rank >= 1 ? 'flex' : 'none';
+    if (btnGlo) btnGlo.style.display = rank >= 2 ? 'flex' : 'none';
+
+    // Determine initial scope
+    if (forceScope) _geralRelScope = forceScope;
+    else if (!_geralRelScope) _geralRelScope = 'local';
+
+    // Activate the correct scope
+    switchGeralRelScope(_geralRelScope, document.getElementById('relatorios-scope-btn-' + _geralRelScope));
+}
+
+// Switch scope tab (same pattern as hub-retencao.js)
+window.switchGeralRelScope = function(scope, btn) {
+    _geralRelScope = scope;
+
+    // Update button styles
+    ['local','regional','global'].forEach(s => {
+        const b = document.getElementById('relatorios-scope-btn-' + s);
+        if (!b) return;
+        const isActive = s === scope;
+        const colors = { local:'#FFD700', regional:'#818CF8', global:'#34D399' };
+        if (isActive) {
+            b.style.background = `rgba(${s==='local'?'255,215,0':s==='regional'?'129,140,248':'52,211,153'},.15)`;
+            b.style.color      = colors[s];
+            b.style.border     = `1px solid rgba(${s==='local'?'255,215,0':s==='regional'?'129,140,248':'52,211,153'},.25)`;
+            b.style.fontWeight = '700';
+        } else {
+            b.style.background = 'transparent';
+            b.style.color      = 'rgba(255,255,255,.35)';
+            b.style.border     = '1px solid rgba(255,255,255,.1)';
+            b.style.fontWeight = '600';
+        }
+    });
+
+    // Update header badge
+    const badge    = document.getElementById('relatorios-geral-scope-badge');
+    const subtitle = document.getElementById('relatorios-geral-subtitle');
+    const scopeLabels = { local:'Local', regional:'Regional', global:'Global' };
+    const scopeColors = { local:'rgba(255,215,0,.12)|#FFD700', regional:'rgba(129,140,248,.12)|#818CF8', global:'rgba(52,211,153,.12)|#34D399' };
+    if (badge) {
+        const [bg, color] = (scopeColors[scope] || 'rgba(255,215,0,.12)|#FFD700').split('|');
+        badge.textContent = scopeLabels[scope] || 'Local';
+        badge.style.background = bg;
+        badge.style.color      = color;
+    }
+
+    // Scope subtitle
+    if (subtitle) {
+        if (scope === 'local')    subtitle.textContent = window._currentWorkspaceName || 'Sua Igreja';
+        if (scope === 'regional') subtitle.textContent = 'Visão regional consolidada';
+        if (scope === 'global')   subtitle.textContent = 'Lagoinha — Visão consolidada de todas as regionais';
+    }
+
+    // Show/hide extra filters
+    const extraFilters = document.getElementById('relatorios-geral-extra-filters');
+    const regionalFilter = document.getElementById('relatorios-geral-regional-filter');
+    const globalFilter   = document.getElementById('relatorios-geral-global-filter');
+    if (extraFilters) extraFilters.style.display = scope !== 'local' ? 'flex' : 'none';
+    if (regionalFilter) regionalFilter.style.display = scope === 'regional' ? 'block' : 'none';
+    if (globalFilter)   { globalFilter.style.display = scope === 'global' ? 'flex' : 'none'; }
+
+    // Load data for this scope
+    _loadGeralRelData(scope, _geralRelPeriod);
+};
+
+// Period change
+window.setGeralRelPeriod = function(period, btn) {
+    _geralRelPeriod = period;
+    const container = btn?.parentElement;
+    if (container) container.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    _loadGeralRelData(_geralRelScope, period);
+};
+
+// Delegate to the correct existing load function
+function _loadGeralRelData(scope, period) {
+    if (scope === 'local')    { loadRelatoriosLocal(period); return; }
+    if (scope === 'regional') { loadRelatoriosRegional(period, null); return; }
+    if (scope === 'global')   { loadRelatoriosGlobal(period, null); return; }
+}
+
+// sendReportEmail wrapper for unified view
+window.sendGeralReportEmail = function(btn) {
+    sendReportEmail(_geralRelScope, btn);
+};
+
 
 
 // ── Nav visibility: update for new menu ──────────────────────────
@@ -8300,7 +8430,7 @@ let _devCurrentTab = 'workspaces';
 
 window.switchDevTab = function(tab) {
     _devCurrentTab = tab;
-    const tabs = ['workspaces', 'tickets', 'roadmap'];
+    const tabs = ['workspaces', 'regionais', 'analytics', 'tickets', 'roadmap'];
     tabs.forEach(t => {
         const panel = document.getElementById('devtab-' + t);
         const btn   = document.getElementById('devtab-btn-' + t);
@@ -8313,6 +8443,7 @@ window.switchDevTab = function(tab) {
     });
     if (tab === 'tickets')  loadDevTickets();
     if (tab === 'roadmap')  loadRoadmap();
+    if (tab === 'regionais' && typeof window.loadRegionais === 'function') loadRegionais();
 };
 
 // ═══════════════════════════════════════════════════════════════════

@@ -490,6 +490,16 @@
             #view-visitors .top-bar { flex-shrink: 0; }
             /* Reduce chart height on mobile so they don't take too much vertical space */
             #visitors-charts-row .canvas-wrapper { max-height: 160px; }
+
+            /* ── Start mobile fixes ── */
+            #view-start { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-start .top-bar { flex-shrink: 0; }
+            #view-start .kpi-row { grid-template-columns: 1fr 1fr !important; }
+
+            /* ── Batismo mobile fixes ── */
+            #view-batismo { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-batismo .top-bar { flex-shrink: 0; }
+            #batismo-kpi-row { grid-template-columns: 1fr 1fr !important; }
         }
 
         .top-bar {
@@ -1532,11 +1542,11 @@
                     <p>Registro de batismos e acompanhamento do curso online</p>
                 </div>
                 <div class="actions" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <button onclick="copyBatismoFormLink()" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <button class="hub-hide-mobile" onclick="copyBatismoFormLink()" style="background:rgba(255,215,0,0.1);color:#FFD700;border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                         Copiar Link do Form
                     </button>
-                    <button onclick="openBatismoForm()" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;">
+                    <button class="hub-hide-mobile" onclick="openBatismoForm()" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;">
                         🌊 Abrir Form
                     </button>
                     <button onclick="downloadReportCSV('batismo')" style="background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 16px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:5px;">⬇️ Baixar Relatório</button>
@@ -1544,7 +1554,7 @@
             </header>
 
             <!-- KPIs -->
-            <div class="crie-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:16px; padding:0 24px 16px;">
+            <div class="crie-dashboard-row" id="batismo-kpi-row" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:16px; padding:0 24px 16px;">
                 <div class="crie-kpi-card" style="border-top:2px solid #A78BFA; padding:20px;">
                     <h3 style="font-size:0.8rem;">Total Batizados</h3>
                     <div id="batismo-kpi-total" class="crie-kpi-val" style="color:#A78BFA; font-size:2rem;">-</div>
@@ -1907,11 +1917,11 @@
                     <p>Acompanhamento dos participantes do curso básico</p>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-outline" id="btn-copy-start-public" onclick="window.copyStartLink('start')">
+                    <button class="btn btn-outline hub-hide-mobile" id="btn-copy-start-public" onclick="window.copyStartLink('start')">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                         Link Público
                     </button>
-                    <button class="btn btn-outline" id="btn-copy-start-presential" onclick="window.copyStartLink('start-conclusao')">
+                    <button class="btn btn-outline hub-hide-mobile" id="btn-copy-start-presential" onclick="window.copyStartLink('start-conclusao')">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                         Form Presencial
                     </button>

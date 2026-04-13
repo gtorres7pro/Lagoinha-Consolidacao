@@ -48,10 +48,111 @@ function onCantinaTabSwitch(tab) {
   window.switchTab = function(tab, ...args) {
     _orig(tab, ...args);
     if (tab && tab.startsWith('cantina-')) {
+      // Start realtime when entering Pedidos, stop when leaving
+      if (tab === 'cantina-pedidos') {
+        startCantinaRealtime();
+      } else {
+        stopCantinaRealtime();
+      }
       onCantinaTabSwitch(tab);
+    } else if (window._cantinaRealtimeChannel) {
+      // Left cantina entirely — clean up subscription
+      stopCantinaRealtime();
     }
   };
 })();
+
+// ── Realtime Subscription ────────────────────────────────────
+let _cantinaRealtimeChannel = null;
+let _NEW_ORDER_SOUND_ALLOWED = true; // browser audio permission guard
+
+async function startCantinaRealtime() {
+  if (_cantinaRealtimeChannel) return; // already subscribed
+  const sb = getSupabase();
+  const wsId = await getWorkspaceId();
+  if (!wsId || !sb.channel) return; // Supabase JS v1 doesn't have channel()
+
+  _cantinaRealtimeChannel = sb
+    .channel(`cantina_orders_${wsId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'cantina_orders', filter: `workspace_id=eq.${wsId}` },
+      (payload) => {
+        const order = payload.new;
+        // Add to top of local cache without full reload
+        if (!window._cantinaPedidos.find(o => o.id === order.id)) {
+          window._cantinaPedidos.unshift(order);
+        }
+        renderPedidosList(window._cantinaPedidos);
+        updatePedidosKPIs(window._cantinaPedidos);
+        updateCantinaBadge(window._cantinaPedidos);
+        // Notify operator
+        _cantinaNewOrderAlert(order);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'cantina_orders', filter: `workspace_id=eq.${wsId}` },
+      (payload) => {
+        const updated = payload.new;
+        const idx = window._cantinaPedidos.findIndex(o => o.id === updated.id);
+        if (idx !== -1) {
+          window._cantinaPedidos[idx] = updated;
+        } else {
+          window._cantinaPedidos.unshift(updated);
+        }
+        renderPedidosList(window._cantinaPedidos);
+        updatePedidosKPIs(window._cantinaPedidos);
+        updateCantinaBadge(window._cantinaPedidos);
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Cantina Realtime] ✅ Connected — live orders enabled');
+        _cantinaShowRealtimeBadge(true);
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        console.warn('[Cantina Realtime] ⚠️ Disconnected:', status);
+        _cantinaShowRealtimeBadge(false);
+        _cantinaRealtimeChannel = null;
+      }
+    });
+
+  window._cantinaRealtimeChannel = _cantinaRealtimeChannel;
+}
+
+function stopCantinaRealtime() {
+  if (!_cantinaRealtimeChannel) return;
+  const sb = getSupabase();
+  sb.removeChannel && sb.removeChannel(_cantinaRealtimeChannel);
+  _cantinaRealtimeChannel = null;
+  window._cantinaRealtimeChannel = null;
+  _cantinaShowRealtimeBadge(false);
+}
+
+function _cantinaShowRealtimeBadge(connected) {
+  const badge = document.getElementById('cantina-realtime-badge');
+  if (!badge) return;
+  badge.style.display = connected ? 'inline-flex' : 'none';
+}
+
+function _cantinaNewOrderAlert(order) {
+  // Toast notification
+  const name = order.customer_name || 'Cliente';
+  const num  = order.order_number || order.id?.substr(0, 6);
+  showToast(`🛎️ Novo pedido #${num} — ${name}`, 'info', 5000);
+
+  // Vibrate on mobile (if supported)
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+  // Flash the browser tab title
+  let _titleFlash = 0;
+  const origTitle = document.title;
+  const flashInterval = setInterval(() => {
+    document.title = _titleFlash % 2 === 0 ? `🛎️ Novo Pedido! — Cantina` : origTitle;
+    _titleFlash++;
+    if (_titleFlash > 6) { clearInterval(flashInterval); document.title = origTitle; }
+  }, 700);
+}
 
 // ── Helpers ─────────────────────────────────────────────────
 function cantinaFmt(amount) {
@@ -766,23 +867,33 @@ async function updateOrderStatus(orderId, status) {
 }
 
 async function markOrderPaid(orderId) {
-  const sb = getSupabase();
-  await sb.from('cantina_orders').update({ payment_status: 'paid', status: 'confirmed', updated_at: new Date().toISOString() }).eq('id', orderId);
-  // Log transaction
-  const o = window._cantinaPedidos.find(x => x.id === orderId);
-  if (o) {
-    const wsId = await getWorkspaceId();
-    await sb.from('cantina_transactions').insert({
-      workspace_id: wsId,
-      type: 'sale',
-      description: `Pedido ${o.order_number || orderId.substr(0,6)} — ${o.customer_name}`,
-      amount: parseFloat(o.total || 0),
-      payment_method: o.payment_method || 'cash',
-      order_id: orderId,
-    });
+  // Bug 3.5 fix: prevent double-click from creating duplicate transactions
+  if (window._processingPay === orderId) return;
+  window._processingPay = orderId;
+  try {
+    const sb = getSupabase();
+    await sb.from('cantina_orders').update({ payment_status: 'paid', status: 'confirmed', updated_at: new Date().toISOString() }).eq('id', orderId);
+    // Log transaction
+    const o = window._cantinaPedidos.find(x => x.id === orderId);
+    if (o) {
+      const wsId = await getWorkspaceId();
+      await sb.from('cantina_transactions').insert({
+        workspace_id: wsId,
+        type: 'sale',
+        description: `Pedido ${o.order_number || orderId.substr(0,6)} — ${o.customer_name}`,
+        amount: parseFloat(o.total || 0),
+        payment_method: o.payment_method || 'cash',
+        order_id: orderId,
+      });
+    }
+    showToast('💰 Pagamento registrado!', 'success');
+    loadCantinaPedidos();
+  } catch (err) {
+    console.error('[Cantina] markOrderPaid error:', err);
+    showToast('Erro ao registrar pagamento. Tente novamente.', 'error');
+  } finally {
+    window._processingPay = null;
   }
-  showToast('💰 Pagamento registrado!', 'success');
-  loadCantinaPedidos();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -872,6 +983,66 @@ function updateFinKPIs(txns) {
   set('fin-kpi-pos', cantinaFmt(pos));
   set('fin-kpi-doacoes', cantinaFmt(doacoes));
 }
+
+// ── Cantina — Exportar PDF Financeiro ───────────────────────
+function exportCantinaFinanceiroPDF() {
+  const txns = window._cantinaTransactions || [];
+  const cfg  = window._cantinaConfig || {};
+  const sym  = cfg.currency_symbol || 'R$';
+  const ccy  = cfg.currency || 'BRL';
+
+  // Apply current type filter
+  let filtered = txns;
+  if (window._finTypeFilter && window._finTypeFilter !== 'all') {
+    filtered = txns.filter(t => t.type === window._finTypeFilter);
+  }
+
+  // KPI calculations
+  const receitas = filtered.filter(t => t.amount > 0 && t.type !== 'donation').reduce((s,t) => s + parseFloat(t.amount), 0);
+  const despesas = filtered.filter(t => t.amount < 0 || t.type === 'expense').reduce((s,t) => s + Math.abs(parseFloat(t.amount)), 0);
+  const doacoes  = filtered.filter(t => t.type === 'donation').reduce((s,t) => s + parseFloat(t.amount), 0);
+  const saldo    = receitas + doacoes - despesas;
+
+  const fmt = (n) => sym + ' ' + Math.abs(parseFloat(n||0)).toFixed(2).replace('.',',');
+
+  const periodLabel = window._finPeriodDays > 0
+    ? `Últimos ${window._finPeriodDays} dias`
+    : 'Todos os períodos';
+
+  const typeFilterLabel = (window._finTypeFilter && window._finTypeFilter !== 'all')
+    ? ` — Filtro: ${window._finTypeFilter}`
+    : '';
+
+  // Map rows
+  const rows = filtered.map(t => ({
+    date:   new Date(t.created_at).toLocaleDateString('pt-BR'),
+    type:   t.type,
+    desc:   t.description || '—',
+    method: (t.payment_method === 'cash' ? 'Dinheiro' : t.payment_method === 'pix' ? 'Pix' : t.payment_method === 'card' ? 'Cartão' : t.payment_method || '—'),
+    amount: parseFloat(t.amount),
+  }));
+
+  if (window.exportFinanceiroPDF) {
+    window.exportFinanceiroPDF({
+      title: 'Cantina — Relatório Financeiro',
+      subtitle: cfg.store_name || '',
+      period: periodLabel + typeFilterLabel,
+      currency: sym,
+      workspaceName: window._currentWorkspaceName || '',
+      rows,
+      kpis: [
+        { label: 'Receitas', value: fmt(receitas), color: '#34d399' },
+        { label: 'Despesas', value: fmt(despesas), color: '#f87171' },
+        { label: 'Doações',  value: fmt(doacoes),  color: '#a78bfa' },
+        { label: 'Saldo',    value: fmt(saldo),    color: saldo >= 0 ? '#34d399' : '#f87171' },
+      ],
+    });
+  } else {
+    showToast('⚠️ Exportador não disponível — recarregue a página', 3000);
+  }
+}
+
+
 
 // ─── Lançamentos ────────────────────────────────────────────
 
@@ -980,6 +1151,13 @@ async function fecharCaixa() {
   });
 
   if (error) { showToast('Erro ao fechar caixa: ' + error.message, 'error'); return; }
+
+  // Audit log: critical financial action
+  window.logAudit && window.logAudit('cantina.cash_closing', {
+    entity_type: 'cantina',
+    entity_id: wsId,
+    metadata: { total_sales: totalSales, total_expenses: totalExpenses, net, order_count: orderCount },
+  });
 
   // Send email via Resend Edge Function (if configured)
   if (cfg.responsible_email && cfg.notif_cash_closing) {

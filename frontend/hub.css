@@ -68,6 +68,269 @@
   0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,.5); }
   50%       { box-shadow: 0 0 0 5px rgba(255,215,0,0); }
 }
+@keyframes cantina-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+  50%       { opacity: 0.7; transform: scale(1.2); box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+}
+@keyframes toast-slide {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes retencao-fill {
+  from { width: 0; }
+  to   { width: var(--target-width, 100%); }
+}
+@keyframes retencao-step-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Gestão de Regionais — Dev Hub
+   ═══════════════════════════════════════════════════════ */
+.reg-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.reg-card:hover { border-color: rgba(129,140,248,.25); }
+
+.reg-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+  background: rgba(129,140,248,.04);
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.reg-card-info   { display: flex; align-items: baseline; gap: 10px; }
+.reg-card-name   { font-weight: 800; font-size: .95rem; color: #fff; }
+.reg-card-slug   { font-size: .72rem; color: rgba(255,255,255,.3); font-family: monospace; }
+.reg-card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.reg-responsible-badge {
+  font-size: .72rem; font-weight: 700;
+  background: rgba(255,215,0,.1); color: #FFD700;
+  border: 1px solid rgba(255,215,0,.2);
+  border-radius: 20px; padding: 3px 10px;
+}
+.reg-responsible-empty {
+  font-size: .72rem; color: rgba(255,255,255,.25);
+  font-style: italic;
+}
+.reg-member-count {
+  font-size: .72rem; font-weight: 700;
+  background: rgba(129,140,248,.1); color: #818cf8;
+  border-radius: 20px; padding: 3px 10px;
+}
+.reg-btn-edit, .reg-btn-delete, .reg-btn-link, .reg-btn-unlink {
+  padding: 5px 12px; border-radius: 8px; font-size: .75rem;
+  font-weight: 700; cursor: pointer; border: 1px solid;
+  transition: all .2s; font-family: var(--font);
+}
+.reg-btn-edit {
+  background: rgba(255,255,255,.05);
+  border-color: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.7);
+}
+.reg-btn-edit:hover { background: rgba(255,255,255,.1); color: #fff; }
+.reg-btn-delete {
+  background: rgba(248,113,113,.05);
+  border-color: rgba(248,113,113,.2);
+  color: #f87171;
+}
+.reg-btn-delete:hover { background: rgba(248,113,113,.15); }
+.reg-btn-link {
+  background: rgba(129,140,248,.1);
+  border-color: rgba(129,140,248,.3);
+  color: #818cf8;
+}
+.reg-btn-link:hover { background: rgba(129,140,248,.2); }
+.reg-btn-unlink {
+  background: transparent;
+  border-color: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.35);
+  padding: 3px 8px; font-size: .68rem;
+}
+.reg-btn-unlink:hover { border-color: #f87171; color: #f87171; }
+
+.reg-members-list { padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 8px; }
+.reg-member-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.02);
+}
+.reg-member-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.reg-member-name { font-size: .82rem; font-weight: 600; color: rgba(255,255,255,.8); flex: 1; }
+.reg-member-plan { font-size: .68rem; color: rgba(255,255,255,.35); }
+
+.reg-add-ws-wrap { display: flex; gap: 8px; margin-top: 4px; }
+.reg-add-select {
+  flex: 1; background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px; padding: 7px 12px;
+  color: rgba(255,255,255,.7); font-size: .8rem;
+  font-family: var(--font); outline: none;
+}
+.reg-add-select:focus { border-color: rgba(129,140,248,.4); }
+
+/* ── Scope tabs (Retenção: Local / Regional / Global) ── */
+.retencao-scope-tabs {
+  display: flex; gap: 4px;
+  padding: 0 32px 16px; flex-wrap: wrap;
+}
+.retencao-scope-tab {
+  padding: 7px 18px; border-radius: 20px;
+  font-size: .78rem; font-weight: 700;
+  cursor: pointer; border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.5); transition: all .2s;
+  font-family: var(--font);
+}
+.retencao-scope-tab:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+.retencao-scope-tab.active {
+  background: rgba(129,140,248,.15);
+  border-color: rgba(129,140,248,.4);
+  color: #818cf8;
+}
+.retencao-scope-tab.global.active {
+  background: rgba(255,215,0,.1);
+  border-color: rgba(255,215,0,.3);
+  color: #FFD700;
+}
+
+/* Grouped workspace row separator */
+.ws-group-header td {
+  padding: 10px 16px 4px !important;
+  font-size: .65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Relatório de Retenção — Funil de Crescimento
+   ═══════════════════════════════════════════════════════ */
+.retencao-section-title {
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.3);
+  margin: 0 0 14px 0;
+}
+
+/* Funnel Steps */
+.retencao-funnel-steps { display: flex; flex-direction: column; gap: 10px; }
+
+.retencao-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 14px 18px;
+  animation: retencao-step-in 0.4s cubic-bezier(.16,1,.3,1) both;
+  transition: background .2s;
+}
+.retencao-step:hover { background: rgba(255,255,255,.055); }
+
+.retencao-step-left  { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.retencao-step-emoji { font-size: 1.4rem; flex-shrink: 0; }
+.retencao-step-info  { display: flex; flex-direction: column; gap: 2px; }
+.retencao-step-label { font-weight: 700; font-size: .88rem; color: #fff; }
+.retencao-step-conv  { font-size: .72rem; color: rgba(255,255,255,.35); }
+
+.retencao-step-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 200px;
+}
+.retencao-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,.07);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.retencao-bar {
+  height: 100%;
+  border-radius: 99px;
+  animation: retencao-fill .7s cubic-bezier(.16,1,.3,1) both;
+  animation-delay: inherit;
+  opacity: .85;
+}
+.retencao-step-count {
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--step-color, #fff);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* Insights Grid */
+.retencao-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.retencao-insight-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background .2s;
+}
+.retencao-insight-card:hover { background: rgba(255,255,255,.06); }
+.retencao-insight-value { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+.retencao-insight-label { font-size: .75rem; font-weight: 700; color: rgba(255,255,255,.7); margin-top: 4px; }
+.retencao-insight-note  { font-size: .68rem; color: rgba(255,255,255,.3); }
+
+/* Decisão bars */
+.retencao-decisoes-list { display: flex; flex-direction: column; gap: 8px; }
+.retencao-decisao-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+.retencao-decisao-label { font-size: .8rem; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.retencao-decisao-bar-wrap {
+  width: 120px;
+  height: 6px;
+  background: rgba(255,255,255,.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.retencao-decisao-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 99px;
+  animation: retencao-fill .6s ease both;
+}
+.retencao-decisao-count { font-size: .8rem; font-weight: 700; color: rgba(255,255,255,.5); min-width: 36px; text-align: right; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .retencao-step-right { min-width: 120px; }
+  .retencao-insights-grid { grid-template-columns: repeat(2, 1fr); }
+  .retencao-decisao-bar-wrap { width: 70px; }
+}
 
 /* ── Animation Utilities ── */
 .anim-fade-up    { animation: fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
@@ -1446,4 +1709,230 @@ html, body {
     grid-template-columns: 1fr 300px !important;
     height: calc(100dvh - 160px) !important;
   }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BI Dashboard — Analytics Cross-Workspace
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── Section titles ── */
+.bi-section-title {
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.35);
+  margin-bottom: 14px;
+}
+
+/* ── KPI Grid ── */
+.bi-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.bi-kpi-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  padding: 16px 14px;
+  animation: fadeInUp .3s ease both;
+  transition: background .2s, transform .2s;
+  border-left: 3px solid var(--kpi-color, #818cf8);
+}
+.bi-kpi-card:hover {
+  background: rgba(255,255,255,.07);
+  transform: translateY(-2px);
+}
+.bi-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.bi-kpi-emoji { font-size: 1.4rem; }
+.bi-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.bi-kpi-label {
+  font-size: .75rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.6);
+  margin-bottom: 2px;
+}
+.bi-kpi-note {
+  font-size: .68rem;
+  color: rgba(255,255,255,.28);
+}
+
+/* ── Global Funnel ── */
+.bi-funnel-wrap {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bi-funnel-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 70px 48px;
+  align-items: center;
+  gap: 10px;
+}
+.bi-funnel-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.6);
+}
+.bi-funnel-bar-wrap {
+  height: 10px;
+  background: rgba(255,255,255,.06);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bi-funnel-bar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+.bi-funnel-count {
+  font-size: .82rem;
+  font-weight: 800;
+  text-align: right;
+}
+.bi-funnel-conv {
+  font-size: .66rem;
+  color: rgba(255,255,255,.3);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Regional Grid ── */
+.bi-regional-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.bi-regional-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 18px;
+  animation: fadeInUp .35s ease both;
+}
+.bi-regional-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.bi-regional-name {
+  font-size: .85rem;
+  font-weight: 800;
+  color: #fff;
+}
+.bi-regional-count {
+  font-size: .7rem;
+  color: rgba(255,255,255,.3);
+  background: rgba(255,255,255,.05);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.bi-regional-kpis {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: .72rem;
+  color: rgba(255,255,255,.5);
+}
+.bi-regional-ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bi-regional-ws-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
+  font-size: .72rem;
+}
+.bi-ws-name { font-weight: 600; color: rgba(255,255,255,.7); }
+.bi-ws-stat { color: rgba(255,255,255,.4); white-space: nowrap; }
+
+/* ── Workspace Table ── */
+.bi-table-wrap {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.bi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .76rem;
+}
+.bi-table thead th {
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 700;
+  color: rgba(255,255,255,.35);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  white-space: nowrap;
+}
+.bi-table-row {
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .15s;
+}
+.bi-table-row:hover { background: rgba(255,255,255,.04); }
+.bi-table-row td { padding: 10px 14px; color: rgba(255,255,255,.7); }
+.bi-table-rank {
+  font-weight: 800;
+  color: rgba(255,255,255,.25) !important;
+  font-size: .7rem;
+}
+.bi-table-name { font-weight: 600; color: #fff !important; }
+.bi-row-global { background: rgba(255,215,0,.03) !important; }
+.bi-row-global:hover { background: rgba(255,215,0,.06) !important; }
+
+/* ── Badges ── */
+.bi-level-badge {
+  font-size: .6rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+.bi-level-global   { background: rgba(255,215,0,.15);  color: #FFD700; }
+.bi-level-regional { background: rgba(129,140,248,.15); color: #818cf8; }
+
+.bi-plan-badge {
+  font-size: .67rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.5);
+  text-transform: capitalize;
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .bi-kpi-grid     { grid-template-columns: repeat(2, 1fr); }
+  .bi-funnel-row   { grid-template-columns: 90px 1fr 55px 40px; }
+  .bi-regional-grid { grid-template-columns: 1fr; }
+  .bi-table-wrap   { font-size: .69rem; }
 }

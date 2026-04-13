@@ -1385,6 +1385,24 @@ async function submitOrder() {
   if (!name)  { msgEl.textContent = '⚠️ Insira o seu nome'; return; }
   if (!phone) { msgEl.textContent = '⚠️ Insira o seu telefone'; return; }
 
+  // ── Rate Limiting (client-side, localStorage) ────────────────
+  // Prevents spam: max 3 orders per 5 minutes per browser
+  const RL_KEY = `cantina_rl_${_wsId}`;
+  const RL_LIMIT = 3;
+  const RL_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  try {
+    const rlData = JSON.parse(localStorage.getItem(RL_KEY) || '{"orders":[]}');
+    const now = Date.now();
+    // Keep only orders within the rolling window
+    rlData.orders = (rlData.orders || []).filter(t => now - t < RL_WINDOW_MS);
+    if (rlData.orders.length >= RL_LIMIT) {
+      const waitSec = Math.ceil((RL_WINDOW_MS - (now - rlData.orders[0])) / 1000);
+      const waitMin = Math.ceil(waitSec / 60);
+      msgEl.textContent = `⏸️ Demasiados pedidos. Aguarde ${waitMin} min antes de fazer outro.`;
+      return;
+    }
+  } catch(e) { /* localStorage unavailable — proceed */ }
+
   // Validate payment method if section is visible
   const paySection = el('co-payment-section');
   if (paySection.style.display !== 'none' && !window._selectedPayMethod) {
@@ -1424,6 +1442,14 @@ async function submitOrder() {
     console.error(error);
     return;
   }
+
+  // Record this order timestamp in rate-limit tracker
+  try {
+    const rlData = JSON.parse(localStorage.getItem(RL_KEY) || '{"orders":[]}');
+    rlData.orders = (rlData.orders || []).filter(t => Date.now() - t < RL_WINDOW_MS);
+    rlData.orders.push(Date.now());
+    localStorage.setItem(RL_KEY, JSON.stringify(rlData));
+  } catch(e) {}
 
   // Step 2: If Stripe selected, redirect to Stripe Checkout
   if (chosenMethod === 'stripe') {
