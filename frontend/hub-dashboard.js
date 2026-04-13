@@ -1057,6 +1057,7 @@
         const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs'];
 
         // Map: module slug → { nav id, view id }
+        // Slugs canônicos são em EN. Aliases PT são mapeados em SLUG_ALIASES.
         const PLAN_NAV_MAP = {
             consolidation:   { nav:'nav-dashboard',  view:'view-dashboard'  },
             visitors:        { nav:'nav-visitors',   view:'view-visitors'   },
@@ -1070,10 +1071,26 @@
             relatorios:      { nav:'nav-relatorios', view:'view-relatorios' }
         };
 
+        // Mapeamento de slugs legados PT → slug canônico EN
+        // Usado para normalizar workspaces.modules que foram gravados antes da padronização
+        const SLUG_ALIASES = {
+            consolidados:  'consolidation',
+            visitantes:    'visitors',
+            ai_whatsapp:   'ia_whatsapp',
+            ia_chat:       'ia_whatsapp',
+        };
+
+        // Normaliza um array de slugs: substitui aliases pelo slug canônico
+        function normalizeModuleSlugs(slugs) {
+            return (slugs || []).map(s => SLUG_ALIASES[s] || s);
+        }
+
         // ─── APPLY PLAN GATING ────────────────────────────────────────────
         window.applyPlanGating = function(plan, wsModules) {
             const cfg = PLAN_CONFIG[plan] || PLAN_CONFIG.free;
-            const allowed = wsModules && wsModules.length ? wsModules : cfg.modules;
+            // Normaliza slugs do banco (PT) para slugs canônicos (EN) antes de comparar
+            const rawAllowed = wsModules && wsModules.length ? wsModules : cfg.modules;
+            const allowed = normalizeModuleSlugs(rawAllowed);
 
             // Update workspace pill plan badge
             const badge = document.getElementById('ws-plan-badge');
@@ -8611,20 +8628,18 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
         const leadsCount = leadsPerWs[ws.id] || 0;
         const usersCount = (usersPerWs || {})[ws.id] || 0;
 
-        // Trial expiry
+        // Trial expiry — uses saas_plan_expires_at if set, else falls back to created_at+7d
         let trialInfo = '';
-        if (plan === 'trial' && ws.created_at) {
-            const created = new Date(ws.created_at);
-            const expires = new Date(created.getTime() + 7 * 24 * 3600 * 1000);
+        if (plan === 'trial') {
+            const expiresRaw = ws.saas_plan_expires_at || null;
+            const expires = expiresRaw ? new Date(expiresRaw) : new Date(new Date(ws.created_at).getTime() + 7*24*3600*1000);
             const now = new Date();
             const daysLeft = Math.ceil((expires - now) / (1000 * 3600 * 24));
             const isExpired = daysLeft <= 0;
+            const expiresStr = expires.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
             trialInfo = isExpired
-                ? `<div style="font-size:.6rem;color:#f87171;margin-top:2px;">Expirado há ${Math.abs(daysLeft)}d</div>`
-                : `<div style="font-size:.6rem;color:#34D399;margin-top:2px;">${daysLeft}d restantes</div>`;
-        }
-        if (['free','starter','essencial','founders','basic','medium','premium'].includes(plan) && plan !== 'trial') {
-            trialInfo = '';
+                ? `<div style="font-size:.6rem;color:#f87171;margin-top:2px;">Expirado em ${expiresStr}</div>`
+                : `<div style="font-size:.6rem;color:#34D399;margin-top:2px;">${daysLeft}d restantes · até ${expiresStr}</div>`;
         }
 
         // Slug URL
@@ -8644,8 +8659,7 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
             <td style="padding:10px 14px;text-align:center;"><span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[status]||'gray'};display:inline-block;" title="${status}"></span></td>
             <td style="padding:10px 14px;text-align:center;">
               <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
-                ${plan === 'trial' ? `<button onclick="extendTrial('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34D399;border-radius:8px;cursor:pointer;font-weight:700;">+7d Trial</button>` : ''}
-                <button onclick="openOverrideModal('${ws.id}','${ws.name}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
+                <button onclick="openOverrideModal('${ws.id}','${ws.name}','${plan}','${ws.saas_plan_expires_at||''}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
                 ${wsUrl ? `<a href="${wsUrl}" target="_blank" style="font-size:.68rem;padding:3px 9px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);color:#FBBF24;border-radius:8px;cursor:pointer;text-decoration:none;">Abrir</a>` : ''}
                 <button onclick="deleteWorkspace('${ws.id}','${ws.name}')" title="Excluir workspace e usuários" style="font-size:.68rem;padding:3px 9px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:8px;cursor:pointer;font-weight:700;transition:all .15s;" onmouseover="this.style.background='rgba(239,68,68,.18)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">🗑️</button>
               </div>
@@ -8698,13 +8712,101 @@ window.deleteWorkspace = async function(wsId, wsName) {
     }
 };
 
-window.extendTrial = async function(wsId, wsName) {
-    if (!confirm(`Estender o trial de "${wsName}" por mais 7 dias?`)) return;
+// ── Plan Override Modal ──────────────────────────────────────────────
+// Called from workspace table row → "Plano" button
+let _overrideWsId = null;
+window.openOverrideModal = function(wsId, wsName, currentPlan, currentExpires) {
+    _overrideWsId = wsId;
+    // Populate header
+    const header = document.getElementById('wspm-ws-name');
+    if (header) header.textContent = wsName;
+
+    // Set current plan selector
+    const planSel = document.getElementById('wspm-plan');
+    if (planSel) planSel.value = currentPlan || 'free';
+
+    // Toggle trial panel visibility based on current plan
+    const trialPanel = document.getElementById('wspm-trial-panel');
+    if (trialPanel) trialPanel.style.display = (currentPlan === 'trial') ? 'block' : 'none';
+
+    // Set current expiry date if exists
+    const expiresInput = document.getElementById('wspm-expires-date');
+    if (expiresInput) {
+        if (currentExpires) {
+            expiresInput.value = new Date(currentExpires).toISOString().slice(0, 10);
+        } else {
+            // Default: 30 days from now
+            const d = new Date(); d.setDate(d.getDate() + 30);
+            expiresInput.value = d.toISOString().slice(0, 10);
+        }
+    }
+
+    // Clear duration preset buttons highlight
+    document.querySelectorAll('.wspm-dur-btn').forEach(b => b.style.background = 'rgba(255,255,255,.05)');
+
+    // Show modal
+    const overlay = document.getElementById('wspm-overlay');
+    if (overlay) overlay.style.display = 'flex';
+};
+
+window.closeOverrideModal = function() {
+    const overlay = document.getElementById('wspm-overlay');
+    if (overlay) overlay.style.display = 'none';
+    _overrideWsId = null;
+};
+
+window.wspmToggleTrialPanel = function(planSel) {
+    const trialPanel = document.getElementById('wspm-trial-panel');
+    if (trialPanel) trialPanel.style.display = (planSel.value === 'trial') ? 'block' : 'none';
+};
+
+window.wspmSetDuration = function(days, btn) {
+    // Set expiry date from now + days
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const inp = document.getElementById('wspm-expires-date');
+    if (inp) inp.value = d.toISOString().slice(0, 10);
+    // Highlight active button
+    document.querySelectorAll('.wspm-dur-btn').forEach(b => b.style.background = 'rgba(255,255,255,.05)');
+    if (btn) btn.style.background = 'rgba(52,211,153,.15)';
+};
+
+window.saveOverrideModal = async function() {
+    if (!_overrideWsId) return;
     const sb = window.supabaseClient;
-    const { error } = await sb.from('workspaces').update({ plan: 'trial', created_at: new Date().toISOString() }).eq('id', wsId);
-    if (error) { alert('Erro: ' + error.message); return; }
-    alert(`✅ Trial de "${wsName}" estendido por mais 7 dias!`);
-    loadDevPanel();
+    const plan = document.getElementById('wspm-plan')?.value;
+    if (!plan) { hubToast('Selecione um plano', 'warn'); return; }
+
+    const btn = document.getElementById('wspm-save-btn');
+    if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
+
+    try {
+        const update = { plan };
+
+        if (plan === 'trial') {
+            const expiresDate = document.getElementById('wspm-expires-date')?.value;
+            if (!expiresDate) { hubToast('Defina a data de expiração do trial', 'warn'); return; }
+            update.saas_plan_expires_at = new Date(expiresDate + 'T23:59:59Z').toISOString();
+            update.trial_started_at = new Date().toISOString();
+            // Trial = all modules unlocked
+            update.modules = ['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'];
+        } else {
+            // For non-trial plans, clear trial expiry
+            update.saas_plan_expires_at = null;
+        }
+
+        const { error } = await sb.from('workspaces').update(update).eq('id', _overrideWsId);
+        if (error) throw error;
+
+        const planLabels = { free:'Free', starter:'Starter', essencial:'Essencial', founders:'Founders', trial:'Trial' };
+        hubToast(`✅ Plano atualizado para ${planLabels[plan]||plan}!`, 'success');
+        window.closeOverrideModal();
+        loadDevPanel();
+    } catch(e) {
+        hubToast('Erro: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.textContent = 'Salvar'; btn.disabled = false; }
+    }
 };
 
 window.filterDevWorkspaces = function() {
