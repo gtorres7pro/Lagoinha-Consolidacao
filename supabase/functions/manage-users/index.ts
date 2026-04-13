@@ -17,21 +17,29 @@ serve(async (req) => {
   }
 
   try {
+    // verify_jwt: false — we do manual JWT validation here to avoid gateway 401s
+    // (clock-skew or local dev environments can cause gateway to reject valid tokens)
+    // Rule #10 from GEMINI.md: always use verify_jwt: false + manual auth.getUser()
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Token de autenticação ausente')
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Verify caller privileges
+    // Verify caller via getUser (works with any valid Supabase JWT)
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    if (authError || !user) throw new Error('Não autorizado')
+    if (authError || !user) throw new Error('Não autorizado — sessão inválida')
 
     const { data: callerProfile } = await supabaseClient
       .from('users')
       .select('role, workspace_id')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (!callerProfile || !ADMIN_ROLES.includes(callerProfile.role)) {
       throw new Error('Permissões insuficientes')
@@ -63,7 +71,7 @@ serve(async (req) => {
       if (!workspace_id) throw new Error('workspace_id missing')
       const { data, error } = await supabaseAdmin
         .from('users')
-        .select('id, name, email, role, phone, status, modules')
+        .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
         .eq('workspace_id', workspace_id)
         .order('role')
       if (error) throw error
@@ -91,7 +99,7 @@ serve(async (req) => {
       if (createErr) throw createErr;
 
       // Insert into public.users (trigger may also do this, but we need modules)
-      await supabaseAdmin.from('users').upsert({
+      const { error: upsertErr } = await supabaseAdmin.from('users').upsert({
         id: newUser.user!.id,
         email,
         name: name || '',
@@ -102,6 +110,7 @@ serve(async (req) => {
         level: 'workspace',
         modules: modules || null,
       }, { onConflict: 'id' })
+      if (upsertErr) console.error('[create] upsert error:', upsertErr.message)
 
       // Send Invitation Email if RESEND_API_KEY is available
       const resendKey = Deno.env.get('RESEND_API_KEY');
@@ -233,7 +242,6 @@ serve(async (req) => {
         password_changed: false 
       }).eq('id', id)
       if (dbErr) {
-        // Non-fatal: log but don't throw if column doesn't exist yet
         console.error('[resend_invite] Failed to update temp_password:', dbErr.message)
       }
 
@@ -250,45 +258,20 @@ serve(async (req) => {
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
-                  <!-- Header -->
                   <div style="background-color: #FFD700; padding: 32px 20px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; text-shadow: 0px 1px 2px rgba(0,0,0,0.1);">Nova Senha</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800;">Nova Senha</h1>
                   </div>
-                  
-                  <!-- Body -->
                   <div style="padding: 40px 30px;">
-                    <h2 style="color: #1a1a1a; margin-top: 0; margin-bottom: 24px; font-size: 22px; font-weight: 700;">Acesso redefinido,</h2>
-                    
-                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                      O administrador solicitou o reenvio do seu acesso para a equipe de <strong>${wsData?.name || ''}</strong>.
-                    </p>
-                    
-                    <p style="color: #4a4a4a; font-size: 16px; margin-bottom: 16px;">Suas novas credenciais:</p>
-                    
-                    <!-- Credentials Box -->
-                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
-                      <p style="margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
-                        <span style="color: #6b7280;">E-mail:</span> <a href="mailto:${email}" style="color: #3b82f6; text-decoration: underline;">${email}</a>
-                      </p>
-                      <p style="margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
-                        <span style="color: #6b7280;">Nova Senha:</span> <strong>${genPassword}</strong>
-                      </p>
+                    <h2 style="color: #1a1a1a; margin-top: 0;">Acesso redefinido,</h2>
+                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">O administrador solicitou o reenvio do seu acesso para a equipe de <strong>${wsData?.name || ''}</strong>.</p>
+                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
+                      <p style="margin: 0 0 8px 0; font-family: monospace; font-size: 15px;"><span style="color: #6b7280;">E-mail:</span> ${email}</p>
+                      <p style="margin: 0; font-family: monospace; font-size: 15px;"><span style="color: #6b7280;">Nova Senha:</span> <strong>${genPassword}</strong></p>
                     </div>
-                    
-                    <p style="color: #4a4a4a; font-size: 15px; margin-bottom: 32px;">Altere esta senha temporária ao entrar.</p>
-                    
-                    <!-- Button -->
                     <div style="text-align: center;">
-                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
-                        Acessar o Painel Agora
-                      </a>
+                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block;">Acessar o Painel</a>
                     </div>
                   </div>
-                </div>
-                
-                <!-- Footer -->
-                <div style="text-align: center; margin-top: 24px;">
-                  <p style="color: #666666; font-size: 12px;">Esta é uma mensagem automática. Por favor, não responda.</p>
                 </div>
               </div>
             `
@@ -300,8 +283,8 @@ serve(async (req) => {
 
     throw new Error('Ação inválida')
   } catch (err: any) {
-    // ALWAYS RETURN 200 IN ORDER FOR THE FRONTEND'S JS SDK TO PROPERLY PARSE THE CUSTOM JSON ERROR MESSAGE! 
-    // IF WE RETURN 40X, THE JS SDK OBFUSCATES IT BEHIND "FunctionsHttpError: Edge Function returned a non-2xx status code"
+    // ALWAYS RETURN 200 so the JS SDK can parse the custom JSON error body
+    // If we return 40x, the JS SDK obfuscates it behind "FunctionsHttpError: Edge Function returned a non-2xx status code"
     return new Response(JSON.stringify({ error: err.message || JSON.stringify(err) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
