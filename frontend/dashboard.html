@@ -5755,6 +5755,70 @@
         </div>
         <!-- ── /Workspace Plan Modal ──────────────────────────────────────── -->
 
+        <!-- ── Add-on Modules Modal (mods) ──────────────────────────────── -->
+        <div id="mods-overlay" onclick="if(event.target===this)closeModulesModal()"
+             style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.78);
+                    backdrop-filter:blur(14px); z-index:9210;
+                    align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+            <div style="background:#111116; border:1px solid rgba(255,255,255,.08);
+                        border-radius:22px; padding:28px; width:100%; max-width:500px;
+                        box-shadow:0 32px 80px rgba(0,0,0,.6); margin:auto; position:relative;">
+
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                    <div>
+                        <h3 style="font-size:1rem; font-weight:800; margin:0 0 3px; color:#fff;">Módulos & Add-ons</h3>
+                        <p id="mods-ws-name" style="font-size:.78rem; color:rgba(255,255,255,.35); margin:0;"></p>
+                    </div>
+                    <button onclick="closeModulesModal()"
+                            style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+                                   color:rgba(255,255,255,.5); width:32px; height:32px; border-radius:8px;
+                                   cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
+                </div>
+
+                <!-- Plan badge -->
+                <div style="margin-bottom:16px;">
+                    <span style="font-size:.7rem; color:rgba(255,255,255,.3);">Plano atual: </span>
+                    <span id="mods-plan-label" style="font-size:.75rem; font-weight:700; color:#FBBF24;"></span>
+                </div>
+
+                <!-- Legend -->
+                <div style="display:flex; gap:14px; margin-bottom:12px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#34D399;display:inline-block;"></span>
+                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Incluído no plano</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>
+                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Add-on ativo (trial)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);display:inline-block;"></span>
+                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Não habilitado</span>
+                    </div>
+                </div>
+
+                <!-- Module list (rendered by JS) -->
+                <div id="mods-modules-list" style="max-height:55vh; overflow-y:auto; padding-right:4px;"></div>
+
+                <!-- Actions -->
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button onclick="closeModulesModal()"
+                            style="flex:1; padding:11px; border-radius:11px; font-size:.85rem; font-weight:600;
+                                   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+                                   color:rgba(255,255,255,.5); cursor:pointer;">
+                        Cancelar
+                    </button>
+                    <button id="mods-save-btn" onclick="saveModulesModal()"
+                            style="flex:2; padding:11px; border-radius:11px; font-size:.88rem; font-weight:700;
+                                   background:linear-gradient(135deg,#7c3aed,#a78bfa); border:none; color:#fff; cursor:pointer;">
+                        ✓ Salvar Add-ons
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- ── /Add-on Modules Modal ──────────────────────────────────────── -->
+
 
     <!-- Lead Drawer Overlay + Panel -->
     <div class="hub-drawer-overlay" id="lead-drawer-overlay" onclick="closeLeadDrawer()"></div>

@@ -8656,7 +8656,19 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
             </td>
             <td style="padding:10px 14px;text-align:center;font-size:.82rem;"><span style="color:rgba(255,255,255,.5);">👥</span> ${usersCount}</td>
             <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:.85rem;">${leadsCount.toLocaleString('pt-BR')}</td>
-            <td style="padding:10px 14px;text-align:center;"><span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[status]||'gray'};display:inline-block;" title="${status}"></span></td>
+            <td style="padding:10px 14px;text-align:center;">
+              ${(() => {
+                const addonCfg = Array.isArray(ws.addon_modules_config) ? ws.addon_modules_config : [];
+                const activeAddons = addonCfg.filter(a => !a.expires_at || new Date(a.expires_at) > new Date());
+                const badge = activeAddons.length > 0
+                  ? `<span style="display:inline-block;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.3);color:#a78bfa;border-radius:10px;font-size:.6rem;font-weight:800;padding:1px 5px;margin-left:3px;">${activeAddons.length}</span>`
+                  : '';
+                return `<button onclick="openModulesModal('${ws.id}','${ws.name}','${plan}')"
+                  style="font-size:.65rem;padding:3px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+                         color:rgba(255,255,255,.45);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:2px;"
+                  title="Gerenciar módulos add-on">Mods${badge}</button>`;
+              })()}
+            </td>
             <td style="padding:10px 14px;text-align:center;">
               <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
                 <button onclick="openOverrideModal('${ws.id}','${ws.name}','${plan}','${ws.saas_plan_expires_at||''}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
@@ -8814,6 +8826,159 @@ window.saveOverrideModal = async function() {
         hubToast('Erro: ' + e.message, 'error');
     } finally {
         if (btn) { btn.textContent = 'Salvar'; btn.disabled = false; }
+    }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// ADD-ON MODULES MODAL
+// ══════════════════════════════════════════════════════════════════
+
+// Plan → base modules matrix
+const WS_PLAN_MODULES = {
+    free:      ['consolidados','visitantes','start'],
+    starter:   ['consolidados','visitantes','start','aniversariantes','tasks','transmissao'],
+    essencial: ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios'],
+    founders:  ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios','ia_whatsapp','wecare','crie','cantina','logs'],
+    trial:     ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios','ia_whatsapp','wecare','crie','cantina','logs'],
+};
+
+// All modules with labels and icons
+const WS_ALL_MODULES = [
+    { key:'consolidados',  label:'Consolidação',   icon:'🙏' },
+    { key:'visitantes',    label:'Visitantes',      icon:'👋' },
+    { key:'start',         label:'Start',           icon:'▶️' },
+    { key:'aniversariantes',label:'Aniversariantes',icon:'🎂' },
+    { key:'tasks',         label:'Tarefas',         icon:'✅' },
+    { key:'transmissao',   label:'Transmissão',     icon:'📡' },
+    { key:'financeiro',    label:'Financeiro',      icon:'💰' },
+    { key:'relatorios',    label:'Relatórios',      icon:'📊' },
+    { key:'voluntarios',   label:'Voluntários',     icon:'🤝' },
+    { key:'ia_whatsapp',   label:'IA / WhatsApp',   icon:'🤖' },
+    { key:'wecare',        label:'We Care',         icon:'❤️' },
+    { key:'crie',          label:'CRIE',            icon:'✨' },
+    { key:'cantina',       label:'Cantina',         icon:'🍽️' },
+    { key:'logs',          label:'Logs / Auditoria',icon:'📋' },
+];
+
+let _modsWsId = null;
+let _modsWsAddonCfg = [];
+
+window.openModulesModal = async function(wsId, wsName, plan) {
+    _modsWsId = wsId;
+    const sb = window.supabaseClient;
+
+    // Fetch latest addon_modules_config from DB
+    const { data: wsData } = await sb.from('workspaces')
+        .select('addon_modules_config')
+        .eq('id', wsId).single();
+    _modsWsAddonCfg = (wsData?.addon_modules_config) || [];
+
+    const baseMods = WS_PLAN_MODULES[plan] || WS_PLAN_MODULES['free'];
+    const now = new Date();
+
+    // Header
+    document.getElementById('mods-ws-name').textContent = wsName;
+    document.getElementById('mods-plan-label').textContent =
+        ({free:'Free',starter:'Starter',essencial:'Essencial',founders:'Founders ⭐',trial:'Trial 🟢'})[plan] || plan;
+
+    // Render module rows
+    const container = document.getElementById('mods-modules-list');
+    container.innerHTML = WS_ALL_MODULES.map(mod => {
+        const isBase = baseMods.includes(mod.key);
+        const addonEntry = _modsWsAddonCfg.find(a => a.module === mod.key);
+        const isAddon = !!addonEntry;
+        const isExpired = isAddon && addonEntry.expires_at && new Date(addonEntry.expires_at) < now;
+        const expiresVal = isAddon && addonEntry.expires_at
+            ? new Date(addonEntry.expires_at).toISOString().slice(0,10) : '';
+
+        if (isBase) {
+            // Base module — included in plan, not editable
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                               background:rgba(52,211,153,.04);border:1px solid rgba(52,211,153,.12);
+                               border-radius:10px;margin-bottom:6px;">
+                <span style="font-size:.9rem;">${mod.icon}</span>
+                <span style="flex:1;font-size:.82rem;font-weight:600;color:rgba(255,255,255,.75);">${mod.label}</span>
+                <span style="font-size:.65rem;padding:2px 8px;border-radius:20px;
+                             background:rgba(52,211,153,.12);color:#34D399;border:1px solid rgba(52,211,153,.2);
+                             font-weight:700;">Incluído no plano</span>
+            </div>`;
+        } else {
+            // Add-on eligible module
+            const checkedAttr = isAddon && !isExpired ? 'checked' : '';
+            const defaultDate = (() => { const d = new Date(); d.setDate(d.getDate()+30); return d.toISOString().slice(0,10); })();
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                               background:${isAddon && !isExpired ? 'rgba(167,139,250,.05)' : 'rgba(255,255,255,.02)'};
+                               border:1px solid ${isAddon && !isExpired ? 'rgba(167,139,250,.2)' : 'rgba(255,255,255,.06)'};
+                               border-radius:10px;margin-bottom:6px;" id="mod-row-${mod.key}">
+                <span style="font-size:.9rem;">${mod.icon}</span>
+                <span style="flex:1;font-size:.82rem;font-weight:600;color:rgba(255,255,255,${isExpired?'.3':'.7'});">${mod.label}
+                    ${isExpired ? `<span style="font-size:.6rem;color:#f87171;margin-left:4px;">expirado</span>` : ''}
+                </span>
+                <input type="checkbox" data-module="${mod.key}" ${checkedAttr}
+                       onchange="modsToggleDate('${mod.key}', this.checked)"
+                       style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;flex-shrink:0;">
+                <input type="date" id="mod-date-${mod.key}" value="${expiresVal || defaultDate}"
+                       style="display:${isAddon && !isExpired ? 'block' : 'none'};
+                              padding:4px 8px;border-radius:7px;background:rgba(255,255,255,.06);
+                              border:1px solid rgba(167,139,250,.25);color:#fff;font-size:.72rem;
+                              width:120px;flex-shrink:0;">
+            </div>`;
+        }
+    }).join('');
+
+    document.getElementById('mods-overlay').style.display = 'flex';
+};
+
+window.modsToggleDate = function(moduleKey, checked) {
+    const dateInput = document.getElementById(`mod-date-${moduleKey}`);
+    if (dateInput) dateInput.style.display = checked ? 'block' : 'none';
+    const row = document.getElementById(`mod-row-${moduleKey}`);
+    if (row) {
+        row.style.background = checked ? 'rgba(167,139,250,.05)' : 'rgba(255,255,255,.02)';
+        row.style.borderColor = checked ? 'rgba(167,139,250,.2)' : 'rgba(255,255,255,.06)';
+    }
+};
+
+window.closeModulesModal = function() {
+    document.getElementById('mods-overlay').style.display = 'none';
+    _modsWsId = null;
+};
+
+window.saveModulesModal = async function() {
+    if (!_modsWsId) return;
+    const sb = window.supabaseClient;
+    const btn = document.getElementById('mods-save-btn');
+    if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
+
+    try {
+        // Collect checked add-on modules with their dates
+        const newAddonCfg = [];
+        document.querySelectorAll('#mods-modules-list input[type=checkbox]').forEach(cb => {
+            if (cb.checked) {
+                const moduleKey = cb.getAttribute('data-module');
+                const dateInput = document.getElementById(`mod-date-${moduleKey}`);
+                const expiresAt = dateInput?.value
+                    ? new Date(dateInput.value + 'T23:59:59Z').toISOString() : null;
+                newAddonCfg.push({ module: moduleKey, expires_at: expiresAt });
+            }
+        });
+
+        // Also build the flat addon_modules array (for backward compat with gating)
+        const addonModulesFlat = newAddonCfg.map(a => a.module);
+
+        const { error } = await sb.from('workspaces').update({
+            addon_modules_config: newAddonCfg,
+            addon_modules: addonModulesFlat,
+        }).eq('id', _modsWsId);
+        if (error) throw error;
+
+        hubToast && hubToast(`✅ Módulos add-on atualizados!`, 'success');
+        window.closeModulesModal();
+        loadDevPanel();
+    } catch(e) {
+        hubToast && hubToast('Erro: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.textContent = 'Salvar Add-ons'; btn.disabled = false; }
     }
 };
 
