@@ -2866,14 +2866,25 @@
             if (!wsId) { const ws = await window.HubRouter?.getWorkspace(); wsId = ws?.id; }
             if (!wsId) throw new Error('Workspace não encontrado');
 
-            const { data: users, error } = await window.supabaseClient
-                .from('users')
-                .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
-                .eq('workspace_id', wsId)
-                .order('role');
+            // Use Edge Function (admin client) to bypass RLS — master_admin may visit any workspace
+            // and anon client would filter by their own workspace_id, missing cross-workspace users.
+            let users = [];
+            try {
+                const fnData = await callManageUsers({ action: 'list', workspace_id: wsId });
+                users = fnData?.users || [];
+            } catch (fnErr) {
+                // Fallback to direct query (works for same-workspace scenarios)
+                console.warn('[loadTeam] Edge function failed, falling back to direct query:', fnErr.message);
+                const { data, error } = await window.supabaseClient
+                    .from('users')
+                    .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
+                    .eq('workspace_id', wsId)
+                    .order('role');
+                if (error) throw error;
+                users = data || [];
+            }
 
-            if (error) throw error;
-            renderTeam(users || [], wsId);
+            renderTeam(users, wsId);
         } catch (err) {
             console.error('[loadTeam] Erro:', err.message);
             if (table) table.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#f87171;">Erro: ${err.message}</td></tr>`;
@@ -3271,13 +3282,16 @@
                 }, 50);
             }
         } catch (e) {
+            console.error('[saveUserSubmit] Erro:', e.message, e);
             const errBox = document.getElementById('user-modal-error');
             if (errBox) {
                 errBox.textContent = '⚠️ ' + e.message;
                 errBox.style.display = 'block';
-            } else {
-                showToast('Erro: ' + e.message, 'error');
+                // Scroll to error
+                errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
+            // Also show toast so it's never invisible
+            showToast('Erro ao salvar: ' + e.message, 'error');
         } finally {
             btn.innerHTML = oldText;
             btn.disabled = false;
@@ -8808,8 +8822,8 @@ window.saveOverrideModal = async function() {
             if (!expiresDate) { hubToast('Defina a data de expiração do trial', 'warn'); return; }
             update.saas_plan_expires_at = new Date(expiresDate + 'T23:59:59Z').toISOString();
             update.trial_started_at = new Date().toISOString();
-            // Trial = all modules unlocked
-            update.modules = ['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'];
+            // Trial = all modules unlocked (keys MUST match AVAILABLE_MODULES in hub-dashboard.js)
+            update.modules = ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina'];
         } else {
             // For non-trial plans, clear trial expiry
             update.saas_plan_expires_at = null;
