@@ -853,6 +853,26 @@ body {
   <!-- Toast -->
   <div id="toast"></div>
 
+  <!-- ══ RESET PASSWORD ══════════════════════════════════════════ -->
+  <div id="screen-reset" class="screen">
+    <div class="auth-top" style="padding-top:calc(var(--safe-top)+40px);">
+      <div class="auth-logo-pill">
+        <div class="auth-logo-z">Z</div>
+        <div class="auth-logo-text">CRIE</div>
+      </div>
+      <p style="color:var(--text3);font-size:.82rem;margin-top:8px;margin-bottom:36px;">Define uma nova password</p>
+    </div>
+    <div class="auth-card">
+      <div style="font-size:1rem;font-weight:800;margin-bottom:18px;">🔐 Nova Password</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div><div class="field-label">Nova Password</div><input id="reset-pw" class="field-input" type="password" placeholder="mín. 8 caracteres" autocomplete="new-password"></div>
+        <div><div class="field-label">Confirmar Password</div><input id="reset-pw2" class="field-input" type="password" placeholder="repete a password" autocomplete="new-password"></div>
+        <div class="auth-msg" id="reset-msg" style="color:var(--red);"></div>
+        <button class="btn-primary" id="btn-reset" onclick="doResetPassword()">Guardar Nova Password</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -880,6 +900,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     goToScreen('splash');
     await new Promise(r => setTimeout(r, 1500));
 
+    // Check for password reset redirect (Supabase sends #access_token + type=recovery)
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?').slice(1));
+    const urlParams  = new URLSearchParams(window.location.search);
+    if (hashParams.get('type') === 'recovery' || urlParams.get('reset') === 'true') {
+        // Supabase already loaded the session from the URL hash automatically
+        goToScreen('reset');
+        return;
+    }
+
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user) {
         _user = session.user;
@@ -888,6 +917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showMainApp();
         } else {
             // Auth user exists but no app profile → create one
+            // (covers: Zelo Pro leaders logging in to CRIE for the first time)
             await createAppUserProfile(session.user);
             showMainApp();
         }
@@ -898,6 +928,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+        // User clicked reset link in email — show reset screen
+        goToScreen('reset');
+        return;
+    }
     if (event === 'SIGNED_IN' && session?.user) {
         _user = session.user;
         await loadAppUser();
@@ -1012,8 +1047,55 @@ async function doRegister() {
     }
 }
 
-function showForgotPw() {
-    showToast('💌 Função de recuperação de password em breve!', 'info');
+async function showForgotPw() {
+    const email = document.getElementById('login-email').value.trim();
+    const msg   = document.getElementById('login-msg');
+    if (!email) {
+        msg.textContent = '👆 Insere o teu email acima primeiro.';
+        return;
+    }
+    msg.style.color = 'var(--text3)';
+    msg.textContent = 'A enviar email…';
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://crie-app.7prolabs.com/crie-app.html'
+    });
+    if (error) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = '❌ ' + error.message;
+        return;
+    }
+    msg.style.color = 'var(--green)';
+    msg.textContent = '💌 Email enviado! Verifica a tua caixa de entrada.';
+}
+
+async function doResetPassword() {
+    const pw   = document.getElementById('reset-pw').value;
+    const pw2  = document.getElementById('reset-pw2').value;
+    const msg  = document.getElementById('reset-msg');
+    const btn  = document.getElementById('btn-reset');
+    if (!pw || !pw2) { msg.textContent = 'Preenche os dois campos.'; return; }
+    if (pw.length < 8) { msg.textContent = 'Password demasiado curta (mín. 8 caracteres).'; return; }
+    if (pw !== pw2) { msg.textContent = 'As passwords não coincidem.'; return; }
+    btn.disabled = true; btn.textContent = 'A guardar…';
+    const { error } = await sb.auth.updateUser({ password: pw });
+    btn.disabled = false; btn.textContent = 'Guardar Nova Password';
+    if (error) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = '❌ ' + error.message;
+        return;
+    }
+    showToast('✅ Password alterada com sucesso!', 'success');
+    // Clean URL and redirect to main app
+    window.history.replaceState({}, document.title, window.location.pathname);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+        _user = session.user;
+        await loadAppUser();
+        if (!_appUser) await createAppUserProfile(session.user);
+        showMainApp();
+    } else {
+        goToScreen('auth');
+    }
 }
 
 async function doLogout() {
@@ -1023,12 +1105,39 @@ async function doLogout() {
 // ══ APP USER PROFILE ═════════════════════════════════════════════
 async function loadAppUser() {
     if (!_user) return;
-    const { data } = await sb.from('crie_app_users').select('*').eq('auth_user_id', _user.id).single();
+    const { data } = await sb.from('crie_app_users').select('*').eq('auth_user_id', _user.id).maybeSingle();
     _appUser = data || null;
 }
 
 async function createAppUserProfile(user) {
     const name = user.user_metadata?.name || user.email.split('@')[0];
+
+    // Check if a profile already exists with this email (e.g. a Zelo Pro leader
+    // who was previously added manually as a CRIE member without a linked auth account)
+    const { data: existing } = await sb
+        .from('crie_app_users')
+        .select('id, auth_user_id')
+        .eq('email', user.email)
+        .maybeSingle();
+
+    if (existing) {
+        if (!existing.auth_user_id) {
+            // Bind the real auth account to this pre-existing profile
+            const { data, error } = await sb
+                .from('crie_app_users')
+                .update({ auth_user_id: user.id })
+                .eq('id', existing.id)
+                .select()
+                .single();
+            if (!error) _appUser = data;
+        } else {
+            // Profile already fully linked (shouldn't normally reach here, but be safe)
+            _appUser = existing;
+        }
+        return;
+    }
+
+    // Create a brand new profile
     const { data, error } = await sb.from('crie_app_users').insert({
         auth_user_id: user.id,
         name,
