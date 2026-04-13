@@ -500,6 +500,16 @@
             #view-batismo { display: flex; flex-direction: column; overflow-y: auto; }
             #view-batismo .top-bar { flex-shrink: 0; }
             #batismo-kpi-row { grid-template-columns: 1fr 1fr !important; }
+
+            /* ── Consolidação (view-dashboard) mobile fixes ── */
+            #view-dashboard { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-dashboard .top-bar { flex-shrink: 0; }
+            /* KPIs: 2 columns on mobile (5 KPIs → 2+2+1) */
+            #view-dashboard .kpi-row { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+            /* Actions: esconder botão verbose "Formulário", compactar "Relatório Público" */
+            #view-dashboard .actions { gap: 6px !important; }
+            #view-dashboard .actions .btn-outline:first-child { display: none !important; }
+            #view-dashboard .actions #btn-copy-report-link .report-btn-label { display: none; }
         }
 
         .top-bar {
@@ -1782,7 +1792,7 @@
                         onmouseover="this.style.background='rgba(255,215,0,0.14)'" onmouseout="this.style.background='rgba(255,215,0,0.08)'"
                         title="Copiar link do relatório público">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                        Relatório Público
+                        <span class="report-btn-label">Relatório Público</span>
                     </button>
                     <button type="button" onclick="openReportSettings()"
                         style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-dim);width:34px;height:34px;border-radius:10px;cursor:pointer;transition:0.2s;padding:0;"
