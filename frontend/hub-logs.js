@@ -316,6 +316,7 @@
                 font-family: var(--font, 'Outfit', sans-serif);
                 transition: all 0.18s ease;
                 white-space: nowrap;
+                flex-shrink: 0;
             }
             #view-logs .log-filter-btn:hover {
                 background: rgba(255,255,255,0.08);
@@ -330,6 +331,7 @@
                 border: 1px solid rgba(255,255,255,0.1);
                 border-radius: 10px;
                 padding: 7px 12px;
+                flex-shrink: 0;
             }
             #view-logs .logs-search input {
                 background: none;
@@ -359,6 +361,7 @@
                 cursor: pointer;
                 font-family: var(--font, 'Outfit', sans-serif);
                 transition: all 0.15s;
+                flex-shrink: 0;
             }
             #view-logs .logs-period-btn.active,
             #view-logs .logs-period-btn:hover {
@@ -451,9 +454,36 @@
 
             @media (max-width: 768px) {
                 #activity-feed { padding: 0 16px 48px; }
-                #view-logs .logs-toolbar { padding: 0 16px 16px; }
-                #view-logs .logs-period-row { padding: 0 16px 16px; }
+
+                /* Toolbar: scroll horizontal, nunca quebra */
+                #view-logs .logs-toolbar {
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                    padding: 0 16px 16px;
+                    gap: 6px;
+                }
+                #view-logs .logs-toolbar::-webkit-scrollbar { display: none; }
                 #view-logs .logs-search { display: none; }
+
+                /* Period row: scroll horizontal também */
+                #view-logs .logs-period-row {
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                    padding: 0 16px 16px;
+                }
+                #view-logs .logs-period-row::-webkit-scrollbar { display: none; }
+
+                /* KPIs: 2 por linha no mobile */
+                #logs-kpi-row {
+                    grid-template-columns: 1fr 1fr !important;
+                    padding: 16px 16px 0 !important;
+                    gap: 10px !important;
+                }
+
                 .log-desc { font-size: 0.82rem; }
             }
         `;
