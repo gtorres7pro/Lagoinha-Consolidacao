@@ -8670,37 +8670,45 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
 
 // ── Delete Workspace ─────────────────────────────────────────────
 window.deleteWorkspace = async function(wsId, wsName) {
-    const confirmed = confirm(`⚠️ EXCLUIR WORKSPACE\n\nIgreja: "${wsName}"\n\nIsso irá remover permanentemente o workspace e TODOS os usuários vinculados.\nEssa ação não pode ser desfeita.\n\nDigite OK para confirmar.`);
+    const confirmed = confirm(`⚠️ EXCLUIR WORKSPACE\n\nIgreja: "${wsName}"\n\nIsso irá remover permanentemente o workspace e TODOS os usuários vinculados.\nEssa ação não pode ser desfeita.\n\nClique em OK para confirmar.`);
     if (!confirmed) return;
 
     const sb = window.supabaseClient;
     hubToast && hubToast('Excluindo workspace...', 'info');
 
     try {
-        // 1. Get linked auth user IDs
-        const { data: pubUsers } = await sb.from('users').select('id').eq('workspace_id', wsId);
+        // 1. Get auth session for Edge Function calls
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Sessão expirada. Recarregue a página.');
+
+        // 2. Get linked user IDs from public.users
+        const { data: pubUsers } = await sb.from('users').select('id, email').eq('workspace_id', wsId);
         const userIds = (pubUsers || []).map(u => u.id);
 
-        // 2. Delete from public.users
+        // 3. Delete each user via Edge Function (uses supabaseAdmin — bypasses RLS)
+        //    This removes from BOTH auth.users AND public.users via the delete action
         if (userIds.length) {
-            await sb.from('users').delete().in('id', userIds);
-        }
-
-        // 3. Delete auth users via admin API (Edge Function)
-        if (userIds.length) {
-            const { data: { session } } = await sb.auth.getSession();
             for (const uid of userIds) {
                 try {
-                    await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
+                    const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/manage-users', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                         body: JSON.stringify({ action: 'delete', id: uid }),
                     });
-                } catch(_) { /* non-fatal */ }
+                    const result = await res.json();
+                    if (result?.error) console.warn(`[deleteWorkspace] user ${uid}: ${result.error}`);
+                } catch(e) { console.warn('[deleteWorkspace] user delete error:', e); }
             }
         }
 
-        // 4. Delete workspace itself
+        // 4. Fallback: force-delete any remaining public.users rows
+        //    (in case manage-users didn't wipe them all — prevents FK block)
+        if (userIds.length) {
+            const { error: pubErr } = await sb.from('users').delete().in('id', userIds);
+            if (pubErr) console.warn('[deleteWorkspace] public.users cleanup:', pubErr.message);
+        }
+
+        // 5. Delete workspace itself
         const { error } = await sb.from('workspaces').delete().eq('id', wsId);
         if (error) throw error;
 
