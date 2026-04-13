@@ -59,7 +59,9 @@ function setupStartListeners() {
 
 window.copyStartLink = function(page) {
     const slug = window._slug || (window.location.pathname.split('/')[1]);
-    const url = window.location.origin + '/' + slug + '/' + page;
+    // Ensure .html extension is always present
+    const pageName = page.endsWith('.html') ? page : page + '.html';
+    const url = window.location.origin + '/' + slug + '/' + pageName;
     
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(url).then(() => {
