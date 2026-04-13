@@ -460,8 +460,8 @@
             .crie-pad-filter input, .crie-pad-filter select { width: 100% !important; margin-bottom: 8px; }
             .kpi-row, .crie-dashboard-row { padding: 12px 16px 0 !important; gap: 8px !important; }
             .charts-row { padding: 16px 16px 0; }
-            /* top-bar: compact single-row, sits below 56px mobile-topbar */
-            .top-bar { padding: 10px 16px !important; flex-direction: row !important; align-items: center !important; gap: 10px; height: auto; top: 56px !important; flex-wrap: nowrap !important; }
+            /* top-bar: compact single-row, sits below 54px mobile-topbar */
+            .top-bar { padding: 6px 14px !important; flex-direction: row !important; align-items: center !important; gap: 8px; height: auto; top: 54px !important; flex-wrap: nowrap !important; }
             /* page-title shrinks, actions scroll horizontally */
             .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
             .page-title h1 { font-size: 0.95rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
@@ -481,6 +481,15 @@
             /* Table Adjustments */
             .hub-table-wrap { overflow-x: auto; padding-bottom: 12px; }
             .hub-dev-table th, .hub-dev-table td { padding: 12px; white-space: nowrap; }
+
+            /* ── Visitantes mobile fixes ── */
+            /* Override the inline repeat(3,1fr) to 2 columns on mobile */
+            #visitors-kpi-row { grid-template-columns: 1fr 1fr !important; }
+            /* Make view-visitors scroll properly so sticky header doesn't eat content */
+            #view-visitors { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-visitors .top-bar { flex-shrink: 0; }
+            /* Reduce chart height on mobile so they don't take too much vertical space */
+            #visitors-charts-row .canvas-wrapper { max-height: 160px; }
         }
 
         .top-bar {
@@ -821,19 +830,24 @@
 
             /* ── Top bar: sticky single row, below 56px mobile nav ── */
             .top-bar {
-                padding: 10px 16px !important;
+                padding: 6px 14px !important;
                 position: sticky;
-                top: 56px !important;
+                top: 54px !important;
                 z-index: 10;
                 flex-direction: row !important;
                 align-items: center !important;
                 flex-wrap: nowrap !important;
-                gap: 10px;
+                gap: 8px;
+                min-height: 0;
             }
             /* Title: shrink & truncate if needed */
             .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
-            .page-title h1 { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+            .page-title h1 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
             .page-title p { display: none; }
+            /* Tasks view: toolbar separado do top-bar, sem espaço duplicado */
+            #view-admin-tarefas .top-bar {
+                border-bottom-color: rgba(255,255,255,0.04) !important;
+            }
             /* Actions: horizontal pill scroll — no wrap, invisible scrollbar */
             .actions {
                 flex: 1;
@@ -1221,17 +1235,14 @@
                 <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
                     <ul style="padding:0; margin:0; list-style:none; flex:1;">
-                        <li id="nav-relatorios-toggle" onclick="switchTab('relatorios-local')">
+                        <li id="nav-relatorios-toggle" onclick="switchTab('relatorios-geral')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></span>
-                            <span class="nav-label">Local</span>
+                            <span class="nav-label">Geral</span>
                         </li>
-                        <li id="nav-relatorios-regional" onclick="switchTab('relatorios-regional')" style="display:none;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-                            <span class="nav-label">Regional</span>
-                        </li>
-                        <li id="nav-relatorios-global" onclick="switchTab('relatorios-global')" style="display:none;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></span>
-                            <span class="nav-label">Global</span>
+                        <!-- Regional/Global removidos do sidebar — agora são scope tabs dentro de Geral -->
+                        <li id="nav-relatorios-retencao" onclick="switchTab('retencao')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+                            <span class="nav-label">Retenção</span>
                         </li>
                     </ul>
                 </div>
@@ -1970,7 +1981,7 @@
                 </div>
             </header>
 
-            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);" id="visitors-kpi-row">
                 <div class="kpi-box">
                     <div class="kpi-title">Welcome Message (IA)</div>
                     <div class="kpi-number">
@@ -1994,7 +2005,7 @@
                 </div>
             </div>
             
-            <div class="charts-row" style="margin-top: 20px; gap: 20px;">
+            <div class="charts-row" style="margin-top: 20px; gap: 20px;" id="visitors-charts-row">
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">CULTO RECEPTOR</div>
                     <div class="canvas-wrapper"><canvas id="vChartCulto"></canvas></div>
@@ -2540,10 +2551,14 @@
 
             <!-- Dev Hub Tabs -->
             <div style="padding:24px 32px 0;">
-                <div style="display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;">
+                <div style="display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;flex-wrap:wrap;">
                     <button id="devtab-btn-workspaces" onclick="switchDevTab('workspaces')"
                         style="padding:10px 18px;background:none;border:none;border-bottom:2px solid #FFD700;color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
                         🏛️ Workspaces
+                    </button>
+                    <button id="devtab-btn-regionais" onclick="switchDevTab('regionais')" data-dev-tab="regionais"
+                        style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                        🗺️ Regionais
                     </button>
                     <button id="devtab-btn-tickets" onclick="switchDevTab('tickets')"
                         style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
@@ -2551,8 +2566,52 @@
                     </button>
                     <button id="devtab-btn-roadmap" onclick="switchDevTab('roadmap')"
                         style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
-                        🗺️ Roadmap
+                        📋 Roadmap
                     </button>
+                    <button id="devtab-btn-analytics" onclick="switchDevTab('analytics')"
+                        style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                        📊 Analytics
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB: Regionais -->
+            <div id="devtab-regionais" style="display:none;padding:0 32px 32px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                    <h2 style="font-size:.9rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin:0;">Regionais</h2>
+                    <button onclick="openCreateRegionalModal()" style="padding:8px 18px;border:1px solid rgba(129,140,248,.3);border-radius:12px;background:rgba(129,140,248,.08);color:#818cf8;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(129,140,248,.15)'" onmouseout="this.style.background='rgba(129,140,248,.08)'">
+                        + Nova Regional
+                    </button>
+                </div>
+                <div id="dev-regionais-list">
+                    <div style="padding:60px;text-align:center;color:rgba(255,255,255,.2);">Clique na aba para carregar</div>
+                </div>
+            </div>
+
+            <!-- TAB: Analytics (BI Cross-Workspace) -->
+            <div id="devtab-analytics" style="display:none;padding:0 32px 48px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <h2 style="font-size:1rem;font-weight:900;color:#fff;margin:0 0 4px;">📊 Analytics da Rede</h2>
+                        <p style="font-size:.75rem;color:rgba(255,255,255,.35);margin:0;">Métricas agregadas de todos os workspaces</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <!-- Period filter -->
+                        <div id="bi-period-btns" style="display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:4px;">
+                            <button onclick="setBIPeriod('7d',this)" class="hub-period-tab" style="font-size:.72rem;">7d</button>
+                            <button onclick="setBIPeriod('30d',this)" class="hub-period-tab active" style="font-size:.72rem;">30d</button>
+                            <button onclick="setBIPeriod('90d',this)" class="hub-period-tab" style="font-size:.72rem;">90d</button>
+                            <button onclick="setBIPeriod('year',this)" class="hub-period-tab" style="font-size:.72rem;">Ano</button>
+                            <button onclick="setBIPeriod('all',this)" class="hub-period-tab" style="font-size:.72rem;">Tudo</button>
+                        </div>
+                        <button onclick="loadBIDashboard()" style="background:rgba(255,215,0,.08);color:#FFD700;border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:7px 14px;font-weight:700;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            Atualizar
+                        </button>
+                    </div>
+                </div>
+                <div id="bi-content-wrap">
+                    <div style="padding:80px;text-align:center;color:rgba(255,255,255,.2);font-size:.85rem;">Clique na aba para carregar analytics</div>
                 </div>
             </div>
 
@@ -2897,10 +2956,44 @@
                             <label class="pd-label">Slug</label>
                             <input id="new-regional-slug" type="text" class="pd-input" placeholder="america-do-norte">
                         </div>
+                        <div>
+                            <label class="pd-label">Workspace Responsável</label>
+                            <select id="new-regional-responsible" class="pd-input hub-field-input">
+                                <option value="">— Selecione o workspace responsável —</option>
+                            </select>
+                        </div>
                     </div>
                     <div style="display:flex;gap:12px;margin-top:24px;">
                         <button onclick="submitCreateRegional()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-weight:800;cursor:pointer;">Criar Regional</button>
                         <button onclick="closeCreateRegionalModal()" style="flex:1;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Regional Modal -->
+            <div id="dev-regional-edit-modal" onclick="if(event.target===this)closeEditRegionalModal()"
+                 style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:9200;align-items:center;justify-content:center;">
+                <div style="background:#0d0f1e;border:1px solid rgba(129,140,248,.2);border-radius:20px;padding:32px;width:100%;max-width:480px;margin:auto;position:relative;">
+                    <h2 style="font-size:1rem;font-weight:800;margin:0 0 24px;">✏️ Editar Regional</h2>
+                    <div style="display:flex;flex-direction:column;gap:14px;">
+                        <div>
+                            <label class="pd-label">Nome da Regional</label>
+                            <input id="edit-regional-name" type="text" class="pd-input" placeholder="ex: Portugal Norte">
+                        </div>
+                        <div>
+                            <label class="pd-label">Slug</label>
+                            <input id="edit-regional-slug" type="text" class="pd-input">
+                        </div>
+                        <div>
+                            <label class="pd-label">Workspace Responsável</label>
+                            <select id="edit-regional-responsible" class="pd-input hub-field-input">
+                                <option value="">— Selecione o workspace responsável —</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:24px;">
+                        <button id="edit-regional-save-btn" onclick="submitEditRegional()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#818cf8,#6366f1);color:#fff;font-weight:800;cursor:pointer;">💾 Salvar</button>
+                        <button onclick="closeEditRegionalModal()" style="flex:1;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer;">Cancelar</button>
                     </div>
                 </div>
             </div>
@@ -2909,16 +3002,111 @@
         <!-- ════════════════════════════════════════════════════════
              View: Relatórios — Local
         ═══════════════════════════════════════════════════════════ -->
-        <div id="view-relatorios-local" class="view-section">
+        <!-- ════════════════════════════════════════════════════════
+             View: Relatórios — Geral (scope tabs: Local / Regional / Global)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-relatorios-geral" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>📊 Relatórios <span style="font-size:.75rem;background:rgba(255,215,0,.12);color:#FFD700;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Local</span></h1>
-                    <p id="rl-workspace-name">Sua Igreja</p>
+                    <h1>📊 Relatórios <span id="relatorios-geral-scope-badge" style="font-size:.75rem;background:rgba(255,215,0,.12);color:#FFD700;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Local</span></h1>
+                    <p id="relatorios-geral-subtitle">Sua Igreja</p>
                 </div>
-                <div class="actions">
-                    <button onclick="sendReportEmail('local', this)" style="padding:10px 18px;border:1px solid rgba(255,215,0,.25);border-radius:12px;background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
+                <div class="actions" style="display:flex;align-items:center;gap:8px;">
+                    <button id="relatorios-geral-send-btn" onclick="sendGeralReportEmail(this)" style="padding:10px 18px;border:1px solid rgba(255,215,0,.25);border-radius:12px;background:rgba(255,215,0,.06);color:#FFD700;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;"
                             onmouseover="this.style.background='rgba(255,215,0,.12)'" onmouseout="this.style.background='rgba(255,215,0,.06)'">
                         📧 Enviar Relatório
+                    </button>
+                </div>
+            </header>
+
+            <!-- Period + Scope filters -->
+            <div style="padding:16px 32px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:.72rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Período:</span>
+                <div id="relatorios-geral-period-btns" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="period-btn" onclick="setGeralRelPeriod('7d',this)">7d</button>
+                    <button class="period-btn active" onclick="setGeralRelPeriod('30d',this)">30d</button>
+                    <button class="period-btn" onclick="setGeralRelPeriod('90d',this)">90d</button>
+                    <button class="period-btn" onclick="setGeralRelPeriod('12m',this)">12m</button>
+                    <button class="period-btn" onclick="setGeralRelPeriod('all',this)">Todo período</button>
+                </div>
+            </div>
+
+            <!-- Scope tabs (mesmo padrão do Retenção) -->
+            <div style="padding:12px 32px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button id="relatorios-scope-btn-local" onclick="switchGeralRelScope('local',this)"
+                    style="display:flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.15);background:rgba(255,215,0,.15);color:#FFD700;font-weight:700;font-size:.78rem;cursor:pointer;transition:all .2s;">
+                    🏠 Local
+                </button>
+                <button id="relatorios-scope-btn-regional" onclick="switchGeralRelScope('regional',this)"
+                    style="display:none;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.78rem;cursor:pointer;transition:all .2s;">
+                    🗺️ Regional
+                </button>
+                <button id="relatorios-scope-btn-global" onclick="switchGeralRelScope('global',this)"
+                    style="display:none;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-weight:600;font-size:.78rem;cursor:pointer;transition:all .2s;">
+                    🌐 Global
+                </button>
+            </div>
+
+            <!-- Scope-specific extra filters (hidden by default) -->
+            <div id="relatorios-geral-extra-filters" style="display:none;padding:10px 32px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <!-- Regional churches filter -->
+                <div id="relatorios-geral-regional-filter" style="display:none;position:relative;">
+                    <button onclick="toggleMultiSelect('relatorios-rr-churches-dropdown')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">
+                        🏛️ Igrejas <span id="relatorios-rr-churches-count" style="background:rgba(129,140,248,.2);color:#818CF8;padding:1px 7px;border-radius:20px;font-size:.7rem;font-weight:700;">Todas</span>
+                    </button>
+                    <div id="relatorios-rr-churches-dropdown" style="display:none;position:absolute;top:calc(100%+6px);left:0;z-index:100;background:#0d0f1e;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+                        <div id="relatorios-rr-churches-list" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+                <!-- Global: regionals + churches filters -->
+                <div id="relatorios-geral-global-filter" style="display:none;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <div style="position:relative;">
+                        <button onclick="toggleMultiSelect('relatorios-rg-regionals-dropdown')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">
+                            🌐 Regionais <span id="relatorios-rg-regionals-count" style="background:rgba(52,211,153,.2);color:#34D399;padding:1px 7px;border-radius:20px;font-size:.7rem;font-weight:700;">Todas</span>
+                        </button>
+                        <div id="relatorios-rg-regionals-dropdown" style="display:none;position:absolute;top:calc(100%+6px);left:0;z-index:100;background:#0d0f1e;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+                            <div id="relatorios-rg-regionals-list" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;"></div>
+                        </div>
+                    </div>
+                    <div style="position:relative;">
+                        <button onclick="toggleMultiSelect('relatorios-rg-churches-dropdown')" style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">
+                            🏛️ Igrejas <span id="relatorios-rg-churches-count" style="background:rgba(52,211,153,.2);color:#34D399;padding:1px 7px;border-radius:20px;font-size:.7rem;font-weight:700;">Todas</span>
+                        </button>
+                        <div id="relatorios-rg-churches-dropdown" style="display:none;position:absolute;top:calc(100%+6px);left:0;z-index:100;background:#0d0f1e;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+                            <div id="relatorios-rg-churches-list" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unified Module KPI grid -->
+            <div id="relatorios-geral-grid" style="padding:20px 32px 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
+                <div style="text-align:center;padding:60px;color:rgba(255,255,255,.2);grid-column:1/-1;">Carregando relatório...</div>
+            </div>
+
+            <!-- Backward-compat aliases (IDs que as funções JS existentes usam) -->
+            <!-- rl-modules-grid, rr-modules-grid, rg-modules-grid → todos apontam para relatorios-geral-grid via JS -->
+        </div>
+
+        <!-- Views legacy Local/Regional/Global ocultas — mantidas para compat com sendReportEmail -->
+        <div id="view-relatorios-local"    style="display:none;"><span id="rl-workspace-name"></span></div>
+        <div id="view-relatorios-regional" style="display:none;"><span id="rr-regional-name"></span></div>
+
+        <!-- ════════════════════════════════════════════════════════
+             View: Relatório de Retenção — Funil de Crescimento
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-retencao" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>📊 Retenção <span style="font-size:.75rem;background:rgba(129,140,248,.12);color:#818cf8;padding:3px 10px;border-radius:20px;font-weight:600;vertical-align:middle;margin-left:8px;">Funil</span></h1>
+                    <p>Taxa de conversão entre etapas do discipulado</p>
+                </div>
+                <div class="actions" style="display:flex;gap:8px;align-items:center;">
+                    <button onclick="exportRetencaoCSV()" style="padding:10px 16px;border:1px solid rgba(129,140,248,.3);border-radius:12px;background:rgba(129,140,248,.08);color:#818cf8;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(129,140,248,.15)'" onmouseout="this.style.background='rgba(129,140,248,.08)'">
+                        📥 CSV
+                    </button>
+                    <button onclick="exportRetencaoPDF()" style="padding:10px 16px;border:1px solid rgba(129,140,248,.3);border-radius:12px;background:rgba(129,140,248,.08);color:#818cf8;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(129,140,248,.15)'" onmouseout="this.style.background='rgba(129,140,248,.08)'">
+                        📄 PDF
                     </button>
                 </div>
             </header>
@@ -2926,25 +3114,29 @@
             <!-- Period filter -->
             <div style="padding:16px 32px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span style="font-size:.72rem;color:rgba(255,255,255,.3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:4px;">Período:</span>
-                <div id="rl-period-btns" style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button class="period-btn active" onclick="setRelatoriosPeriod('local','7d',this)">7d</button>
-                    <button class="period-btn" onclick="setRelatoriosPeriod('local','30d',this)">30d</button>
-                    <button class="period-btn" onclick="setRelatoriosPeriod('local','90d',this)">90d</button>
-                    <button class="period-btn" onclick="setRelatoriosPeriod('local','12m',this)">12m</button>
-                    <button class="period-btn" onclick="setRelatoriosPeriod('local','all',this)">Todo período</button>
+                <div id="retencao-period-btns" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="period-btn" onclick="setRetencaoPeriod('30d',this)">30d</button>
+                    <button class="period-btn active" onclick="setRetencaoPeriod('90d',this)">90d</button>
+                    <button class="period-btn" onclick="setRetencaoPeriod('6m',this)">6 meses</button>
+                    <button class="period-btn" onclick="setRetencaoPeriod('year',this)">Este ano</button>
+                    <button class="period-btn" onclick="setRetencaoPeriod('all',this)">Todo período</button>
                 </div>
             </div>
 
-            <!-- Module KPI blocks -->
-            <div id="rl-modules-grid" style="padding:20px 32px 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
-                <!-- Populated by loadRelatoriosLocal() -->
-                <div style="text-align:center;padding:60px;color:rgba(255,255,255,.2);grid-column:1/-1;">Carregando relatório...</div>
+            <!-- Scope tabs: Local / Regional / Global -->
+            <div class="retencao-scope-tabs" id="retencao-scope-tabs">
+                <button class="retencao-scope-tab active" onclick="setRetencaoScope('local',this)">🏠 Local</button>
+                <!-- Regional and Global tabs shown dynamically if workspace has access -->
+            </div>
+
+            <!-- Funnel + Chart + Insights rendered here -->
+            <div id="retencao-funnel-wrap" style="padding:24px 32px 40px;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:80px;color:rgba(255,255,255,.2);">
+                    <div class="hub-loader" style="width:28px;height:28px;border-width:3px;"></div>
+                    Navegue para esta aba para carregar o funil
+                </div>
             </div>
         </div>
-
-        <!-- ════════════════════════════════════════════════════════
-             View: Relatórios — Regional
-        ═══════════════════════════════════════════════════════════ -->
 
         <!-- ════════════════════════════════════════════════════════
              View: Administrativo — Tarefas
@@ -3007,57 +3199,81 @@
                 .hub-hide-mobile { display: inline; }
                 
                 @media (max-width: 768px) {
-                    .tasks-wrapper-padding { padding: 12px 16px 0; }
+                    /* ── Compacted toolbar: zero padding-top to close gap under sticky top-bar ── */
+                    .tasks-wrapper-padding { padding: 8px 14px 0; }
                     .tasks-bottom-padding { padding-bottom: 24px; }
                     .hub-hide-mobile { display: none !important; }
-                    
-                    /* Filters */
+
+                    /* ── Toolbar: single row, compact ── */
+                    .tasks-toolbar {
+                        gap: 8px;
+                        padding-top: 0;
+                        flex-wrap: nowrap;
+                    }
+                    /* ── view-toggle: smaller pills on mobile ── */
+                    .view-toggles {
+                        flex-shrink: 0;
+                    }
+
+                    /* ── Filters dropdown (hidden until Filtrar tapped) ── */
                     #tasks-filters-container {
-                        display: none; /* hidden until toggled */
+                        display: none;
                         flex-direction: column;
                         width: 100%;
-                        margin-top: 10px;
+                        margin-top: 8px;
+                        gap: 8px;
                     }
                     #tasks-filters-container.show { display: flex; }
-                    #tasks-filters-container input, #tasks-filters-container select, #tasks-filters-container button { width: 100%; }
+                    #tasks-filters-container input,
+                    #tasks-filters-container select,
+                    #tasks-filters-container button { width: 100%; }
+
                     .mob-filter-toggle {
                         display: flex;
-                        padding: 8px 12px;
+                        padding: 7px 11px;
                         border-radius: 8px;
                         border: 1px solid rgba(255,255,255,.1);
                         background: rgba(255,255,255,.05);
                         color: #fff;
-                        font-size: .8rem;
+                        font-size: .78rem;
                         cursor: pointer;
                         align-items: center;
-                        gap: 6px;
+                        gap: 5px;
+                        white-space: nowrap;
+                        flex-shrink: 0;
                     }
 
-                    /* Responsive Table -> Clean Flex Cards */
+                    /* ── List view: no margin-top (gap comes from toolbar only) ── */
+                    #tasks-list-view {
+                        margin-top: 8px !important;
+                    }
+
+                    /* ── Responsive Table → Clean Flex Cards ── */
                     .task-responsive-table thead { display: none; }
-                    .task-responsive-table, .task-responsive-table tbody { display: block; width: 100%; }
-                    .task-responsive-table tr { 
-                        display: flex; 
+                    .task-responsive-table,
+                    .task-responsive-table tbody { display: block; width: 100%; }
+                    .task-responsive-table tr {
+                        display: flex;
                         flex-wrap: wrap;
-                        padding: 16px; 
-                        background: rgba(255,255,255,.02);
+                        padding: 14px;
+                        background: rgba(255,255,255,.025);
                         border: 1px solid rgba(255,255,255,.06);
                         border-radius: 12px;
-                        margin-bottom: 12px;
+                        margin-bottom: 10px;
                         position: relative;
                         align-items: center;
                     }
-                    .task-responsive-table td { 
-                        padding: 0 !important; 
+                    .task-responsive-table td {
+                        padding: 0 !important;
                         display: flex;
                         align-items: center;
                         border: none !important;
                     }
                     /* Layout mapping */
-                    .task-responsive-table td:nth-child(1) { width: 100%; margin-bottom: 12px; align-items: flex-start; flex-direction: column; }
-                    .task-responsive-table td:nth-child(2) { margin-right: 8px; margin-bottom: 12px; }
-                    .task-responsive-table td:nth-child(3) { margin-right: auto; margin-bottom: 12px; }
-                    .task-responsive-table td:nth-child(4) { width: 100%; margin-bottom: 12px; }
+                    .task-responsive-table td:nth-child(1) { width: 100%; margin-bottom: 10px; align-items: flex-start; flex-direction: column; }
+                    .task-responsive-table td:nth-child(2) { margin-right: 8px; margin-bottom: 10px; }
+                    .task-responsive-table td:nth-child(3) { margin-right: auto; margin-bottom: 10px; }
+                    .task-responsive-table td:nth-child(4) { width: 100%; margin-bottom: 10px; }
                     .task-responsive-table td:nth-child(5) { margin-right: auto; }
                     .task-responsive-table td:nth-child(6) { margin-right: 12px; }
                     .task-responsive-table td::before { display: none !important; }
@@ -6451,6 +6667,15 @@
                     <button onclick="filterCantinaPedidos('ready',this)" class="hub-period-tab" style="font-size:0.75rem;">Prontos</button>
                     <button onclick="filterCantinaPedidos('delivered',this)" class="hub-period-tab" style="font-size:0.75rem;">Entregues</button>
                 </div>
+                <!-- Realtime "Ao Vivo" badge — shown/hidden by hub-cantina.js -->
+                <span id="cantina-realtime-badge"
+                      style="display:none;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;
+                             background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);
+                             color:#34d399;font-size:0.72rem;font-weight:700;letter-spacing:.04em;">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;
+                                 animation:cantina-pulse 1.4s ease-in-out infinite;"></span>
+                    AO VIVO
+                </span>
                 <button onclick="loadCantinaPedidos()" style="background:rgba(251,113,133,0.1);color:#fb7185;border:1px solid rgba(251,113,133,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                     Atualizar
@@ -6561,6 +6786,10 @@
                 </button>
                 <button onclick="openLancamentoModal('income')" style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;">
                     ➕ Lançar Receita
+                </button>
+                <button onclick="exportCantinaFinanceiroPDF()" style="background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.25);border-radius:10px;padding:8px 14px;font-weight:600;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Exportar PDF
                 </button>
                 <button onclick="fecharCaixa()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;border:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;">
                     🔒 Fechar Caixa
@@ -7041,6 +7270,9 @@
 
     <script src="/hub-start.js?v=1"></script>
     <script src="/hub-cantina.js?v=20260411v5"></script>
+    <script src="/hub-retencao.js?v=20260413v2"></script>
+    <script src="/hub-regionais.js?v=20260413v1"></script>
+    <script src="/hub-bi.js?v=20260413v1"></script>
     <script src="/task-manager.js?v=20260401v1"></script>
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
