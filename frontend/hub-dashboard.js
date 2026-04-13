@@ -703,6 +703,137 @@
             }, duration);
         };
 
+        // ── Audit Logger ──────────────────────────────────────────────────
+        // Fire-and-forget — never blocks the UI
+        // Usage: logAudit('plan.changed', { entity_type:'workspace', metadata:{from:'free',to:'essencial'} })
+        window.logAudit = async function(action, opts = {}) {
+            try {
+                const sb = window.supabaseClient;
+                if (!sb) return;
+                const { data: { user } } = await sb.auth.getUser();
+                if (!user) return;
+                const wsId = window.currentWorkspaceId || null;
+                await sb.from('audit_logs').insert({
+                    workspace_id: wsId,
+                    user_id: user.id,
+                    user_email: user.email,
+                    action,
+                    entity_type: opts.entity_type || null,
+                    entity_id: opts.entity_id ? String(opts.entity_id) : null,
+                    metadata: opts.metadata || {},
+                });
+            } catch(e) {
+                console.warn('[Audit] failed to log:', action, e);
+            }
+        };
+
+        // ── PDF Financial Report ──────────────────────────────────────────
+        // Generates a premium print-ready report page — no external deps
+        // opts: { title, subtitle, rows: [{date,type,desc,method,amount}], kpis: [{label,value,color}], period, currency }
+        window.exportFinanceiroPDF = function(opts = {}) {
+            const {
+                title = 'Relatório Financeiro',
+                subtitle = '',
+                rows = [],
+                kpis = [],
+                period = 'Todos os períodos',
+                currency = 'R$',
+                workspaceName = (window._currentWorkspaceName || 'Workspace'),
+            } = opts;
+
+            const now = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+            const fmt = (n) => currency + ' ' + parseFloat(n || 0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?=\d))/g,'.');
+
+            const kpiHtml = kpis.map(k => `
+              <div class="kpi">
+                <div class="kpi-val" style="color:${k.color||'#FFD700'}">${k.value}</div>
+                <div class="kpi-label">${k.label}</div>
+              </div>`).join('');
+
+            const typeMap = { sale:'Venda', expense:'Despesa', donation:'Doação', adjustment:'Ajuste', refund:'Reembolso' };
+            const typeColor = { sale:'#34d399', expense:'#f87171', donation:'#a78bfa', adjustment:'#60a5fa', refund:'#fbbf24' };
+
+            const rowsHtml = rows.length ? rows.map(r => `
+              <tr>
+                <td>${r.date || '—'}</td>
+                <td><span class="type-badge" style="background:${typeColor[r.type]||'#555'}22;color:${typeColor[r.type]||'#ccc'}">${typeMap[r.type]||r.type}</span></td>
+                <td>${r.desc || '—'}</td>
+                <td>${r.method || '—'}</td>
+                <td class="amount" style="color:${r.amount<0?'#f87171':'#34d399'}">${fmt(r.amount)}</td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" style="text-align:center;color:#666;padding:40px;">Nenhuma transação no período.</td></tr>`;
+
+            const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<title>${title} — Zelo Pro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:40px 48px;max-width:960px;margin:0 auto;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:20px;border-bottom:2px solid #f0f0f0;}
+  .logo{font-size:1.5rem;font-weight:900;letter-spacing:-.03em;}
+  .logo span{color:#f59e0b;}
+  .meta{text-align:right;font-size:.8rem;color:#666;}
+  .meta strong{display:block;font-size:1.1rem;font-weight:800;color:#111;margin-bottom:4px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:32px;}
+  .kpi{border:1px solid #e5e7eb;border-radius:12px;padding:18px;background:#fafafa;}
+  .kpi-val{font-size:1.6rem;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;}
+  .kpi-label{font-size:.68rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;}
+  h2{font-size:.85rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+  table{width:100%;border-collapse:collapse;font-size:.83rem;}
+  th{padding:9px 12px;text-align:left;font-size:.65rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #f0f0f0;}
+  td{padding:11px 12px;border-bottom:1px solid #f5f5f5;color:#333;}
+  tr:last-child td{border-bottom:none;}
+  .amount{font-weight:700;text-align:right;}
+  th:last-child{text-align:right;}
+  .type-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #f0f0f0;font-size:.72rem;color:#aaa;display:flex;justify-content:space-between;}
+  @media print{body{padding:20mm 16mm;}@page{margin:0;size:A4;}}
+</style>
+</head><body>
+<div class="header">
+  <div>
+    <div class="logo">Zelo <span>Pro</span></div>
+    <div style="font-size:.8rem;color:#888;margin-top:4px;">${workspaceName}</div>
+  </div>
+  <div class="meta">
+    <strong>${title}</strong>
+    ${subtitle ? `<span>${subtitle}</span><br>` : ''}
+    <span>📅 Período: ${period}</span><br>
+    <span>Gerado em ${now}</span>
+  </div>
+</div>
+<div class="kpis">${kpiHtml}</div>
+<h2>🧾 Transações</h2>
+<table>
+  <thead><tr>
+    <th>Data</th><th>Tipo</th><th>Descrição</th><th>Pagamento</th><th style="text-align:right">Valor</th>
+  </tr></thead>
+  <tbody>${rowsHtml}</tbody>
+</table>
+<div class="footer">
+  <span>Zelo Pro — Gestão eclesiástica inteligente</span>
+  <span>Exportado em ${new Date().toLocaleString('pt-BR')}</span>
+</div>
+</body></html>`;
+
+            const w = window.open('', '_blank', 'width=960,height=700');
+            if (!w) { showToast('⚠️ Pop-up bloqueado — permita pop-ups e tente novamente', 4000); return; }
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            // Auto-open print dialog after fonts load
+            w.onload = () => setTimeout(() => w.print(), 800);
+
+            // Log audit event
+            logAudit('financial.export_pdf', {
+                entity_type: 'report',
+                metadata: { title, period, rows_count: rows.length }
+            });
+        };
+
+
+
         // ── Bootstrap loadWorkspaces ──────────────────────────────────────
         // This script is loaded at the END of <body>, so DOMContentLoaded has
         // already fired by the time this code runs. We call loadWorkspaces()
@@ -1413,6 +1544,12 @@
             if (o) o.innerHTML = `<div style="color:#fff;font-size:1rem;display:flex;align-items:center;gap:14px;"><div class="hub-loader" style="width:28px;height:28px;border-width:3px;"></div> Redirecionando para o Checkout seguro...</div>`;
 
             try {
+                // Audit: log plan upgrade attempt
+                logAudit && logAudit('plan.checkout_initiated', {
+                    entity_type: 'workspace',
+                    entity_id: wsId,
+                    metadata: { plan: planSlug, price_id: priceId }
+                });
                 const res = await fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/saas-stripe-checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -3067,9 +3204,10 @@
         if (!container) return;
         const sel = selectedModules || [];
         // If wsModules not passed, use globally stored workspace modules (or allow all)
-        // TRIAL plan: treat as fully unlocked — pass null so wsAllowed is null and nothing is locked
-        const isTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
-        const wsAllowed = isTrial ? null : (wsModules || window._wsModules || null);
+        // UNLIMITED plans (trial, founders, premium): treat as fully unlocked — wsAllowed = null
+        const _plan = (window._currentWorkspacePlan || '').toLowerCase();
+        const isUnlimitedPlan = ['trial', 'founders', 'premium'].includes(_plan);
+        const wsAllowed = isUnlimitedPlan ? null : (wsModules || window._wsModules || null);
 
         // Set grid layout on container
         container.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:7px;';
@@ -3196,10 +3334,10 @@
         document.getElementById('user-modal-subtitle').style.display = 'block';
         document.getElementById('user-status-group').style.display = 'none';
 
-        // Default modules for new user — trial workspaces get all modules pre-selected (no locks)
-        const _isTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
-        if (_isTrial) {
-            // Collect all module keys for trial workspaces
+        // Default modules for new user — unlimited plans (trial/founders/premium) get all modules, no locks
+        const _plan = (window._currentWorkspacePlan || '').toLowerCase();
+        const _isUnlimited = ['trial', 'founders', 'premium'].includes(_plan);
+        if (_isUnlimited) {
             const _allKeys = [];
             AVAILABLE_MODULES.forEach(m => {
                 _allKeys.push(m.key);
@@ -3228,27 +3366,29 @@
         
         document.getElementById('user-status-group').style.display = 'block';
 
-        // Render modules with the user's existing selection — trial workspaces: no locks
-        const _editIsTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
-        renderModuleToggles(u.modules || [], _editIsTrial ? null : (window._wsModules || null));
+        // Render modules with the user's existing selection — unlimited plans: no locks
+        const _editPlan = (window._currentWorkspacePlan || '').toLowerCase();
+        const _editIsUnlimited = ['trial', 'founders', 'premium'].includes(_editPlan);
+        renderModuleToggles(u.modules || [], _editIsUnlimited ? null : (window._wsModules || null));
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
 
     window.onUserRoleChange = function(role) {
         const preset = ROLE_PRESETS[role] || ROLE_PRESETS['user'];
-        const _roleIsTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
+        const _rolePlan = (window._currentWorkspacePlan || '').toLowerCase();
+        const _roleIsUnlimited = ['trial', 'founders', 'premium'].includes(_rolePlan);
         if (role === 'master_admin') {
-            // master_admin gets all modules; trial workspaces also get all without locks
+            // master_admin gets all modules; unlimited plans also get all without locks
             const allKeys = [];
             AVAILABLE_MODULES.forEach(m => {
                 allKeys.push(m.key);
                 if (m.submodules) m.submodules.forEach(s => allKeys.push(s.key));
             });
-            renderModuleToggles(allKeys, _roleIsTrial ? null : (window._wsModules || null));
+            renderModuleToggles(allKeys, _roleIsUnlimited ? null : (window._wsModules || null));
         } else if (preset && preset.hideSettings) {
             const cur = _getCurrentModules();
-            renderModuleToggles(cur.filter(k => k !== 'configuracoes'), _roleIsTrial ? null : (window._wsModules || null));
+            renderModuleToggles(cur.filter(k => k !== 'configuracoes'), _roleIsUnlimited ? null : (window._wsModules || null));
         }
     };
 
