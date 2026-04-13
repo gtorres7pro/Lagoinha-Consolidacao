@@ -795,6 +795,18 @@
         // Router logic
         window.switchTab = function(tabName) {
             if (window.closeSecondarySidebar) window.closeSecondarySidebar();
+
+            // Bug 3.4 fix: Check trial expiry on every tab switch so UI reflects
+            // downgrade immediately without requiring a page refresh.
+            if (window._currentWorkspacePlan === 'trial' && window._currentWorkspace?.created_at) {
+                const trialAge = Date.now() - new Date(window._currentWorkspace.created_at).getTime();
+                if (trialAge > 7 * 24 * 60 * 60 * 1000) {
+                    // Trial expired — downgrade UI to free until next server-side sync
+                    window._currentWorkspacePlan = 'free';
+                    window.applyPlanGating && window.applyPlanGating('free', []);
+                    console.warn('[Zelo] Trial expired — plan gating downgraded to free.');
+                }
+            }
             
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             const viewEl = document.getElementById('view-' + tabName);
@@ -1126,7 +1138,17 @@
                         navEl.appendChild(lock);
                     }
                     // Override click to show upgrade modal instead
-                    navEl.onclick = (e) => { e.stopPropagation(); alert('Funcionalidade de Checkout em breve! Contate o Suporte para Upgrade.'); };
+                    // Use data-gate-bound to prevent stacking duplicate listeners on workspace switch
+                    if (!navEl.dataset.gateBound) {
+                        navEl.dataset.gateBound = '1';
+                        navEl.addEventListener('click', function _gateHandler(e) {
+                            if (this.getAttribute('data-locked') === '1') {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                window.showUpgradeModal && window.showUpgradeModal();
+                            }
+                        }, true); // capture phase so it fires before switchTab
+                    }
                 }
             });
 
@@ -3045,7 +3067,9 @@
         if (!container) return;
         const sel = selectedModules || [];
         // If wsModules not passed, use globally stored workspace modules (or allow all)
-        const wsAllowed = wsModules || window._wsModules || null;
+        // TRIAL plan: treat as fully unlocked — pass null so wsAllowed is null and nothing is locked
+        const isTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
+        const wsAllowed = isTrial ? null : (wsModules || window._wsModules || null);
 
         // Set grid layout on container
         container.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:7px;';
@@ -3055,7 +3079,7 @@
             const hasSubActive = m.submodules && m.submodules.some(s => sel.includes(s.key));
             const parentActive = active || hasSubActive;
             const isCrie = !!m.submodules;
-            // Is this module available in the workspace plan?
+            // Is this module available in the workspace plan? (trial = never locked)
             const wsLocked = wsAllowed && !wsAllowed.includes(m.key);
 
             let subHtml = '';
@@ -3172,8 +3196,19 @@
         document.getElementById('user-modal-subtitle').style.display = 'block';
         document.getElementById('user-status-group').style.display = 'none';
 
-        // Default modules for new user — filtered by workspace plan
-        renderModuleToggles(['consolidados', 'visitantes'], window._wsModules || null);
+        // Default modules for new user — trial workspaces get all modules pre-selected (no locks)
+        const _isTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
+        if (_isTrial) {
+            // Collect all module keys for trial workspaces
+            const _allKeys = [];
+            AVAILABLE_MODULES.forEach(m => {
+                _allKeys.push(m.key);
+                if (m.submodules) m.submodules.forEach(s => _allKeys.push(s.key));
+            });
+            renderModuleToggles(_allKeys, null); // null = no restrictions
+        } else {
+            renderModuleToggles(['consolidados', 'visitantes'], window._wsModules || null);
+        }
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
@@ -3193,25 +3228,27 @@
         
         document.getElementById('user-status-group').style.display = 'block';
 
-        // Render modules with the user's existing selection — locked by workspace plan
-        renderModuleToggles(u.modules || [], window._wsModules || null);
+        // Render modules with the user's existing selection — trial workspaces: no locks
+        const _editIsTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
+        renderModuleToggles(u.modules || [], _editIsTrial ? null : (window._wsModules || null));
         
         document.getElementById('user-modal-overlay').style.display = 'flex';
     };
 
     window.onUserRoleChange = function(role) {
         const preset = ROLE_PRESETS[role] || ROLE_PRESETS['user'];
+        const _roleIsTrial = (window._currentWorkspacePlan || '').toLowerCase() === 'trial';
         if (role === 'master_admin') {
-            // master_admin gets all modules (still locked by workspace plan)
+            // master_admin gets all modules; trial workspaces also get all without locks
             const allKeys = [];
             AVAILABLE_MODULES.forEach(m => {
                 allKeys.push(m.key);
                 if (m.submodules) m.submodules.forEach(s => allKeys.push(s.key));
             });
-            renderModuleToggles(allKeys, window._wsModules || null);
+            renderModuleToggles(allKeys, _roleIsTrial ? null : (window._wsModules || null));
         } else if (preset && preset.hideSettings) {
             const cur = _getCurrentModules();
-            renderModuleToggles(cur.filter(k => k !== 'configuracoes'), window._wsModules || null);
+            renderModuleToggles(cur.filter(k => k !== 'configuracoes'), _roleIsTrial ? null : (window._wsModules || null));
         }
     };
 
