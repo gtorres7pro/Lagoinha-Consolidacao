@@ -2,10 +2,18 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const VERIFY_TOKEN = "lagoinha_consolida_secret_token";
+const EVOLUTION_URL = "https://evolution.7pro.tech";
+const EVOLUTION_KEY = "lagoinhazxcvbnm1234";
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 function normPhone(r: string) { const c = r.trim(); return c.startsWith("+") ? c : "+" + c; }
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
+
+// Convert Evolution remoteJid (e.g. "5511999999999@s.whatsapp.net") to E.164
+function evoPhoneToE164(remoteJid: string): string {
+  const number = remoteJid.split("@")[0];
+  return "+" + number;
+}
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
   let binary = '';
@@ -19,8 +27,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
 
 async function transcribeAudioWithGemini(audioBuffer: ArrayBuffer, mimeType: string, apiKey: string): Promise<string> {
   const base64Data = arrayBufferToBase64(audioBuffer);
-  // Ensure we pass only audio/ogg or similar standard format
-  const cleanMime = mimeType.split(';')[0]; 
+  const cleanMime = mimeType.split(';')[0];
   const payload = {
     contents: [
       {
@@ -43,9 +50,27 @@ async function transcribeAudioWithGemini(audioBuffer: ArrayBuffer, mimeType: str
   return text.trim();
 }
 
+// ── pg_net trigger: call whatsapp-flush in background ───────────────────────
+// This is now done via a Supabase database trigger on messages INSERT.
+// If the trigger is not set up, we call flush directly here.
+async function callFlush(lead_id: string, message_created_at: string) {
+  const flushUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/whatsapp-flush";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  try {
+    await fetch(flushUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      body: JSON.stringify({ lead_id, message_created_at })
+    });
+  } catch (e: any) {
+    console.error("[WH] callFlush error:", e.message);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
 
+  // ── Meta webhook verification (GET) ────────────────────────────────────────
   if (req.method === "GET") {
     const m = url.searchParams.get("hub.mode"), v = url.searchParams.get("hub.verify_token"), c = url.searchParams.get("hub.challenge");
     return m === "subscribe" && v === VERIFY_TOKEN ? new Response(c, {status:200}) : new Response("Forbidden", {status:403});
@@ -55,6 +80,17 @@ Deno.serve(async (req: Request) => {
   let body: any;
   try { body = await req.json(); } catch { return new Response("Bad Request", {status:400}); }
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // EVOLUTION API format detection
+  // Evolution sends: { event: "messages.upsert", instance: "...", data: { key: { remoteJid, fromMe, id }, message: {...}, pushName } }
+  // ════════════════════════════════════════════════════════════════════════════
+  if (body?.event === "messages.upsert" || (body?.event && body?.instance && body?.data)) {
+    return await handleEvolutionWebhook(body);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // META CLOUD API format
+  // ════════════════════════════════════════════════════════════════════════════
   const value = body?.entry?.[0]?.changes?.[0]?.value;
   if (!value?.messages?.length) { console.log("[WH] skip: no messages"); return new Response("EVENT_RECEIVED", {status:200}); }
 
@@ -62,16 +98,16 @@ Deno.serve(async (req: Request) => {
   if (!["text","audio","image"].includes(msg.type)) return new Response("EVENT_RECEIVED", {status:200});
 
   const pnid: string = value.metadata?.phone_number_id ?? "";
-  console.log(`[WH] id=${msg.id} from=${msg.from} pnid=${pnid} type=${msg.type}`);
+  console.log(`[WH-META] id=${msg.id} from=${msg.from} pnid=${pnid} type=${msg.type}`);
 
-  // Find workspace
+  // Find workspace by phone_number_id
   const { data: wss } = await sb.from("workspaces").select("id,name,credentials");
   const ws = wss?.find((w:any) => w.credentials?.phone_number_id === pnid) ?? wss?.find((w:any) => !!w.credentials?.whatsapp_token);
-  if (!ws) { console.error("[WH] no workspace"); return new Response("EVENT_RECEIVED", {status:200}); }
+  if (!ws) { console.error("[WH-META] no workspace"); return new Response("EVENT_RECEIVED", {status:200}); }
 
   // Idempotency
   const { data: dup } = await sb.from("messages").select("id").eq("wa_message_id", msg.id).maybeSingle();
-  if (dup) { console.log("[WH] dup skip"); return new Response("EVENT_RECEIVED", {status:200}); }
+  if (dup) { console.log("[WH-META] dup skip"); return new Response("EVENT_RECEIVED", {status:200}); }
 
   const phone = normPhone(msg.from);
   const contact = value.contacts?.[0] ?? null;
@@ -86,11 +122,10 @@ Deno.serve(async (req: Request) => {
     const { data: nl } = await sb.from("leads").insert({workspace_id:ws.id, name:contact?.profile?.name??"Visitante", phone, type:"visitor"}).select().limit(1);
     lead = nl?.[0] ?? null;
   }
-  if (!lead) { console.error("[WH] no lead"); return new Response("EVENT_RECEIVED", {status:200}); }
-  console.log(`[WH] lead=${lead.id} (${lead.name}) phone=${lead.phone}`);
+  if (!lead) { console.error("[WH-META] no lead"); return new Response("EVENT_RECEIVED", {status:200}); }
 
   if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
-    console.log("[WH] human lock");
+    console.log("[WH-META] human lock");
     return new Response("EVENT_RECEIVED", {status:200});
   }
 
@@ -100,67 +135,210 @@ Deno.serve(async (req: Request) => {
     text = msg.text?.body ?? "";
   } else if (msg.type === "audio" && msg.audio?.id) {
     try {
-      console.log(`[WH] Processing Audio. ID: ${msg.audio.id}`);
       const waToken = ws.credentials?.whatsapp_token;
       const geminiKey = ws.credentials?.llm_config?.gemini_token;
-      
       if (waToken && geminiKey) {
-        // 1. Get Media URL
         const mediaMetaRes = await fetch(`https://graph.facebook.com/v20.0/${msg.audio.id}`, {
           headers: { "Authorization": `Bearer ${waToken}` }
         });
         const mediaMeta = await mediaMetaRes.json();
-        
         if (mediaMeta.url) {
-          // 2. Download Media bytes
-          const mediaRes = await fetch(mediaMeta.url, {
-            headers: { "Authorization": `Bearer ${waToken}` }
-          });
+          const mediaRes = await fetch(mediaMeta.url, { headers: { "Authorization": `Bearer ${waToken}` } });
           const audioBuffer = await mediaRes.arrayBuffer();
-          
-          // 3. Transcribe via Gemini
-          console.log(`[WH] Audio downloaded (${audioBuffer.byteLength} bytes). Transcribing via Gemini...`);
           const transcription = await transcribeAudioWithGemini(audioBuffer, msg.audio.mime_type || "audio/ogg", geminiKey);
-          if (transcription) {
-             text = `[ÁUDIO TRANSCRITO] "${transcription}"`;
-             console.log(`[WH] Transcription success: ${text.substring(0, 50)}...`);
-          } else {
-             text = `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)`;
-          }
-        } else {
-           console.error("[WH] Meta did not return a valid audio URL.", mediaMeta);
+          text = transcription ? `[ÁUDIO TRANSCRITO] "${transcription}"` : `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)`;
         }
-      } else {
-         console.warn("[WH] Missing either waToken or geminiKey. Cannot transcribe audio.");
       }
     } catch (e: any) {
-       console.error("[WH] Error transcribing audio:", e.message);
-       text = `[ÁUDIO]: Erro ao transcrever. Falha na integração Gemini.`;
+      text = `[ÁUDIO]: Erro ao transcrever.`;
     }
   }
 
-  // Save inbound - trigger fires automatically after INSERT
+  const now = new Date().toISOString();
   const { error: ie } = await sb.from("messages").insert({
-    workspace_id: ws.id,
-    lead_id: lead.id,
-    direction: "inbound",
-    type: msg.type,
-    content: text,
-    automated: false,
-    responded_at: null,
-    wa_message_id: msg.id,
+    workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
+    type: msg.type, content: text, automated: false, responded_at: null, wa_message_id: msg.id,
   });
-  if (ie) { console.error("[WH] insert error:", ie.message); return new Response("EVENT_RECEIVED", {status:200}); }
-  console.log(`[WH] inbound saved: "${text.substring(0, 100)}" | trigger will call whatsapp-flush in background`);
+  if (ie) { console.error("[WH-META] insert error:", ie.message); return new Response("EVENT_RECEIVED", {status:200}); }
+
+  const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
+
+  return new Response("EVENT_RECEIVED", {status:200});
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// EVOLUTION API HANDLER
+// ════════════════════════════════════════════════════════════════════════════
+async function handleEvolutionWebhook(body: any): Promise<Response> {
+  const event: string = body.event ?? "";
+  const instanceName: string = body.instance ?? "";
+  const data: any = body.data ?? {};
+
+  console.log(`[WH-EVO] event=${event} instance=${instanceName}`);
+
+  // Only handle incoming messages (not fromMe)
+  if (event !== "messages.upsert") {
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  // Skip messages sent by us (fromMe = true)
+  const key = data.key ?? {};
+  if (key.fromMe === true) {
+    console.log("[WH-EVO] skip fromMe message");
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  // Skip group messages (remoteJid contains @g.us)
+  const remoteJid: string = key.remoteJid ?? "";
+  if (remoteJid.includes("@g.us")) {
+    console.log("[WH-EVO] skip group message");
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  const msgId: string = key.id ?? "";
+  const pushName: string = data.pushName ?? data.sender ?? "";
+  const phone = evoPhoneToE164(remoteJid);
+
+  // Detect message type & extract content
+  const msgData = data.message ?? {};
+  let msgType = "text";
+  let text = "";
+
+  if (msgData.conversation) {
+    text = msgData.conversation;
+    msgType = "text";
+  } else if (msgData.extendedTextMessage?.text) {
+    text = msgData.extendedTextMessage.text;
+    msgType = "text";
+  } else if (msgData.audioMessage) {
+    msgType = "audio";
+    text = "[ÁUDIO]";
+  } else if (msgData.imageMessage) {
+    msgType = "image";
+    text = msgData.imageMessage.caption ? `[IMAGEM] ${msgData.imageMessage.caption}` : "[IMAGEM]";
+  } else if (msgData.documentMessage) {
+    msgType = "text";
+    text = `[DOCUMENTO: ${msgData.documentMessage.title || "arquivo"}]`;
+  } else if (msgData.stickerMessage) {
+    text = "[STICKER]";
+    msgType = "text";
+  } else {
+    // Unknown message type — skip
+    console.log("[WH-EVO] unknown message type:", JSON.stringify(msgData).slice(0, 200));
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  console.log(`[WH-EVO] id=${msgId} from=${phone} type=${msgType} text="${text.substring(0, 80)}"`);
+
+  // Find workspace by evolution_instance name
+  const { data: wss } = await sb.from("workspaces").select("id,name,credentials");
+  const ws = wss?.find((w:any) => w.credentials?.evolution_instance === instanceName && w.credentials?.whatsapp_mode === "evolution");
+
+  if (!ws) {
+    console.error(`[WH-EVO] no workspace found for instance "${instanceName}"`);
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  // Idempotency
+  const { data: dup } = await sb.from("messages").select("id").eq("wa_message_id", msgId).maybeSingle();
+  if (dup) { console.log("[WH-EVO] dup skip"); return new Response("EVENT_RECEIVED", {status:200}); }
+
+  // Find or create lead
+  let lead: any = null;
+  for (const p of [phone, metaPhone(phone)]) {
+    const { data: r } = await sb.from("leads").select("*").eq("phone", p).eq("workspace_id", ws.id).order("created_at",{ascending:false}).limit(1);
+    if (r?.[0]) { lead = r[0]; break; }
+  }
+  if (!lead) {
+    console.log(`[WH-EVO] creating new lead: ${pushName || "Visitante"} (${phone})`);
+    const { data: nl } = await sb.from("leads").insert({
+      workspace_id: ws.id,
+      name: pushName || "Visitante",
+      phone,
+      type: "visitor"
+    }).select().limit(1);
+    lead = nl?.[0] ?? null;
+  }
+  if (!lead) { console.error("[WH-EVO] failed to find/create lead"); return new Response("EVENT_RECEIVED", {status:200}); }
+
+  console.log(`[WH-EVO] lead=${lead.id} (${lead.name}) phone=${lead.phone}`);
+
+  // Check human lock
+  if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
+    console.log("[WH-EVO] human lock active — saving message but skipping AI");
+    // Still save the message so it appears in the chat
+    await sb.from("messages").insert({
+      workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
+      type: msgType, content: text, automated: false, responded_at: null, wa_message_id: msgId,
+    });
+    const now = new Date().toISOString();
+    const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
+    return new Response("EVENT_RECEIVED", {status:200});
+  }
+
+  // ── Handle audio transcription via Gemini ────────────────────────────────
+  if (msgType === "audio" && msgData.audioMessage) {
+    try {
+      const geminiKey = ws.credentials?.llm_config?.gemini_token;
+      if (geminiKey && msgData.audioMessage.url) {
+        // Download audio from Evolution API
+        const audioRes = await fetch(msgData.audioMessage.url, {
+          headers: { "apikey": EVOLUTION_KEY }
+        });
+        if (audioRes.ok) {
+          const audioBuffer = await audioRes.arrayBuffer();
+          const mimeType = msgData.audioMessage.mimetype || "audio/ogg; codecs=opus";
+          const transcription = await transcribeAudioWithGemini(audioBuffer, mimeType, geminiKey);
+          text = transcription ? `[ÁUDIO TRANSCRITO] "${transcription}"` : `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)`;
+          console.log(`[WH-EVO] Audio transcribed: ${text.substring(0, 80)}`);
+        }
+      } else {
+        // Try to download via Evolution mediaMessage endpoint
+        const evoMediaRes = await fetch(`${EVOLUTION_URL}/chat/getBase64FromMediaMessage/${instanceName}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": EVOLUTION_KEY },
+          body: JSON.stringify({ message: { ...data }, convertToMp4: false })
+        });
+        if (evoMediaRes.ok) {
+          const mediaData = await evoMediaRes.json();
+          if (mediaData.base64) {
+            const geminiKey = ws.credentials?.llm_config?.gemini_token;
+            if (geminiKey) {
+              const mimeType = msgData.audioMessage?.mimetype || "audio/ogg; codecs=opus";
+              const binary = atob(mediaData.base64);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+              const transcription = await transcribeAudioWithGemini(bytes.buffer, mimeType, geminiKey);
+              text = transcription ? `[ÁUDIO TRANSCRITO] "${transcription}"` : `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)`;
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.error("[WH-EVO] Audio transcription error:", e.message);
+      text = `[ÁUDIO]: Recebido.`;
+    }
+  }
+
+  // Save inbound message
+  const now = new Date().toISOString();
+  const { error: ie } = await sb.from("messages").insert({
+    workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
+    type: msgType, content: text, automated: false, responded_at: null, wa_message_id: msgId,
+  });
+  if (ie) { console.error("[WH-EVO] insert error:", ie.message); return new Response("EVENT_RECEIVED", {status:200}); }
+
+  console.log(`[WH-EVO] inbound saved: "${text.substring(0, 100)}"`);
 
   // Update lead: open 24h WhatsApp window and mark as responded
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await sb.from("leads").update({
     wa_window_expires_at: windowExpiry,
     has_responded: true,
-    last_message_at: new Date().toISOString(),
+    last_message_at: now,
   }).eq("id", lead.id);
 
-  // Return 200 immediately - pg_net trigger handles the rest
   return new Response("EVENT_RECEIVED", {status:200});
-});
+}

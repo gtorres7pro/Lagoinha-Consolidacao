@@ -859,38 +859,77 @@ async function sendManualMessage() {
   const message = input.value.trim();
   if (!message || !chatState.selectedLeadId) return;
 
+  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  if (!lead) return;
+
   const sendBtn = document.getElementById('chat-send-btn');
   sendBtn.disabled = true;
   sendBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20m-7-7 7 7 7-7"/></svg>';
 
   try {
-    const res = await fetch('https://api.consolidacao.7pro.tech/whatsapp/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lead_id: chatState.selectedLeadId,
-        text: message,
-        workspace_id: chatState.workspaceId
-      })
-    });
-    const result = await res.json();
-    if (result.ok) {
-      input.value = '';
-      input.style.height = '';
-      // Update human lock UI
-      const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
-      if (lead && result.lock_until) {
-        lead.llm_lock_until = result.lock_until;
+    const creds = await getWorkspaceCreds();
+    const mode = creds.whatsapp_mode || 'meta';
+    let sendOk = false;
+
+    if (mode === 'evolution' && creds.evolution_instance) {
+      // ── Evolution API: send directly ────────────────────────────────────
+      sendOk = await sendViaEvolution(creds.evolution_instance, lead.phone, message);
+
+      if (sendOk) {
+        // Save outbound message to DB + set human lock
+        const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+        const now = new Date().toISOString();
+        await window._sb.from('messages').insert({
+          workspace_id: chatState.workspaceId,
+          lead_id: chatState.selectedLeadId,
+          direction: 'outbound', type: 'text',
+          content: message, automated: false,
+          responded_at: now,
+        });
+        await window._sb.from('leads').update({
+          llm_lock_until: lockUntil,
+          last_message_at: now,
+        }).eq('id', chatState.selectedLeadId);
+
+        input.value = '';
+        input.style.height = '';
+        lead.llm_lock_until = lockUntil;
         updateLockUI(lead);
+        chatState.messages.push({
+          id: crypto.randomUUID(), direction: 'outbound', type: 'text',
+          content: message, automated: false, created_at: now
+        });
+        renderMessages();
+      } else {
+        showChatToast('❌ Erro ao enviar via Evolution API. Verifique a conexão WhatsApp.', 'error');
       }
-      // Optimistically show message
-      chatState.messages.push({
-        id: crypto.randomUUID(), direction: 'outbound', type: 'text',
-        content: message, automated: false, created_at: new Date().toISOString()
-      });
-      renderMessages();
     } else {
-      showChatToast(`❌ ${result.error || 'Erro ao enviar mensagem.'}`, 'error');
+      // ── Meta / FastAPI backend ───────────────────────────────────────────
+      const res = await fetch('https://api.consolidacao.7pro.tech/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: chatState.selectedLeadId,
+          text: message,
+          workspace_id: chatState.workspaceId
+        })
+      });
+      const result = await res.json();
+      if (result.ok) {
+        input.value = '';
+        input.style.height = '';
+        if (result.lock_until) {
+          lead.llm_lock_until = result.lock_until;
+          updateLockUI(lead);
+        }
+        chatState.messages.push({
+          id: crypto.randomUUID(), direction: 'outbound', type: 'text',
+          content: message, automated: false, created_at: new Date().toISOString()
+        });
+        renderMessages();
+      } else {
+        showChatToast(`❌ ${result.error || 'Erro ao enviar mensagem.'}`, 'error');
+      }
     }
   } catch (e) {
     console.error('[Chat] Send error:', e);
@@ -1102,6 +1141,34 @@ function showChatToast(msg, type = 'info') {
 
 // ─── TEMPLATES ─────────────────────────────────────────────────────────────
 const BACKEND_URL = 'https://api.consolidacao.7pro.tech';
+const EVOLUTION_URL = 'https://evolution.7pro.tech';
+const EVOLUTION_KEY = 'lagoinhazxcvbnm1234';
+
+// Cache workspace credentials to avoid repeated DB calls
+let _wsCreds = null;
+let _wsCredsCacheId = null;
+
+async function getWorkspaceCreds() {
+  if (_wsCreds && _wsCredsCacheId === chatState.workspaceId) return _wsCreds;
+  const { data } = await window._sb.from('workspaces').select('credentials').eq('id', chatState.workspaceId).single();
+  _wsCreds = data?.credentials || {};
+  _wsCredsCacheId = chatState.workspaceId;
+  return _wsCreds;
+}
+
+// Send a text message via Evolution API
+async function sendViaEvolution(instanceName, phone, text) {
+  // Normalize phone to Evolution format (remove leading +)
+  const toJid = phone.replace(/^\+/, '') + '@s.whatsapp.net';
+  const res = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
+    body: JSON.stringify({ number: toJid, text })
+  });
+  const data = await res.json();
+  console.log('[Chat-Evo] sendText response:', res.status, JSON.stringify(data).slice(0, 200));
+  return res.ok;
+}
 
 let _selectedTemplate = null; // { name, language_code, body_text, variables_count }
 
