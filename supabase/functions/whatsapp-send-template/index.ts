@@ -6,19 +6,27 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 function metaPhone(p: string) {
   return p.startsWith("+") ? p.slice(1) : p;
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: CORS });
 
   let body: any;
-  try { body = await req.json(); } catch { return new Response("Bad Request", { status: 400 }); }
+  try { body = await req.json(); } catch { return new Response("Bad Request", { status: 400, headers: CORS }); }
 
   const { lead_id, workspace_id } = body;
   if (!lead_id || !workspace_id) {
-    return new Response(JSON.stringify({ error: "Missing lead_id or workspace_id" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Missing lead_id or workspace_id" }), { status: 400, headers: CORS });
   }
 
   // Fetch lead
@@ -31,7 +39,7 @@ Deno.serve(async (req: Request) => {
 
   if (leadErr || !lead) {
     console.error("[TMPL] Lead not found:", leadErr?.message);
-    return new Response(JSON.stringify({ error: "Lead not found" }), { status: 404 });
+    return new Response(JSON.stringify({ error: "Lead not found" }), { status: 404, headers: CORS });
   }
 
   // Fetch workspace credentials
@@ -43,7 +51,7 @@ Deno.serve(async (req: Request) => {
 
   if (wsErr || !ws?.credentials?.whatsapp_token || !ws?.credentials?.phone_number_id) {
     console.error("[TMPL] Missing workspace credentials:", wsErr?.message);
-    return new Response(JSON.stringify({ error: "Workspace WhatsApp credentials not configured" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Workspace WhatsApp credentials not configured" }), { status: 500, headers: CORS });
   }
 
   const waToken: string = ws.credentials.whatsapp_token;
@@ -52,7 +60,7 @@ Deno.serve(async (req: Request) => {
   const toPhone = metaPhone(lead.phone);
 
   // Build the template payload
-  // Template: consolidacao (pt_BR) — 1 variable: first name
+  // Template: consolidacao (pt_BR) — NO dynamic params ({{}} without index not recognized by Meta)
   const templatePayload = {
     messaging_product: "whatsapp",
     recipient_type: "individual",
@@ -61,14 +69,6 @@ Deno.serve(async (req: Request) => {
     template: {
       name: "consolidacao",
       language: { code: "pt_BR" },
-      components: [
-        {
-          type: "body",
-          parameters: [
-            { type: "text", text: firstName }
-          ]
-        }
-      ]
     }
   };
 
@@ -95,11 +95,11 @@ Deno.serve(async (req: Request) => {
       console.log(`[TMPL] Sent OK. wa_message_id=${waMessageId}`);
     } else {
       console.error("[TMPL] Meta API error:", JSON.stringify(resData));
-      return new Response(JSON.stringify({ error: "Meta API error", details: resData }), { status: 502 });
+      return new Response(JSON.stringify({ error: "Meta API error", details: resData }), { status: 502, headers: CORS });
     }
   } catch (e: any) {
     console.error("[TMPL] Fetch exception:", e.message);
-    return new Response(JSON.stringify({ error: "Network error", message: e.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Network error", message: e.message }), { status: 500, headers: CORS });
   }
 
   // Save the outbound template message to messages table
@@ -123,6 +123,6 @@ Deno.serve(async (req: Request) => {
 
   return new Response(JSON.stringify({ ok: true, sent: sendOk, wa_message_id: waMessageId }), {
     status: 200,
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json", ...CORS }
   });
 });
