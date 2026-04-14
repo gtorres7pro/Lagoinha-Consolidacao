@@ -112,6 +112,7 @@ Deno.serve(async (req: Request) => {
 
   // Save the outbound template message to messages table
   if (sendOk) {
+    const now = new Date().toISOString();
     const templateBody = `Olá, ${firstName} 🙏 😊 Queremos dizer o quanto estamos felizes com a sua decisão de seguir a Cristo! 🎉 ✨ Essa é a melhor escolha que alguém pode fazer, e estamos aqui para caminhar com você nessa nova jornada de fé. ⛪ ❤️`;
 
     const { error: msgErr } = await sb.from("messages").insert({
@@ -121,12 +122,22 @@ Deno.serve(async (req: Request) => {
       type: "template",
       content: templateBody,
       automated: true,
-      responded_at: new Date().toISOString(),
+      responded_at: now,
       wa_message_id: waMessageId,
     });
 
     if (msgErr) console.error("[TMPL] Failed to save message:", msgErr.message);
     else console.log("[TMPL] Message saved to DB.");
+
+    // Update leads.last_message_at so Chat ao Vivo picks up this lead
+    // (Chat filters: .not('last_message_at', 'is', null))
+    const { error: leadUpdateErr } = await sb.from("leads")
+      .update({ last_message_at: now })
+      .eq("id", lead_id)
+      .eq("workspace_id", workspace_id);
+
+    if (leadUpdateErr) console.error("[TMPL] Failed to update lead last_message_at:", leadUpdateErr.message);
+    else console.log("[TMPL] lead.last_message_at updated — will appear in Chat ao Vivo.");
   }
 
   return new Response(JSON.stringify({ ok: true, sent: sendOk, wa_message_id: waMessageId }), {
