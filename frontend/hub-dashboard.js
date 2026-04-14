@@ -3959,7 +3959,10 @@
         });
     });
 
-    setTimeout(checkWAStatus, 500); // Trigger check on load
+    setTimeout(() => {
+        if (window.initWhatsappSettings) window.initWhatsappSettings();
+        else checkWAStatus();
+    }, 500); // Trigger WA settings init on load
     
     window.showWAChatModal = function(leadId) {
         // Change view to Mensagens IA tab programatically
