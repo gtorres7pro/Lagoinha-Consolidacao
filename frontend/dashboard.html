@@ -1330,7 +1330,7 @@
                         </li>
                         <li id="nav-settings" onclick="switchTab('settings')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-                            <span class="nav-label">Base de Conhecimento</span>
+                            <span class="nav-label">Automações</span>
                         </li>
                     </ul>
                 </div>
@@ -2389,15 +2389,22 @@
         <div id="view-settings" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>Configurações da Inteligência Artificial</h1>
-                    <p>Controle do comportamento e do motor cerebral da Atendente "Ju". Acesso restrito a Admins.</p>
+                    <h1>🤖 Automações</h1>
+                    <p>Regras de Automação de Leads · IA Atendente · Base de Conhecimento</p>
                 </div>
-                <div class="actions">
+                <div class="actions" id="auto-save-ai-btn">
                     <button type="button" class="btn-outline" onclick="saveAIInstructions()" style="background: var(--accent); color: #000; border: none; font-weight: 600;">Salvar Instruções (Nuvem)</button>
                 </div>
             </header>
-            
-            <div style="padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 900px; margin: 0 auto;">
+
+            <!-- ── Tab bar ────────────────────────────────────── -->
+            <div style="padding:0 40px; border-bottom:1px solid var(--border); display:flex; gap:6px; margin-bottom:0;">
+                <button id="auto-tab-btn-ia" onclick="switchAutoTab('ia')" style="padding:10px 18px;border-radius:10px 10px 0 0;border:none;background:rgba(255,215,0,0.12);color:var(--accent);font-weight:700;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;">🧠 IA &amp; Conhecimento</button>
+                <button id="auto-tab-btn-regras" onclick="switchAutoTab('regras')" style="padding:10px 18px;border-radius:10px 10px 0 0;border:none;background:transparent;color:rgba(255,255,255,0.45);font-weight:600;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;">⚡ Regras de Automação</button>
+            </div>
+
+            <!-- ── Tab: IA & Conhecimento (existing content) ─────────── -->
+            <div id="auto-tab-ia" style="display:block;">
                 
                 <!-- WhatsApp Connection Panel — tabbed: QR Code + Meta Cloud API -->
                 <div style="width: 100%; background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.95)); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 50px 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; overflow: hidden;">
@@ -2628,6 +2635,84 @@
             </div>
         </div>
             </div>
+        </div><!-- /#auto-tab-ia -->
+
+            <!-- ── Tab: Regras de Automação ──────────────────────── -->
+            <div id="auto-tab-regras" style="display:none; padding:32px 40px; max-width:1100px; margin:0 auto; width:100%;">
+
+                <!-- Enable toggle card -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <h3 style="font-size:.95rem;font-weight:700;margin-bottom:4px;">Automação de Boas-vindas</h3>
+                        <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Quando ativado, novos leads recebem automaticamente uma mensagem WhatsApp ao serem cadastrados, com base na origem do formulário.</p>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
+                        <span style="font-size:.8rem;color:var(--text-dim);" id="auto-enabled-label">Inativo</span>
+                        <div style="position:relative;width:48px;height:26px;" onclick="toggleAutomationEnabled()">
+                            <input type="checkbox" id="auto-enabled-toggle" style="opacity:0;width:0;height:0;position:absolute;">
+                            <span id="auto-enabled-track" style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:13px;transition:background .2s;cursor:pointer;"></span>
+                            <span id="auto-enabled-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#888;border-radius:50%;transition:all .2s;"></span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Delay config -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:18px 24px;display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap;">
+                    <span style="font-size:.85rem;color:var(--text-dim);flex:1;min-width:200px;">Atraso global antes de enviar (minutos):</span>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input id="auto-delay-input" type="number" min="0" max="60" value="0"
+                            class="hub-field-input" style="width:80px;text-align:center;">
+                        <button onclick="saveAutomationGlobal()" class="hub-btn-primary" style="padding:8px 16px;font-size:.8rem;">Salvar</button>
+                    </div>
+                </div>
+
+                <!-- Rules table header -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <div>
+                        <h3 style="font-size:.95rem;font-weight:700;margin-bottom:4px;">Regras por Origem</h3>
+                        <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Cada regra mapeia a origem do lead (nome do formulário) para um template WhatsApp específico e canal de envio.</p>
+                    </div>
+                    <button onclick="openAddRuleModal()" class="hub-btn-primary" style="padding:9px 18px;font-size:.82rem;flex-shrink:0;">+ Nova Regra</button>
+                </div>
+
+                <!-- Rules table -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;overflow:hidden;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border);">
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Origem (source)</th>
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Template</th>
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Idioma</th>
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Canal</th>
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Atraso</th>
+                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Ativo</th>
+                                <th style="padding:13px 4px;text-align:right;color:var(--text-dim);font-weight:600;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="auto-rules-tbody">
+                            <tr id="auto-rules-empty">
+                                <td colspan="7" style="padding:32px;text-align:center;color:var(--text-dim);">Nenhuma regra configurada. Clique em &ldquo;+ Nova Regra&rdquo; para começar.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Default template fallback -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:18px 24px;margin-top:20px;">
+                    <h4 style="font-size:.85rem;font-weight:700;margin-bottom:12px;">Template Padrão (quando nenhuma regra corresponder)</h4>
+                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <input id="auto-default-template" type="text" class="hub-field-input" placeholder="Ex: consolidacao" style="flex:1;min-width:180px;">
+                        <select id="auto-default-language" class="hub-field-input" style="width:120px;">
+                            <option value="pt_BR">pt_BR</option>
+                            <option value="en_US">en_US</option>
+                            <option value="es">es</option>
+                        </select>
+                        <button onclick="saveAutomationGlobal()" class="hub-btn-primary" style="padding:8px 16px;font-size:.8rem;">Salvar</button>
+                    </div>
+                </div>
+
+            </div><!-- /#auto-tab-regras -->
+
         </div><!-- /#view-settings END -->
 
         <!-- ════════════════════════════════════════════════════════
@@ -7474,5 +7559,66 @@
     </div>
 
 </body>
+
+<!-- ════════ Modal: Add / Edit Automation Rule ════════════════════════════ -->
+<div id="modal-auto-rule" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:28px 28px 24px;width:100%;max-width:520px;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);position:relative;">
+        <button onclick="closeRuleModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+        <h3 id="auto-rule-modal-title" style="font-size:1rem;font-weight:700;margin-bottom:20px;">Nova Regra de Automação</h3>
+
+        <input type="hidden" id="auto-rule-edit-index" value="-1">
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+
+            <div>
+                <label class="hub-field-label">Origem (source) <span style="color:var(--text-dim);font-size:.72rem;font-weight:400;">— nome exato enviado pelo formulário</span></label>
+                <input id="auto-rule-source" type="text" class="hub-field-input" placeholder="Ex: consolida-form, visitante-form, batismo-form">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label class="hub-field-label">Template WhatsApp</label>
+                    <input id="auto-rule-template" type="text" class="hub-field-input" placeholder="Ex: consolidacao">
+                </div>
+                <div>
+                    <label class="hub-field-label">Idioma</label>
+                    <select id="auto-rule-language" class="hub-field-input">
+                        <option value="pt_BR">pt_BR (Português)</option>
+                        <option value="en_US">en_US (English)</option>
+                        <option value="es">es (Español)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label class="hub-field-label">Canal de Envio</label>
+                    <select id="auto-rule-channel" class="hub-field-input">
+                        <option value="meta">Meta (API Oficial)</option>
+                        <option value="evolution">Evolution API / WAHA</option>
+                        <option value="none">Nenhum (bloquear)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="hub-field-label">Atraso (minutos)</label>
+                    <input id="auto-rule-delay" type="number" min="0" max="60" value="0" class="hub-field-input">
+                </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" id="auto-rule-enabled" checked style="accent-color:var(--accent);width:16px;height:16px;">
+                <label for="auto-rule-enabled" style="font-size:.83rem;cursor:pointer;">Regra ativa</label>
+            </div>
+
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:22px;">
+            <button onclick="closeRuleModal()" style="flex:1;background:rgba(255,255,255,.07);border:1px solid var(--border);color:#fff;border-radius:10px;padding:11px;cursor:pointer;font-family:var(--font);font-size:.85rem;">Cancelar</button>
+            <button onclick="saveAutomationRule()" style="flex:2;background:linear-gradient(135deg,var(--accent),#FFA000);border:none;color:#000;border-radius:10px;padding:11px;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:700;">💾 Salvar Regra</button>
+        </div>
+    </div>
+</div>
+
+
 
 </html>

@@ -4505,6 +4505,251 @@ async function saveNotificationSettings() {
     } catch(e) { console.error('saveNotificationSettings:', e); window.showToast && showToast('Erro ao salvar notificações', 'error'); }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTOMAÇÕES TAB — Tab switching + Automation Config CRUD
+// ═══════════════════════════════════════════════════════════════════════════
+
+window.switchAutoTab = function(tab) {
+    const tabs = ['ia', 'regras'];
+    tabs.forEach(t => {
+        const panel = document.getElementById(`auto-tab-${t}`);
+        const btn   = document.getElementById(`auto-tab-btn-${t}`);
+        if (!panel || !btn) return;
+        const active = t === tab;
+        panel.style.display = active ? 'block' : 'none';
+        btn.style.background = active ? 'rgba(255,215,0,0.12)' : 'transparent';
+        btn.style.color      = active ? 'var(--accent)' : 'rgba(255,255,255,0.45)';
+        btn.style.fontWeight = active ? '700' : '600';
+    });
+    // Show save-AI button only on IA tab
+    const saveBtn = document.getElementById('auto-save-ai-btn');
+    if (saveBtn) saveBtn.style.display = tab === 'ia' ? '' : 'none';
+    // Load automation config when switching to regras tab
+    if (tab === 'regras') loadAutomationConfig();
+};
+
+// ── Load config from DB ────────────────────────────────────────────────────
+window.loadAutomationConfig = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data, error } = await sb
+            .from('workspaces')
+            .select('automation_config')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+        if (error) throw error;
+
+        const cfg = data?.automation_config || {};
+
+        // Enable toggle
+        const enabled = cfg.enabled === true;
+        const toggle  = document.getElementById('auto-enabled-toggle');
+        const track   = document.getElementById('auto-enabled-track');
+        const thumb   = document.getElementById('auto-enabled-thumb');
+        const label   = document.getElementById('auto-enabled-label');
+        if (toggle) toggle.checked = enabled;
+        if (track)  track.style.background  = enabled ? 'rgba(255,215,0,0.35)' : 'rgba(255,255,255,.1)';
+        if (thumb)  { thumb.style.background = enabled ? 'var(--accent)' : '#888'; thumb.style.left = enabled ? '25px' : '3px'; }
+        if (label)  label.textContent = enabled ? 'Ativo' : 'Inativo';
+
+        // Delay
+        const delayInput = document.getElementById('auto-delay-input');
+        if (delayInput) delayInput.value = cfg.delay_minutes ?? 0;
+
+        // Default template
+        const defTmpl = document.getElementById('auto-default-template');
+        const defLang = document.getElementById('auto-default-language');
+        if (defTmpl) defTmpl.value = cfg.default_template || '';
+        if (defLang && cfg.default_language) defLang.value = cfg.default_language;
+
+        // Rules
+        window._autoRules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
+        renderAutomationRules();
+
+    } catch(e) { console.error('loadAutomationConfig:', e); }
+};
+
+// ── Render rules table ─────────────────────────────────────────────────────
+function renderAutomationRules() {
+    const tbody = document.getElementById('auto-rules-tbody');
+    const empty = document.getElementById('auto-rules-empty');
+    if (!tbody) return;
+
+    const rules = window._autoRules || [];
+
+    // Clear existing rule rows (keep empty row template hidden)
+    [...tbody.querySelectorAll('tr.auto-rule-row')].forEach(r => r.remove());
+
+    if (rules.length === 0) {
+        if (empty) empty.style.display = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    const channelLabel = { meta: '📱 Meta API', evolution: '🔄 Evolution', none: '⛔ Bloqueado' };
+
+    rules.forEach((rule, i) => {
+        const tr = document.createElement('tr');
+        tr.className = 'auto-rule-row';
+        tr.style.cssText = 'border-top:1px solid var(--border);transition:background .15s;';
+        tr.innerHTML = `
+            <td style="padding:12px 18px;">
+                <code style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:6px;font-size:.8rem;">${escHtml(rule.source || '—')}</code>
+            </td>
+            <td style="padding:12px 18px;font-weight:600;color:${rule.template ? '#fff' : 'var(--text-dim)'};">
+                ${rule.template ? escHtml(rule.template) : '<em style="color:var(--text-dim);font-weight:400;font-size:.8rem;">nenhum</em>'}
+            </td>
+            <td style="padding:12px 18px;color:var(--text-dim);font-size:.8rem;">${escHtml(rule.language || 'pt_BR')}</td>
+            <td style="padding:12px 18px;font-size:.82rem;">${channelLabel[rule.channel] || rule.channel || '—'}</td>
+            <td style="padding:12px 18px;color:var(--text-dim);font-size:.82rem;">${rule.delay_minutes ?? 0}min</td>
+            <td style="padding:12px 18px;">
+                <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;
+                    background:${rule.enabled !== false ? 'rgba(34,197,94,.12)' : 'rgba(255,255,255,.07)'};
+                    color:${rule.enabled !== false ? '#4ade80' : 'var(--text-dim)'};">
+                    ${rule.enabled !== false ? 'Ativa' : 'Inativa'}
+                </span>
+            </td>
+            <td style="padding:12px 8px;text-align:right;white-space:nowrap;">
+                <button onclick="openEditRuleModal(${i})" title="Editar"
+                    style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:1rem;padding:4px 6px;">✏️</button>
+                <button onclick="deleteAutomationRule(${i})" title="Excluir"
+                    style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;padding:4px 6px;">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Toggle enabled ─────────────────────────────────────────────────────────
+window.toggleAutomationEnabled = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb  = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
+        const cfg = { ...(ws?.automation_config || {}) };
+        cfg.enabled = !(cfg.enabled === true);
+        await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
+        loadAutomationConfig();
+        window.showToast && showToast(cfg.enabled ? 'Automação ativada ✅' : 'Automação desativada', cfg.enabled ? 'success' : 'info');
+    } catch(e) { console.error('toggleAutomationEnabled:', e); }
+};
+
+// ── Save global settings (delay + default template) ────────────────────────
+window.saveAutomationGlobal = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb  = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
+        const cfg = { ...(ws?.automation_config || {}) };
+        cfg.delay_minutes    = parseInt(document.getElementById('auto-delay-input')?.value || '0', 10);
+        cfg.default_template = (document.getElementById('auto-default-template')?.value || '').trim();
+        cfg.default_language = document.getElementById('auto-default-language')?.value || 'pt_BR';
+        await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
+        window.showToast && showToast('Configurações globais salvas!', 'success');
+    } catch(e) { console.error('saveAutomationGlobal:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
+};
+
+// ── Modal: open / close ────────────────────────────────────────────────────
+window.openAddRuleModal = function() {
+    document.getElementById('auto-rule-modal-title').textContent = 'Nova Regra de Automação';
+    document.getElementById('auto-rule-edit-index').value = '-1';
+    document.getElementById('auto-rule-source').value     = '';
+    document.getElementById('auto-rule-template').value   = '';
+    document.getElementById('auto-rule-language').value   = 'pt_BR';
+    document.getElementById('auto-rule-channel').value    = 'meta';
+    document.getElementById('auto-rule-delay').value      = '0';
+    document.getElementById('auto-rule-enabled').checked  = true;
+    const m = document.getElementById('modal-auto-rule');
+    if (m) { m.style.display = 'flex'; }
+};
+
+window.openEditRuleModal = function(index) {
+    const rule = (window._autoRules || [])[index];
+    if (!rule) return;
+    document.getElementById('auto-rule-modal-title').textContent = 'Editar Regra';
+    document.getElementById('auto-rule-edit-index').value = String(index);
+    document.getElementById('auto-rule-source').value     = rule.source    || '';
+    document.getElementById('auto-rule-template').value   = rule.template  || '';
+    document.getElementById('auto-rule-language').value   = rule.language  || 'pt_BR';
+    document.getElementById('auto-rule-channel').value    = rule.channel   || 'meta';
+    document.getElementById('auto-rule-delay').value      = String(rule.delay_minutes ?? 0);
+    document.getElementById('auto-rule-enabled').checked  = rule.enabled !== false;
+    const m = document.getElementById('modal-auto-rule');
+    if (m) { m.style.display = 'flex'; }
+};
+
+window.closeRuleModal = function() {
+    const m = document.getElementById('modal-auto-rule');
+    if (m) m.style.display = 'none';
+};
+
+// ── Save rule (add or update) ──────────────────────────────────────────────
+window.saveAutomationRule = async function() {
+    if (!window.currentWorkspaceId) return;
+
+    const source   = (document.getElementById('auto-rule-source')?.value  || '').trim();
+    const template = (document.getElementById('auto-rule-template')?.value || '').trim() || null;
+    const language = document.getElementById('auto-rule-language')?.value  || 'pt_BR';
+    const channel  = document.getElementById('auto-rule-channel')?.value   || 'meta';
+    const delay    = parseInt(document.getElementById('auto-rule-delay')?.value || '0', 10);
+    const enabled  = document.getElementById('auto-rule-enabled')?.checked !== false;
+    const editIdx  = parseInt(document.getElementById('auto-rule-edit-index')?.value ?? '-1', 10);
+
+    if (!source) { window.showToast && showToast('Origem é obrigatória', 'error'); return; }
+
+    const rule = { source, template, language, channel, delay_minutes: delay, enabled };
+
+    try {
+        const sb  = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
+        const cfg   = { ...(ws?.automation_config || {}) };
+        const rules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
+
+        if (editIdx >= 0) {
+            rules[editIdx] = rule;
+        } else {
+            rules.push(rule);
+        }
+        cfg.rules = rules;
+
+        const { error } = await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+
+        window._autoRules = rules;
+        renderAutomationRules();
+        closeRuleModal();
+        window.showToast && showToast(editIdx >= 0 ? 'Regra atualizada!' : 'Regra adicionada!', 'success');
+    } catch(e) {
+        console.error('saveAutomationRule:', e);
+        window.showToast && showToast('Erro ao salvar regra', 'error');
+    }
+};
+
+// ── Delete rule ────────────────────────────────────────────────────────────
+window.deleteAutomationRule = async function(index) {
+    if (!window.currentWorkspaceId) return;
+    if (!confirm('Remover esta regra?')) return;
+    try {
+        const sb  = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
+        const cfg   = { ...(ws?.automation_config || {}) };
+        const rules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
+        rules.splice(index, 1);
+        cfg.rules = rules;
+        await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
+        window._autoRules = rules;
+        renderAutomationRules();
+        window.showToast && showToast('Regra removida', 'info');
+    } catch(e) { console.error('deleteAutomationRule:', e); }
+};
+
+
+
 // ── G5: Dev Menu ─────────────────────────────────────
 async function loadDevView() {
     try {
