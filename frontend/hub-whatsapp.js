@@ -88,24 +88,35 @@
                 integration: 'WHATSAPP-BAILEYS'
             });
 
+            const createData = await createRes.json().catch(() => ({}));
+            console.log('[WA EVO] create response:', createRes.status, createData);
+
             if (!createRes.ok && createRes.status !== 409) {
-                const err = await createRes.json().catch(() => ({}));
-                throw new Error(err.message || 'Erro ao criar instância');
+                throw new Error(createData.message || createData.error || `Erro ${createRes.status} ao criar instância`);
             }
 
             _currentInstanceName = instanceName;
             _setEvoStatus('waiting_qr');
 
-            // 2. Fetch QR code
-            await _fetchAndShowQR(instanceName);
+            // Evolution API takes ~10-15s to establish WebSocket to WhatsApp and generate QR
+            // We wait progressively: 4s → try, +4s → try again, then hand off to polling
+            const waitAndTry = async (delay) => {
+                await new Promise(r => setTimeout(r, delay));
+                return _fetchAndShowQR(instanceName);
+            };
 
-            // 3. Start polling
+            let gotQR = await waitAndTry(4000);
+            if (!gotQR) gotQR = await waitAndTry(4000);
+            if (!gotQR) gotQR = await waitAndTry(4000);
+
+            // Start ongoing polling regardless (handles both QR display + connection detection)
             _startQRPolling(instanceName);
 
             // 4. Save instance name to DB
             await _saveEvoConfig(instanceName, 'disconnected');
 
         } catch(e) {
+            console.error('[WA EVO] startEvoConnection error:', e);
             _setEvoStatus('error', e.message);
         }
     };
@@ -122,21 +133,40 @@
         await _saveEvoConfig(_currentInstanceName, 'disconnected');
     };
 
-    // Fetch & render QR
+    // Fetch & render QR — handles Evolution v2 response variants
     async function _fetchAndShowQR(instanceName) {
         try {
             const res  = await _evoFetch('GET', `/instance/connect/${instanceName}`);
             const data = await res.json();
+            console.log('[WA QR] connect response:', res.status, JSON.stringify(data).slice(0, 300));
 
-            if (data.base64) {
-                _renderQRImage(data.base64);
+            // Evolution v2.1.x: QR is inside data.base64 directly
+            // or inside data.qrcode.base64, or data.code (pairing code)
+            const base64 = data.base64
+                        || data.qrcode?.base64
+                        || data.instance?.qrcode?.base64;
+
+            if (base64) {
+                _renderQRImage(base64);
                 return true;
             }
-            if (data.instance?.state === 'open') {
-                // Already connected
+
+            // Already connected (instance was already open)
+            const state = data.instance?.state || data.state;
+            if (state === 'open') {
                 _onEvoConnected(instanceName);
                 return true;
             }
+
+            // No QR yet — show placeholder text
+            const wrap = document.getElementById('wa-qr-wrap');
+            if (wrap && !wrap.querySelector('img')) {
+                wrap.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:.8rem;text-align:center;">
+                    Gerando QR Code...<br>
+                    <span style="font-size:.7rem;color:rgba(255,255,255,0.2);">(state: ${state || 'unknown'})</span>
+                </p>`;
+            }
+
         } catch(e) {
             console.warn('[WA QR] fetch error:', e);
         }
@@ -145,20 +175,38 @@
 
     function _startQRPolling(instanceName) {
         _stopQRPolling();
+        let attempts = 0;
+        const MAX_ATTEMPTS = 90; // 90 × 2s = 3 minutes max wait
+
         _qrPollTimer = setInterval(async () => {
+            attempts++;
+
+            // Update "still waiting" counter for user feedback
+            const waitText = document.getElementById('wa-qr-wait-counter');
+            if (waitText) waitText.textContent = `Aguardando QR... (${attempts * 2}s)`;
+
             try {
-                const res  = await _evoFetch('GET', `/instance/connectionState/${instanceName}`);
-                const data = await res.json();
-                const state = data.instance?.state || data.state;
+                // First: check if already fully connected
+                const stateRes  = await _evoFetch('GET', `/instance/connectionState/${instanceName}`);
+                const stateData = await stateRes.json();
+                const state = stateData.instance?.state || stateData.state;
+
                 if (state === 'open') {
                     _stopQRPolling();
                     _onEvoConnected(instanceName);
-                } else if (state === 'close' || state === 'connecting') {
-                    // Refresh QR
-                    await _fetchAndShowQR(instanceName);
+                    return;
                 }
+
+                // Try to fetch QR (only while not fully connected)
+                await _fetchAndShowQR(instanceName);
+
             } catch(e) { /* network hiccup, keep polling */ }
-        }, POLL_INTERVAL);
+
+            if (attempts >= MAX_ATTEMPTS) {
+                _stopQRPolling();
+                _setEvoStatus('error', 'Tempo esgotado — tente novamente');
+            }
+        }, 2000); // poll every 2 seconds
     }
 
     function _stopQRPolling() {

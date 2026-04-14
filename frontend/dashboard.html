@@ -2468,12 +2468,13 @@
                             Desconectar
                         </button>
                         <div id="wa-qr-section" style="display:none;margin-top:28px;text-align:center;">
-                            <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                            <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;">
                                 <span style="width:8px;height:8px;border-radius:50%;background:#FFD700;animation:pulse 1.5s infinite;display:inline-block;flex-shrink:0;"></span>
-                                Aguardando leitura do QR Code...
+                                <span id="wa-qr-wait-counter">Aguardando QR Code...</span>
                             </div>
+                            <p style="font-size:0.7rem;color:rgba(255,255,255,0.2);margin:0 0 16px;">O QR pode levar até 15 segundos para aparecer.</p>
                             <div id="wa-qr-wrap" style="min-height:240px;display:flex;align-items:center;justify-content:center;">
-                                <div style="width:220px;height:220px;border-radius:16px;background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.8rem;">Carregando QR...</div>
+                                <div style="width:220px;height:220px;border-radius:16px;background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:0.8rem;">Gerando QR Code...</div>
                             </div>
                         </div>
                         <div id="wa-evo-connected-card" style="display:none;margin-top:24px;background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.2);border-radius:14px;padding:20px 22px;">
