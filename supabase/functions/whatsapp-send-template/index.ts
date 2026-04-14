@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
   const toPhone = metaPhone(lead.phone);
 
   // Build the template payload
-  // Template: consolidacao (pt_BR) — NO dynamic params ({{}} without index not recognized by Meta)
+  // Template: consolidacao (pt_BR) — 1 variable: {{name}} → firstName
   const templatePayload = {
     messaging_product: "whatsapp",
     recipient_type: "individual",
@@ -69,6 +69,14 @@ Deno.serve(async (req: Request) => {
     template: {
       name: "consolidacao",
       language: { code: "pt_BR" },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", parameter_name: "name", text: firstName }
+          ]
+        }
+      ]
     }
   };
 
