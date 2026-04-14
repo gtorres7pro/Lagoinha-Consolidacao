@@ -4654,16 +4654,159 @@ window.saveAutomationGlobal = async function() {
     } catch(e) { console.error('saveAutomationGlobal:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
 };
 
+// ── Source change: show/hide custom input ──────────────────────────────────
+window.onAutoRuleSourceChange = function(val) {
+    const custom = document.getElementById('auto-rule-source-custom');
+    if (!custom) return;
+    custom.style.display = val === '__custom__' ? 'block' : 'none';
+    if (val !== '__custom__') custom.value = '';
+};
+
+// ── Channel change: show Meta vs Evolution sections ────────────────────────
+window.onAutoRuleChannelChange = function(channel) {
+    const meta = document.getElementById('auto-rule-meta-section');
+    const evo  = document.getElementById('auto-rule-evolution-section');
+    if (meta) meta.style.display = (channel === 'meta') ? '' : 'none';
+    if (evo)  evo.style.display  = (channel === 'evolution') ? '' : 'none';
+};
+
+// ── Fetch approved Meta templates from Graph API ────────────────────────────
+window.fetchMetaTemplates = async function() {
+    const statusEl = document.getElementById('auto-rule-fetch-status');
+    const btn      = document.getElementById('auto-rule-fetch-btn');
+    const input    = document.getElementById('auto-rule-template-input');
+    const select   = document.getElementById('auto-rule-template-select');
+
+    if (!statusEl || !btn || !input || !select) return;
+
+    // Load credentials from current workspace
+    if (!window.currentWorkspaceId) { showToast && showToast('Workspace não carregado', 'error'); return; }
+
+    btn.disabled   = true;
+    btn.textContent = '⏳ Buscando...';
+    statusEl.style.display = 'block';
+    statusEl.style.color   = 'var(--text-dim)';
+    statusEl.textContent   = 'Conectando à Meta API...';
+
+    try {
+        const sb  = window.supabaseClient;
+        const { data: ws } = await sb
+            .from('workspaces')
+            .select('credentials')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+
+        const token   = ws?.credentials?.whatsapp_token;
+        const phoneId = ws?.credentials?.phone_id;
+
+        if (!token || !phoneId) {
+            statusEl.style.color = '#f87171';
+            statusEl.textContent = '⚠️ Credenciais Meta não configuradas. Vá em Configurações > WhatsApp Connection (Meta).';
+            btn.disabled = false;
+            btn.textContent = '⬇ Buscar Templates';
+            return;
+        }
+
+        // Call Meta Graph API
+        const resp = await fetch(
+            `https://graph.facebook.com/v18.0/${phoneId}/message_templates?status=APPROVED&limit=100&fields=name,language,status,components`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const json = await resp.json();
+
+        if (!resp.ok || json.error) {
+            throw new Error(json.error?.message || `HTTP ${resp.status}`);
+        }
+
+        const templates = json.data || [];
+        if (templates.length === 0) {
+            statusEl.style.color = '#fbbf24';
+            statusEl.textContent = 'Nenhum template aprovado encontrado nesta conta.';
+            btn.disabled = false;
+            btn.textContent = '⬇ Buscar Templates';
+            return;
+        }
+
+        // Populate select
+        const currentVal = input.value.trim();
+        select.innerHTML = `<option value="">Selecione um template aprovado...</option>`;
+        templates.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = `${t.name}  (${t.language || '—'})`;
+            if (t.name === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        // Show select, hide input
+        input.style.display  = 'none';
+        select.style.display = '';
+
+        // When user picks a template, auto-set language field
+        select.onchange = () => {
+            const chosen = templates.find(t => t.name === select.value);
+            if (chosen?.language) {
+                const langEl = document.getElementById('auto-rule-language');
+                // Map Meta's language codes to our select options
+                const map = { 'pt_BR': 'pt_BR', 'en_US': 'en_US', 'en': 'en_US', 'es': 'es', 'es_ES': 'es', 'es_LA': 'es' };
+                if (langEl && map[chosen.language]) langEl.value = map[chosen.language];
+            }
+        };
+
+        statusEl.style.color = '#4ade80';
+        statusEl.textContent = `✅ ${templates.length} templates aprovados carregados.`;
+        btn.textContent = `✅ ${templates.length} templates`;
+
+    } catch(e) {
+        console.error('fetchMetaTemplates:', e);
+        statusEl.style.color = '#f87171';
+        statusEl.textContent = `❌ Erro: ${e.message}`;
+        btn.disabled = false;
+        btn.textContent = '⬇ Buscar Templates';
+    }
+};
+
+// ── Modal helpers ─────────────────────────────────────────────────────────--
+function _resetRuleModal() {
+    // Reset source
+    const src = document.getElementById('auto-rule-source');
+    if (src) src.value = '';
+    const srcCustom = document.getElementById('auto-rule-source-custom');
+    if (srcCustom) { srcCustom.value = ''; srcCustom.style.display = 'none'; }
+    // Reset channel → force Meta
+    const ch = document.getElementById('auto-rule-channel');
+    if (ch) ch.value = 'meta';
+    onAutoRuleChannelChange('meta');
+    // Reset template fields
+    const inp = document.getElementById('auto-rule-template-input');
+    if (inp) { inp.value = ''; inp.style.display = ''; }
+    const sel = document.getElementById('auto-rule-template-select');
+    if (sel) { sel.innerHTML = ''; sel.style.display = 'none'; }
+    const status = document.getElementById('auto-rule-fetch-status');
+    if (status) { status.textContent = ''; status.style.display = 'none'; }
+    const fetchBtn = document.getElementById('auto-rule-fetch-btn');
+    if (fetchBtn) { fetchBtn.disabled = false; fetchBtn.textContent = '⬇ Buscar Templates'; }
+    // Reset language
+    const lang = document.getElementById('auto-rule-language');
+    if (lang) lang.value = 'pt_BR';
+    // Reset delay
+    const delay = document.getElementById('auto-rule-delay');
+    if (delay) delay.value = '0';
+    // Reset message body
+    const body = document.getElementById('auto-rule-message-body');
+    if (body) body.value = '';
+    // Reset enabled
+    const en = document.getElementById('auto-rule-enabled');
+    if (en) en.checked = true;
+    // Reset index
+    const idx = document.getElementById('auto-rule-edit-index');
+    if (idx) idx.value = '-1';
+}
+
 // ── Modal: open / close ────────────────────────────────────────────────────
 window.openAddRuleModal = function() {
     document.getElementById('auto-rule-modal-title').textContent = 'Nova Regra de Automação';
-    document.getElementById('auto-rule-edit-index').value = '-1';
-    document.getElementById('auto-rule-source').value     = '';
-    document.getElementById('auto-rule-template').value   = '';
-    document.getElementById('auto-rule-language').value   = 'pt_BR';
-    document.getElementById('auto-rule-channel').value    = 'meta';
-    document.getElementById('auto-rule-delay').value      = '0';
-    document.getElementById('auto-rule-enabled').checked  = true;
+    _resetRuleModal();
     const m = document.getElementById('modal-auto-rule');
     if (m) { m.style.display = 'flex'; }
 };
@@ -4671,14 +4814,45 @@ window.openAddRuleModal = function() {
 window.openEditRuleModal = function(index) {
     const rule = (window._autoRules || [])[index];
     if (!rule) return;
+    _resetRuleModal();
     document.getElementById('auto-rule-modal-title').textContent = 'Editar Regra';
     document.getElementById('auto-rule-edit-index').value = String(index);
-    document.getElementById('auto-rule-source').value     = rule.source    || '';
-    document.getElementById('auto-rule-template').value   = rule.template  || '';
-    document.getElementById('auto-rule-language').value   = rule.language  || 'pt_BR';
-    document.getElementById('auto-rule-channel').value    = rule.channel   || 'meta';
-    document.getElementById('auto-rule-delay').value      = String(rule.delay_minutes ?? 0);
-    document.getElementById('auto-rule-enabled').checked  = rule.enabled !== false;
+
+    // Source — check if it matches a known option
+    const srcEl = document.getElementById('auto-rule-source');
+    const srcCustom = document.getElementById('auto-rule-source-custom');
+    const knownSources = ['consolida-form','visitante-form','batismo-form','start-form','novos-membros-form','cantina-order','crie-app'];
+    if (srcEl) {
+        if (knownSources.includes(rule.source)) {
+            srcEl.value = rule.source;
+        } else if (rule.source) {
+            srcEl.value = '__custom__';
+            if (srcCustom) { srcCustom.value = rule.source; srcCustom.style.display = 'block'; }
+        }
+    }
+
+    // Channel
+    const chEl = document.getElementById('auto-rule-channel');
+    if (chEl) { chEl.value = rule.channel || 'meta'; onAutoRuleChannelChange(rule.channel || 'meta'); }
+
+    // Template (Meta)
+    const inp = document.getElementById('auto-rule-template-input');
+    if (inp) inp.value = rule.template || '';
+
+    // Language
+    const langEl = document.getElementById('auto-rule-language');
+    if (langEl && rule.language) langEl.value = rule.language;
+
+    // Evolution message body
+    const body = document.getElementById('auto-rule-message-body');
+    if (body) body.value = rule.message_body || '';
+
+    // Delay + enabled
+    const delayEl = document.getElementById('auto-rule-delay');
+    if (delayEl) delayEl.value = String(rule.delay_minutes ?? 0);
+    const enEl = document.getElementById('auto-rule-enabled');
+    if (enEl) enEl.checked = rule.enabled !== false;
+
     const m = document.getElementById('modal-auto-rule');
     if (m) { m.style.display = 'flex'; }
 };
@@ -4692,17 +4866,29 @@ window.closeRuleModal = function() {
 window.saveAutomationRule = async function() {
     if (!window.currentWorkspaceId) return;
 
-    const source   = (document.getElementById('auto-rule-source')?.value  || '').trim();
-    const template = (document.getElementById('auto-rule-template')?.value || '').trim() || null;
-    const language = document.getElementById('auto-rule-language')?.value  || 'pt_BR';
-    const channel  = document.getElementById('auto-rule-channel')?.value   || 'meta';
-    const delay    = parseInt(document.getElementById('auto-rule-delay')?.value || '0', 10);
-    const enabled  = document.getElementById('auto-rule-enabled')?.checked !== false;
-    const editIdx  = parseInt(document.getElementById('auto-rule-edit-index')?.value ?? '-1', 10);
+    // Source — prefer custom input if __custom__ is selected
+    const srcSel    = document.getElementById('auto-rule-source')?.value || '';
+    const srcCustom = (document.getElementById('auto-rule-source-custom')?.value || '').trim();
+    const source    = srcSel === '__custom__' ? srcCustom : srcSel;
+
+    // Template — prefer dropdown if it's visible, else use text input
+    const tmplSelect = document.getElementById('auto-rule-template-select');
+    const tmplInput  = document.getElementById('auto-rule-template-input');
+    const template   = (tmplSelect?.style.display !== 'none' ? tmplSelect?.value : tmplInput?.value)?.trim() || null;
+
+    const language    = document.getElementById('auto-rule-language')?.value || 'pt_BR';
+    const channel     = document.getElementById('auto-rule-channel')?.value   || 'meta';
+    const delay       = parseInt(document.getElementById('auto-rule-delay')?.value || '0', 10);
+    const enabled     = document.getElementById('auto-rule-enabled')?.checked !== false;
+    const message_body = (document.getElementById('auto-rule-message-body')?.value || '').trim() || null;
+    const editIdx     = parseInt(document.getElementById('auto-rule-edit-index')?.value ?? '-1', 10);
 
     if (!source) { window.showToast && showToast('Origem é obrigatória', 'error'); return; }
+    if (channel === 'meta' && !template) { window.showToast && showToast('Selecione ou digite um template Meta', 'error'); return; }
+    if (channel === 'evolution' && !message_body) { window.showToast && showToast('Escreva a mensagem para Evolution', 'error'); return; }
 
-    const rule = { source, template, language, channel, delay_minutes: delay, enabled };
+    const rule = { source, template, language, channel, delay_minutes: delay, enabled,
+                   ...(message_body ? { message_body } : {}) };
 
     try {
         const sb  = window.supabaseClient;
@@ -4730,7 +4916,7 @@ window.saveAutomationRule = async function() {
     }
 };
 
-// ── Delete rule ────────────────────────────────────────────────────────────
+
 window.deleteAutomationRule = async function(index) {
     if (!window.currentWorkspaceId) return;
     if (!confirm('Remover esta regra?')) return;

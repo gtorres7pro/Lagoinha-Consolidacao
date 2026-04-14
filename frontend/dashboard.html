@@ -7440,35 +7440,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal: Lançamento Financeiro -->
-    <div id="modal-cantina-lancamento" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
-        <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:420px;">
-            <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;">
-                <span id="lancamento-modal-title" style="font-size:1rem;font-weight:800;color:#fff;flex:1;">➕ Lançar</span>
-                <button onclick="document.getElementById('modal-cantina-lancamento').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.3rem;cursor:pointer;">✕</button>
-            </div>
-            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
-                <input type="hidden" id="lancamento-type">
-                <div>
-                    <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Descrição *</label>
-                    <input id="lancamento-desc" type="text" placeholder="Ex: Compra de ingredientes" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                    <div>
-                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Valor *</label>
-                        <input id="lancamento-amount" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;">Pagamento</label>
-                        <select id="lancamento-payment" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;">
-                            <option value="cash">💵 Dinheiro</option>
-                            <option value="pix">📲 Pix</option>
-                            <option value="card">💳 Cartão</option>
-                            <option value="other">Outro</option>
-                        </select>
-                    </div>
-                </div>
                 <div id="lancamento-msg" style="font-size:0.8rem;min-height:16px;text-align:center;"></div>
                 <button onclick="saveLancamento()" style="background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:0.9rem;cursor:pointer;">Salvar Lançamento</button>
             </div>
@@ -7562,25 +7533,64 @@
 
 <!-- ════════ Modal: Add / Edit Automation Rule ════════════════════════════ -->
 <div id="modal-auto-rule" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-    <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:28px 28px 24px;width:100%;max-width:520px;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);position:relative;">
+    <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:28px 28px 24px;width:calc(100% - 32px);max-width:540px;margin:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);position:relative;max-height:90vh;overflow-y:auto;">
         <button onclick="closeRuleModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
         <h3 id="auto-rule-modal-title" style="font-size:1rem;font-weight:700;margin-bottom:20px;">Nova Regra de Automação</h3>
 
         <input type="hidden" id="auto-rule-edit-index" value="-1">
 
-        <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
 
+            <!-- ① Origem — dropdown de formulários conhecidos -->
             <div>
-                <label class="hub-field-label">Origem (source) <span style="color:var(--text-dim);font-size:.72rem;font-weight:400;">— nome exato enviado pelo formulário</span></label>
-                <input id="auto-rule-source" type="text" class="hub-field-input" placeholder="Ex: consolida-form, visitante-form, batismo-form">
+                <label class="hub-field-label">Origem do Lead <span style="color:var(--text-dim);font-size:.72rem;font-weight:400;">— qual formulário disparou o cadastro</span></label>
+                <select id="auto-rule-source" class="hub-field-input" onchange="onAutoRuleSourceChange(this.value)">
+                    <option value="">Selecione a origem...</option>
+                    <option value="consolida-form">📋 Ficha de Consolidação (consolida-form)</option>
+                    <option value="visitante-form">👤 Cartão de Visitante (visitante-form)</option>
+                    <option value="batismo-form">💧 Formulário de Batismo (batismo-form)</option>
+                    <option value="start-form">📚 Formulário Start / Welcome (start-form)</option>
+                    <option value="novos-membros-form">🏛️ Novos Membros (novos-membros-form)</option>
+                    <option value="cantina-order">🛒 Pedido Cantina (cantina-order)</option>
+                    <option value="crie-app">📱 CRIE App (crie-app)</option>
+                    <option value="__custom__">✏️ Outro (digitar manualmente)...</option>
+                </select>
+                <input id="auto-rule-source-custom" type="text" class="hub-field-input"
+                    placeholder="Digite o source exato (ex: meu-form-personalizado)"
+                    style="display:none;margin-top:8px;">
             </div>
 
+            <!-- ② Canal + Atraso -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div>
-                    <label class="hub-field-label">Template WhatsApp</label>
-                    <input id="auto-rule-template" type="text" class="hub-field-input" placeholder="Ex: consolidacao">
+                    <label class="hub-field-label">Canal de Envio</label>
+                    <select id="auto-rule-channel" class="hub-field-input" onchange="onAutoRuleChannelChange(this.value)">
+                        <option value="meta">📱 Meta (API Oficial)</option>
+                        <option value="evolution">🔄 Evolution API / WAHA</option>
+                        <option value="none">⛔ Nenhum (bloquear)</option>
+                    </select>
                 </div>
                 <div>
+                    <label class="hub-field-label">Atraso (minutos)</label>
+                    <input id="auto-rule-delay" type="number" min="0" max="60" value="0" class="hub-field-input">
+                </div>
+            </div>
+
+            <!-- ③ Meta — template aprovado -->
+            <div id="auto-rule-meta-section">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <label class="hub-field-label" style="margin-bottom:0;">Template WhatsApp Aprovado</label>
+                    <button type="button" onclick="fetchMetaTemplates()" id="auto-rule-fetch-btn"
+                        style="font-size:.72rem;padding:4px 12px;border-radius:6px;border:1px solid rgba(255,215,0,.35);background:rgba(255,215,0,.08);color:var(--accent);cursor:pointer;font-family:var(--font);transition:all .2s;">
+                        ⬇ Buscar Templates
+                    </button>
+                </div>
+                <!-- Text input shown by default, replaced by select after fetch -->
+                <input id="auto-rule-template-input" type="text" class="hub-field-input"
+                    placeholder="Ex: consolidacao  (ou clique em Buscar →)">
+                <select id="auto-rule-template-select" class="hub-field-input" style="display:none;margin-top:6px;"></select>
+                <p id="auto-rule-fetch-status" style="font-size:.72rem;color:var(--text-dim);margin-top:6px;display:none;"></p>
+                <div style="margin-top:10px;">
                     <label class="hub-field-label">Idioma</label>
                     <select id="auto-rule-language" class="hub-field-input">
                         <option value="pt_BR">pt_BR (Português)</option>
@@ -7590,21 +7600,24 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div>
-                    <label class="hub-field-label">Canal de Envio</label>
-                    <select id="auto-rule-channel" class="hub-field-input">
-                        <option value="meta">Meta (API Oficial)</option>
-                        <option value="evolution">Evolution API / WAHA</option>
-                        <option value="none">Nenhum (bloquear)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="hub-field-label">Atraso (minutos)</label>
-                    <input id="auto-rule-delay" type="number" min="0" max="60" value="0" class="hub-field-input">
-                </div>
+            <!-- ④ Evolution — mensagem livre -->
+            <div id="auto-rule-evolution-section" style="display:none;">
+                <label class="hub-field-label">Mensagem de Boas-vindas
+                    <span style="color:var(--text-dim);font-size:.72rem;font-weight:400;">— suporta variáveis: {{nome}}, {{culto}}</span>
+                </label>
+                <textarea id="auto-rule-message-body" class="hub-field-input"
+                    rows="5"
+                    placeholder="Olá {{nome}}, seja bem-vindo(a)! 🙏 Ficamos muito felizes em ter você conosco no culto {{culto}}. Em breve entraremos em contato!"
+                    style="font-size:.85rem;line-height:1.5;resize:vertical;width:100%;"></textarea>
+                <p style="font-size:.71rem;color:var(--text-dim);margin-top:5px;">
+                    Variáveis:
+                    <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;">{{nome}}</code>
+                    <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;">{{culto}}</code>
+                    <code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;">{{decisao}}</code>
+                </p>
             </div>
 
+            <!-- ⑤ Ativa -->
             <div style="display:flex;align-items:center;gap:10px;">
                 <input type="checkbox" id="auto-rule-enabled" checked style="accent-color:var(--accent);width:16px;height:16px;">
                 <label for="auto-rule-enabled" style="font-size:.83rem;cursor:pointer;">Regra ativa</label>
