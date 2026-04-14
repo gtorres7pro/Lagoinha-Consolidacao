@@ -4569,9 +4569,18 @@ window.loadIaAtendente = async function() {
         _setIaToggle('ia-atendente', !!creds.ia_active);
         _setIaToggle('ia-memory',    !!creds.ia_memory_enabled);
 
-        // System prompt
+        // System prompt — pre-fill with the global default if not customised yet
+        const DEFAULT_IA_PROMPT =
+`Você é Ju, a assistente virtual desta igreja. Responda em português, seja acolhedora, calorosa e concisa.
+
+Regras:
+- Máximo 2 parágrafos curtos por resposta
+- Use emojis com moderação
+- Se não souber algo sobre a igreja, diga que um humano pode ajudar
+- NÃO mencione que é uma IA ou robô, apenas apresente-se pelo nome
+- Para enviar mensagens separadas em sequência, use || entre elas`;
         const sp = document.getElementById('ia-system-prompt');
-        if (sp) sp.value = creds.ia_system_prompt || '';
+        if (sp) sp.value = creds.ia_system_prompt || DEFAULT_IA_PROMPT;
 
         // KB fields
         const fields = ['about','schedule','consolidation','baptism','faq','limits'];
