@@ -1292,6 +1292,19 @@
 
                 if (error) throw error;
 
+                // 🟢 Fire & Forget: Send WhatsApp welcome template
+                const newLead = data?.[0];
+                if (newLead?.id) {
+                    fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-template', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            lead_id: newLead.id,
+                            workspace_id: workspaceId
+                        })
+                    }).catch(e => console.warn('[WA Template] dispatch error:', e));
+                }
+
                 // 🔔 Fire & Forget: Notify webhook (Google Sheets)
                 fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
                     method: 'POST',
