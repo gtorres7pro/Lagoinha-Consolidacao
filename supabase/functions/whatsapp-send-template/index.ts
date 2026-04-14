@@ -29,6 +29,10 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: "Missing lead_id or workspace_id" }), { status: 400, headers: CORS });
   }
 
+  // Dynamic template support — defaults keep consolida-form.html working with no changes
+  const templateName: string = body.template_name ?? "consolidacao";
+  const languageCode: string = body.language_code ?? "pt_BR";
+
   // Fetch lead
   const { data: lead, error: leadErr } = await sb
     .from("leads")
@@ -40,6 +44,32 @@ Deno.serve(async (req: Request) => {
   if (leadErr || !lead) {
     console.error("[TMPL] Lead not found:", leadErr?.message);
     return new Response(JSON.stringify({ error: "Lead not found" }), { status: 404, headers: CORS });
+  }
+
+  if (!lead.phone) {
+    console.log("[TMPL] Lead has no phone — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_phone" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...CORS },
+    });
+  }
+
+  // Idempotency guard — avoid double-sending if trigger fires twice
+  const { data: existing } = await sb
+    .from("messages")
+    .select("id")
+    .eq("lead_id", lead_id)
+    .eq("workspace_id", workspace_id)
+    .eq("type", "template")
+    .eq("automated", true)
+    .maybeSingle();
+
+  if (existing) {
+    console.log("[TMPL] Template already sent for this lead — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "already_sent" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...CORS },
+    });
   }
 
   // Fetch workspace credentials
@@ -59,16 +89,15 @@ Deno.serve(async (req: Request) => {
   const firstName = (lead.name || "").split(" ")[0] || "Amigo";
   const toPhone = metaPhone(lead.phone);
 
-  // Build the template payload
-  // Template: consolidacao (pt_BR) — 1 variable: {{name}} → firstName
+  // Build the template payload — first name variable used for all templates
   const templatePayload = {
     messaging_product: "whatsapp",
     recipient_type: "individual",
     to: toPhone,
     type: "template",
     template: {
-      name: "consolidacao",
-      language: { code: "pt_BR" },
+      name: templateName,
+      language: { code: languageCode },
       components: [
         {
           type: "body",
@@ -80,7 +109,7 @@ Deno.serve(async (req: Request) => {
     }
   };
 
-  console.log(`[TMPL] Sending consolidacao template to ${toPhone} (${firstName})`);
+  console.log(`[TMPL] Sending "${templateName}" (${languageCode}) to ${toPhone} (${firstName})`);
 
   let waMessageId: string | null = null;
   let sendOk = false;
@@ -113,7 +142,7 @@ Deno.serve(async (req: Request) => {
   // Save the outbound template message to messages table
   if (sendOk) {
     const now = new Date().toISOString();
-    const templateBody = `Olá, ${firstName} 🙏 😊 Queremos dizer o quanto estamos felizes com a sua decisão de seguir a Cristo! 🎉 ✨ Essa é a melhor escolha que alguém pode fazer, e estamos aqui para caminhar com você nessa nova jornada de fé. ⛪ ❤️`;
+    const templateBody = `[Template enviado: ${templateName}] Olá, ${firstName}!`;
 
     const { error: msgErr } = await sb.from("messages").insert({
       workspace_id,
@@ -130,7 +159,6 @@ Deno.serve(async (req: Request) => {
     else console.log("[TMPL] Message saved to DB.");
 
     // Update leads.last_message_at so Chat ao Vivo picks up this lead
-    // (Chat filters: .not('last_message_at', 'is', null))
     const { error: leadUpdateErr } = await sb.from("leads")
       .update({ last_message_at: now })
       .eq("id", lead_id)
@@ -140,7 +168,7 @@ Deno.serve(async (req: Request) => {
     else console.log("[TMPL] lead.last_message_at updated — will appear in Chat ao Vivo.");
   }
 
-  return new Response(JSON.stringify({ ok: true, sent: sendOk, wa_message_id: waMessageId }), {
+  return new Response(JSON.stringify({ ok: true, sent: sendOk, wa_message_id: waMessageId, template: templateName }), {
     status: 200,
     headers: { "Content-Type": "application/json", ...CORS }
   });

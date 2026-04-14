@@ -2,7 +2,7 @@ import os
 import json
 import datetime
 from datetime import datetime
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -115,6 +115,111 @@ Regras:
 
 
 # ── Webhook: Meta WhatsApp Inbound ────────────────────────────────────────────
+
+# ── /webhook/new_lead — Postgres Trigger Automation ──────────────────────────
+
+EDGE_URL = "https://uyseheucqikgcorrygzc.supabase.co/functions/v1"
+
+import time
+import httpx
+
+def fire_welcome_template(
+    lead_id: str,
+    workspace_id: str,
+    template_name: str,
+    language_code: str,
+    delay_minutes: int
+):
+    """Background task: optionally wait, then call the Edge Function to send the template."""
+    if delay_minutes > 0:
+        time.sleep(delay_minutes * 60)
+
+    try:
+        resp = httpx.post(
+            f"{EDGE_URL}/whatsapp-send-template",
+            json={
+                "lead_id": lead_id,
+                "workspace_id": workspace_id,
+                "template_name": template_name,
+                "language_code": language_code,
+            },
+            timeout=15,
+        )
+        print(f"[AUTO] whatsapp-send-template → {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        print(f"[AUTO] Fire template error: {e}")
+
+
+@app.post("/webhook/new_lead")
+async def new_lead_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    Called by Postgres trigger on every lead INSERT.
+    Reads automation_config from the workspace to decide whether and which
+    WhatsApp welcome template to send, routing by lead.source (form name).
+    """
+    from tools.db_tool import supabase
+
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "error", "reason": "invalid_json"}
+
+    record = body.get("record", {})
+    lead_id      = record.get("id")
+    workspace_id = record.get("workspace_id")
+    phone        = record.get("phone")
+    source       = record.get("source") or "unknown"
+
+    if not lead_id or not workspace_id:
+        return {"status": "skipped", "reason": "missing_lead_or_workspace"}
+
+    if not phone:
+        print(f"[AUTO] Lead {lead_id} has no phone — skipping automation.")
+        return {"status": "skipped", "reason": "no_phone"}
+
+    # Load workspace automation config
+    ws_res = supabase.table("workspaces").select("automation_config").eq("id", workspace_id).execute()
+    ws_row = _row(ws_res)
+    auto_config = (ws_row or {}).get("automation_config") or {}
+
+    if not auto_config.get("enabled", False):
+        print(f"[AUTO] Workspace {workspace_id} automation disabled — skipping.")
+        return {"status": "skipped", "reason": "automation_disabled"}
+
+    # Match source against rules array
+    # Rule structure: { "source": "consolida-form", "template": "consolidacao", "language": "pt_BR" }
+    rules = auto_config.get("rules", [])
+    matched_template = None
+    matched_language = auto_config.get("default_language", "pt_BR")
+
+    for rule in rules:
+        if rule.get("source") == source:
+            matched_template = rule.get("template")  # None = explicitly disabled for this source
+            matched_language = rule.get("language", matched_language)
+            break
+    else:
+        # No rule matched → use workspace default
+        matched_template = auto_config.get("default_template")
+
+    if not matched_template:
+        print(f"[AUTO] No template configured for source '{source}' in workspace {workspace_id}.")
+        return {"status": "skipped", "reason": "no_template_for_source"}
+
+    delay = int(auto_config.get("delay_minutes", 0))
+
+    print(f"[AUTO] Queuing template '{matched_template}' for lead {lead_id} (source={source}, delay={delay}min)")
+
+    background_tasks.add_task(
+        fire_welcome_template,
+        lead_id,
+        workspace_id,
+        matched_template,
+        matched_language,
+        delay,
+    )
+
+    return {"status": "queued", "template": matched_template, "delay_minutes": delay}
+
 
 @app.get("/webhook")
 def verify_webhook(request: Request):
