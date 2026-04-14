@@ -4510,23 +4510,123 @@ async function saveNotificationSettings() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.switchAutoTab = function(tab) {
-    const tabs = ['ia', 'regras'];
+    const tabs = ['ia', 'regras', 'atendente'];
     tabs.forEach(t => {
         const panel = document.getElementById(`auto-tab-${t}`);
         const btn   = document.getElementById(`auto-tab-btn-${t}`);
         if (!panel || !btn) return;
         const active = t === tab;
         panel.style.display = active ? 'block' : 'none';
-        btn.style.background = active ? 'rgba(255,215,0,0.12)' : 'transparent';
-        btn.style.color      = active ? 'var(--accent)' : 'rgba(255,255,255,0.45)';
-        btn.style.fontWeight = active ? '700' : '600';
+        btn.classList.toggle('auto-tab-active', active);
     });
     // Show save-AI button only on IA tab
     const saveBtn = document.getElementById('auto-save-ai-btn');
     if (saveBtn) saveBtn.style.display = tab === 'ia' ? '' : 'none';
-    // Load automation config when switching to regras tab
-    if (tab === 'regras') loadAutomationConfig();
+    // Load data per tab
+    if (tab === 'regras')     loadAutomationConfig();
+    if (tab === 'atendente')  loadIaAtendente();
 };
+
+// ── IA Atendente — toggle helpers ──────────────────────────────────────────
+function _setIaToggle(id, on) {
+    const toggle = document.getElementById(`${id}-toggle`);
+    const track  = document.getElementById(`${id}-track`);
+    const thumb  = document.getElementById(`${id}-thumb`);
+    const label  = document.getElementById(`${id}-label`);
+    if (!toggle) return;
+    toggle.checked = on;
+    if (track) track.style.background = on ? 'var(--accent)' : 'rgba(255,255,255,.1)';
+    if (thumb) { thumb.style.background = on ? '#000' : '#888'; thumb.style.left = on ? '25px' : '3px'; }
+    if (label) { label.textContent = on ? 'Ativo' : 'Inativo'; label.style.color = on ? 'var(--accent)' : 'var(--text-dim)'; }
+}
+
+window.toggleIaAtendente = function() {
+    const t = document.getElementById('ia-atendente-toggle');
+    if (!t) return;
+    _setIaToggle('ia-atendente', !t.checked);
+};
+
+window.toggleIaMemory = function() {
+    const t = document.getElementById('ia-memory-toggle');
+    if (!t) return;
+    _setIaToggle('ia-memory', !t.checked);
+};
+
+// ── Load from DB ───────────────────────────────────────────────────────────
+window.loadIaAtendente = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data } = await sb.from('workspaces')
+            .select('credentials, knowledge_base')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+
+        const creds = data?.credentials || {};
+        const kb    = data?.knowledge_base || {};
+
+        // Toggles
+        _setIaToggle('ia-atendente', !!creds.ia_active);
+        _setIaToggle('ia-memory',    !!creds.ia_memory_enabled);
+
+        // System prompt
+        const sp = document.getElementById('ia-system-prompt');
+        if (sp) sp.value = creds.ia_system_prompt || '';
+
+        // KB fields
+        const fields = ['about','schedule','consolidation','baptism','faq','limits'];
+        fields.forEach(f => {
+            const el = document.getElementById(`ia-kb-${f}`);
+            if (el) el.value = kb[`ia_${f}`] || '';
+        });
+    } catch(e) { console.error('loadIaAtendente:', e); }
+};
+
+// ── Save IA Atendente settings ─────────────────────────────────────────────
+window.saveIaAtendente = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}) };
+
+        creds.ia_active         = document.getElementById('ia-atendente-toggle')?.checked ?? false;
+        creds.ia_memory_enabled = document.getElementById('ia-memory-toggle')?.checked    ?? false;
+        creds.ia_system_prompt  = (document.getElementById('ia-system-prompt')?.value || '').trim() || null;
+
+        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        window.showToast && showToast('Configurações da IA Atendente salvas!', 'success');
+    } catch(e) {
+        console.error('saveIaAtendente:', e);
+        window.showToast && showToast('Erro ao salvar configurações', 'error');
+    }
+};
+
+// ── Save Knowledge Base ────────────────────────────────────────────────────
+window.saveIaKnowledgeBase = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('knowledge_base').eq('id', window.currentWorkspaceId).single();
+        const kb = { ...(ws?.knowledge_base || {}) };
+
+        const fields = ['about','schedule','consolidation','baptism','faq','limits'];
+        fields.forEach(f => {
+            const el = document.getElementById(`ia-kb-${f}`);
+            if (el) kb[`ia_${f}`] = el.value.trim() || null;
+        });
+
+        const { error } = await sb.from('workspaces').update({ knowledge_base: kb }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        window.showToast && showToast('Base de conhecimento salva!', 'success');
+    } catch(e) {
+        console.error('saveIaKnowledgeBase:', e);
+        window.showToast && showToast('Erro ao salvar base de conhecimento', 'error');
+    }
+};
+
+
 
 // ── Load config from DB ────────────────────────────────────────────────────
 window.loadAutomationConfig = async function() {

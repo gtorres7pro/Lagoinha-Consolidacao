@@ -2398,10 +2398,16 @@
             </header>
 
             <!-- ── Tab bar ────────────────────────────────────── -->
-            <div style="padding:0 40px; border-bottom:1px solid var(--border); display:flex; gap:6px; margin-bottom:0;">
-                <button id="auto-tab-btn-ia" onclick="switchAutoTab('ia')" style="padding:10px 18px;border-radius:10px 10px 0 0;border:none;background:rgba(255,215,0,0.12);color:var(--accent);font-weight:700;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;">🧠 IA &amp; Conhecimento</button>
-                <button id="auto-tab-btn-regras" onclick="switchAutoTab('regras')" style="padding:10px 18px;border-radius:10px 10px 0 0;border:none;background:transparent;color:rgba(255,255,255,0.45);font-weight:600;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;">⚡ Regras de Automação</button>
+            <div style="padding:0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px;overflow-x:auto;white-space:nowrap;flex-shrink:0;">
+                <button id="auto-tab-btn-ia" onclick="switchAutoTab('ia')" class="auto-tab-btn auto-tab-active">🧠 Conexão &amp; IA</button>
+                <button id="auto-tab-btn-atendente" onclick="switchAutoTab('atendente')" class="auto-tab-btn">🤖 IA Atendente</button>
+                <button id="auto-tab-btn-regras" onclick="switchAutoTab('regras')" class="auto-tab-btn">⚡ Regras de Automação</button>
             </div>
+            <style>
+                .auto-tab-btn{padding:10px 16px;border-radius:10px 10px 0 0;border:none;background:transparent;color:rgba(255,255,255,0.45);font-weight:600;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;white-space:nowrap;flex-shrink:0;}
+                .auto-tab-btn:hover{color:rgba(255,255,255,0.75);}
+                .auto-tab-active{background:rgba(255,215,0,0.12)!important;color:var(--accent)!important;font-weight:700!important;}
+            </style>
 
             <!-- ── Tab: IA & Conhecimento (existing content) ─────────── -->
             <div id="auto-tab-ia" style="display:block;">
@@ -2713,7 +2719,103 @@
 
             </div><!-- /#auto-tab-regras -->
 
-        </div><!-- /#view-settings END -->
+            <!-- ── Tab: IA Atendente ──────────────────────────────── -->
+            <div id="auto-tab-atendente" style="display:none;padding:32px 28px;max-width:900px;margin:0 auto;width:100%;box-sizing:border-box;">
+
+                <!-- Master toggle -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+                    <div>
+                        <h3 style="font-size:.98rem;font-weight:700;margin-bottom:5px;">🤖 Respostas por IA (Inbound)</h3>
+                        <p style="font-size:.78rem;color:var(--text-dim);margin:0;line-height:1.5;">Quando ativado, mensagens recebidas pelo WhatsApp são automaticamente respondidas pelo LLM com base nas instruções e base de conhecimento abaixo.<br><span style="color:#fbbf24;">⚠️ A regra de Human Lock (30 min) sempre tem prioridade sobre a IA.</span></p>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
+                        <span style="font-size:.8rem;color:var(--text-dim);" id="ia-atendente-label">Inativo</span>
+                        <div style="position:relative;width:48px;height:26px;" onclick="toggleIaAtendente()">
+                            <input type="checkbox" id="ia-atendente-toggle" style="opacity:0;width:0;height:0;position:absolute;">
+                            <span id="ia-atendente-track" style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:13px;transition:background .2s;cursor:pointer;"></span>
+                            <span id="ia-atendente-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#888;border-radius:50%;transition:all .2s;"></span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Memory toggle -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+                    <div>
+                        <h3 style="font-size:.9rem;font-weight:700;margin-bottom:4px;">🧠 Memória de Conversa</h3>
+                        <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Quando ativado, o LLM recebe o histórico recente da conversa com o lead (últimas 10 mensagens) como contexto antes de responder.</p>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0;">
+                        <span style="font-size:.8rem;color:var(--text-dim);" id="ia-memory-label">Inativo</span>
+                        <div style="position:relative;width:48px;height:26px;" onclick="toggleIaMemory()">
+                            <input type="checkbox" id="ia-memory-toggle" style="opacity:0;width:0;height:0;position:absolute;">
+                            <span id="ia-memory-track" style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:13px;transition:background .2s;cursor:pointer;"></span>
+                            <span id="ia-memory-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:#888;border-radius:50%;transition:all .2s;"></span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- System Prompt -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:22px 26px;margin-bottom:24px;">
+                    <h3 style="font-size:.9rem;font-weight:700;margin-bottom:6px;">📋 Instruções do Assistente (System Prompt)</h3>
+                    <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:14px;">Define o comportamento, tom e limites da IA. Seja específico sobre o que a IA pode e não pode responder.</p>
+                    <textarea id="ia-system-prompt" class="hub-field-input"
+                        rows="8"
+                        placeholder="Você é Lara, assistente virtual da Igreja Lagoinha. Responda sempre em português de forma acolhedora e gentil. Você pode informar sobre horários de culto, eventos e detalhes sobre o processo de consolidação. Não dê aconselhamento pastoral ou teológico aprofundado — encaminhe para um líder humano quando necessário."
+                        style="font-size:.84rem;line-height:1.6;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+                        <button onclick="saveIaAtendente()" style="background:linear-gradient(135deg,var(--accent),#FFA000);border:none;color:#000;border-radius:10px;padding:10px 24px;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:700;">💾 Salvar Configurações</button>
+                    </div>
+                </div>
+
+                <!-- Knowledge Base -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:22px 26px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+                        <div>
+                            <h3 style="font-size:.9rem;font-weight:700;margin-bottom:4px;">📚 Base de Conhecimento da Igreja</h3>
+                            <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Informações que a IA usa para responder perguntas dos leads. A mesma base usada pela Mila (suporte interno).</p>
+                        </div>
+                        <button onclick="saveIaKnowledgeBase()" style="background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);color:var(--accent);border-radius:10px;padding:8px 18px;cursor:pointer;font-family:var(--font);font-size:.8rem;font-weight:600;">💾 Salvar Base</button>
+                    </div>
+
+                    <!-- KB Sections -->
+                    <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+
+                        <div>
+                            <label class="hub-field-label">🏛️ Sobre a Igreja</label>
+                            <textarea id="ia-kb-about" class="hub-field-input" rows="3" placeholder="A Igreja Lagoinha foi fundada em... Temos cultos nas seguintes cidades..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="hub-field-label">🗓️ Horários &amp; Endereços</label>
+                            <textarea id="ia-kb-schedule" class="hub-field-input" rows="3" placeholder="Culto de domingo: 9h e 18h. Endereço: Rua..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="hub-field-label">📖 Processo de Consolidação</label>
+                            <textarea id="ia-kb-consolidation" class="hub-field-input" rows="3" placeholder="O processo de consolidação envolve... as etapas são..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="hub-field-label">💧 Batismo</label>
+                            <textarea id="ia-kb-baptism" class="hub-field-input" rows="3" placeholder="O batismo nas águas ocorre mensalmente... para se inscrever..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="hub-field-label">❓ Perguntas Frequentes (FAQ)</label>
+                            <textarea id="ia-kb-faq" class="hub-field-input" rows="4" placeholder="P: Como me tornar membro?&#10;R: ...&#10;&#10;P: Como participar do Start?&#10;R: ..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="hub-field-label">🚫 Tópicos a Evitar / Limites da IA</label>
+                            <textarea id="ia-kb-limits" class="hub-field-input" rows="2" placeholder="Não discuta política, não dê diagnósticos de saúde, não faça promessas financeiras..." style="font-size:.83rem;line-height:1.5;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div><!-- /#auto-tab-atendente -->
+
+
 
         <!-- ════════════════════════════════════════════════════════
              View: Desenvolvedor (master_admin only)
