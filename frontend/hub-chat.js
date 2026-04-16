@@ -1141,8 +1141,8 @@ function showChatToast(msg, type = 'info') {
 
 // ─── TEMPLATES ─────────────────────────────────────────────────────────────
 const BACKEND_URL = 'https://api.consolidacao.7pro.tech';
-const EVOLUTION_URL = 'https://evolution.7pro.tech';
-const EVOLUTION_KEY = 'lagoinhazxcvbnm1234';
+// Evolution sends are proxied through `whatsapp-proxy` Edge Function so the
+// server-side Evolution admin key stays out of the browser.
 
 // Cache workspace credentials to avoid repeated DB calls
 let _wsCreds = null;
@@ -1156,18 +1156,32 @@ async function getWorkspaceCreds() {
   return _wsCreds;
 }
 
-// Send a text message via Evolution API
+// Send a text message via Evolution API (routed through whatsapp-proxy)
 async function sendViaEvolution(instanceName, phone, text) {
   // Normalize phone to Evolution format (remove leading +)
   const toJid = phone.replace(/^\+/, '') + '@s.whatsapp.net';
-  const res = await fetch(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY },
-    body: JSON.stringify({ number: toJid, text })
-  });
-  const data = await res.json();
-  console.log('[Chat-Evo] sendText response:', res.status, JSON.stringify(data).slice(0, 200));
-  return res.ok;
+  try {
+    const { data, error } = await window._sb.functions.invoke('whatsapp-proxy', {
+      body: {
+        action: 'send_text',
+        workspace_id: chatState.workspaceId,
+        instance_name: instanceName,
+        params: { number: toJid, text }
+      }
+    });
+    if (error) {
+      const status = error.context?.status ?? 500;
+      let respData = {};
+      try { respData = await error.context?.json(); } catch { /* ignore */ }
+      console.error('[Chat-Evo] proxy send_text failed:', status, respData);
+      return false;
+    }
+    console.log('[Chat-Evo] sendText response:', JSON.stringify(data).slice(0, 200));
+    return true;
+  } catch (e) {
+    console.error('[Chat-Evo] sendText exception:', e);
+    return false;
+  }
 }
 
 let _selectedTemplate = null; // { name, language_code, body_text, variables_count }

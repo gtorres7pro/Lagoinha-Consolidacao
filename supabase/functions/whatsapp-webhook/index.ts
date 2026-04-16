@@ -1,10 +1,37 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const VERIFY_TOKEN = "lagoinha_consolida_secret_token";
-const EVOLUTION_URL = "https://evolution.7pro.tech";
-const EVOLUTION_KEY = "lagoinhazxcvbnm1234";
+const VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
+const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.tech";
+const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+// Optional shared secret for Evolution webhooks: if set, Evolution must call us with ?s=<secret>
+const EVOLUTION_WEBHOOK_SECRET = Deno.env.get("EVOLUTION_WEBHOOK_SECRET") ?? "";
+
+if (!VERIFY_TOKEN) console.error("[WH] WHATSAPP_VERIFY_TOKEN env var not set — Meta GET challenge will fail");
+if (!EVOLUTION_KEY) console.warn("[WH] EVOLUTION_API_KEY env var not set — Evolution media fetches will fail");
+
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+
+// ── HMAC-SHA256 verification for Meta webhooks (X-Hub-Signature-256) ────────
+async function verifyMetaSignature(rawBody: string, signatureHeader: string | null, appSecret: string): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+  const expected = signatureHeader.slice(7);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(appSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+  const computed = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  if (expected.length !== computed.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ computed.charCodeAt(i);
+  return diff === 0;
+}
 
 function normPhone(r: string) { const c = r.trim(); return c.startsWith("+") ? c : "+" + c; }
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
@@ -73,18 +100,26 @@ Deno.serve(async (req: Request) => {
   // ── Meta webhook verification (GET) ────────────────────────────────────────
   if (req.method === "GET") {
     const m = url.searchParams.get("hub.mode"), v = url.searchParams.get("hub.verify_token"), c = url.searchParams.get("hub.challenge");
-    return m === "subscribe" && v === VERIFY_TOKEN ? new Response(c, {status:200}) : new Response("Forbidden", {status:403});
+    return m === "subscribe" && v && VERIFY_TOKEN && v === VERIFY_TOKEN ? new Response(c, {status:200}) : new Response("Forbidden", {status:403});
   }
   if (req.method !== "POST") return new Response("Method Not Allowed", {status:405});
 
+  // Read raw body once — needed for HMAC verification on Meta path
+  const rawBody = await req.text();
   let body: any;
-  try { body = await req.json(); } catch { return new Response("Bad Request", {status:400}); }
+  try { body = JSON.parse(rawBody); } catch { return new Response("Bad Request", {status:400}); }
 
   // ════════════════════════════════════════════════════════════════════════════
   // EVOLUTION API format detection
   // Evolution sends: { event: "messages.upsert", instance: "...", data: { key: { remoteJid, fromMe, id }, message: {...}, pushName } }
   // ════════════════════════════════════════════════════════════════════════════
   if (body?.event === "messages.upsert" || (body?.event && body?.instance && body?.data)) {
+    // Optional shared-secret gate for Evolution webhook (Evolution doesn't sign payloads).
+    // If EVOLUTION_WEBHOOK_SECRET is set, require it as ?s=<secret> on the webhook URL.
+    if (EVOLUTION_WEBHOOK_SECRET && url.searchParams.get("s") !== EVOLUTION_WEBHOOK_SECRET) {
+      console.warn("[WH-EVO] rejected: missing/invalid ?s= secret");
+      return new Response("Forbidden", {status:403});
+    }
     return await handleEvolutionWebhook(body);
   }
 
@@ -100,10 +135,26 @@ Deno.serve(async (req: Request) => {
   const pnid: string = value.metadata?.phone_number_id ?? "";
   console.log(`[WH-META] id=${msg.id} from=${msg.from} pnid=${pnid} type=${msg.type}`);
 
-  // Find workspace by phone_number_id
+  // Find workspace by phone_number_id — strict match, no fallback
   const { data: wss } = await sb.from("workspaces").select("id,name,credentials");
-  const ws = wss?.find((w:any) => w.credentials?.phone_number_id === pnid) ?? wss?.find((w:any) => !!w.credentials?.whatsapp_token);
-  if (!ws) { console.error("[WH-META] no workspace"); return new Response("EVENT_RECEIVED", {status:200}); }
+  const ws = wss?.find((w:any) => w.credentials?.phone_number_id === pnid);
+  if (!ws) { console.error(`[WH-META] no workspace for phone_number_id=${pnid}`); return new Response("EVENT_RECEIVED", {status:200}); }
+
+  // ── Verify X-Hub-Signature-256 with the workspace's Meta app_secret ────────
+  // Transitional: if a workspace hasn't configured app_secret yet, log a warning
+  // but still process. Once all workspaces have saved their app_secret, this
+  // block becomes strict-reject-on-missing.
+  const appSecret: string = ws.credentials?.app_secret ?? "";
+  const sigHeader = req.headers.get("x-hub-signature-256");
+  if (appSecret) {
+    const valid = await verifyMetaSignature(rawBody, sigHeader, appSecret);
+    if (!valid) {
+      console.error(`[WH-META] invalid signature for workspace=${ws.id}`);
+      return new Response("Forbidden", {status:403});
+    }
+  } else {
+    console.warn(`[WH-META] workspace=${ws.id} has no app_secret set — accepting unsigned webhook (configure app_secret to enable HMAC verification)`);
+  }
 
   // Idempotency
   const { data: dup } = await sb.from("messages").select("id").eq("wa_message_id", msg.id).maybeSingle();

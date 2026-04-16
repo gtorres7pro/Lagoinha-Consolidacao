@@ -460,19 +460,16 @@
             .crie-pad-filter input, .crie-pad-filter select { width: 100% !important; margin-bottom: 8px; }
             .kpi-row, .crie-dashboard-row { padding: 12px 16px 24px !important; gap: 8px !important; }
             .charts-row { padding: 16px 16px 24px; }
-            /* top-bar: compact single-row. top:0 because each view-section is its own
-               scroll container — it already starts below the 56px mobile nav bar.
-               Using top:54px here would create a 54px blank void at the top of every page. */
-            .top-bar { padding: 6px 14px !important; flex-direction: row !important; align-items: center !important; gap: 8px; height: auto; top: 0 !important; flex-wrap: nowrap !important; }
+            /* top-bar: wrap to column on mobile to fit long titles and multiple buttons */
+            .top-bar { padding: 12px 14px !important; flex-direction: column !important; align-items: flex-start !important; gap: 12px; height: auto; top: 0 !important; }
             /* Inside a view-section scroll context, sticky top:0 is correct */
             .view-section > .top-bar { position: sticky !important; top: 0 !important; z-index: 20; }
-            /* page-title shrinks, actions scroll horizontally */
-            .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
-            .page-title h1 { font-size: 0.95rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
-            /* actions: horizontal pill scroll — never wraps, no scrollbar visible */
-            .actions { flex: 1; overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap !important; gap: 6px; justify-content: flex-end; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 0; }
-            .actions::-webkit-scrollbar { display: none; }
-            .actions button, .actions .btn, .actions a.btn { font-size: 0.72rem !important; padding: 6px 10px !important; white-space: nowrap; flex-shrink: 0; }
+            /* page-title takes full width */
+            .page-title { flex: 0 1 auto; width: 100%; }
+            .page-title h1 { font-size: 1.15rem !important; white-space: normal; overflow: visible; }
+            /* actions wrap normally below the title */
+            .actions { width: 100%; flex-wrap: wrap !important; gap: 8px; justify-content: flex-start; padding-bottom: 0; display: flex; }
+            .actions button, .actions .btn, .actions a.btn { font-size: 0.75rem !important; padding: 8px 12px !important; white-space: nowrap; flex-shrink: 0; }
             /* home view: no sticky header, transparent bg */
             #view-home .top-bar { position: relative !important; top: 0 !important; background: transparent !important; border: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; flex-direction: row !important; }
             #view-home .page-title h1 { font-size: 1.5rem !important; max-width: none; }
@@ -487,13 +484,30 @@
             .hub-dev-table th, .hub-dev-table td { padding: 12px; white-space: nowrap; }
 
             /* ── Visitantes mobile fixes ── */
-            /* Override the inline repeat(3,1fr) to 2 columns on mobile */
-            #visitors-kpi-row { grid-template-columns: 1fr 1fr !important; }
+            /* Horizontal scrolling carousel for the 3 KPIs so they never break awkwardly */
+            #visitors-kpi-row {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 12px !important; /* space for scrollbar */
+                gap: 12px !important;
+            }
+            #visitors-kpi-row::-webkit-scrollbar { display: none; }
+            #visitors-kpi-row .kpi-box { 
+                min-width: 150px; 
+                flex-shrink: 0; 
+                padding: 14px 16px !important;
+            }
+            #visitors-kpi-row .kpi-number { font-size: 1.6rem !important; }
+            
             /* Make view-visitors scroll properly so sticky header doesn't eat content */
             #view-visitors { display: flex; flex-direction: column; overflow-y: auto; }
             #view-visitors .top-bar { flex-shrink: 0; }
+            
             /* Hide the Formulário copy button in visitantes to free space for Baixar Relatório */
             #view-visitors .actions button:first-child { display: none !important; }
+            
             /* Visitantes charts: compact 2-col grid with reduced height to eliminate empty space */
             #visitors-charts-row {
                 grid-template-columns: 1fr 1fr !important;
@@ -503,9 +517,6 @@
             }
             #visitors-charts-row .chart-box { height: 120px; padding: 10px; }
             #visitors-charts-row .canvas-wrapper { height: 68px; max-height: 68px; }
-            /* Visitantes KPIs: compact number size */
-            #visitors-kpi-row .kpi-number { font-size: 1.4rem !important; }
-            #visitors-kpi-row .kpi-box { padding: 10px 12px !important; }
 
             /* ── Start mobile fixes ── */
             #view-start { display: flex; flex-direction: column; overflow-y: auto; }

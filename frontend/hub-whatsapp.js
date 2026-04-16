@@ -6,8 +6,8 @@
 (function() {
     'use strict';
 
-    const EVOLUTION_URL  = 'https://evolution.7pro.tech';
-    const EVOLUTION_KEY  = 'lagoinhazxcvbnm1234';
+    // Evolution calls are proxied through the `whatsapp-proxy` Edge Function
+    // so the server-side Evolution admin key is never exposed to the browser.
     const POLL_INTERVAL  = 3000; // ms between QR polls
 
     let _qrPollTimer = null;
@@ -81,18 +81,15 @@
         _clearQRCode();
 
         try {
-            // 1. Create instance (idempotent — OK if already exists)
-            const createRes = await _evoFetch('POST', `/instance/create`, {
-                instanceName,
-                qrcode: true,
-                integration: 'WHATSAPP-BAILEYS'
+            // 1. Create instance (idempotent — OK if already exists; 409 means exists)
+            const createRes = await _evoProxy('instance_create', {
+                params: { instanceName }
             });
 
-            const createData = await createRes.json().catch(() => ({}));
-            console.log('[WA EVO] create response:', createRes.status, createData);
+            console.log('[WA EVO] create response:', createRes.status, createRes._data);
 
             if (!createRes.ok && createRes.status !== 409) {
-                throw new Error(createData.message || createData.error || `Erro ${createRes.status} ao criar instância`);
+                throw new Error(createRes._data?.message || createRes._data?.error || `Erro ${createRes.status} ao criar instância`);
             }
 
             _currentInstanceName = instanceName;
@@ -126,7 +123,7 @@
         if (!_currentInstanceName) return;
         _stopQRPolling();
         try {
-            await _evoFetch('DELETE', `/instance/logout/${_currentInstanceName}`);
+            await _evoProxy('instance_logout', { instance_name: _currentInstanceName });
         } catch(e) { /* ignore */ }
         _setEvoStatus('disconnected');
         _clearQRCode();
@@ -136,8 +133,8 @@
     // Fetch & render QR — handles Evolution v2 response variants
     async function _fetchAndShowQR(instanceName) {
         try {
-            const res  = await _evoFetch('GET', `/instance/connect/${instanceName}`);
-            const data = await res.json();
+            const res  = await _evoProxy('instance_connect', { instance_name: instanceName });
+            const data = res._data || {};
             console.log('[WA QR] connect response:', res.status, JSON.stringify(data).slice(0, 300));
 
             // Evolution v2.1.x: QR is inside data.base64 directly
@@ -187,8 +184,8 @@
 
             try {
                 // First: check if already fully connected
-                const stateRes  = await _evoFetch('GET', `/instance/connectionState/${instanceName}`);
-                const stateData = await stateRes.json();
+                const stateRes  = await _evoProxy('instance_state', { instance_name: instanceName });
+                const stateData = stateRes._data || {};
                 const state = stateData.instance?.state || stateData.state;
 
                 if (state === 'open') {
@@ -215,8 +212,8 @@
 
     async function _checkEvoStatus(instanceName) {
         try {
-            const res  = await _evoFetch('GET', `/instance/connectionState/${instanceName}`);
-            const data = await res.json();
+            const res  = await _evoProxy('instance_state', { instance_name: instanceName });
+            const data = res._data || {};
             const state = data.instance?.state || data.state;
             if (state === 'open') {
                 _onEvoConnected(instanceName);
@@ -348,15 +345,24 @@
         window.showToast && window.showToast('Desconectado da Meta Cloud API', 'info');
     };
 
-    // ── Evolution API fetch helper ───────────────────────────
-
-    async function _evoFetch(method, path, body) {
-        const opts = {
-            method,
-            headers: { 'Content-Type': 'application/json', 'apikey': EVOLUTION_KEY }
-        };
-        if (body) opts.body = JSON.stringify(body);
-        return fetch(EVOLUTION_URL + path, opts);
+    // ── Evolution proxy helper ───────────────────────────────
+    // Calls the `whatsapp-proxy` Edge Function with the current workspace_id.
+    // Returns a Response-like object: { ok, status, _data } so call sites can
+    // keep their shape (await res._data instead of await res.json()).
+    async function _evoProxy(action, opts = {}) {
+        const body = { action, workspace_id: _currentWorkspaceId, ...opts };
+        try {
+            const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-proxy', { body });
+            if (error) {
+                const status = error.context?.status ?? 500;
+                let respData = {};
+                try { respData = await error.context?.json(); } catch { /* ignore */ }
+                return { ok: false, status, _data: respData };
+            }
+            return { ok: true, status: 200, _data: data ?? {} };
+        } catch (e) {
+            return { ok: false, status: 0, _data: { error: e.message } };
+        }
     }
 
     // ── Expose checkWAStatus for backwards compat ────────────

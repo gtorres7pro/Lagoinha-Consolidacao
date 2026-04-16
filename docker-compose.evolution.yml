@@ -4,40 +4,44 @@ services:
   evolution-api:
     image: atendai/evolution-api:latest
     restart: always
+    volumes:
+      - evolution-api-instances:/evolution/instances
+      - evolution-api-store:/evolution/store
     environment:
-      - SERVER_URL=https://consolidacao.7pro.tech  # Replace with your actual Coolify assigned domain
+      - SERVER_URL=https://consolidacao.7pro.tech
       - SERVER_PORT=8080
       - DOCKER_ENV=true
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=lagoinhazxcvbnm1234  # We will put this in our Python backend later!
-      
+      - AUTHENTICATION_API_KEY=${EVOLUTION_ADMIN_API_KEY}
+
+      # QR Code settings
+      - QRCODE_LIMIT=30
+      - QRCODE_COLOR=#198754
+      - CONFIG_SESSION_PHONE_CLIENT=Evolution API
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+
       # [FIX] Disabling Redis to avoid the infinite disconnect loop bug in v2.2.3
       - REDIS_ENABLED=false
       - CACHE_REDIS_ENABLED=false
       - CACHE_LOCAL_ENABLED=true
-      
+
       - DATABASE_ENABLED=true
-      - DATABASE_CONNECTION_URI=postgresql://postgres:lagoinhapassword@evolution-db:5432/evolution?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${EVOLUTION_DB_PASSWORD}@evolution-db:5432/evolution?schema=public
       - DATABASE_CONNECTION_CLIENT_NAME=evolution-api
     depends_on:
       - evolution-db
-
-  # evolution-redis:
-  #   image: redis:7.2-alpine
-  #   restart: always
-  #   volumes:
-  #     - evolution-redis-data:/data
 
   evolution-db:
     image: postgres:15-alpine
     restart: always
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=lagoinhapassword
+      - POSTGRES_PASSWORD=${EVOLUTION_DB_PASSWORD}
       - POSTGRES_DB=evolution
     volumes:
       - evolution-db-data:/var/lib/postgresql/data
 
 volumes:
-  evolution-redis-data:
+  evolution-api-instances:
+  evolution-api-store:
   evolution-db-data:
