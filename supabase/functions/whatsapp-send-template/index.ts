@@ -64,19 +64,26 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // ── 2. Idempotency guard ──────────────────────────────────────────────────
+  // ── 2. Idempotency guard — scoped to (lead, today) ───────────────────────
+  // Allows a returning lead to be welcomed again on a new day.
+  // Still prevents duplicate sends from the same submission within a day.
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const { data: existing } = await sb
     .from("messages")
     .select("id")
     .eq("lead_id", lead_id)
     .eq("workspace_id", workspace_id)
-    .eq("type", "template")
+    .in("type", ["template", "text"])
     .eq("automated", true)
+    .eq("direction", "outbound")
+    .gte("created_at", todayStart.toISOString())
     .maybeSingle();
 
   if (existing) {
-    console.log("[TMPL] Template already sent for this lead — skipping.");
-    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "already_sent" }), {
+    console.log("[TMPL] Already sent automated message to this lead today — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "already_sent_today" }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS },
     });
   }
@@ -246,18 +253,21 @@ Deno.serve(async (req: Request) => {
   if (sendOk) {
     const now = new Date().toISOString();
 
+    // Evolution sends free-text (not a WA Business template), so store as 'text'
+    const persistType = effectiveChannel === "evolution" ? "text" : "template";
+
     const { error: msgErr } = await sb.from("messages").insert({
       workspace_id,
       lead_id,
       direction: "outbound",
-      type: "template",
+      type: persistType,
       content: sentContent,
       automated: true,
       responded_at: now,
       wa_message_id: waMessageId,
     });
     if (msgErr) console.error("[TMPL] Failed to save message:", msgErr.message);
-    else console.log("[TMPL] Message saved to DB.");
+    else console.log(`[TMPL] Message saved to DB (type=${persistType}).`);
 
     const { error: luErr } = await sb.from("leads")
       .update({ last_message_at: now })

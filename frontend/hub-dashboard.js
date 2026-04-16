@@ -4510,7 +4510,7 @@ async function saveNotificationSettings() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.switchAutoTab = function(tab) {
-    const tabs = ['ia', 'regras', 'atendente'];
+    const tabs = ['ia', 'regras', 'atendente', 'n8n'];
     tabs.forEach(t => {
         const panel = document.getElementById(`auto-tab-${t}`);
         const btn   = document.getElementById(`auto-tab-btn-${t}`);
@@ -4525,6 +4525,7 @@ window.switchAutoTab = function(tab) {
     // Load data per tab
     if (tab === 'regras')     loadAutomationConfig();
     if (tab === 'atendente')  loadIaAtendente();
+    if (tab === 'n8n')        loadN8NConfig();
 };
 
 // ── IA Atendente — toggle helpers ──────────────────────────────────────────
@@ -4634,10 +4635,192 @@ window.saveIaKnowledgeBase = async function() {
         window.showToast && showToast('Erro ao salvar base de conhecimento', 'error');
     }
 };
+// ── n8n Integration ────────────────────────────────────────────────────────
+
+// Helper: generate a random hex token
+function _genToken(bytes = 32) {
+    const arr = new Uint8Array(bytes);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Load n8n config from workspace credentials
+window.loadN8NConfig = async function() {
+    if (!window.currentWorkspaceId) return;
+    try {
+        const sb = window.supabaseClient;
+        const { data } = await sb.from('workspaces')
+            .select('credentials')
+            .eq('id', window.currentWorkspaceId)
+            .single();
+        const creds = data?.credentials || {};
+
+        // Reflect automation_mode in radio buttons
+        const mode = creds.automation_mode || 'off';
+        const radio = document.querySelector(`input[name="auto-mode"][value="${mode}"]`);
+        if (radio) radio.checked = true;
+        _toggleN8NConfigSection(mode);
+
+        // Webhook URL
+        const urlEl = document.getElementById('n8n-webhook-url');
+        if (urlEl) urlEl.value = creds.n8n_webhook_url || '';
+
+        // Webhook secret
+        const secretEl = document.getElementById('n8n-webhook-secret-display');
+        if (secretEl) secretEl.value = creds.n8n_webhook_secret || '';
+
+        // API key
+        const keyEl = document.getElementById('n8n-api-key-display');
+        if (keyEl) { keyEl.value = creds.n8n_api_key || ''; _updateCurlExample(creds.n8n_api_key || ''); }
+    } catch(e) { console.error('loadN8NConfig:', e); }
+};
+
+function _toggleN8NConfigSection(mode) {
+    const section = document.getElementById('n8n-config-section');
+    if (section) section.style.display = mode === 'n8n' ? 'block' : 'none';
+}
+
+function _updateCurlExample(apiKey) {
+    const wsId = window.currentWorkspaceId || '<workspace_id>';
+    const el = document.getElementById('n8n-curl-example');
+    if (!el) return;
+    if (!apiKey) { el.textContent = 'Salve sua API Key para ver o exemplo.'; return; }
+    el.textContent = `curl -X POST \\\n  https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-message \\\n  -H 'Content-Type: application/json' \\\n  -H 'X-API-Key: ${apiKey}' \\\n  -d '{\n    "workspace_id": "${wsId}",\n    "lead_id": "<lead_uuid>",\n    "message": { "type": "text", "content": "Olá! Como posso ajudar?" }\n  }'`;
+}
+
+// Called from radio onchange
+window.onAutoModeChange = function(mode) {
+    _toggleN8NConfigSection(mode);
+};
+
+// Save automation_mode to credentials
+window.saveAutoMode = async function() {
+    if (!window.currentWorkspaceId) return;
+    const selected = document.querySelector('input[name="auto-mode"]:checked');
+    if (!selected) return;
+    const mode = selected.value;
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}), automation_mode: mode };
+        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        _toggleN8NConfigSection(mode);
+        const labels = { off: 'Desativado', ia_atendente: 'IA Atendente', n8n: 'n8n Webhook' };
+        window.showToast && showToast(`Modo salvo: ${labels[mode] || mode}`, 'success');
+    } catch(e) {
+        console.error('saveAutoMode:', e);
+        window.showToast && showToast('Erro ao salvar modo', 'error');
+    }
+};
+
+// Save n8n webhook URL
+window.saveN8NConfig = async function() {
+    if (!window.currentWorkspaceId) return;
+    const url = document.getElementById('n8n-webhook-url')?.value?.trim() || '';
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}), n8n_webhook_url: url };
+        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        window.showToast && showToast('URL do webhook salva!', 'success');
+    } catch(e) {
+        console.error('saveN8NConfig:', e);
+        window.showToast && showToast('Erro ao salvar URL', 'error');
+    }
+};
+
+// Regenerate webhook secret (HMAC signing key)
+window.regenerateN8NSecret = async function() {
+    if (!window.currentWorkspaceId) return;
+    if (!confirm('Isso invalidará a assinatura atual dos webhooks. Continuar?')) return;
+    const secret = _genToken(32);
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}), n8n_webhook_secret: secret };
+        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        const el = document.getElementById('n8n-webhook-secret-display');
+        if (el) el.value = secret;
+        window.showToast && showToast('Segredo regenerado! Atualize o n8n agora.', 'success');
+    } catch(e) {
+        console.error('regenerateN8NSecret:', e);
+        window.showToast && showToast('Erro ao regenerar segredo', 'error');
+    }
+};
+
+// Regenerate API key (used by n8n to call whatsapp-send-message)
+window.regenerateN8NApiKey = async function() {
+    if (!window.currentWorkspaceId) return;
+    if (!confirm('Isso invalidará a chave atual. Atualize seus workflows n8n depois. Continuar?')) return;
+    const apiKey = _genToken(24);
+    try {
+        const sb = window.supabaseClient;
+        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
+        const creds = { ...(ws?.credentials || {}), n8n_api_key: apiKey };
+        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        if (error) throw error;
+        const el = document.getElementById('n8n-api-key-display');
+        if (el) el.value = apiKey;
+        _updateCurlExample(apiKey);
+        window.showToast && showToast('API Key regenerada! Atualize o n8n agora.', 'success');
+    } catch(e) {
+        console.error('regenerateN8NApiKey:', e);
+        window.showToast && showToast('Erro ao regenerar API Key', 'error');
+    }
+};
+
+window.copyN8NSecret = function() {
+    const v = document.getElementById('n8n-webhook-secret-display')?.value || '';
+    if (!v) { window.showToast && showToast('Nenhum segredo para copiar', 'error'); return; }
+    navigator.clipboard.writeText(v).then(() => window.showToast && showToast('Segredo copiado!'));
+};
+
+window.copyN8NApiKey = function() {
+    const v = document.getElementById('n8n-api-key-display')?.value || '';
+    if (!v) { window.showToast && showToast('Nenhuma API Key para copiar', 'error'); return; }
+    navigator.clipboard.writeText(v).then(() => window.showToast && showToast('API Key copiada!'));
+};
+
+// Send a test payload to the configured n8n webhook URL
+window.testN8NWebhook = async function() {
+    const url = document.getElementById('n8n-webhook-url')?.value?.trim() || '';
+    const resultEl = document.getElementById('n8n-test-result');
+    if (!url) { if (resultEl) resultEl.textContent = '⚠️ Configure a URL do webhook primeiro.'; return; }
+    if (resultEl) resultEl.textContent = '⏳ Enviando...';
+    const wsId = window.currentWorkspaceId || 'test';
+    const payload = JSON.stringify({
+        workspace_id: wsId,
+        lead_id: 'test-lead-id',
+        lead: { name: 'Teste Zelro', phone: '+15551234567', source: 'test' },
+        message: { id: 'test-msg-id', type: 'text', content: 'Olá, esse é um payload de teste do Zelro!', wa_message_id: null },
+        provider: 'test',
+        timestamp: new Date().toISOString(),
+    });
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+        });
+        if (resultEl) {
+            if (res.ok) {
+                resultEl.textContent = `✅ n8n respondeu ${res.status} — sucesso!`;
+                resultEl.style.color = '#34D399';
+            } else {
+                resultEl.textContent = `⚠️ n8n respondeu ${res.status}`;
+                resultEl.style.color = '#FBBF24';
+            }
+        }
+    } catch(e) {
+        if (resultEl) { resultEl.textContent = `❌ Erro: ${e.message}`; resultEl.style.color = '#f87171'; }
+    }
+};
 
 
 
-// ── Load config from DB ────────────────────────────────────────────────────
 window.loadAutomationConfig = async function() {
     if (!window.currentWorkspaceId) return;
     try {

@@ -5,9 +5,15 @@ const SILENCE_MS = 5000;
 const GEMINI_TIMEOUT_MS = 25000;
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
+const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.tech";
+const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
 
-async function sendText(token: string, phoneNumberId: string, phone: string, text: string): Promise<boolean> {
+function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
+function evoPhone(p: string)  { return p.startsWith("+") ? p.slice(1) : p; }
+
+// ── Meta send helpers ──────────────────────────────────────────────────────
+
+async function sendTextMeta(token: string, phoneNumberId: string, phone: string, text: string): Promise<boolean> {
   const to = metaPhone(phone);
   try {
     const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
@@ -15,10 +21,10 @@ async function sendText(token: string, phoneNumberId: string, phone: string, tex
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { body: text, preview_url: false } })
     });
-    if (!res.ok) console.error("WA send error:", await res.text());
+    if (!res.ok) console.error("WA Meta send error:", await res.text());
     return res.ok;
   } catch (e: any) {
-    console.error("WA send exception:", e.message);
+    console.error("WA Meta send exception:", e.message);
     return false;
   }
 }
@@ -55,17 +61,83 @@ async function uploadMediaToWhatsApp(token: string, phoneId: string, audioBuffer
   } catch (e: any) { console.error("Meta media upload exception:", e.message); return null; }
 }
 
-async function sendAudio(token: string, phoneNumberId: string, phone: string, mediaId: string): Promise<boolean> {
+async function sendAudioMeta(token: string, phoneNumberId: string, phone: string, mediaId: string): Promise<boolean> {
   const to = metaPhone(phone);
   try {
     const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "audio", audio: { id: mediaId } })
     });
-    if (!res.ok) console.error("WA audio send error:", await res.text());
+    if (!res.ok) console.error("WA Meta audio send error:", await res.text());
     return res.ok;
-  } catch (e: any) { console.error("WA audio send exception:", e.message); return false; }
+  } catch (e: any) { console.error("WA Meta audio send exception:", e.message); return false; }
 }
+
+// ── Evolution send helpers ─────────────────────────────────────────────────
+
+async function sendTextEvolution(instanceName: string, phone: string, text: string): Promise<boolean> {
+  const number = evoPhone(phone);
+  try {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": EVOLUTION_KEY },
+      body: JSON.stringify({ number, text })
+    });
+    if (!res.ok) { console.error("Evolution sendText error:", await res.text()); return false; }
+    return true;
+  } catch (e: any) { console.error("Evolution sendText exception:", e.message); return false; }
+}
+
+async function sendAudioEvolution(instanceName: string, phone: string, audioBuffer: ArrayBuffer): Promise<boolean> {
+  const number = evoPhone(phone);
+  // Evolution expects base64-encoded audio with mediatype
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+  try {
+    const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instanceName)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": EVOLUTION_KEY },
+      body: JSON.stringify({
+        number,
+        mediatype: "audio",
+        mimetype: "audio/mpeg",
+        media: base64,
+        fileName: "resposta.mp3"
+      })
+    });
+    if (!res.ok) { console.error("Evolution sendAudio error:", await res.text()); return false; }
+    return true;
+  } catch (e: any) { console.error("Evolution sendAudio exception:", e.message); return false; }
+}
+
+// ── Provider-agnostic send wrappers ───────────────────────────────────────
+
+async function sendText(mode: string, creds: any, phone: string, text: string): Promise<boolean> {
+  if (mode === "evolution") {
+    return sendTextEvolution(creds.evolution_instance, phone, text);
+  }
+  return sendTextMeta(creds.whatsapp_token, creds.phone_number_id, phone, text);
+}
+
+async function sendAudio(mode: string, creds: any, phone: string, audioBuffer: ArrayBuffer): Promise<boolean> {
+  if (mode === "evolution") {
+    return sendAudioEvolution(creds.evolution_instance, phone, audioBuffer);
+  }
+  // Meta: upload first, then send
+  const mediaId = await uploadMediaToWhatsApp(creds.whatsapp_token, creds.phone_number_id, audioBuffer);
+  if (!mediaId) return false;
+  return sendAudioMeta(creds.whatsapp_token, creds.phone_number_id, phone, mediaId);
+}
+
+// ── Validate workspace has enough creds to send ───────────────────────────
+
+function hasValidCreds(mode: string, creds: any): boolean {
+  if (mode === "evolution") {
+    return !!creds?.evolution_instance && !!EVOLUTION_KEY;
+  }
+  return !!creds?.whatsapp_token && !!(creds?.phone_number_id || creds?.phone_id);
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
@@ -106,23 +178,42 @@ Deno.serve(async (req: Request) => {
   await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
 
   const { data: ws } = await sb.from("workspaces").select("id, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
-  if (!ws?.credentials?.whatsapp_token || !ws?.credentials?.phone_number_id) {
+
+  const creds = ws?.credentials ?? {};
+  const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
+
+  // ── Guard: IA must be active ─────────────────────────────────────────────
+  if (creds.ia_active === false) {
+    console.log(`[FLUSH] ia_active=false for workspace=${ws?.id} — skipping`);
+    return new Response("ia_inactive", { status: 200 });
+  }
+
+  // ── Guard: need valid send credentials ───────────────────────────────────
+  if (!hasValidCreds(mode, creds)) {
+    console.error(`[FLUSH] workspace=${ws?.id} mode=${mode} — missing send credentials`);
     return new Response("no creds", { status: 500 });
   }
 
-  const waToken: string = ws.credentials.whatsapp_token;
-  const phoneNumberId: string = ws.credentials.phone_number_id;
-  const geminiKey: string = ws.credentials?.llm_config?.gemini_token ?? "";
+  const geminiKey: string = creds?.llm_config?.gemini_token ?? "";
+  const iaMemoryEnabled: boolean = creds?.ia_memory_enabled !== false; // default on
+  const memoryLimit = iaMemoryEnabled ? 8 : 0;
 
-  const { data: historyRecords } = await sb.from("messages")
-    .select("direction, content")
-    .eq("lead_id", lead_id)
-    .lt("created_at", firstPendingTime)
-    .order("created_at", { ascending: false })
-    .limit(8);
+  console.log(`[FLUSH] mode=${mode} lead=${lead.id} memory=${iaMemoryEnabled} gemini=${!!geminiKey}`);
+
+  // ── Build conversation history ────────────────────────────────────────────
+  let historyRecords: any[] = [];
+  if (memoryLimit > 0) {
+    const { data } = await sb.from("messages")
+      .select("direction, content")
+      .eq("lead_id", lead_id)
+      .lt("created_at", firstPendingTime)
+      .order("created_at", { ascending: false })
+      .limit(memoryLimit);
+    historyRecords = data ?? [];
+  }
 
   const contents: any[] = [];
-  if (historyRecords?.length) {
+  if (historyRecords.length) {
     historyRecords.reverse().forEach((m: any) => {
       if (m.content) contents.push({ role: m.direction === "inbound" ? "user" : "model", parts: [{ text: m.content }] });
     });
@@ -133,29 +224,50 @@ Deno.serve(async (req: Request) => {
   let firstName = "Amigo";
   if (lead.name) firstName = lead.name.split(" ")[0];
 
-  // Current date/time in Orlando (Eastern Time) — critical for schedule questions
+  // Current date/time context (Eastern Time — relevant for Orlando)
   const orlandoTime = new Date().toLocaleString("pt-BR", {
     timeZone: "America/New_York",
     weekday: "long", year: "numeric", month: "long", day: "numeric",
     hour: "2-digit", minute: "2-digit"
   });
-  const dateContext = `DATA/HORA ATUAL EM ORLANDO (Eastern Time): ${orlandoTime}`;
-
-  const customJuPrompt: string | undefined = ws.knowledge_base?.ju_prompt;
+  const dateContext = `DATA/HORA ATUAL (Eastern Time, Orlando): ${orlandoTime}`;
 
   const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
 
+  // ── Build system instruction ──────────────────────────────────────────────
+  // Priority: ia_system_prompt from credentials > ju_prompt from KB > built-in default
   let systemInstruction: string;
-  if (customJuPrompt) {
+  const customIaPrompt: string | null = creds.ia_system_prompt ?? null;
+  const customJuPrompt: string | undefined = ws?.knowledge_base?.ju_prompt;
+
+  if (customIaPrompt) {
+    // Workspace-specific IA prompt configured via Automações > IA Atendente
+    systemInstruction = dateContext + "\n\n" + customIaPrompt + JSON_OUTPUT_FORMAT;
+    systemInstruction = systemInstruction
+      .replace(/\{firstName\}/g, firstName)
+      .replace(/\{NOME\}/g, firstName);
+    console.log(`[FLUSH] using ia_system_prompt from credentials`);
+  } else if (customJuPrompt) {
+    // Legacy KB ju_prompt
     systemInstruction = dateContext + "\n\n" + customJuPrompt + JSON_OUTPUT_FORMAT;
     systemInstruction = systemInstruction
       .replace(/\{firstName\}/g, firstName)
       .replace(/\{NOME\}/g, firstName);
+    console.log(`[FLUSH] using ju_prompt from knowledge_base`);
   } else {
-    const kbString = ws.knowledge_base ? JSON.stringify(ws.knowledge_base) : "NDA";
-    systemInstruction = `${dateContext}\n\nVocê é a Ju, recepcionista virtual da Igreja Lagoinha no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.\nBase de Conhecimento:\n${kbString}` + JSON_OUTPUT_FORMAT;
+    // Built-in default + KB fields
+    const kb = ws?.knowledge_base ?? {};
+    const kbFields = [
+      kb.ia_about     ? `Sobre a Igreja: ${kb.ia_about}` : null,
+      kb.ia_schedule  ? `Programação: ${kb.ia_schedule}` : null,
+      kb.ia_baptism   ? `Batismo: ${kb.ia_baptism}` : null,
+      kb.ia_faq       ? `FAQ: ${kb.ia_faq}` : null,
+      kb.ia_limits    ? `Limites/Regras: ${kb.ia_limits}` : null,
+    ].filter(Boolean).join("\n\n");
+    const kbBlock = kbFields || "Sem base de conhecimento configurada.";
+    systemInstruction = `${dateContext}\n\nVocê é a assistente virtual desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.\nBase de Conhecimento:\n${kbBlock}` + JSON_OUTPUT_FORMAT;
+    console.log(`[FLUSH] using built-in default prompt`);
   }
-  // ──────────────────────────────────────────────────────────────────────────
 
   const payload = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -163,17 +275,21 @@ Deno.serve(async (req: Request) => {
     generationConfig: { response_mime_type: "application/json" }
   };
 
-  // gemini-2.5-flash: fast and stable — ideal for real-time WhatsApp chatbot
+  // ── Call Gemini ───────────────────────────────────────────────────────────
   const model = "gemini-2.5-flash";
   let finalReply = "Opa, tive um pequeno engasgo agora! Me chama de novo em um instante 😊";
   let detectedIntention = "none";
   let audioScript: string | null = null;
   let audioComplement: string | null = null;
 
+  if (!geminiKey) {
+    console.error("[FLUSH] no gemini_token in llm_config — cannot generate reply");
+    return new Response("no_gemini_key", { status: 500 });
+  }
+
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-    // AbortController for TRUE timeout — cancels the fetch connection itself
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
@@ -192,86 +308,78 @@ Deno.serve(async (req: Request) => {
           const j = JSON.parse(rawBody);
           const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
           const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
-          
           if (rawText) {
             try {
               const parsedJSON = JSON.parse(rawText);
               if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
-              else finalReply = `⚠️ Debug: LLM não retornou a chave 'whatsapp_reply'.\nRaw: ${rawText.substring(0, 250)}`;
-
+              else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
               if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
               if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
               if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
             } catch {
               console.log("LLM non-JSON:", rawText.substring(0, 200));
-              finalReply = rawText.replace(/```json|```/g, "").trim();
-              if (!finalReply) finalReply = `⚠️ Debug: LLM retornou texto vazio após limpeza.`;
+              finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
             }
           } else {
-             finalReply = `⚠️ Debug: LLM sem texto. Motivo (finishReason): ${finishReason}.\nRaw: ${rawBody.substring(0, 250)}`;
+            finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
           }
-        } catch (e: any) { 
-            finalReply = `⚠️ Debug: Falha no Parse do Retorno Gemini. Erro: ${e.message}`;
-            console.error("Gemini parse error:", e.message); 
+        } catch (e: any) {
+          finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
+          console.error("Gemini parse error:", e.message);
         }
       } else {
-        finalReply = `⚠️ Debug: API Gemini Falhou.\nHttp Error: ${res.status}\nRaw: ${rawBody.substring(0, 250)}`;
+        finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
         console.error("Gemini API error:", rawBody.substring(0, 300));
       }
     } catch (e: any) {
       clearTimeout(timeoutId);
       if (e.name === "AbortError") {
-        finalReply = `⚠️ Debug: Gemini Timeout (AbortError após ${GEMINI_TIMEOUT_MS}ms).`;
-        console.error(`Gemini AbortError`);
+        finalReply = `⚠️ Gemini Timeout após ${GEMINI_TIMEOUT_MS}ms.`;
+        console.error("Gemini AbortError");
       } else {
-        finalReply = `⚠️ Debug: Fetch Error: ${e.message}`;
+        finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
         console.error("Gemini fetch error:", e.message);
       }
     }
   } catch (e: any) { console.error("Outer error:", e.message); }
 
+  // ── Send response ─────────────────────────────────────────────────────────
   let chunks = finalReply.split("|||").map((s: string) => s.trim()).filter((s: string) => s);
-  
+
   const hasAudio = pending.some((m: any) => m.type === "audio");
-  const elevenLabsKey = ws.credentials?.llm_config?.elevenlabs_token;
+  const elevenLabsKey = creds?.llm_config?.elevenlabs_token;
   let audioSent = false;
 
   if (hasAudio && elevenLabsKey && audioScript) {
-    console.log("[TTS] Audio detected and script generated. Calling TTS...");
+    console.log("[TTS] Audio detected and script generated. Calling ElevenLabs TTS...");
     const audioBuffer = await generateElevenLabsAudio(audioScript, elevenLabsKey);
     if (audioBuffer) {
-      console.log("[TTS] Uploading audio to Meta...");
-      const mediaId = await uploadMediaToWhatsApp(waToken, phoneNumberId, audioBuffer);
-      if (mediaId && lead.phone) {
-        console.log(`[TTS] Sending audio message. MediaID: ${mediaId}`);
-        const sent = await sendAudio(waToken, phoneNumberId, lead.phone, mediaId);
-        if (sent) {
-          audioSent = true;
-          await sb.from("messages").insert({
-            workspace_id: ws.id, lead_id,
-            direction: "outbound", type: "audio",
-            content: `[ÁUDIO GERADO]: ${audioScript}`, automated: true,
-            responded_at: new Date().toISOString(),
-          });
-        }
-      } else { console.warn("[TTS] Media upload failed. Falling back to text."); }
+      console.log(`[TTS] Sending audio via ${mode}...`);
+      const sent = await sendAudio(mode, creds, lead.phone, audioBuffer);
+      if (sent) {
+        audioSent = true;
+        await sb.from("messages").insert({
+          workspace_id: ws!.id, lead_id,
+          direction: "outbound", type: "audio",
+          content: `[ÁUDIO GERADO]: ${audioScript}`, automated: true,
+          responded_at: new Date().toISOString(),
+        });
+      } else { console.warn("[TTS] Audio send failed. Falling back to text."); }
     } else { console.warn("[TTS] ElevenLabs failed. Falling back to text."); }
   }
 
   if (audioSent) {
-    if (audioComplement) {
-      chunks = audioComplement.split("|||").map((s: string) => s.trim()).filter((s: string) => s);
-    } else {
-      chunks = [];
-    }
+    chunks = audioComplement
+      ? audioComplement.split("|||").map((s: string) => s.trim()).filter((s: string) => s)
+      : [];
   }
 
   for (const chunk of chunks) {
     if (!chunk) continue;
-    const sent = await sendText(waToken, phoneNumberId, lead.phone, chunk);
-    console.log(`Sent (${sent ? "OK" : "FAILED"}): ${chunk.substring(0, 80)}`);
+    const sent = await sendText(mode, creds, lead.phone, chunk);
+    console.log(`[FLUSH] sendText (${mode}) ${sent ? "OK" : "FAILED"}: ${chunk.substring(0, 80)}`);
     await sb.from("messages").insert({
-      workspace_id: ws.id, lead_id,
+      workspace_id: ws!.id, lead_id,
       direction: "outbound", type: "text",
       content: chunk, automated: true,
       responded_at: new Date().toISOString(),
@@ -315,7 +423,7 @@ Deno.serve(async (req: Request) => {
     // Email escalation alert
     if (detectedIntention === "escalation" && adminUser?.email) {
       const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (resendKey && ws.credentials?.notifications?.email_pastor !== false) {
+      if (resendKey && creds?.notifications?.email_pastor !== false) {
         const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f4f4f5;padding:40px 20px">
 <table width="600" style="background:#fff;border-radius:16px;overflow:hidden;margin:0 auto">
   <tr><td style="background:#111;padding:30px;text-align:center"><h2 style="color:#FFD700;margin:0">ALERTA PASTORAL</h2></td></tr>
@@ -341,7 +449,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // ─── A3: Update lead inbox fields ──────────────────────────────────────────
+  // ── Update lead inbox fields ──────────────────────────────────────────────
   const inboxUpdate: Record<string, any> = {
     has_responded: true,
     last_message_at: new Date().toISOString(),
@@ -354,6 +462,5 @@ Deno.serve(async (req: Request) => {
   }
   await sb.from("leads").update(inboxUpdate).eq("id", lead.id);
 
-  return new Response(JSON.stringify({ ok: true, processed: ids.length, intention: detectedIntention }), { status: 200 });
+  return new Response(JSON.stringify({ ok: true, processed: ids.length, intention: detectedIntention, mode }), { status: 200 });
 });
-

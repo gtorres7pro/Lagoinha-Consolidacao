@@ -77,9 +77,7 @@ async function transcribeAudioWithGemini(audioBuffer: ArrayBuffer, mimeType: str
   return text.trim();
 }
 
-// ── pg_net trigger: call whatsapp-flush in background ───────────────────────
-// This is now done via a Supabase database trigger on messages INSERT.
-// If the trigger is not set up, we call flush directly here.
+// ── Call whatsapp-flush in background (fire-and-forget) ─────────────────────
 async function callFlush(lead_id: string, message_created_at: string) {
   const flushUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/whatsapp-flush";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -92,6 +90,89 @@ async function callFlush(lead_id: string, message_created_at: string) {
   } catch (e: any) {
     console.error("[WH] callFlush error:", e.message);
   }
+}
+
+// ── Automation dispatcher: IA Atendente or n8n ──────────────────────────────
+// Called at end of both Meta and Evolution branches (fire-and-forget).
+async function dispatchAutomation(ws: any, lead: any, now: string) {
+  const mode: string = ws.credentials?.automation_mode ?? "off";
+  console.log(`[WH] dispatchAutomation mode=${mode} lead=${lead.id}`);
+
+  if (mode === "ia_atendente" && ws.credentials?.ia_active !== false) {
+    console.log(`[WH] → calling whatsapp-flush for lead=${lead.id}`);
+    callFlush(lead.id, now).catch(e => console.error("[WH] flush fire-and-forget error:", e));
+  } else if (mode === "n8n") {
+    dispatchToN8N(ws, lead, now).catch(e => console.error("[WH] n8n dispatch error:", e));
+  }
+}
+
+// ── n8n outbound webhook ────────────────────────────────────────────────────
+// POST a normalized payload to the workspace's n8n_webhook_url, signed with HMAC.
+async function dispatchToN8N(ws: any, lead: any, messageCreatedAt: string) {
+  const webhookUrl: string = ws.credentials?.n8n_webhook_url ?? "";
+  const webhookSecret: string = ws.credentials?.n8n_webhook_secret ?? "";
+  if (!webhookUrl) {
+    console.warn(`[WH-N8N] workspace=${ws.id} has automation_mode=n8n but no n8n_webhook_url`);
+    return;
+  }
+
+  // Get the latest inbound message for this lead
+  const { data: lastMsg } = await sb.from("messages")
+    .select("id, type, content, wa_message_id")
+    .eq("lead_id", lead.id).eq("direction", "inbound")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+  const provider = ws.credentials?.whatsapp_mode === "meta" ? "meta" : "evolution";
+  const payload = JSON.stringify({
+    workspace_id: ws.id,
+    lead_id: lead.id,
+    lead: { name: lead.name, phone: lead.phone, source: lead.source ?? null },
+    message: lastMsg ? {
+      id: lastMsg.id,
+      type: lastMsg.type,
+      content: lastMsg.content,
+      wa_message_id: lastMsg.wa_message_id,
+    } : null,
+    provider,
+    timestamp: messageCreatedAt,
+  });
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  // Sign with HMAC-SHA256 if secret is configured
+  if (webhookSecret) {
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(webhookSecret),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+    const sig = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    headers["X-Signature-256"] = `sha256=${sig}`;
+  }
+
+  // Retry with backoff (3 attempts)
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(webhookUrl, { method: "POST", headers, body: payload });
+      if (res.ok) {
+        console.log(`[WH-N8N] dispatched to n8n OK (attempt ${attempt})`);
+        return;
+      }
+      console.warn(`[WH-N8N] n8n returned ${res.status} (attempt ${attempt})`);
+    } catch (e: any) {
+      console.warn(`[WH-N8N] fetch error attempt ${attempt}:`, e.message);
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
+  }
+  console.error(`[WH-N8N] all 3 attempts failed for workspace=${ws.id}`);
+  // Log failure to app_logs
+  await sb.from("app_logs").insert({
+    workspace_id: ws.id,
+    type: "error",
+    module: "whatsapp",
+    action: "n8n_dispatch_failed",
+    details: { lead_id: lead.id, webhook_url: webhookUrl },
+  }).then(() => {}).catch(() => {});
 }
 
 Deno.serve(async (req: Request) => {
@@ -175,8 +256,19 @@ Deno.serve(async (req: Request) => {
   }
   if (!lead) { console.error("[WH-META] no lead"); return new Response("EVENT_RECEIVED", {status:200}); }
 
+  // Human lock — still save the message so it appears in operator's inbox, just skip AI
   if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
-    console.log("[WH-META] human lock");
+    console.log("[WH-META] human lock active — saving message but skipping automation");
+    // We need to extract text first before saving
+    let lockText = `[${msg.type}]`;
+    if (msg.type === "text") lockText = msg.text?.body ?? "";
+    const lockNow = new Date().toISOString();
+    await sb.from("messages").insert({
+      workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
+      type: msg.type, content: lockText, automated: false, responded_at: null, wa_message_id: msg.id,
+    });
+    const lockExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await sb.from("leads").update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow }).eq("id", lead.id);
     return new Response("EVENT_RECEIVED", {status:200});
   }
 
@@ -210,10 +302,13 @@ Deno.serve(async (req: Request) => {
     workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
     type: msg.type, content: text, automated: false, responded_at: null, wa_message_id: msg.id,
   });
-  if (ie) { console.error("[WH-META] insert error:", ie.message); return new Response("EVENT_RECEIVED", {status:200}); }
+  if (ie) { console.error("[WH-META] insert error:", ie.message); return new Response("DB_ERROR", {status:500}); }
 
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
+
+  // Fire automation dispatcher (IA Atendente or n8n) — non-blocking
+  dispatchAutomation(ws, lead, now);
 
   return new Response("EVENT_RECEIVED", {status:200});
 });
@@ -379,7 +474,7 @@ async function handleEvolutionWebhook(body: any): Promise<Response> {
     workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
     type: msgType, content: text, automated: false, responded_at: null, wa_message_id: msgId,
   });
-  if (ie) { console.error("[WH-EVO] insert error:", ie.message); return new Response("EVENT_RECEIVED", {status:200}); }
+  if (ie) { console.error("[WH-EVO] insert error:", ie.message); return new Response("DB_ERROR", {status:500}); }
 
   console.log(`[WH-EVO] inbound saved: "${text.substring(0, 100)}"`);
 
@@ -390,6 +485,9 @@ async function handleEvolutionWebhook(body: any): Promise<Response> {
     has_responded: true,
     last_message_at: now,
   }).eq("id", lead.id);
+
+  // Fire automation dispatcher (IA Atendente or n8n) — non-blocking
+  dispatchAutomation(ws, lead, now);
 
   return new Response("EVENT_RECEIVED", {status:200});
 }
