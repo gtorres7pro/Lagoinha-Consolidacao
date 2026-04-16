@@ -538,8 +538,8 @@
             #view-dashboard .actions .btn-outline:first-child { display: none !important; }
             #view-dashboard .actions #btn-copy-report-link .report-btn-label { display: none; }
 
-            /* ── Global: top-bar must never shrink inside flex column views ── */
-            .view-section > .top-bar { flex-shrink: 0; }
+            /* ── Global: elements must never shrink inside flex column views ── */
+            .view-section > * { flex-shrink: 0; }
 
             /* ── Membros mobile fixes ── */
             #view-membros { display: flex; flex-direction: column; overflow-y: auto; }
