@@ -387,7 +387,7 @@
         @media (max-width: 1023px) {
             .mobile-topbar { display: flex; }
             body { overflow-x: hidden; }
-            .main { margin-left: 0 !important; padding-top: 72px !important; }
+            .main { margin-left: 0 !important; padding-top: 56px !important; }
             .sidebar {
                 position: fixed;
                 top: 0; left: 0;
@@ -3566,8 +3566,8 @@
                 .hub-hide-mobile { display: inline; }
                 
                 @media (max-width: 768px) {
-                    /* ── Compacted toolbar: zero padding-top to close gap under sticky top-bar ── */
-                    .tasks-wrapper-padding { padding: 8px 14px 0; }
+                    /* ── Compacted toolbar: small top gap below sticky top-bar ── */
+                    .tasks-wrapper-padding { padding: 10px 14px 0; }
                     .tasks-bottom-padding { padding-bottom: 24px; }
                     .hub-hide-mobile { display: none !important; }
 
@@ -3619,30 +3619,45 @@
                     .task-responsive-table thead { display: none; }
                     .task-responsive-table,
                     .task-responsive-table tbody { display: block; width: 100%; }
+                    /* ── Task card: full-column card layout ── */
                     .task-responsive-table tr {
                         display: flex;
-                        flex-wrap: wrap;
-                        padding: 14px;
+                        flex-direction: column;
+                        padding: 14px 14px 10px;
                         background: rgba(255,255,255,.025);
                         border: 1px solid rgba(255,255,255,.06);
                         border-radius: 12px;
                         margin-bottom: 10px;
-                        position: relative;
-                        align-items: center;
+                        gap: 8px;
                     }
                     .task-responsive-table td {
                         padding: 0 !important;
                         display: flex;
                         align-items: center;
                         border: none !important;
+                        width: 100%;
                     }
-                    /* Layout mapping */
-                    .task-responsive-table td:nth-child(1) { width: 100%; margin-bottom: 10px; align-items: flex-start; flex-direction: column; }
-                    .task-responsive-table td:nth-child(2) { margin-right: 8px; margin-bottom: 10px; }
-                    .task-responsive-table td:nth-child(3) { margin-right: auto; margin-bottom: 10px; }
-                    .task-responsive-table td:nth-child(4) { width: 100%; margin-bottom: 10px; }
-                    .task-responsive-table td:nth-child(5) { margin-right: auto; }
-                    .task-responsive-table td:nth-child(6) { margin-right: 12px; }
+                    /* Row 1: checkbox + task title */
+                    .task-responsive-table td:nth-child(1) { flex-direction: row; align-items: flex-start; gap: 10px; }
+                    /* Row 2+3: status + priority side by side */
+                    .task-responsive-table td:nth-child(2),
+                    .task-responsive-table td:nth-child(3) { width: auto; flex: 1; }
+                    /* Wrap status + priority pills in one row */
+                    .task-responsive-table td:nth-child(2) { display: inline-flex; }
+                    .task-responsive-table td:nth-child(3) { display: inline-flex; }
+                    /* Group pills row */
+                    .task-responsive-table tr > td:nth-child(2),
+                    .task-responsive-table tr > td:nth-child(3) {
+                        width: auto;
+                    }
+                    /* Wrap 2+3 side by side using pseudo-row wrapper effect */
+                    .task-responsive-table td:nth-child(2) { margin-right: 8px; width: auto; }
+                    .task-responsive-table td:nth-child(3) { margin-right: 0; width: auto; }
+                    /* Row 4: dept + assignee + date — flex row */
+                    .task-responsive-table td:nth-child(4) { flex-wrap: wrap; gap: 8px; font-size: 0.75rem; color: rgba(255,255,255,0.5); padding-top: 2px !important; border-top: 1px solid rgba(255,255,255,0.04) !important; }
+                    /* Row 5+6: actions row */
+                    .task-responsive-table td:nth-child(5) { width: auto; }
+                    .task-responsive-table td:nth-child(6) { width: auto; }
                     .task-responsive-table td::before { display: none !important; }
                 }
             </style>
