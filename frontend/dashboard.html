@@ -484,22 +484,21 @@
             .hub-dev-table th, .hub-dev-table td { padding: 12px; white-space: nowrap; }
 
             /* ── Visitantes mobile fixes ── */
-            /* Horizontal scrolling carousel for the 3 KPIs so they never break awkwardly */
+            /* Fit the 3 KPIs evenly into a single row on mobile without scrolling */
             #visitors-kpi-row {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 12px !important; /* space for scrollbar */
-                gap: 12px !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px !important;
+                padding: 12px 14px 16px !important;
             }
-            #visitors-kpi-row::-webkit-scrollbar { display: none; }
             #visitors-kpi-row .kpi-box { 
-                min-width: 150px; 
-                flex-shrink: 0; 
-                padding: 14px 16px !important;
+                padding: 10px 8px !important;
+                justify-content: space-between;
+                align-items: center;
+                text-align: center;
             }
-            #visitors-kpi-row .kpi-number { font-size: 1.6rem !important; }
+            #visitors-kpi-row .kpi-title { font-size: 0.54rem !important; margin-bottom: 6px; }
+            #visitors-kpi-row .kpi-number { font-size: 1.3rem !important; }
             
             /* Make view-visitors scroll properly so sticky header doesn't eat content */
             #view-visitors { display: flex; flex-direction: column; overflow-y: auto; }
