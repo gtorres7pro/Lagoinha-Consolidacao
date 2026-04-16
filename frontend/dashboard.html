@@ -468,7 +468,7 @@
             .view-section > .top-bar { position: sticky !important; top: 0 !important; z-index: 20; }
             /* page-title shrinks, actions scroll horizontally */
             .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
-            .page-title h1 { font-size: 0.95rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+            .page-title h1 { font-size: 0.95rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
             /* actions: horizontal pill scroll — never wraps, no scrollbar visible */
             .actions { flex: 1; overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap !important; gap: 6px; justify-content: flex-end; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 0; }
             .actions::-webkit-scrollbar { display: none; }
@@ -492,8 +492,20 @@
             /* Make view-visitors scroll properly so sticky header doesn't eat content */
             #view-visitors { display: flex; flex-direction: column; overflow-y: auto; }
             #view-visitors .top-bar { flex-shrink: 0; }
-            /* Reduce chart height on mobile so they don't take too much vertical space */
-            #visitors-charts-row .canvas-wrapper { max-height: 160px; }
+            /* Hide the Formulário copy button in visitantes to free space for Baixar Relatório */
+            #view-visitors .actions button:first-child { display: none !important; }
+            /* Visitantes charts: compact 2-col grid with reduced height to eliminate empty space */
+            #visitors-charts-row {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+                padding: 12px 16px 16px !important;
+                margin-top: 0 !important;
+            }
+            #visitors-charts-row .chart-box { height: 120px; padding: 10px; }
+            #visitors-charts-row .canvas-wrapper { height: 68px; max-height: 68px; }
+            /* Visitantes KPIs: compact number size */
+            #visitors-kpi-row .kpi-number { font-size: 1.4rem !important; }
+            #visitors-kpi-row .kpi-box { padding: 10px 12px !important; }
 
             /* ── Start mobile fixes ── */
             #view-start { display: flex; flex-direction: column; overflow-y: auto; }
