@@ -460,8 +460,12 @@
             .crie-pad-filter input, .crie-pad-filter select { width: 100% !important; margin-bottom: 8px; }
             .kpi-row, .crie-dashboard-row { padding: 12px 16px 0 !important; gap: 8px !important; }
             .charts-row { padding: 16px 16px 0; }
-            /* top-bar: compact single-row, sits below 54px mobile-topbar */
-            .top-bar { padding: 6px 14px !important; flex-direction: row !important; align-items: center !important; gap: 8px; height: auto; top: 54px !important; flex-wrap: nowrap !important; }
+            /* top-bar: compact single-row. top:0 because each view-section is its own
+               scroll container — it already starts below the 56px mobile nav bar.
+               Using top:54px here would create a 54px blank void at the top of every page. */
+            .top-bar { padding: 6px 14px !important; flex-direction: row !important; align-items: center !important; gap: 8px; height: auto; top: 0 !important; flex-wrap: nowrap !important; }
+            /* Inside a view-section scroll context, sticky top:0 is correct */
+            .view-section > .top-bar { position: sticky !important; top: 0 !important; z-index: 20; }
             /* page-title shrinks, actions scroll horizontally */
             .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
             .page-title h1 { font-size: 0.95rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
@@ -469,7 +473,7 @@
             .actions { flex: 1; overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap !important; gap: 6px; justify-content: flex-end; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 0; }
             .actions::-webkit-scrollbar { display: none; }
             .actions button, .actions .btn, .actions a.btn { font-size: 0.72rem !important; padding: 6px 10px !important; white-space: nowrap; flex-shrink: 0; }
-            /* home greeting — keep position:relative, no top offset */
+            /* home view: no sticky header, transparent bg */
             #view-home .top-bar { position: relative !important; top: 0 !important; background: transparent !important; border: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; flex-direction: row !important; }
             #view-home .page-title h1 { font-size: 1.5rem !important; max-width: none; }
             
@@ -897,11 +901,12 @@
             .main { height: 100dvh; overflow-x: hidden; }
             .bottom-nav { display: none !important; }
 
-            /* ── Top bar: sticky single row, below 56px mobile nav ── */
+            /* ── Top bar: sticky single row. top:0 because view-sections are
+               their own scroll containers — they already start below the mobile nav ── */
             .top-bar {
                 padding: 6px 14px !important;
                 position: sticky;
-                top: 54px !important;
+                top: 0 !important;
                 z-index: 10;
                 flex-direction: row !important;
                 align-items: center !important;
@@ -909,6 +914,7 @@
                 gap: 8px;
                 min-height: 0;
             }
+            .view-section > .top-bar { top: 0 !important; z-index: 20; }
             /* Title: shrink & truncate if needed */
             .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
             .page-title h1 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
