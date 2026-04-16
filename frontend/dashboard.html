@@ -921,45 +921,42 @@
             .main { height: 100dvh; overflow-x: hidden; }
             .bottom-nav { display: none !important; }
 
-            /* ── Top bar: sticky single row. top:0 because view-sections are
-               their own scroll containers — they already start below the mobile nav ── */
+            /* ── Top bar: column layout on mobile so full title + all buttons are visible ── */
             .top-bar {
-                padding: 6px 14px !important;
+                padding: 12px 14px !important;
                 position: sticky;
                 top: 0 !important;
                 z-index: 20;
-                flex-direction: row !important;
-                align-items: center !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
                 flex-wrap: nowrap !important;
-                gap: 8px;
+                gap: 10px;
+                height: auto;
                 min-height: 0;
             }
             .view-section > .top-bar { top: 0 !important; z-index: 20; }
-            /* Title: shrink & truncate if needed */
-            .page-title { flex: 1 1 0%; min-width: 0; overflow: hidden; }
-            .page-title h1 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; width: 100%; display: block; }
+            /* Title: full width, no truncation */
+            .page-title { flex: 0 0 auto; width: 100%; min-width: 0; overflow: visible; }
+            .page-title h1 { font-size: 1.05rem !important; white-space: normal; overflow: visible; text-overflow: unset; width: 100%; display: block; }
             .page-title p { display: none; }
-            /* Tasks view: toolbar separado do top-bar, sem espaço duplicado */
+            /* Tasks view */
             #view-admin-tarefas .top-bar {
                 border-bottom-color: rgba(255,255,255,0.04) !important;
             }
-            /* Actions: horizontal pill scroll — no wrap, invisible scrollbar */
+            /* Actions: wrap so all buttons are visible */
             .actions {
+                width: 100%;
                 flex: 0 0 auto;
-                max-width: 65%;
                 display: flex;
-                flex-wrap: nowrap !important;
-                overflow-x: auto;
-                overflow-y: hidden;
-                gap: 6px;
-                justify-content: flex-end;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
+                flex-wrap: wrap !important;
+                overflow-x: visible;
+                overflow-y: visible;
+                gap: 8px;
+                justify-content: flex-start;
             }
-            .actions::-webkit-scrollbar { display: none; }
             .actions button, .actions .btn, .actions a.btn {
-                font-size: 0.72rem !important;
-                padding: 6px 10px !important;
+                font-size: 0.75rem !important;
+                padding: 7px 12px !important;
                 white-space: nowrap;
                 flex-shrink: 0;
             }
@@ -2085,7 +2082,7 @@
                 </div>
             </header>
 
-            <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);" id="visitors-kpi-row">
+            <div class="kpi-row" id="visitors-kpi-row">
                 <div class="kpi-box">
                     <div class="kpi-title">Welcome Message (IA)</div>
                     <div class="kpi-number">
@@ -2109,7 +2106,7 @@
                 </div>
             </div>
             
-            <div class="charts-row" style="margin-top: 20px; gap: 20px;" id="visitors-charts-row">
+            <div class="charts-row" style="margin-top: 12px; gap: 12px;" id="visitors-charts-row">
                 <div class="chart-box">
                     <div class="chart-title" style="margin-bottom: 5px;">CULTO RECEPTOR</div>
                     <div class="canvas-wrapper"><canvas id="vChartCulto"></canvas></div>
