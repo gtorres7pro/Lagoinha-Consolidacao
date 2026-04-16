@@ -907,7 +907,7 @@
                 padding: 6px 14px !important;
                 position: sticky;
                 top: 0 !important;
-                z-index: 10;
+                z-index: 20;
                 flex-direction: row !important;
                 align-items: center !important;
                 flex-wrap: nowrap !important;
@@ -916,8 +916,8 @@
             }
             .view-section > .top-bar { top: 0 !important; z-index: 20; }
             /* Title: shrink & truncate if needed */
-            .page-title { flex: 0 1 auto; min-width: 0; overflow: hidden; }
-            .page-title h1 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+            .page-title { flex: 1 1 0%; min-width: 0; overflow: hidden; }
+            .page-title h1 { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; width: 100%; display: block; }
             .page-title p { display: none; }
             /* Tasks view: toolbar separado do top-bar, sem espaço duplicado */
             #view-admin-tarefas .top-bar {
@@ -925,7 +925,8 @@
             }
             /* Actions: horizontal pill scroll — no wrap, invisible scrollbar */
             .actions {
-                flex: 1;
+                flex: 0 0 auto;
+                max-width: 65%;
                 display: flex;
                 flex-wrap: nowrap !important;
                 overflow-x: auto;
@@ -964,7 +965,7 @@
             .kpi-title { font-size: 0.6rem; line-height: 1.2; word-break: break-word; letter-spacing: 0; }
             .kpi-number { font-size: 1.5rem; }
             .kpi-total { font-size: 0.75rem; }
-            .charts-row { grid-template-columns: 1fr !important; padding: 0 16px; gap: 12px; }
+            .charts-row { grid-template-columns: 1fr !important; padding: 24px 16px 0; gap: 16px; }
             .crie-dashboard-row { grid-template-columns: 1fr 1fr !important; padding: 12px 16px !important; gap: 10px !important; }
             .crie-kpi-card { padding: 14px 16px; }
 
@@ -3567,15 +3568,15 @@
                 
                 @media (max-width: 768px) {
                     /* ── Compacted toolbar: small top gap below sticky top-bar ── */
-                    .tasks-wrapper-padding { padding: 10px 14px 0; }
+                    .tasks-wrapper-padding { padding: 18px 14px 0; }
                     .tasks-bottom-padding { padding-bottom: 24px; }
                     .hub-hide-mobile { display: none !important; }
 
                     /* ── Toolbar: single row, compact ── */
                     .tasks-toolbar {
-                        gap: 8px;
+                        gap: 12px;
                         padding-top: 0;
-                        flex-wrap: nowrap;
+                        flex-wrap: wrap; /* allow wrap if it gets squished */
                     }
                     /* ── view-toggle: smaller pills on mobile ── */
                     .view-toggles {
@@ -3623,6 +3624,7 @@
                     .task-responsive-table tr {
                         display: flex;
                         flex-direction: column;
+                        width: 100%;
                         padding: 14px 14px 10px;
                         background: rgba(255,255,255,.025);
                         border: 1px solid rgba(255,255,255,.06);
