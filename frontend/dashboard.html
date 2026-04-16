@@ -385,9 +385,9 @@
 
         /* ─── MOBILE: up to 1023px ─── */
         @media (max-width: 1023px) {
-            .mobile-topbar { display: flex; }
-            body { overflow-x: hidden; }
-            .main { margin-left: 0 !important; padding-top: 56px !important; }
+            .mobile-topbar { display: flex; position: relative !important; flex-shrink: 0; }
+            body { flex-direction: column; overflow-x: hidden; }
+            .main { margin-left: 0 !important; padding-top: 0 !important; height: auto !important; flex: 1 1 0%; }
             .sidebar {
                 position: fixed;
                 top: 0; left: 0;
@@ -458,8 +458,8 @@
             .crie-pad-bot { padding: 0 16px 24px; }
             .crie-pad-filter { padding: 16px; gap: 8px; flex-direction: column; align-items: stretch !important; }
             .crie-pad-filter input, .crie-pad-filter select { width: 100% !important; margin-bottom: 8px; }
-            .kpi-row, .crie-dashboard-row { padding: 12px 16px 0 !important; gap: 8px !important; }
-            .charts-row { padding: 16px 16px 0; }
+            .kpi-row, .crie-dashboard-row { padding: 12px 16px 24px !important; gap: 8px !important; }
+            .charts-row { padding: 16px 16px 24px; }
             /* top-bar: compact single-row. top:0 because each view-section is its own
                scroll container — it already starts below the 56px mobile nav bar.
                Using top:54px here would create a 54px blank void at the top of every page. */
@@ -544,9 +544,6 @@
             #view-settings { display: flex; flex-direction: column; overflow-y: auto; }
             #view-settings .top-bar { flex-shrink: 0; }
 
-            /* ── Transmissão mobile fixes ── */
-            #view-transmissao { display: flex; flex-direction: column; overflow-y: auto; }
-            #view-transmissao .top-bar { flex-shrink: 0; }
 
             /* ── Cantina views mobile fixes ── */
             #view-cantina-pedidos, #view-cantina-estoque,
@@ -1666,8 +1663,6 @@
                     <option value="course">Em Curso Online</option>
                 </select>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <canvas id="qr-batismo" width="64" height="64" style="border-radius:8px; border:1px solid rgba(255,255,255,.1);"></canvas>
-                    <button onclick="downloadQR('qr-batismo','batismo')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;">↓ QR</button>
                 </div>
             </div>
 
@@ -1742,8 +1737,6 @@
                     <option value="pending">Pendente InPeace</option>
                 </select>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <canvas id="qr-membros" width="64" height="64" style="border-radius:8px; border:1px solid rgba(255,255,255,.1);"></canvas>
-                    <button onclick="downloadQR('qr-membros','membros')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 10px;font-size:.72rem;color:rgba(255,255,255,.5);cursor:pointer;">↓ QR</button>
                 </div>
             </div>
 
