@@ -1608,6 +1608,112 @@ html, body {
   div[style*="padding: 0 32px"] {
     padding: 0 16px !important;
   }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     Webapp Layout Fixes — Per-Module (v2026-04-16)
+     Fixes: KPI top spacing, grid columns, sticky
+     offsets, filter padding, header-content gaps
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+  /* ── 1. Consistent KPI top-padding after sticky top-bar ──
+     Problem: KPIs with padding:0 sit flush against sticky header
+     Fix: Add top breathing room for all KPI containers that
+     directly follow a top-bar header inside view-sections */
+  .view-section > .crie-dashboard-row:first-of-type,
+  .view-section > .kpi-row:first-of-type {
+    padding-top: 16px !important;
+  }
+
+  /* ── 2. Batismo & Membros KPIs — explicit top spacing ── */
+  #view-batismo > .crie-dashboard-row,
+  #view-membros > .crie-dashboard-row {
+    padding-top: 16px !important;
+  }
+
+  /* ── 3. Jornada KPIs — top spacing after header ── */
+  #view-jornada > .crie-dashboard-row {
+    padding-top: 16px !important;
+  }
+
+  /* ── 4. Logs KPIs — 4 columns → 2 columns on mobile ── */
+  #logs-kpi-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── 5. Visitors KPIs — 3 fixed columns → 2 on mobile ── */
+  #visitors-kpi-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── 6. Visitors — filter bar padding reduction ── */
+  #view-visitors > .filters {
+    padding: 16px !important;
+    gap: 10px !important;
+  }
+  /* Visitors charts: reduce side padding */
+  #visitors-charts-row {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* ── 7. Settings tab bar — fix sticky position behind mobile-topbar ──
+     The tab bar uses position:sticky top:0 which hides behind
+     the 56px fixed mobile-topbar. Must account for that offset. */
+  #view-settings > div[style*="position:sticky"] {
+    top: 0 !important;
+    position: relative !important;
+  }
+
+  /* ── 8. Dev panel — reduce 40px padding to 16px on mobile ── */
+  #view-dev > div[style*="padding:20px 40px"] {
+    padding: 16px !important;
+  }
+  #view-dev > div[style*="padding:24px 40px"] {
+    padding: 16px !important;
+  }
+
+  /* ── 9. Cantina sections KPIs — top spacing ── */
+  #view-cantina-pedidos > .crie-dashboard-row,
+  #view-cantina-estoque > .crie-dashboard-row,
+  #view-cantina-financeiro > .crie-dashboard-row {
+    padding-top: 16px !important;
+  }
+
+  /* ── 10. Cantina pedidos action buttons — horizontal scroll ── */
+  #view-cantina-pedidos .actions > div,
+  #view-cantina-estoque .actions > div {
+    flex-shrink: 0;
+  }
+
+  /* ── 11. Transmissão KPIs — top spacing ── */
+  #bc-kpi-row {
+    padding-top: 16px !important;
+  }
+
+  /* ── 12. Visitors filter bar — search box full width ── */
+  #view-visitors .search-box {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  /* ── 13. CRIE Inscritos KPIs — consistent top padding ── */
+  #view-crie-inscritos .crie-pad-top {
+    padding-top: 16px !important;
+  }
+
+  /* ── 14. Global — ensure .toolbar after KPIs doesn't double-pad ── */
+  .toolbar {
+    padding: 12px 16px !important;
+  }
+
+  /* ── 15. Visitors filter selects: full width on mobile ── */
+  #view-visitors .select-filter {
+    min-width: 0 !important;
+    flex: 1 !important;
+    font-size: 0.78rem !important;
+  }
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

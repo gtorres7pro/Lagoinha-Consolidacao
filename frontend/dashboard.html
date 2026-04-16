@@ -510,6 +510,55 @@
             #view-dashboard .actions { gap: 6px !important; }
             #view-dashboard .actions .btn-outline:first-child { display: none !important; }
             #view-dashboard .actions #btn-copy-report-link .report-btn-label { display: none; }
+
+            /* ── Global: top-bar must never shrink inside flex column views ── */
+            .view-section > .top-bar { flex-shrink: 0; }
+
+            /* ── Membros mobile fixes ── */
+            #view-membros { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-membros .top-bar { flex-shrink: 0; }
+
+            /* ── Jornada mobile fixes ── */
+            #view-jornada { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-jornada .top-bar { flex-shrink: 0; }
+
+            /* ── Logs mobile fixes ── */
+            #view-logs { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-logs .top-bar { flex-shrink: 0; }
+            #view-logs .logs-toolbar { flex-wrap: wrap; padding: 12px 16px 16px !important; }
+            #view-logs .logs-period-row { padding: 16px 16px 0 !important; }
+
+            /* ── Birthdays mobile fixes ── */
+            #view-birthdays { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-birthdays .top-bar { flex-shrink: 0; }
+
+            /* ── Users mobile fixes ── */
+            #view-users { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-users .top-bar { flex-shrink: 0; }
+
+            /* ── Settings (Automações) mobile fixes ── */
+            #view-settings { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-settings .top-bar { flex-shrink: 0; }
+
+            /* ── Transmissão mobile fixes ── */
+            #view-transmissao { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-transmissao .top-bar { flex-shrink: 0; }
+
+            /* ── Cantina views mobile fixes ── */
+            #view-cantina-pedidos, #view-cantina-estoque,
+            #view-cantina-financeiro, #view-cantina-pos,
+            #view-cantina-config { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-cantina-pedidos .top-bar, #view-cantina-estoque .top-bar,
+            #view-cantina-financeiro .top-bar, #view-cantina-pos .top-bar,
+            #view-cantina-config .top-bar { flex-shrink: 0; }
+
+            /* ── CRIE views mobile fixes ── */
+            #view-crie-inscritos, #view-crie-eventos, #view-crie-membros,
+            #view-crie-connect, #view-crie-workshop { display: flex; flex-direction: column; overflow-y: auto; }
+
+            /* ── Dev panel mobile fixes ── */
+            #view-dev { display: flex; flex-direction: column; overflow-y: auto; }
+            #view-dev .top-bar { flex-shrink: 0; }
         }
 
         .top-bar {
