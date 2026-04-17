@@ -1,371 +1,299 @@
 // ============================================================
 // hub-whatsapp.js  — WhatsApp Connection Manager
-// Supports: Evolution API (QR Code) + Meta Cloud API
+// Provider: Meta Cloud API only (Official)
+// Auth: Facebook Embedded Signup (primary) + Manual (advanced)
+// App ID: 934037612918640
 // ============================================================
 
-(function() {
+(function () {
     'use strict';
 
-    // Evolution calls are proxied through the `whatsapp-proxy` Edge Function
-    // so the server-side Evolution admin key is never exposed to the browser.
-    const POLL_INTERVAL  = 3000; // ms between QR polls
+    const META_APP_ID = '934037612918640';
+    const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
 
-    let _qrPollTimer = null;
-    let _currentInstanceName = null;
-    let _currentWorkspaceId = null;
+    let _wsId = null;
+    let _fbSDKReady = false;
 
-    // ── Initialise on settings tab open ─────────────────────
-    window.initWhatsappSettings = async function() {
-        _currentWorkspaceId = window.currentWorkspaceId || window._currentWorkspace?.id;
-        if (!_currentWorkspaceId) return;
-
-        // Load saved config from workspaces.credentials
-        const { data } = await window.supabaseClient
-            .from('workspaces')
-            .select('credentials')
-            .eq('id', _currentWorkspaceId)
-            .single();
-
-        const creds = data?.credentials || {};
-        const mode  = creds.whatsapp_mode || 'evolution';
-
-        // Set active tab
-        _switchWaTab(mode);
-
-        // ── Evolution tab: restore state ──
-        if (creds.evolution_instance) {
-            _currentInstanceName = creds.evolution_instance;
-            document.getElementById('wa-evo-instance-input').value = creds.evolution_instance;
-            // Check live status
-            _checkEvoStatus(creds.evolution_instance);
-        }
-
-        // ── Meta tab: pre-fill ──
-        if (creds.phone_id)         document.getElementById('cloud-phone-id').value    = creds.phone_id;
-        if (creds.business_id)      document.getElementById('cloud-business-id').value = creds.business_id;
-        if (creds.whatsapp_token)   document.getElementById('cloud-token').value        = creds.whatsapp_token;
-        if (creds.app_secret)       document.getElementById('cloud-app-secret').value   = creds.app_secret;
-        if (creds.phone_id)         _showMetaConnected(creds.phone_display || creds.phone_id);
-    };
-
-    // ── Tab switcher ─────────────────────────────────────────
-    window.switchWaTab = _switchWaTab;
-    function _switchWaTab(tab) {
-        ['evolution','meta'].forEach(t => {
-            const btn  = document.getElementById('wa-tab-' + t);
-            const pane = document.getElementById('wa-pane-' + t);
-            const isActive = t === tab;
-            if (btn) {
-                btn.setAttribute('data-active', isActive ? '1' : '0');
-                btn.style.border     = isActive ? '1px solid rgba(37,211,102,0.4)' : '1px solid rgba(255,255,255,0.1)';
-                btn.style.background = isActive ? 'rgba(37,211,102,0.1)' : 'transparent';
-                btn.style.color      = isActive ? '#25D366' : 'rgba(255,255,255,0.4)';
-                btn.style.fontWeight = isActive ? '700' : '600';
-            }
-            if (pane) pane.style.display = isActive ? 'block' : 'none';
-        });
+    // ── Load Facebook SDK ─────────────────────────────────────
+    function _loadFBSDK() {
+        if (document.getElementById('facebook-jssdk')) return;
+        window.fbAsyncInit = function () {
+            FB.init({ appId: META_APP_ID, autoLogAppEvents: true, xfbml: true, version: 'v21.0' });
+            _fbSDKReady = true;
+            console.log('[WA] FB SDK ready');
+        };
+        const js = document.createElement('script');
+        js.id = 'facebook-jssdk';
+        js.src = 'https://connect.facebook.net/en_US/sdk.js';
+        js.async = true;
+        js.defer = true;
+        document.head.appendChild(js);
     }
 
-    // ════════════════════════════════════════════════════════
-    // EVOLUTION API — QR Code flow
-    // ════════════════════════════════════════════════════════
+    // ── Initialise on settings tab open ──────────────────────
+    window.initWhatsappSettings = async function () {
+        _wsId = window.currentWorkspaceId || window._currentWorkspace?.id;
+        if (!_wsId) return;
 
-    // Create or reconnect instance
-    window.startEvoConnection = async function() {
-        const nameInput = document.getElementById('wa-evo-instance-input');
-        const instanceName = (nameInput?.value.trim() || '').replace(/\s+/g, '_').toLowerCase()
-                             || 'lagoinha_' + _currentWorkspaceId?.slice(0,8);
-        nameInput.value = instanceName;
+        _loadFBSDK();
 
-        _setEvoStatus('connecting');
-        _clearQRCode();
+        // Load saved config
+        const { data } = await window.supabaseClient.from('workspaces')
+            .select('credentials').eq('id', _wsId).single();
+
+        const creds = data?.credentials || {};
+
+        // Show connection status
+        if (creds.phone_id && creds.whatsapp_token) {
+            _showConnected({
+                phone_display: creds.phone_display || creds.phone_id,
+                waba_id: creds.waba_id || creds.business_id || '—',
+                connected_at: creds.meta_connected_at,
+            });
+        } else {
+            _showDisconnected();
+        }
+
+        // Pre-fill manual fields if they exist
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+        setVal('cloud-phone-id', creds.phone_id);
+        setVal('cloud-business-id', creds.waba_id || creds.business_id);
+        setVal('cloud-token', creds.whatsapp_token);
+        setVal('cloud-app-secret', creds.app_secret);
+    };
+
+    // ── Facebook Embedded Signup ──────────────────────────────
+    window.launchWhatsAppSignup = function () {
+        const statusEl = document.getElementById('wa-signup-status');
+        if (!window.FB) {
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#fbbf24';
+                statusEl.style.background = 'rgba(251,191,36,0.08)';
+                statusEl.style.border = '1px solid rgba(251,191,36,0.2)';
+                statusEl.style.borderRadius = '8px';
+                statusEl.textContent = '⏳ SDK do Facebook carregando... Tente novamente em 2 segundos.';
+            }
+            return;
+        }
+
+        FB.login(function (response) {
+            if (response.authResponse) {
+                _handleFBLoginSuccess(response.authResponse);
+            } else {
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#f87171';
+                    statusEl.style.background = 'rgba(248,113,113,0.08)';
+                    statusEl.style.border = '1px solid rgba(248,113,113,0.2)';
+                    statusEl.style.borderRadius = '8px';
+                    statusEl.textContent = '❌ Login cancelado ou negado. Tente novamente.';
+                }
+            }
+        }, {
+            scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
+            extras: {
+                sessionInfoVersion: 2,
+                featureType: 'whatsapp_embedded_signup',
+                setup: {
+                    business: {},
+                    phone: { display_phone_number_country_code: 'BR' },
+                }
+            }
+        });
+    };
+
+    async function _handleFBLoginSuccess(authResponse) {
+        const statusEl = document.getElementById('wa-signup-status');
+        const signupBtn = document.getElementById('wa-signup-btn');
+
+        function _setStatus(msg, color, bg) {
+            if (!statusEl) return;
+            statusEl.style.display = 'block';
+            statusEl.style.color = color;
+            statusEl.style.background = bg;
+            statusEl.style.border = `1px solid ${color}40`;
+            statusEl.style.borderRadius = '8px';
+            statusEl.style.padding = '12px';
+            statusEl.textContent = msg;
+        }
+
+        _setStatus('⏳ Processando credenciais Meta...', '#fbbf24', 'rgba(251,191,36,0.08)');
+        if (signupBtn) signupBtn.disabled = true;
 
         try {
-            // 1. Create instance (idempotent — OK if already exists; 409 means exists)
-            const createRes = await _evoProxy('instance_create', {
-                params: { instanceName }
+            // Get WABA accounts linked to this login
+            const token = authResponse.accessToken;
+
+            // Try to get WABA + phone_number_id via Graph API
+            const wabaRes = await fetch(
+                `https://graph.facebook.com/v21.0/me/businesses?fields=whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}&access_token=${token}`
+            );
+            const wabaData = await wabaRes.json();
+
+            const businesses = wabaData.data || [];
+            let waba = null, phoneEntry = null;
+
+            for (const biz of businesses) {
+                const accounts = biz.whatsapp_business_accounts?.data || [];
+                for (const acc of accounts) {
+                    const phones = acc.phone_numbers?.data || [];
+                    if (phones.length > 0) {
+                        waba = acc;
+                        phoneEntry = phones[0];
+                        break;
+                    }
+                }
+                if (waba) break;
+            }
+
+            if (!waba || !phoneEntry) {
+                // Show account picker for manual selection
+                _setStatus('⚠️ Não encontramos um número WhatsApp Business vinculado. Verifique se seu WABA está aprovado e use a configuração manual abaixo.', '#fbbf24', 'rgba(251,191,36,0.08)');
+                if (signupBtn) signupBtn.disabled = false;
+                return;
+            }
+
+            // Save credentials
+            await _saveMetaCredentials({
+                whatsapp_token: token,
+                phone_id: phoneEntry.id,
+                phone_display: phoneEntry.display_phone_number,
+                waba_id: waba.id,
+                app_secret: null, // Will be filled via manual field if needed
+                meta_connected_at: new Date().toISOString(),
             });
 
-            console.log('[WA EVO] create response:', createRes.status, createRes._data);
+            _setStatus(`✅ Conectado: ${phoneEntry.display_phone_number}`, '#4ade80', 'rgba(74,222,128,0.08)');
+            _showConnected({
+                phone_display: phoneEntry.display_phone_number,
+                waba_id: waba.id,
+                connected_at: new Date().toISOString(),
+            });
 
-            if (!createRes.ok && createRes.status !== 409) {
-                throw new Error(createRes._data?.message || createRes._data?.error || `Erro ${createRes.status} ao criar instância`);
-            }
-
-            _currentInstanceName = instanceName;
-            _setEvoStatus('waiting_qr');
-
-            // Evolution API takes ~10-15s to establish WebSocket to WhatsApp and generate QR
-            // We wait progressively: 4s → try, +4s → try again, then hand off to polling
-            const waitAndTry = async (delay) => {
-                await new Promise(r => setTimeout(r, delay));
-                return _fetchAndShowQR(instanceName);
-            };
-
-            let gotQR = await waitAndTry(4000);
-            if (!gotQR) gotQR = await waitAndTry(4000);
-            if (!gotQR) gotQR = await waitAndTry(4000);
-
-            // Start ongoing polling regardless (handles both QR display + connection detection)
-            _startQRPolling(instanceName);
-
-            // 4. Save instance name to DB
-            await _saveEvoConfig(instanceName, 'disconnected');
-
-        } catch(e) {
-            console.error('[WA EVO] startEvoConnection error:', e);
-            _setEvoStatus('error', e.message);
-        }
-    };
-
-    // Disconnect instance
-    window.disconnectEvo = async function() {
-        if (!_currentInstanceName) return;
-        _stopQRPolling();
-        try {
-            await _evoProxy('instance_logout', { instance_name: _currentInstanceName });
-        } catch(e) { /* ignore */ }
-        _setEvoStatus('disconnected');
-        _clearQRCode();
-        await _saveEvoConfig(_currentInstanceName, 'disconnected');
-    };
-
-    // Fetch & render QR — handles Evolution v2 response variants
-    async function _fetchAndShowQR(instanceName) {
-        try {
-            const res  = await _evoProxy('instance_connect', { instance_name: instanceName });
-            const data = res._data || {};
-            console.log('[WA QR] connect response:', res.status, JSON.stringify(data).slice(0, 300));
-
-            // Evolution v2.1.x: QR is inside data.base64 directly
-            // or inside data.qrcode.base64, or data.code (pairing code)
-            const base64 = data.base64
-                        || data.qrcode?.base64
-                        || data.instance?.qrcode?.base64;
-
-            if (base64) {
-                _renderQRImage(base64);
-                return true;
-            }
-
-            // Already connected (instance was already open)
-            const state = data.instance?.state || data.state;
-            if (state === 'open') {
-                _onEvoConnected(instanceName);
-                return true;
-            }
-
-            // No QR yet — show placeholder text
-            const wrap = document.getElementById('wa-qr-wrap');
-            if (wrap && !wrap.querySelector('img')) {
-                wrap.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:.8rem;text-align:center;">
-                    Gerando QR Code...<br>
-                    <span style="font-size:.7rem;color:rgba(255,255,255,0.2);">(state: ${state || 'unknown'})</span>
-                </p>`;
-            }
-
-        } catch(e) {
-            console.warn('[WA QR] fetch error:', e);
-        }
-        return false;
-    }
-
-    function _startQRPolling(instanceName) {
-        _stopQRPolling();
-        let attempts = 0;
-        const MAX_ATTEMPTS = 90; // 90 × 2s = 3 minutes max wait
-
-        _qrPollTimer = setInterval(async () => {
-            attempts++;
-
-            // Update "still waiting" counter for user feedback
-            const waitText = document.getElementById('wa-qr-wait-counter');
-            if (waitText) waitText.textContent = `Aguardando QR... (${attempts * 2}s)`;
-
-            try {
-                // First: check if already fully connected
-                const stateRes  = await _evoProxy('instance_state', { instance_name: instanceName });
-                const stateData = stateRes._data || {};
-                const state = stateData.instance?.state || stateData.state;
-
-                if (state === 'open') {
-                    _stopQRPolling();
-                    _onEvoConnected(instanceName);
-                    return;
-                }
-
-                // Try to fetch QR (only while not fully connected)
-                await _fetchAndShowQR(instanceName);
-
-            } catch(e) { /* network hiccup, keep polling */ }
-
-            if (attempts >= MAX_ATTEMPTS) {
-                _stopQRPolling();
-                _setEvoStatus('error', 'Tempo esgotado — tente novamente');
-            }
-        }, 2000); // poll every 2 seconds
-    }
-
-    function _stopQRPolling() {
-        if (_qrPollTimer) { clearInterval(_qrPollTimer); _qrPollTimer = null; }
-    }
-
-    async function _checkEvoStatus(instanceName) {
-        try {
-            const res  = await _evoProxy('instance_state', { instance_name: instanceName });
-            const data = res._data || {};
-            const state = data.instance?.state || data.state;
-            if (state === 'open') {
-                _onEvoConnected(instanceName);
-            } else {
-                _setEvoStatus('disconnected');
-            }
-        } catch(e) {
-            _setEvoStatus('disconnected');
+        } catch (e) {
+            console.error('[WA] FB login error:', e);
+            _setStatus(`❌ Erro: ${e.message}`, '#f87171', 'rgba(248,113,113,0.08)');
+        } finally {
+            if (signupBtn) signupBtn.disabled = false;
         }
     }
 
-    function _onEvoConnected(instanceName) {
-        _stopQRPolling();
-        _clearQRCode();
-        _setEvoStatus('connected', instanceName);
-        _saveEvoConfig(instanceName, 'connected');
-        window.showToast && window.showToast('✅ WhatsApp conectado via QR Code!', 'success');
-    }
-
-    // ── Rendering helpers ────────────────────────────────────
-
-    function _renderQRImage(base64) {
-        const wrap = document.getElementById('wa-qr-wrap');
-        if (!wrap) return;
-        // base64 may include data URI prefix or not
-        const src = base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
-        wrap.innerHTML = `
-            <div style="text-align:center;">
-                <img src="${src}" alt="QR Code WhatsApp" id="wa-qr-img"
-                     style="width:220px;height:220px;border-radius:16px;border:4px solid rgba(37,211,102,0.3);box-shadow:0 0 30px rgba(37,211,102,0.15);">
-                <p style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:12px;">
-                    📱 Abra o WhatsApp → Dispositivos vinculados → Vincular dispositivo
-                </p>
-            </div>`;
-    }
-
-    function _clearQRCode() {
-        const wrap = document.getElementById('wa-qr-wrap');
-        if (wrap) wrap.innerHTML = '';
-    }
-
-    function _setEvoStatus(status, detail) {
-        const indicator = document.getElementById('wa-evo-status-indicator');
-        const text      = document.getElementById('wa-evo-status-text');
-        const connectBtn= document.getElementById('wa-evo-connect-btn');
-        const disconnBtn= document.getElementById('wa-evo-disconnect-btn');
-        const qrSection = document.getElementById('wa-qr-section');
-        const connCard  = document.getElementById('wa-evo-connected-card');
-
-        const states = {
-            disconnected:  { dot: '#888',    label: 'Desconectado',        btn: true,  disconn: false, qr: false, card: false },
-            connecting:    { dot: '#FFD700', label: 'Conectando...',        btn: false, disconn: false, qr: false, card: false },
-            waiting_qr:    { dot: '#FFD700', label: 'Aguardando QR...',     btn: false, disconn: true,  qr: true,  card: false },
-            connected:     { dot: '#25D366', label: 'Conectado ✅',          btn: false, disconn: true,  qr: false, card: true  },
-            error:         { dot: '#FF3B30', label: `Erro: ${detail||''}`,  btn: true,  disconn: false, qr: false, card: false },
-        };
-
-        const s = states[status] || states.disconnected;
-        if (indicator) { indicator.style.background = s.dot; indicator.style.boxShadow = `0 0 10px ${s.dot}80`; }
-        if (text)       text.textContent = s.label;
-        if (connectBtn) connectBtn.style.display = s.btn  ? 'flex' : 'none';
-        if (disconnBtn) disconnBtn.style.display = s.disconn ? 'flex' : 'none';
-        if (qrSection)  qrSection.style.display  = s.qr   ? 'block' : 'none';
-        if (connCard)   connCard.style.display    = s.card ? 'block' : 'none';
-
-        if (status === 'connected' && connCard) {
-            document.getElementById('wa-evo-connected-name').textContent = detail || _currentInstanceName || '';
-        }
-    }
-
-    // ── Supabase persistence ─────────────────────────────────
-
-    async function _saveEvoConfig(instanceName, evoStatus) {
-        if (!_currentWorkspaceId) return;
-        const { data } = await window.supabaseClient
-            .from('workspaces').select('credentials').eq('id', _currentWorkspaceId).single();
-        const creds = data?.credentials || {};
-        await window.supabaseClient.from('workspaces').update({
-            credentials: {
-                ...creds,
-                whatsapp_mode: 'evolution',
-                evolution_instance: instanceName,
-                evolution_status: evoStatus
-            }
-        }).eq('id', _currentWorkspaceId);
-    }
-
-    // ── Meta Cloud API helpers ───────────────────────────────
-
-    window.saveCloudCredentials = async function() {
+    // ── Manual credential save ────────────────────────────────
+    window.saveCloudCredentials = async function () {
         const id     = document.getElementById('cloud-phone-id')?.value.trim();
         const token  = document.getElementById('cloud-token')?.value.trim();
         const b_id   = document.getElementById('cloud-business-id')?.value.trim();
         const secret = document.getElementById('cloud-app-secret')?.value.trim();
 
-        if (!id || !token) { window.showToast && window.showToast('Preencha Phone ID e Access Token', 'error'); return; }
+        if (!id || !token) {
+            window.showToast && window.showToast('Preencha Phone ID e Access Token', 'error');
+            return;
+        }
 
-        const { data } = await window.supabaseClient
-            .from('workspaces').select('credentials').eq('id', _currentWorkspaceId).single();
-        const creds = data?.credentials || {};
-
-        const { error } = await window.supabaseClient.from('workspaces').update({
-            credentials: { ...creds, whatsapp_mode: 'meta', whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret }
-        }).eq('id', _currentWorkspaceId);
-
-        if (error) { window.showToast && window.showToast('Erro ao salvar: ' + error.message, 'error'); return; }
+        await _saveMetaCredentials({
+            phone_id: id,
+            phone_display: id,
+            waba_id: b_id || null,
+            whatsapp_token: token,
+            app_secret: secret || null,
+            meta_connected_at: new Date().toISOString(),
+        });
 
         window.showToast && window.showToast('✅ Credenciais Meta salvas!', 'success');
-        _showMetaConnected(id);
+        _showConnected({ phone_display: id, waba_id: b_id || '—', connected_at: new Date().toISOString() });
     };
 
-    function _showMetaConnected(display) {
-        const card = document.getElementById('wa-meta-connected-card');
-        const info = document.getElementById('wa-meta-connected-info');
-        if (card) card.style.display = 'block';
-        if (info) info.textContent   = '📱 ' + display;
-    }
+    // ── Shared credentials write ──────────────────────────────
+    async function _saveMetaCredentials(fields) {
+        if (!_wsId) return;
+        const { data } = await window.supabaseClient.from('workspaces')
+            .select('credentials').eq('id', _wsId).single();
+        const creds = data?.credentials || {};
 
-    window.disconnectMeta = async function() {
-        const { data } = await window.supabaseClient
-            .from('workspaces').select('credentials').eq('id', _currentWorkspaceId).single();
-        let creds = data?.credentials || {};
-        delete creds.whatsapp_token; delete creds.phone_id;
-        delete creds.business_id;    delete creds.app_secret;
-        creds.whatsapp_mode = 'evolution';
-        await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', _currentWorkspaceId);
-        const card = document.getElementById('wa-meta-connected-card');
-        if (card) card.style.display = 'none';
-        window.showToast && window.showToast('Desconectado da Meta Cloud API', 'info');
-    };
+        // Remove all legacy Evolution fields
+        delete creds.whatsapp_mode;
+        delete creds.evolution_instance;
+        delete creds.evolution_status;
 
-    // ── Evolution proxy helper ───────────────────────────────
-    // Calls the `whatsapp-proxy` Edge Function with the current workspace_id.
-    // Returns a Response-like object: { ok, status, _data } so call sites can
-    // keep their shape (await res._data instead of await res.json()).
-    async function _evoProxy(action, opts = {}) {
-        const body = { action, workspace_id: _currentWorkspaceId, ...opts };
-        try {
-            const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-proxy', { body });
-            if (error) {
-                const status = error.context?.status ?? 500;
-                let respData = {};
-                try { respData = await error.context?.json(); } catch { /* ignore */ }
-                return { ok: false, status, _data: respData };
-            }
-            return { ok: true, status: 200, _data: data ?? {} };
-        } catch (e) {
-            return { ok: false, status: 0, _data: { error: e.message } };
+        const merged = {
+            ...creds,
+            whatsapp_mode: 'meta',
+            ...fields,
+        };
+
+        const { error } = await window.supabaseClient.from('workspaces')
+            .update({ credentials: merged }).eq('id', _wsId);
+
+        if (error) {
+            window.showToast && window.showToast('Erro ao salvar: ' + error.message, 'error');
+            throw error;
         }
     }
 
-    // ── Expose checkWAStatus for backwards compat ────────────
+    // ── Disconnect Meta ───────────────────────────────────────
+    window.disconnectMeta = async function () {
+        if (!confirm('Desconectar o WhatsApp desta workspace? Automações serão pausadas.')) return;
+
+        const { data } = await window.supabaseClient.from('workspaces')
+            .select('credentials').eq('id', _wsId).single();
+        const creds = { ...(data?.credentials || {}) };
+
+        delete creds.whatsapp_token;
+        delete creds.phone_id;
+        delete creds.phone_display;
+        delete creds.waba_id;
+        delete creds.business_id;
+        delete creds.app_secret;
+        delete creds.meta_connected_at;
+        creds.whatsapp_mode = null;
+
+        await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', _wsId);
+
+        _showDisconnected();
+        window.showToast && window.showToast('WhatsApp desconectado.', 'info');
+    };
+
+    // ── UI state helpers ──────────────────────────────────────
+    function _showConnected({ phone_display, waba_id, connected_at }) {
+        const connCard = document.getElementById('wa-meta-connected-card');
+        const signupBtn = document.getElementById('wa-signup-btn');
+        const phoneEl = document.getElementById('wa-meta-phone');
+        const wabaEl  = document.getElementById('wa-meta-waba');
+        const dateEl  = document.getElementById('wa-meta-date');
+        const statusDot = document.getElementById('wa-status-dot');
+        const statusText = document.getElementById('wa-status-text');
+
+        if (connCard) { connCard.style.display = 'flex'; }
+        if (signupBtn) { signupBtn.style.display = 'none'; }
+        if (phoneEl)  phoneEl.textContent = phone_display || '—';
+        if (wabaEl)   wabaEl.textContent  = waba_id || '—';
+        if (dateEl && connected_at) {
+            dateEl.textContent = 'Conectado em ' + new Date(connected_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        if (statusDot)  { statusDot.style.background = '#25D366'; statusDot.style.boxShadow = '0 0 8px #25D36660'; }
+        if (statusText) { statusText.textContent = 'Conectado'; statusText.style.color = '#25D366'; }
+    }
+
+    function _showDisconnected() {
+        const connCard = document.getElementById('wa-meta-connected-card');
+        const signupBtn = document.getElementById('wa-signup-btn');
+        const statusDot = document.getElementById('wa-status-dot');
+        const statusText = document.getElementById('wa-status-text');
+
+        if (connCard) { connCard.style.display = 'none'; }
+        if (signupBtn) { signupBtn.style.display = 'flex'; }
+        if (statusDot)  { statusDot.style.background = '#555'; statusDot.style.boxShadow = 'none'; }
+        if (statusText) { statusText.textContent = 'Desconectado'; statusText.style.color = 'rgba(255,255,255,0.4)'; }
+    }
+
+    // ── Backwards compat ─────────────────────────────────────
     window.checkWAStatus = window.initWhatsappSettings;
+
+    // No-ops for removed Evolution functions (defensive — prevent errors
+    // if old cached HTML still references them)
+    window.startEvoConnection = () => console.warn('[WA] Evolution API removed. Use Meta Cloud API.');
+    window.disconnectEvo      = () => {};
+    window.switchWaTab        = () => {}; // Tabs removed
 
 })();

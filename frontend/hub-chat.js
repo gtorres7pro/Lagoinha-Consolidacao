@@ -866,70 +866,55 @@ async function sendManualMessage() {
   sendBtn.disabled = true;
   sendBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20m-7-7 7 7 7-7"/></svg>';
 
+  const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+
   try {
-    const creds = await getWorkspaceCreds();
-    const mode = creds.whatsapp_mode || 'meta';
-    let sendOk = false;
+    const session = (await window._sb.auth.getSession()).data.session;
+    const token   = session?.access_token;
 
-    if (mode === 'evolution' && creds.evolution_instance) {
-      // ── Evolution API: send directly ────────────────────────────────────
-      sendOk = await sendViaEvolution(creds.evolution_instance, lead.phone, message);
+    const res = await fetch(`${EDGE_URL}/whatsapp-send-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        workspace_id: chatState.workspaceId,
+        lead_id: chatState.selectedLeadId,
+        message: { type: 'text', content: message },
+      }),
+    });
 
-      if (sendOk) {
-        // Save outbound message to DB + set human lock
-        const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-        const now = new Date().toISOString();
-        await window._sb.from('messages').insert({
-          workspace_id: chatState.workspaceId,
-          lead_id: chatState.selectedLeadId,
-          direction: 'outbound', type: 'text',
-          content: message, automated: false,
-          responded_at: now,
-        });
-        await window._sb.from('leads').update({
-          llm_lock_until: lockUntil,
-          last_message_at: now,
-        }).eq('id', chatState.selectedLeadId);
+    const result = await res.json();
 
-        input.value = '';
-        input.style.height = '';
-        lead.llm_lock_until = lockUntil;
-        updateLockUI(lead);
-        chatState.messages.push({
-          id: crypto.randomUUID(), direction: 'outbound', type: 'text',
-          content: message, automated: false, created_at: now
-        });
-        renderMessages();
-      } else {
-        showChatToast('❌ Erro ao enviar via Evolution API. Verifique a conexão WhatsApp.', 'error');
-      }
-    } else {
-      // ── Meta / FastAPI backend ───────────────────────────────────────────
-      const res = await fetch('https://api.consolidacao.7pro.tech/whatsapp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lead_id: chatState.selectedLeadId,
-          text: message,
-          workspace_id: chatState.workspaceId
-        })
+    if (res.ok && result.ok !== false) {
+      const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const now = new Date().toISOString();
+
+      // Persist outbound message + human lock
+      await window._sb.from('messages').insert({
+        workspace_id: chatState.workspaceId,
+        lead_id: chatState.selectedLeadId,
+        direction: 'outbound', type: 'text',
+        content: message, automated: false, responded_at: now,
       });
-      const result = await res.json();
-      if (result.ok) {
-        input.value = '';
-        input.style.height = '';
-        if (result.lock_until) {
-          lead.llm_lock_until = result.lock_until;
-          updateLockUI(lead);
-        }
-        chatState.messages.push({
-          id: crypto.randomUUID(), direction: 'outbound', type: 'text',
-          content: message, automated: false, created_at: new Date().toISOString()
-        });
-        renderMessages();
-      } else {
-        showChatToast(`❌ ${result.error || 'Erro ao enviar mensagem.'}`, 'error');
-      }
+      await window._sb.from('leads').update({
+        llm_lock_until: lockUntil,
+        last_message_at: now,
+      }).eq('id', chatState.selectedLeadId);
+
+      input.value = '';
+      input.style.height = '';
+      lead.llm_lock_until = lockUntil;
+      updateLockUI(lead);
+      chatState.messages.push({
+        id: crypto.randomUUID(), direction: 'outbound', type: 'text',
+        content: message, automated: false, created_at: now,
+      });
+      renderMessages();
+    } else {
+      const errMsg = result.error || result.message || 'Erro ao enviar mensagem.';
+      showChatToast(`❌ ${errMsg}`, 'error');
     }
   } catch (e) {
     console.error('[Chat] Send error:', e);
