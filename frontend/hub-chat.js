@@ -98,6 +98,10 @@ function buildChatLayout() {
         <span class="kpi-icon">👤</span>
         <div><span class="kpi-value" id="kv-human">—</span><span class="kpi-label">Enviadas pela Equipe</span></div>
       </div>
+      <div class="chat-kpi-card broadcast-card" id="kpi-broadcast" onclick="openBroadcastModal()" style="cursor:pointer;">
+        <span class="kpi-icon">📢</span>
+        <div><span class="kpi-value" style="font-size:1rem;">Broadcast</span><span class="kpi-label">Envio em massa</span></div>
+      </div>
     </div>
 
     <!-- MAIN PANEL -->
@@ -216,6 +220,37 @@ function buildChatLayout() {
             </div>
           </div>
         </div>
+
+        <!-- Broadcast Modal -->
+        <div class="chat-template-overlay" id="broadcast-overlay" style="display:none;" onclick="if(event.target===this)closeBroadcastModal()">
+          <div class="chat-template-modal" style="max-width:560px;">
+            <div class="chat-template-modal-header">
+              <span>📢 Broadcast — Envio em Massa</span>
+              <button onclick="closeBroadcastModal()">✕</button>
+            </div>
+            <div class="chat-template-modal-body">
+              <div style="margin-bottom:14px;">
+                <label class="kpi-label" style="display:block;margin-bottom:6px;font-size:.72rem;">DESTINATÁRIOS</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;" id="broadcast-audience-chips">
+                  <button class="chat-tab active" data-audience="all" onclick="setBroadcastAudience('all',this)">Todos com conversa</button>
+                  <button class="chat-tab" data-audience="responded" onclick="setBroadcastAudience('responded',this)">✅ Responderam</button>
+                  <button class="chat-tab" data-audience="no-response" onclick="setBroadcastAudience('no-response',this)">⏳ Sem resposta</button>
+                  <button class="chat-tab" data-audience="highlighted" onclick="setBroadcastAudience('highlighted',this)">🔴 Destacados</button>
+                </div>
+                <div style="font-size:.72rem;color:#555;margin-top:8px;" id="broadcast-count">— leads selecionados</div>
+              </div>
+              <div>
+                <label class="kpi-label" style="display:block;margin-bottom:6px;font-size:.72rem;">TEMPLATE</label>
+                <div class="chat-template-list" id="broadcast-template-list" style="max-height:220px;">Carregando templates...</div>
+              </div>
+            </div>
+            <div class="chat-template-modal-footer">
+              <button class="chat-tpl-cancel" onclick="closeBroadcastModal()">Cancelar</button>
+              <button class="chat-tpl-send" id="broadcast-send-btn" onclick="sendBroadcast()" disabled>📢 Enviar Broadcast</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -459,6 +494,8 @@ function buildChatLayout() {
     }
     .chat-attach-btn:hover { background:rgba(255,255,255,.1); color:#bbb; }
     .chat-template-btn:hover { background:rgba(255,215,0,.1); color:#FFD700; border-color:rgba(255,215,0,.25); }
+    .broadcast-card { border-color:rgba(96,165,250,.25); background:rgba(96,165,250,.04); }
+    .broadcast-card:hover { background:rgba(96,165,250,.1) !important; border-color:rgba(96,165,250,.4) !important; }
     .chat-attach-btn:disabled, .chat-template-btn:disabled { opacity:.3; cursor:not-allowed; }
 
     /* ── TEMPLATE MODAL ── */
@@ -1125,49 +1162,7 @@ function showChatToast(msg, type = 'info') {
 }
 
 // ─── TEMPLATES ─────────────────────────────────────────────────────────────
-const BACKEND_URL = 'https://api.consolidacao.7pro.tech';
-// Evolution sends are proxied through `whatsapp-proxy` Edge Function so the
-// server-side Evolution admin key stays out of the browser.
-
-// Cache workspace credentials to avoid repeated DB calls
-let _wsCreds = null;
-let _wsCredsCacheId = null;
-
-async function getWorkspaceCreds() {
-  if (_wsCreds && _wsCredsCacheId === chatState.workspaceId) return _wsCreds;
-  const { data } = await window._sb.from('workspaces').select('credentials').eq('id', chatState.workspaceId).single();
-  _wsCreds = data?.credentials || {};
-  _wsCredsCacheId = chatState.workspaceId;
-  return _wsCreds;
-}
-
-// Send a text message via Evolution API (routed through whatsapp-proxy)
-async function sendViaEvolution(instanceName, phone, text) {
-  // Normalize phone to Evolution format (remove leading +)
-  const toJid = phone.replace(/^\+/, '') + '@s.whatsapp.net';
-  try {
-    const { data, error } = await window._sb.functions.invoke('whatsapp-proxy', {
-      body: {
-        action: 'send_text',
-        workspace_id: chatState.workspaceId,
-        instance_name: instanceName,
-        params: { number: toJid, text }
-      }
-    });
-    if (error) {
-      const status = error.context?.status ?? 500;
-      let respData = {};
-      try { respData = await error.context?.json(); } catch { /* ignore */ }
-      console.error('[Chat-Evo] proxy send_text failed:', status, respData);
-      return false;
-    }
-    console.log('[Chat-Evo] sendText response:', JSON.stringify(data).slice(0, 200));
-    return true;
-  } catch (e) {
-    console.error('[Chat-Evo] sendText exception:', e);
-    return false;
-  }
-}
+const EDGE_URL_CHAT = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
 
 let _selectedTemplate = null; // { name, language_code, body_text, variables_count }
 
@@ -1199,38 +1194,40 @@ async function openTemplateModal() {
   const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
   _selectedTemplate = null;
 
-  // Populate lead name label
   const nameEl = document.getElementById('tpl-lead-name');
   if (nameEl) nameEl.textContent = `Para: ${lead?.name || 'Lead'}`;
 
-  // Reset send button
   const sendBtn = document.getElementById('chat-tpl-send-btn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviar Template ✓'; }
 
   const listEl = document.getElementById('chat-template-list');
   if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:24px;color:#666;font-size:.82rem;">Carregando templates...</div>';
 
-  // Show overlay
   const overlay = document.getElementById('chat-template-overlay');
   if (overlay) overlay.style.display = 'flex';
 
-  // Fetch real templates from Meta via backend
+  // Fetch approved templates via Edge Function (Meta Graph API)
   try {
-    const res = await fetch(`${BACKEND_URL}/whatsapp/templates?workspace_id=${chatState.workspaceId}`);
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-list-templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ workspace_id: chatState.workspaceId }),
+    });
     const data = await res.json();
 
-    if (data.error || !data.templates?.length) {
+    if (!data.ok || !data.templates?.length) {
       if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:24px;color:#f87171;font-size:.82rem;">❌ ${data.error || 'Nenhum template aprovado encontrado'}<br><span style="color:#666;font-size:.75rem;">Verifique seus templates aprovados no Meta Business Manager</span></div>`;
       return;
     }
 
     const firstName = lead?.name?.split(' ')[0] || lead?.name || 'Amigo';
+    _cachedTemplates = data.templates; // cache for broadcast
 
     if (listEl) {
       listEl.innerHTML = data.templates.map(t => {
         const bodyText = extractTemplateBody(t.components);
         const varCount = countTemplateVars(bodyText);
-        // For preview: fill {{1}} with lead first name
         const previewVars = Array(varCount).fill('').map((_, i) => i === 0 ? firstName : '...');
         const preview = interpolatePreview(bodyText, previewVars);
         const lang = t.language || 'pt_BR';
@@ -1270,51 +1267,64 @@ async function sendSelectedTemplate() {
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
 
   const firstName = lead?.name?.split(' ')[0] || lead?.name || '';
-  const variables = [];
+  const components = [];
   if (_selectedTemplate.variables_count > 0) {
-    variables.push(firstName || 'Amigo');
-    for (let i = 1; i < _selectedTemplate.variables_count; i++) variables.push('');
+    const params = [firstName || 'Amigo'];
+    for (let i = 1; i < _selectedTemplate.variables_count; i++) params.push('');
+    components.push({
+      type: 'body',
+      parameters: params.map(v => ({ type: 'text', text: v })),
+    });
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/whatsapp/send-template`, {
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-send-message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({
-        lead_id: chatState.selectedLeadId,
         workspace_id: chatState.workspaceId,
-        template_name: _selectedTemplate.name,
-        language_code: _selectedTemplate.language_code,
-        variables
-      })
+        lead_id: chatState.selectedLeadId,
+        message: {
+          type: 'template',
+          content: {
+            name: _selectedTemplate.name,
+            language: _selectedTemplate.language_code,
+            components,
+          },
+        },
+      }),
     });
     const result = await res.json();
-    if (result.ok) {
+    if (res.ok && result.ok) {
+      // Persist template message to DB
+      const now = new Date().toISOString();
+      await window._sb.from('messages').insert({
+        workspace_id: chatState.workspaceId,
+        lead_id: chatState.selectedLeadId,
+        direction: 'outbound', type: 'template',
+        content: `📨 Template: ${_selectedTemplate.name}`,
+        automated: false, responded_at: now,
+        wa_message_id: result.wa_message_id || null,
+      });
       closeTemplateModal();
-      showChatToast('\u2705 Template enviado com sucesso!', 'success');
+      showChatToast('✅ Template enviado com sucesso!', 'success');
       chatState.messages.push({
-        id: crypto.randomUUID(), direction: 'outbound', type: 'text',
-        content: `\ud83d\udce8 Template: ${_selectedTemplate.name}`,
-        automated: false, created_at: new Date().toISOString()
+        id: crypto.randomUUID(), direction: 'outbound', type: 'template',
+        content: `📨 Template: ${_selectedTemplate.name}`,
+        automated: false, created_at: now,
       });
       renderMessages();
     } else {
-      // Parse detailed Meta error
-      let errMsg = result.error || 'Erro desconhecido';
-      try {
-        if (result.details?.details) {
-          const raw = JSON.parse(result.details.details);
-          errMsg = raw?.error?.message || errMsg;
-        }
-      } catch(_) {}
-      showChatToast(`\u274c ${errMsg}`, 'error');
+      const errMsg = result.error || 'Erro desconhecido';
+      showChatToast(`❌ ${errMsg}`, 'error');
       console.error('[Template Error]', result);
-      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
     }
   } catch(e) {
-    showChatToast(`\u274c Erro de conex\u00e3o: ${e.message}`, 'error');
+    showChatToast(`❌ Erro de conexão: ${e.message}`, 'error');
     console.error('[Template Fetch Error]', e);
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template \u2713'; }
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
   }
 }
 
@@ -1325,9 +1335,9 @@ async function handleChatFileAttach(event) {
   if (!file || !chatState.selectedLeadId) return;
 
   const maxSize = 10 * 1024 * 1024;
-  if (file.size > maxSize) { showChatToast('\u274c Arquivo muito grande. M\u00e1ximo 10MB.', 'error'); return; }
+  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 10MB.', 'error'); return; }
 
-  showChatToast('\ud83d\udcce Fazendo upload...', 'info');
+  showChatToast('📎 Fazendo upload...', 'info');
 
   try {
     const ext = file.name.split('.').pop();
@@ -1341,31 +1351,182 @@ async function handleChatFileAttach(event) {
     const { data: urlData } = window._sb.storage.from('app_files').getPublicUrl(path);
     const publicUrl = urlData?.publicUrl;
 
+    // Send URL as text message via Meta Cloud API
+    const session = (await window._sb.auth.getSession()).data.session;
     const isImage = file.type.startsWith('image/');
-    const res = await fetch(`${BACKEND_URL}/whatsapp/send`, {
+    const msgContent = isImage ? `📷 ${publicUrl}` : `📎 ${publicUrl}`;
+
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-send-message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({
+        workspace_id: chatState.workspaceId,
         lead_id: chatState.selectedLeadId,
-        text: publicUrl,
-        workspace_id: chatState.workspaceId
-      })
+        message: { type: 'text', content: publicUrl },
+      }),
     });
     const result = await res.json();
-    if (result.ok || result.status === 'success') {
-      showChatToast('\u2705 Arquivo enviado!', 'success');
+    if (res.ok && result.ok) {
+      const now = new Date().toISOString();
+      await window._sb.from('messages').insert({
+        workspace_id: chatState.workspaceId,
+        lead_id: chatState.selectedLeadId,
+        direction: 'outbound', type: isImage ? 'image' : 'document',
+        content: `[${isImage ? 'Imagem' : 'Arquivo'}: ${file.name}] ${publicUrl}`,
+        automated: false, responded_at: now,
+      });
+      showChatToast('✅ Arquivo enviado!', 'success');
       chatState.messages.push({
         id: crypto.randomUUID(), direction: 'outbound',
         type: isImage ? 'image' : 'document',
         content: `[${isImage ? 'Imagem' : 'Arquivo'}: ${file.name}] ${publicUrl}`,
-        automated: false, created_at: new Date().toISOString()
+        automated: false, created_at: now,
       });
       renderMessages();
     } else {
       throw new Error(result.error || 'Erro no envio');
     }
   } catch(e) {
-    showChatToast(`\u274c Erro no envio: ${e.message}`, 'error');
+    showChatToast(`❌ Erro no envio: ${e.message}`, 'error');
+  }
+}
+
+// ─── BROADCAST ─────────────────────────────────────────────────────────────
+let _cachedTemplates = [];
+let _broadcastAudience = 'all';
+let _broadcastTemplate = null;
+
+function setBroadcastAudience(audience, btn) {
+  _broadcastAudience = audience;
+  document.querySelectorAll('#broadcast-audience-chips .chat-tab').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  _updateBroadcastCount();
+}
+
+function _getBroadcastLeads() {
+  return chatState.leads.filter(l => {
+    if (l.inbox_status === 'archived') return false;
+    switch (_broadcastAudience) {
+      case 'responded': return l.has_responded;
+      case 'no-response': return !l.has_responded;
+      case 'highlighted': return l.inbox_status === 'highlighted';
+      default: return true;
+    }
+  });
+}
+
+function _updateBroadcastCount() {
+  const leads = _getBroadcastLeads();
+  const el = document.getElementById('broadcast-count');
+  if (el) el.textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} selecionado${leads.length !== 1 ? 's' : ''}`;
+  // Enable/disable send
+  const sendBtn = document.getElementById('broadcast-send-btn');
+  if (sendBtn) sendBtn.disabled = !_broadcastTemplate || leads.length === 0;
+}
+
+function selectBroadcastTemplate(name, lang, varCount) {
+  _broadcastTemplate = { name, language_code: lang, variables_count: varCount };
+  document.querySelectorAll('#broadcast-template-list .chat-tpl-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById(`bc-tpl-${name}`);
+  if (card) card.classList.add('selected');
+  _updateBroadcastCount();
+}
+
+async function openBroadcastModal() {
+  _broadcastAudience = 'all';
+  _broadcastTemplate = null;
+
+  const overlay = document.getElementById('broadcast-overlay');
+  if (overlay) overlay.style.display = 'flex';
+
+  _updateBroadcastCount();
+
+  const listEl = document.getElementById('broadcast-template-list');
+  const sendBtn = document.getElementById('broadcast-send-btn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  // Load templates (use cache if available)
+  if (_cachedTemplates.length) {
+    _renderBroadcastTemplates(listEl, _cachedTemplates);
+    return;
+  }
+
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#666;font-size:.82rem;">Carregando templates...</div>';
+
+  try {
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-list-templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ workspace_id: chatState.workspaceId }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.templates?.length) {
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:.82rem;">❌ ${data.error || 'Nenhum template encontrado'}</div>`;
+      return;
+    }
+    _cachedTemplates = data.templates;
+    _renderBroadcastTemplates(listEl, data.templates);
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:.82rem;">❌ ${e.message}</div>`;
+  }
+}
+
+function _renderBroadcastTemplates(listEl, templates) {
+  if (!listEl) return;
+  listEl.innerHTML = templates.map(t => {
+    const bodyText = extractTemplateBody(t.components);
+    const varCount = countTemplateVars(bodyText);
+    const lang = t.language || 'pt_BR';
+    return `<div class="chat-tpl-card" id="bc-tpl-${t.name}" onclick="selectBroadcastTemplate('${t.name}','${lang}',${varCount})">
+      <div class="chat-tpl-name">${t.name.replace(/_/g, ' ')}</div>
+      <div class="chat-tpl-preview">${escapeHtml(bodyText).slice(0, 100)}...</div>
+      <div style="font-size:.68rem;color:#555;margin-top:4px;">${lang}</div>
+    </div>`;
+  }).join('');
+}
+
+function closeBroadcastModal() {
+  const overlay = document.getElementById('broadcast-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _broadcastTemplate = null;
+}
+
+async function sendBroadcast() {
+  if (!_broadcastTemplate) return;
+  const leads = _getBroadcastLeads();
+  if (!leads.length) return;
+
+  const confirmed = confirm(`📢 Enviar template "${_broadcastTemplate.name}" para ${leads.length} lead(s)?\n\nEsta ação não pode ser desfeita.`);
+  if (!confirmed) return;
+
+  const sendBtn = document.getElementById('broadcast-send-btn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '📢 Enviando...'; }
+
+  try {
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-broadcast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({
+        workspace_id: chatState.workspaceId,
+        lead_ids: leads.map(l => l.id),
+        template_name: _broadcastTemplate.name,
+        language_code: _broadcastTemplate.language_code,
+        variables_count: _broadcastTemplate.variables_count,
+      }),
+    });
+    const result = await res.json();
+    if (res.ok && result.ok) {
+      closeBroadcastModal();
+      showChatToast(`✅ Broadcast enviado para ${result.sent || leads.length} lead(s)!`, 'success');
+    } else {
+      showChatToast(`❌ ${result.error || 'Erro no broadcast'}`, 'error');
+    }
+  } catch(e) {
+    showChatToast(`❌ ${e.message}`, 'error');
+  } finally {
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📢 Enviar Broadcast'; }
   }
 }
 
@@ -1379,10 +1540,16 @@ window.sendManualMessage = sendManualMessage;
 window.handleChatKeydown = handleChatKeydown;
 window.autoresizeTextarea = autoresizeTextarea;
 window.reactivateAI = reactivateAI;
-window.archiveCurrentLead = archiveCurrentLead;
+window.toggleArchiveCurrentLead = toggleArchiveCurrentLead;
+window.toggleHighlightCurrentLead = toggleHighlightCurrentLead;
 window.goToLinkedTask = goToLinkedTask;
 window.openTemplateModal = openTemplateModal;
 window.closeTemplateModal = closeTemplateModal;
 window.selectTemplate = selectTemplate;
 window.sendSelectedTemplate = sendSelectedTemplate;
 window.handleChatFileAttach = handleChatFileAttach;
+window.openBroadcastModal = openBroadcastModal;
+window.closeBroadcastModal = closeBroadcastModal;
+window.sendBroadcast = sendBroadcast;
+window.setBroadcastAudience = setBroadcastAudience;
+window.selectBroadcastTemplate = selectBroadcastTemplate;
