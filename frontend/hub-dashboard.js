@@ -1207,7 +1207,7 @@
         const PLAN_NAV_MAP = {
             consolidation:   { nav:'nav-dashboard',  view:'view-dashboard'  },
             visitors:        { nav:'nav-visitors',   view:'view-visitors'   },
-            ia_whatsapp:     { nav:'nav-messages',   view:'view-messages'   },
+            ia_whatsapp:     { nav:'nav-chat-ao-vivo', view:'view-chat-ao-vivo' },
             crie:            { nav:'nav-crie',       view:'view-crie' },
             cantina:         { nav:'nav-cantina',    view:'view-cantina' },
             financeiro:      { nav:'nav-finance-col',view:'view-null' },
@@ -1336,7 +1336,7 @@
                 batismo:         'nav-batismo',
                 novos_membros:   'nav-novos-membros',
                 aniversariantes: 'nav-birthdays',
-                ia_chat:         'nav-chat-ao-vivo',
+                ia_whatsapp:     'nav-chat-ao-vivo',
                 transmissao:     'nav-transmissao',
                 crie:            'nav-crie-toggle',
                 cantina:         'nav-cantina-toggle',
