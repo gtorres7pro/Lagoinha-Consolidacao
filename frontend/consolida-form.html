@@ -924,12 +924,12 @@
 
                 <div class="form-group" style="margin-top: 24px;">
                     <label data-i18n="consolidador_name">Nome de quem está consolidando (Opcional)</label>
-                    <input type="text" id="consolidadorName" placeholder="Ex: João Silva">
+                    <input type="text" id="consolidadorName" data-ph-i18n="consolidador_ph" placeholder="Ex: João Silva">
                 </div>
 
                 <div class="form-group" style="margin-top: 24px;">
                     <label data-i18n="prayer_request">Pedidos de Oração e Comentários (Opcional)</label>
-                    <textarea id="prayerRequest" style="width: 100%; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 13px 16px; font-family: var(--font); font-size: 0.9rem; min-height: 100px; resize: vertical;" placeholder="Escreva aqui..."></textarea>
+                    <textarea id="prayerRequest" data-ph-i18n="prayer_ph" style="width: 100%; border-radius: 12px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 13px 16px; font-family: var(--font); font-size: 0.9rem; min-height: 100px; resize: vertical;" placeholder="Escreva aqui..."></textarea>
                 </div>
 
                 <button type="submit" class="btn-submit" id="btnSubmit"><span data-i18n="submit">Enviar
@@ -962,6 +962,8 @@
                 church_name: "Lagoinha Orlando",
                 consolidador_name: "Nome de quem está consolidando (Opcional)",
                 prayer_request: "Pedidos de Oração e Comentários (Opcional)",
+                consolidador_ph: "Ex: João Silva",
+                prayer_ph: "Escreva aqui...",
                 personal_info: "Informações Pessoais",
                 consolida_title: "Ficha de Consolidação",
                 consolida_subtitle: "Registre as decisões de hoje. Nenhuma vida deixada para trás.",
@@ -1029,6 +1031,8 @@
                 church_name: "Lagoinha Orlando",
                 consolidador_name: "Name of the Consolidator (Optional)",
                 prayer_request: "Prayer Requests and Comments (Optional)",
+                consolidador_ph: "Ex: John Smith",
+                prayer_ph: "Write here...",
                 personal_info: "Personal Information",
                 consolida_title: "Consolidation Form",
                 consolida_subtitle: "Record today's decisions. No life left behind.",
@@ -1142,6 +1146,10 @@
                 time_afternoon: "Tarde",
                 time_evening: "Noche",
                 time_anytime: "Cualquier Hora",
+                consolidador_name: "Nombre de quien está consolidando (Opcional)",
+                prayer_request: "Peticiones de Oración y Comentarios (Opcional)",
+                consolidador_ph: "Ej: Juan García",
+                prayer_ph: "Escribe aquí...",
                 submit: "Enviar Formulario",
                 success_title: "¡Gracias!",
                 success_sub: "Sus datos han sido enviados con éxito.",
@@ -1162,7 +1170,13 @@
                     }
                 });
 
-                // 2. Values (for dropdowns and radios to save english to db)
+                // 2. Placeholders
+                document.querySelectorAll('[data-ph-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-ph-i18n');
+                    if (t[key]) el.setAttribute('placeholder', t[key]);
+                });
+
+                // 3. Values (for dropdowns and radios to save english to db)
                 document.querySelectorAll('[data-val-i18n]').forEach(el => {
                     const key = el.getAttribute('data-val-i18n');
                     if (t[key]) {
