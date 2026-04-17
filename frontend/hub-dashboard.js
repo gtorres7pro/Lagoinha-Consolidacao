@@ -532,12 +532,9 @@
                     const sidebarLabel = document.getElementById('sidebar-workspace-name');
                     if (sidebarLabel) sidebarLabel.textContent = displayWsName(initial.name);
 
-                    // Toggle Chat ao Vivo based on WhatsApp connection
-                    const navChat = document.getElementById('nav-chat-ao-vivo');
-                    if (navChat) {
-                        const hasWhatsApp = initial.credentials && initial.credentials.whatsapp_token && initial.credentials.whatsapp_token.trim() !== '';
-                        navChat.style.display = hasWhatsApp ? 'flex' : 'none';
-                    }
+                    // Chat ao Vivo visibility is handled by plan gating (ia_whatsapp module)
+                    // No need to hide it based on credentials — the chat view itself
+                    // shows an empty state when WhatsApp is not connected.
                 } else {
                     const pillName = document.getElementById('ws-pill-name');
                     if (pillName) pillName.textContent = 'N/D';
@@ -636,12 +633,7 @@
                 window.applyStartLabel(ws);
             }
             
-            // Toggle Chat ao Vivo based on WhatsApp connection
-            const navChat = document.getElementById('nav-chat-ao-vivo');
-            if (navChat) {
-                const hasWhatsApp = ws.credentials && ws.credentials.whatsapp_token && ws.credentials.whatsapp_token.trim() !== '';
-                navChat.style.display = hasWhatsApp ? 'flex' : 'none';
-            }
+            // Chat ao Vivo visibility handled by plan gating (ia_whatsapp module)
 
             showToast('🏛 ' + ws.name, 2000);
             
