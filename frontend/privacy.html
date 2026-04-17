@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zelo Pro - Política de Privacidade</title>
+    <style>
+        :root {
+            --bg-body: #16141a;
+            --text-primary: #f0f0f0;
+            --text-secondary: #9ca3af;
+            --accent: #f59e0b; /* yellow/gold */
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px 20px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1, h2, h3 {
+            color: #fff;
+            margin-top: 30px;
+        }
+        h1 {
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        p, li {
+            color: var(--text-secondary);
+        }
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Política de Privacidade</h1>
+            <p>Última atualização: Abril de 2026</p>
+        </div>
+
+        <h2>1. Introdução</h2>
+        <p>Bem-vindo ao <strong>Zelo Pro</strong>. A sua privacidade e a proteção dos seus dados são fundamentais para nós. Esta Política de Privacidade explica como coletamos, usamos, compartilhamos e protegemos as suas informações, e as dos seus contatos, ao utilizar os nossos serviços, incluindo integrações com plataformas de terceiros como a WhatsApp Business Platform (via Meta).</p>
+
+        <h2>2. Dados Coletados</h2>
+        <p>Durante a utilização da plataforma Zelo Pro, coletamos os seguintes tipos de dados:</p>
+        <ul>
+            <li><strong>Dados de Registro (Igrejas/Usuários):</strong> Nome, e-mail, telefone, nome da instituição.</li>
+            <li><strong>Dados de Contatos (Leads/Membros):</strong> Nome, número de WhatsApp e informações de preenchimento de formulários públicos sob a permissão da instituição que administra a Workspace.</li>
+            <li><strong>Metadados de Mensagens:</strong> Histórico de interações via WhatsApp (texto, áudio transcrito), registrados para prover o serviço do "Chat ao Vivo" e automações de IA.</li>
+            <li><strong>Informações de Uso:</strong> Acessos à plataforma e interações do sistema para log de auditoria e segurança.</li>
+        </ul>
+
+        <h2>3. Uso dos Dados</h2>
+        <p>Utilizamos os dados coletados para as seguintes finalidades:</p>
+        <ul>
+            <li>Prestar, operar e manter os serviços do Zelo Pro (Ex: fluxo de consolidação, chat, formulários).</li>
+            <li>Fornecer integrações oficiais com a Plataforma WhatsApp Business, enviando e recebendo mensagens através de provedores tecnológicos.</li>
+            <li>Gerar respostas automatizadas baseadas em Inteligência Artificial, utilizando provedores LLM restritos ao escopo de atendimento autorizado pela instituição.</li>
+            <li>Cumprir obrigações legais e proteger a plataforma contra usos indevidos.</li>
+        </ul>
+
+        <h2>4. Compartilhamento de Dados</h2>
+        <p>Nós não vendemos os seus dados. O compartilhamento ocorre estritamente para o funcionamento do serviço:</p>
+        <ul>
+            <li><strong>Meta / WhatsApp:</strong> Para a transmissão e recebimento de mensagens através do Cloud API.</li>
+            <li><strong>Serviços em Nuvem:</strong> Nossa infraestrutura é hospedada de forma segura na plataforma Supabase (PostgreSQL), Cloudflare e servidores gerenciados garantindo isolamento entre diferentes organizações (Workspaces).</li>
+            <li><strong>N8N / IA:</strong> Provedores de modelos de linguagem inteligência artificial (ex: Gemini/OpenAI) sob acordos estritos de que os dados <strong>não</strong> serão usados para treinar modelos públicos.</li>
+        </ul>
+
+        <h2>5. Responsabilidade sobre os Dados</h2>
+        <p>A instituição (Workspace) que utiliza o Zelo Pro atua como <strong>Controladora</strong> dos dados dos seus membros (Leads). O Zelo Pro atua estritamente como <strong>Operador</strong> tecnológico. É de responsabilidade da instituição Controladora garantir o consentimento adequado de seus membros (Opt-in) para contato via WhatsApp.</p>
+
+        <h2>6. Direitos dos Titulares (LGPD e GDPR)</h2>
+        <p>Asseguramos aos usuários e aos titulares de dados os seguintes direitos, que podem ser exercidos diretamente pelas organizações controladoras:</p>
+        <ul>
+            <li>Acesso e confirmação da existência de tratamento.</li>
+            <li>Retificação de dados incompletos ou inexatos.</li>
+            <li>Anonimização, bloqueio ou eliminação de dados desnecessários ou excessivos (Ex: envio da palavra "SAIR" no WhatsApp para auto-bloqueio).</li>
+            <li>Portabilidade e revogação de consentimento.</li>
+        </ul>
+
+        <h2>7. Retenção de Dados e Segurança</h2>
+        <p>Adotamos medidas técnicas robustas como criptografia, proteção HMAC para integrações, e RLS (Row Level Security) nos bancos de dados para prevenir acesso não autorizado. Os dados são mantidos enquanto a conta da instituição estiver ativa ou pelo período necessário para fins legais ou de segurança.</p>
+
+        <h2>8. Alterações nesta Política</h2>
+        <p>A Política de Privacidade pode ser atualizada periodicamente. Notificaremos as instituições administradoras sobre mudanças significativas em nossos canais oficiais e no painel do sistema.</p>
+
+        <h2>9. Contato</h2>
+        <p>Caso tenha dúvidas sobre como processamos seus dados ou deseje abrir uma solicitação relacionada à privacidade, contate-nos através de sua agência mantenedora 7Pro.</p>
+    </div>
+</body>
+</html>

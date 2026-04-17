@@ -6,14 +6,6 @@ const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABA
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
-  // Auth check: validate JWT from Authorization header
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-
-  const token = authHeader.slice(7);
-  const { data: { user }, error: userError } = await sb.auth.getUser(token);
-  if (userError || !user) return new Response("Unauthorized", { status: 401 });
-
   let body: any;
   try { body = await req.json(); } catch { return new Response("Bad Request", { status: 400 }); }
 
@@ -25,12 +17,36 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Fetch workspace credentials
+  // Fetch workspace credentials (service role bypasses RLS)
   const { data: ws, error: wsErr } = await sb.from("workspaces")
     .select("id, credentials").eq("id", workspace_id).single();
+  
   if (wsErr || !ws) return new Response(JSON.stringify({ ok: false, error: "Workspace not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
 
   const creds = ws.credentials ?? {};
+
+  // Auth calculation: JWT Bearer OR X-API-Key
+  let isAuthorized = false;
+  
+  const apiKeyHeader = req.headers.get("x-api-key");
+  if (apiKeyHeader && creds.n8n_api_key && apiKeyHeader === creds.n8n_api_key) {
+    isAuthorized = true;
+  } else {
+    // Fallback to JWT Check
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const { data: { user }, error: userError } = await sb.auth.getUser(token);
+      if (!userError && user) {
+        isAuthorized = true;
+      }
+    }
+  }
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+  }
+
   const token_wa = creds.whatsapp_token;
   const phone_id = creds.phone_id;
 
