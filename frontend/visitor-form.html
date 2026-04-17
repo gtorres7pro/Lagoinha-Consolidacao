@@ -168,7 +168,7 @@
                         <path d="M4 4 h10 l-10 10 h10" stroke="#000" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
-                <div data-i18n="church_name">Lagoinha Orlando</div>
+                <div data-i18n="church_name">Carregando...</div>
             </div>
             <select class="lang-select" id="languageSelector" onchange="changeLanguage()">
                 <option value="pt" selected>Português</option>
@@ -569,7 +569,18 @@
         }
 
         // Apply on Start
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
+             try {
+                const workspaceObj = await window.HubRouter?.getWorkspace();
+                if (workspaceObj && workspaceObj.name) {
+                    translations.pt.church_name = workspaceObj.name;
+                    translations.en.church_name = workspaceObj.name;
+                    translations.es.church_name = workspaceObj.name;
+                }
+             } catch (e) {
+                console.error("Failed to load workspace dynamically: ", e);
+             }
+
             handleCountryChange(); 
             changeLanguage();
             

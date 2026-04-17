@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Manutenção — Lagoinha Orlando</title>
+  <title>Manutenção</title>
   <meta name="description" content="Relate um problema de manutenção em nossa igreja. Seu reporte ajuda a manter nosso espaço em ordem.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -317,6 +317,11 @@
         return;
       }
       WORKSPACE_ID = ws.id;
+
+      // Update document title dynamically
+      if (ws.name) {
+        document.title = "Manutenção — " + ws.name;
+      }
 
       // Fetch or create "Manutenção" department for this workspace
       const { data: depts } = await sb
