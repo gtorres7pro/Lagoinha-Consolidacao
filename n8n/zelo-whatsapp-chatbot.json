@@ -1,0 +1,259 @@
+{
+  "name": "Zelo WhatsApp Chatbot (Gemini)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zelo-whatsapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-receiver",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputIndex": 0,
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-text",
+                    "leftValue": "={{ $json.message.type }}",
+                    "rightValue": "text",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputIndex": 0,
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "id": "cond-audio",
+                    "leftValue": "={{ $json.message.type }}",
+                    "rightValue": "audio",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "switch-msg-type",
+      "name": "Filter Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://uyseheucqikgcorrygzc.supabase.co/rest/v1/messages?lead_id=eq.{{ $('WhatsApp Webhook').item.json.lead_id }}&order=created_at.desc&limit=10&select=direction,content,type,created_at",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-messages",
+      "name": "Fetch Message History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://uyseheucqikgcorrygzc.supabase.co/rest/v1/workspaces?id=eq.{{ $('WhatsApp Webhook').item.json.workspace_id }}&select=knowledge_base,credentials",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-workspace",
+      "name": "Fetch Workspace KB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 420]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Build the Gemini prompt from message history + knowledge base\nconst webhook = $('WhatsApp Webhook').first().json;\nconst messagesRaw = $('Fetch Message History').first().json;\nconst wsRaw = $('Fetch Workspace KB').first().json;\n\n// Parse workspace data\nconst ws = Array.isArray(wsRaw) ? wsRaw[0] : wsRaw;\nconst kb = ws?.knowledge_base || {};\nconst creds = ws?.credentials || {};\n\n// Build system prompt\nconst customPrompt = creds.ia_system_prompt || \n  'Você é Ju, a assistente virtual desta igreja. Responda em português, seja acolhedora e concisa.';\n\nconst kbSections = [\n  kb.ia_about ? `SOBRE A IGREJA: ${kb.ia_about}` : '',\n  kb.ia_schedule ? `HORÁRIOS: ${kb.ia_schedule}` : '',\n  kb.ia_faq ? `PERGUNTAS FREQUENTES: ${kb.ia_faq}` : '',\n  kb.ia_limits ? `LIMITES: ${kb.ia_limits}` : '',\n  kb.ia_consolidation ? `CONSOLIDAÇÃO: ${kb.ia_consolidation}` : '',\n  kb.ia_baptism ? `BATISMO: ${kb.ia_baptism}` : '',\n].filter(Boolean).join('\\n\\n');\n\nconst systemPrompt = `${customPrompt}\\n\\n--- BASE DE CONHECIMENTO ---\\n${kbSections || 'Nenhuma informação específica configurada.'}`;\n\n// Build message history (reverse to chronological order)\nconst messages = Array.isArray(messagesRaw) ? messagesRaw : [messagesRaw];\nconst history = messages\n  .filter(m => m && m.content)\n  .reverse()\n  .map(m => ({\n    role: m.direction === 'inbound' ? 'user' : 'model',\n    parts: [{ text: m.content }]\n  }));\n\n// Get the current inbound message\nconst currentMessage = webhook.message?.content || webhook.message?.text || '(mensagem vazia)';\n\n// Ensure last message is user (the current inbound)\nif (history.length === 0 || history[history.length - 1].role !== 'user') {\n  history.push({ role: 'user', parts: [{ text: currentMessage }] });\n}\n\n// Get Gemini API key\nconst geminiKey = creds.llm_config?.gemini_token || '';\nconst n8nApiKey = creds.n8n_api_key || '';\n\nreturn {\n  systemPrompt,\n  history,\n  geminiKey,\n  n8nApiKey,\n  workspace_id: webhook.workspace_id,\n  lead_id: webhook.lead_id,\n  lead_name: webhook.lead?.name || 'Visitante',\n};"
+      },
+      "id": "build-prompt",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{ $json.geminiKey }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"system_instruction\": {\n    \"parts\": [{ \"text\": {{ JSON.stringify($json.systemPrompt) }} }]\n  },\n  \"contents\": {{ JSON.stringify($json.history) }},\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 300,\n    \"topP\": 0.9\n  },\n  \"safetySettings\": [\n    { \"category\": \"HARM_CATEGORY_HARASSMENT\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_HATE_SPEECH\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_SEXUALLY_EXPLICIT\", \"threshold\": \"BLOCK_NONE\" },\n    { \"category\": \"HARM_CATEGORY_DANGEROUS_CONTENT\", \"threshold\": \"BLOCK_NONE\" }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-gemini",
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract Gemini response text\nconst geminiResponse = $json;\nconst promptData = $('Build AI Prompt').first().json;\n\nlet aiText = '';\ntry {\n  aiText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';\n} catch (e) {\n  aiText = 'Desculpe, não consegui processar sua mensagem. Um líder pode ajudar! 🙏';\n}\n\n// Trim and clean\naiText = aiText.trim();\nif (!aiText) {\n  aiText = 'Desculpe, não consegui gerar uma resposta. Um líder pode ajudar! 🙏';\n}\n\n// Check for multi-message split (|| separator)\nconst parts = aiText.split('||').map(p => p.trim()).filter(Boolean);\n\nreturn {\n  aiText: parts[0] || aiText,\n  additionalParts: parts.slice(1),\n  workspace_id: promptData.workspace_id,\n  lead_id: promptData.lead_id,\n  n8nApiKey: promptData.n8nApiKey,\n};"
+      },
+      "id": "parse-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $json.n8nApiKey }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"workspace_id\": \"{{ $json.workspace_id }}\",\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"message\": {\n    \"type\": \"text\",\n    \"content\": {{ JSON.stringify($json.aiText) }}\n  }\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-reply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://uyseheucqikgcorrygzc.supabase.co/rest/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"workspace_id\": \"{{ $('Parse AI Response').item.json.workspace_id }}\",\n  \"lead_id\": \"{{ $('Parse AI Response').item.json.lead_id }}\",\n  \"direction\": \"outbound\",\n  \"type\": \"text\",\n  \"content\": {{ JSON.stringify($('Parse AI Response').item.json.aiText) }},\n  \"automated\": true,\n  \"responded_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "save-to-db",
+      "name": "Save Reply to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 300]
+    },
+    {
+      "parameters": {},
+      "id": "no-op-skip",
+      "name": "Skip (Other Types)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [720, 600]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [{ "node": "Filter Message Type", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Message Type": {
+      "main": [
+        [
+          { "node": "Fetch Message History", "type": "main", "index": 0 },
+          { "node": "Fetch Workspace KB", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Fetch Message History", "type": "main", "index": 0 },
+          { "node": "Fetch Workspace KB", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Skip (Other Types)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Message History": {
+      "main": [
+        [{ "node": "Build AI Prompt", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Workspace KB": {
+      "main": [
+        [{ "node": "Build AI Prompt", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [{ "node": "Call Gemini API", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Gemini API": {
+      "main": [
+        [{ "node": "Parse AI Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [{ "node": "Save Reply to DB", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "whatsapp" },
+    { "name": "chatbot" },
+    { "name": "zelo" }
+  ]
+}
