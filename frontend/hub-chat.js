@@ -108,8 +108,12 @@ function buildChatLayout() {
         <div class="chat-search-wrap">
           <div class="chat-search-inner">
             <svg class="chat-search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="chat-search" placeholder="Pesquisar ou começar uma nova conversa" oninput="filterLeadsList()" autocomplete="off" />
+            <input type="text" id="chat-search" placeholder="Pesquisar conversa..." oninput="filterLeadsList()" autocomplete="off" />
           </div>
+          <button class="csb" onclick="openNewConvoModal()" title="Nova Conversa" style="flex-shrink:0;margin-left:6px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.25);border-radius:8px;padding:6px 8px;color:#FFD700;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:.72rem;white-space:nowrap;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Nova
+          </button>
         </div>
 
         <!-- Leads list -->
@@ -222,11 +226,44 @@ function buildChatLayout() {
               <div class="chat-template-modal-body">
                 <p class="chat-template-lead-name" id="tpl-lead-name"></p>
                 <div class="chat-template-list" id="chat-template-list"></div>
+                <div id="tpl-vars-section" style="display:none;margin-top:12px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+                  <div style="font-size:.68rem;color:#8696a0;letter-spacing:.08em;margin-bottom:10px;">PREENCHER VARIÁVEIS DO TEMPLATE</div>
+                  <div id="tpl-vars-inputs"></div>
+                </div>
               </div>
               <div class="chat-template-modal-footer">
                 <button class="chat-tpl-cancel" onclick="closeTemplateModal()">Cancelar</button>
                 <button class="chat-tpl-send" id="chat-tpl-send-btn" onclick="sendSelectedTemplate()" disabled>Enviar Template ✓</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Conversation Modal -->
+        <div class="chat-template-overlay" id="new-convo-overlay" style="display:none;" onclick="if(event.target===this)closeNewConvoModal()">
+          <div class="chat-template-modal" style="max-width:520px;">
+            <div class="chat-template-modal-header">
+              <span>💬 Nova Conversa WhatsApp</span>
+              <button onclick="closeNewConvoModal()">✕</button>
+            </div>
+            <div class="chat-template-modal-body">
+              <div style="margin-bottom:16px;">
+                <label style="font-size:.68rem;color:#8696a0;letter-spacing:.08em;display:block;margin-bottom:6px;">NÚMERO WHATSAPP</label>
+                <input class="hub-field-input" id="new-convo-phone" placeholder="+1 321 444 3034" style="width:100%;padding:10px 14px;box-sizing:border-box;" oninput="_lookupConvoPhone()">
+                <div id="new-convo-lead-info" style="margin-top:6px;font-size:.78rem;color:#8696a0;"></div>
+              </div>
+              <div>
+                <label style="font-size:.68rem;color:#8696a0;letter-spacing:.08em;display:block;margin-bottom:8px;">SELECIONAR TEMPLATE</label>
+                <div class="chat-template-list" id="new-convo-template-list" style="max-height:220px;">Carregando templates...</div>
+              </div>
+              <div id="new-convo-vars-section" style="display:none;margin-top:12px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+                <div style="font-size:.68rem;color:#8696a0;letter-spacing:.08em;margin-bottom:10px;">PREENCHER VARIÁVEIS</div>
+                <div id="new-convo-vars-inputs"></div>
+              </div>
+            </div>
+            <div class="chat-template-modal-footer">
+              <button class="chat-tpl-cancel" onclick="closeNewConvoModal()">Cancelar</button>
+              <button class="chat-tpl-send" id="new-convo-send-btn" onclick="sendNewConversation()" disabled>Enviar ✓</button>
             </div>
           </div>
         </div>
@@ -1415,11 +1452,17 @@ function extractTemplateBody(components) {
   return body?.text || '';
 }
 
-// Count how many {{N}} variables exist in the template body (proper Meta format)
-// Note: {{}} (without number) = 0 params per Meta API - NEVER pass variables for these
+// Count how many template variables exist — supports both {{1}} numeric AND {{name}} named styles
 function countTemplateVars(text) {
-  const matches = text.match(/\{\{[1-9]\d*\}\}/g);
+  // Match {{anything}} where content is non-empty
+  const matches = text.match(/\{\{[^{}]+\}\}/g);
   return matches ? matches.length : 0;
+}
+
+// Extract variable names/labels from template body for display in input fields
+function extractTemplateVarNames(text) {
+  const matches = text.match(/\{\{([^{}]+)\}\}/g) || [];
+  return matches.map(m => m.replace(/\{\{|\}\}/g, '').trim());
 }
 
 // Interpolate variable placeholders for preview display only
@@ -1468,12 +1511,17 @@ async function openTemplateModal() {
     _cachedTemplates = data.templates; // cache for broadcast
 
     if (listEl) {
+      // Cache body text per template for variable extraction
+      window._tplBodyCache = {};
       listEl.innerHTML = data.templates.map(t => {
         const bodyText = extractTemplateBody(t.components);
         const varCount = countTemplateVars(bodyText);
-        const previewVars = Array(varCount).fill('').map((_, i) => i === 0 ? firstName : '...');
+        const varNames = extractTemplateVarNames(bodyText);
+        window._tplBodyCache[t.name] = { bodyText, varCount, varNames };
+        const previewVars = varNames.map((n, i) => i === 0 ? firstName : n);
         const preview = interpolatePreview(bodyText, previewVars);
         const lang = t.language || 'pt_BR';
+        const safeBody = bodyText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         return `<div class="chat-tpl-card" id="tpl-card-${t.name}" onclick="selectTemplate('${t.name}', '${lang}', ${varCount})">
           <div class="chat-tpl-name">${t.name.replace(/_/g, ' ')}</div>
           <div class="chat-tpl-preview">${escapeHtml(preview)}</div>
@@ -1488,10 +1536,31 @@ async function openTemplateModal() {
 
 
 function selectTemplate(name, languageCode, varCount) {
-  _selectedTemplate = { name, language_code: languageCode, variables_count: varCount };
+  // Get cached body info
+  const cached = window._tplBodyCache?.[name] || {};
+  _selectedTemplate = { name, language_code: languageCode, variables_count: varCount, var_names: cached.varNames || [] };
   document.querySelectorAll('.chat-tpl-card').forEach(c => c.classList.remove('selected'));
   const card = document.getElementById(`tpl-card-${name}`);
   if (card) card.classList.add('selected');
+
+  // Show variable input fields if template has vars
+  const varsSection = document.getElementById('tpl-vars-section');
+  const varsInputs = document.getElementById('tpl-vars-inputs');
+  if (varCount > 0 && varsSection && varsInputs) {
+    const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+    const firstName = lead?.name?.split(' ')[0] || '';
+    const varNames = cached.varNames || Array.from({length: varCount}, (_, i) => String(i + 1));
+    varsInputs.innerHTML = varNames.map((vName, i) => `
+      <div style="margin-bottom:10px;">
+        <label style="font-size:.72rem;color:#8696a0;display:block;margin-bottom:4px;">{{${vName}}}</label>
+        <input class="hub-field-input" id="tpl-var-${i}" placeholder="Digite o valor para {{${vName}}}" value="${i === 0 ? escapeHtml(firstName) : ''}" style="width:100%;padding:9px 12px;box-sizing:border-box;">
+      </div>
+    `).join('');
+    varsSection.style.display = 'block';
+  } else if (varsSection) {
+    varsSection.style.display = 'none';
+  }
+
   const btn = document.getElementById('chat-tpl-send-btn');
   if (btn) btn.disabled = false;
 }
@@ -1509,11 +1578,20 @@ async function sendSelectedTemplate() {
   const sendBtn = document.getElementById('chat-tpl-send-btn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
 
-  const firstName = lead?.name?.split(' ')[0] || lead?.name || '';
   const components = [];
   if (_selectedTemplate.variables_count > 0) {
-    const params = [firstName || 'Amigo'];
-    for (let i = 1; i < _selectedTemplate.variables_count; i++) params.push('');
+    // Collect values from user-filled inputs
+    const params = Array.from({ length: _selectedTemplate.variables_count }, (_, i) => {
+      const input = document.getElementById(`tpl-var-${i}`);
+      return input?.value?.trim() || '';
+    });
+    // Validate all vars filled
+    const empty = params.findIndex(p => !p);
+    if (empty !== -1) {
+      showChatToast(`❌ Preencha a variável ${empty + 1} do template.`, 'warn');
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
+      return;
+    }
     components.push({
       type: 'body',
       parameters: params.map(v => ({ type: 'text', text: v })),
@@ -1773,6 +1851,234 @@ async function sendBroadcast() {
   }
 }
 
+// ─── NEW CONVERSATION ────────────────────────────────────────────────────────
+let _newConvoTemplate = null;
+
+async function openNewConvoModal() {
+  _newConvoTemplate = null;
+  const overlay = document.getElementById('new-convo-overlay');
+  if (overlay) overlay.style.display = 'flex';
+
+  const sendBtn = document.getElementById('new-convo-send-btn');
+  if (sendBtn) sendBtn.disabled = true;
+
+  const phoneEl = document.getElementById('new-convo-phone');
+  if (phoneEl) { phoneEl.value = ''; phoneEl.focus(); }
+  const infoEl = document.getElementById('new-convo-lead-info');
+  if (infoEl) infoEl.textContent = '';
+  const varsSection = document.getElementById('new-convo-vars-section');
+  if (varsSection) varsSection.style.display = 'none';
+
+  // Load templates
+  const listEl = document.getElementById('new-convo-template-list');
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#666;font-size:.82rem;">Carregando templates...</div>';
+
+  try {
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-list-templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ workspace_id: chatState.workspaceId }),
+    });
+    const data = await res.json();
+    if (!data.ok || !data.templates?.length) {
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:16px;color:#f87171;font-size:.82rem;">❌ ${data.error || 'Nenhum template aprovado'}</div>`;
+      return;
+    }
+    _cachedTemplates = data.templates;
+    window._tplBodyCache = window._tplBodyCache || {};
+    if (listEl) {
+      listEl.innerHTML = data.templates.map(t => {
+        const bodyText = extractTemplateBody(t.components);
+        const varCount = countTemplateVars(bodyText);
+        const varNames = extractTemplateVarNames(bodyText);
+        window._tplBodyCache[t.name] = { bodyText, varCount, varNames };
+        const lang = t.language || 'pt_BR';
+        return `<div class="chat-tpl-card" id="nc-tpl-${t.name}" onclick="selectNewConvoTemplate('${t.name}','${lang}',${varCount})">
+          <div class="chat-tpl-name">${t.name.replace(/_/g, ' ')}</div>
+          <div class="chat-tpl-preview">${escapeHtml(bodyText.slice(0, 100))}${bodyText.length > 100 ? '...' : ''}</div>
+          <div style="font-size:.68rem;color:#555;margin-top:4px;">${lang} • ${varCount} variável${varCount !== 1 ? 'is' : ''}</div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:16px;color:#f87171;font-size:.82rem;">❌ ${e.message}</div>`;
+  }
+}
+
+function closeNewConvoModal() {
+  const overlay = document.getElementById('new-convo-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _newConvoTemplate = null;
+}
+
+function _lookupConvoPhone() {
+  const phone = document.getElementById('new-convo-phone')?.value?.trim();
+  const infoEl = document.getElementById('new-convo-lead-info');
+  if (!phone || !infoEl) return;
+  // Check if we have a matching lead in memory
+  const normalized = phone.replace(/\D/g, '');
+  const match = chatState.leads.find(l => (l.phone || '').replace(/\D/g, '').endsWith(normalized.slice(-8)));
+  if (match) {
+    infoEl.innerHTML = `<span style="color:#4ade80;">✓ Lead existente: <strong>${escapeHtml(match.name)}</strong></span>`;
+  } else if (normalized.length >= 8) {
+    infoEl.innerHTML = `<span style="color:#fbbf24;">⚡ Novo contato será criado</span>`;
+  } else {
+    infoEl.textContent = '';
+  }
+  _updateNewConvoSendBtn();
+}
+
+function selectNewConvoTemplate(name, languageCode, varCount) {
+  const cached = window._tplBodyCache?.[name] || {};
+  _newConvoTemplate = { name, language_code: languageCode, variables_count: varCount, var_names: cached.varNames || [] };
+
+  document.querySelectorAll('#new-convo-template-list .chat-tpl-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById(`nc-tpl-${name}`);
+  if (card) card.classList.add('selected');
+
+  // Show variable inputs
+  const varsSection = document.getElementById('new-convo-vars-section');
+  const varsInputs = document.getElementById('new-convo-vars-inputs');
+  if (varCount > 0 && varsSection && varsInputs) {
+    // Try to pre-fill from phone lookup
+    const phone = document.getElementById('new-convo-phone')?.value?.trim();
+    const normalized = phone?.replace(/\D/g, '') || '';
+    const match = chatState.leads.find(l => (l.phone || '').replace(/\D/g, '').endsWith(normalized.slice(-8)));
+    const firstName = match?.name?.split(' ')[0] || '';
+    const varNames = cached.varNames || Array.from({length: varCount}, (_, i) => String(i + 1));
+    varsInputs.innerHTML = varNames.map((vName, i) => `
+      <div style="margin-bottom:10px;">
+        <label style="font-size:.72rem;color:#8696a0;display:block;margin-bottom:4px;">{{${vName}}}</label>
+        <input class="hub-field-input" id="nc-var-${i}" placeholder="Digite o valor para {{${vName}}}" value="${i === 0 ? escapeHtml(firstName) : ''}" style="width:100%;padding:9px 12px;box-sizing:border-box;" oninput="_updateNewConvoSendBtn()">
+      </div>
+    `).join('');
+    varsSection.style.display = 'block';
+  } else if (varsSection) {
+    varsSection.style.display = 'none';
+  }
+
+  _updateNewConvoSendBtn();
+}
+
+function _updateNewConvoSendBtn() {
+  const btn = document.getElementById('new-convo-send-btn');
+  if (!btn) return;
+  const phone = document.getElementById('new-convo-phone')?.value?.trim() || '';
+  const hasPhone = phone.replace(/\D/g, '').length >= 8;
+  const hasTemplate = !!_newConvoTemplate;
+  let varsOk = true;
+  if (_newConvoTemplate?.variables_count > 0) {
+    for (let i = 0; i < _newConvoTemplate.variables_count; i++) {
+      const v = document.getElementById(`nc-var-${i}`)?.value?.trim();
+      if (!v) { varsOk = false; break; }
+    }
+  }
+  btn.disabled = !(hasPhone && hasTemplate && varsOk);
+}
+
+async function sendNewConversation() {
+  if (!_newConvoTemplate) return;
+  const rawPhone = document.getElementById('new-convo-phone')?.value?.trim();
+  if (!rawPhone) return;
+
+  const sendBtn = document.getElementById('new-convo-send-btn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
+
+  try {
+    const session = (await window._sb.auth.getSession()).data.session;
+
+    // Collect variable values
+    const params = Array.from({ length: _newConvoTemplate.variables_count }, (_, i) => {
+      return document.getElementById(`nc-var-${i}`)?.value?.trim() || '';
+    });
+    const empty = params.findIndex(p => !p);
+    if (empty !== -1) {
+      showChatToast(`❌ Preencha a variável ${empty + 1}.`, 'warn');
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar ✓'; }
+      return;
+    }
+
+    // Normalize phone
+    const phone = rawPhone.startsWith('+') ? rawPhone : '+' + rawPhone;
+
+    // Find or create lead
+    let leadId = null;
+    const normalized = rawPhone.replace(/\D/g, '');
+    const existing = chatState.leads.find(l => (l.phone || '').replace(/\D/g, '').endsWith(normalized.slice(-8)));
+    if (existing) {
+      leadId = existing.id;
+    } else {
+      // Create a new lead
+      const { data: newLead, error: createErr } = await window._sb.from('leads').insert({
+        workspace_id: chatState.workspaceId,
+        name: phone,
+        phone: phone,
+        type: 'visitor',
+        source: 'chat_manual',
+      }).select('id').single();
+      if (createErr || !newLead) throw new Error(createErr?.message || 'Erro ao criar lead');
+      leadId = newLead.id;
+    }
+
+    // Build components
+    const components = [];
+    if (params.length > 0) {
+      components.push({
+        type: 'body',
+        parameters: params.map(v => ({ type: 'text', text: v })),
+      });
+    }
+
+    // Send via Edge Function
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-send-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({
+        workspace_id: chatState.workspaceId,
+        lead_id: leadId,
+        message: {
+          type: 'template',
+          content: {
+            name: _newConvoTemplate.name,
+            language: _newConvoTemplate.language_code,
+            components,
+          },
+        },
+      }),
+    });
+    const result = await res.json();
+
+    if (res.ok && result.ok) {
+      // Save message record
+      const now = new Date().toISOString();
+      await window._sb.from('messages').insert({
+        workspace_id: chatState.workspaceId,
+        lead_id: leadId,
+        direction: 'outbound', type: 'template',
+        content: `📨 Template: ${_newConvoTemplate.name} (${params.join(', ')})`,
+        automated: false, responded_at: now,
+        wa_message_id: result.wa_message_id || null,
+      });
+      closeNewConvoModal();
+      showChatToast('✅ Mensagem enviada!', 'success');
+      // Reload leads to show the new one
+      await loadLeads();
+      // Open the conversation if it's a new lead
+      if (leadId) {
+        const newLead = chatState.leads.find(l => l.id === leadId);
+        if (newLead) setTimeout(() => selectLead(leadId), 400);
+      }
+    } else {
+      showChatToast(`❌ ${result.error || 'Erro ao enviar'}`, 'error');
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar ✓'; }
+    }
+  } catch(e) {
+    showChatToast(`❌ ${e.message}`, 'error');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar ✓'; }
+  }
+}
+
 // ─── EXPOSE ─────────────────────────────────────────────────────────────
 window.initChatAoVivo = initChatAoVivo;
 window.selectLead = selectLead;
@@ -1796,3 +2102,10 @@ window.closeBroadcastModal = closeBroadcastModal;
 window.sendBroadcast = sendBroadcast;
 window.setBroadcastAudience = setBroadcastAudience;
 window.selectBroadcastTemplate = selectBroadcastTemplate;
+window.openNewConvoModal = openNewConvoModal;
+window.closeNewConvoModal = closeNewConvoModal;
+window.selectNewConvoTemplate = selectNewConvoTemplate;
+window.sendNewConversation = sendNewConversation;
+window._lookupConvoPhone = _lookupConvoPhone;
+window._updateNewConvoSendBtn = _updateNewConvoSendBtn;
+
