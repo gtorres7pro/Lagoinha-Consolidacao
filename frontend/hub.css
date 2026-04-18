@@ -2714,6 +2714,97 @@ html, body {
 [data-theme="light"] .wa-empty-state h1 { color: #111 !important; }
 [data-theme="light"] .wa-empty-state p { color: #666 !important; }
 
+/* ═══════════════════════════════════════════════════════════
+   TASKS MODULE (admin-tarefas) — complete light mode override
+   ═══════════════════════════════════════════════════════════ */
+/* Table headers */
+[data-theme="light"] #view-admin-tarefas th {
+  color: #888 !important;
+  border-bottom-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] #view-admin-tarefas tr {
+  border-bottom-color: rgba(0,0,0,0.06) !important;
+}
+/* Task rows — title + description (rendered by task-manager.js with inline color:#fff) */
+[data-theme="light"] #tasks-list-tbody td { color: #333 !important; }
+[data-theme="light"] #tasks-list-tbody td div[style*="color:#fff"],
+[data-theme="light"] #tasks-list-tbody td div[style*="color: #fff"] { color: #111 !important; }
+[data-theme="light"] #tasks-list-tbody td div[style*="color:rgba(255,255,255"] { color: #666 !important; }
+/* Empty state text */
+[data-theme="light"] #tasks-list-tbody td[colspan] { color: #888 !important; }
+/* Row hover */
+[data-theme="light"] #view-admin-tarefas tr:hover { background: rgba(251,191,36,0.04) !important; }
+/* Toolbar inputs/selects */
+[data-theme="light"] #view-admin-tarefas input[type="text"],
+[data-theme="light"] #view-admin-tarefas .tasks-toolbar input,
+[data-theme="light"] #view-admin-tarefas .tasks-toolbar select {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: #333 !important;
+}
+/* Toolbar buttons */
+[data-theme="light"] #view-admin-tarefas button[style*="background:rgba(255,255,255"] {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: #555 !important;
+}
+/* Add task button */
+[data-theme="light"] #view-admin-tarefas .btn-outline { color: #111 !important; border-color: rgba(0,0,0,0.15) !important; }
+/* Tasks top bar border */
+[data-theme="light"] #view-admin-tarefas .top-bar { border-bottom-color: rgba(0,0,0,0.07) !important; }
+/* KPI boxes specific to tasks */
+[data-theme="light"] #view-admin-tarefas .kpi-box { background: #fff !important; border-color: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] #view-admin-tarefas .kpi-title { color: #888 !important; }
+[data-theme="light"] #view-admin-tarefas .kpi-number { color: #111 !important; }
+/* Kanban column headers */
+[data-theme="light"] [data-kanban-col] > div:first-child {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] [data-kanban-col] > div:first-child span { color: #333 !important; }
+/* Kanban cards */
+[data-theme="light"] [data-task-id] {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] [data-task-id]:hover {
+  background: rgba(251,191,36,0.04) !important;
+  border-color: rgba(251,191,36,0.25) !important;
+}
+[data-theme="light"] [data-task-id] div[style*="color:#fff"],
+[data-theme="light"] [data-task-id] div[style*="color: #fff"] { color: #111 !important; }
+[data-theme="light"] [data-task-id] div[style*="color:rgba(255,255,255"] { color: #666 !important; }
+[data-theme="light"] [data-task-id] span[style*="color:rgba(255,255,255"] { color: #888 !important; }
+/* Kanban empty state */
+[data-theme="light"] [data-kanban-cards] > div[style*="border: 1px dashed"] { color: #bbb !important; border-color: rgba(0,0,0,0.08) !important; }
+/* Kanban column card area drop target */
+[data-theme="light"] .kanban-col-drop-target { background: rgba(251,191,36,0.06) !important; }
+/* Task modal overlay */
+[data-theme="light"] #task-modal-overlay { background: rgba(0,0,0,0.4) !important; }
+[data-theme="light"] #task-modal-panel {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: #111 !important;
+}
+[data-theme="light"] #task-modal-panel input,
+[data-theme="light"] #task-modal-panel select,
+[data-theme="light"] #task-modal-panel textarea {
+  background: #f8f9fa !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: #111 !important;
+}
+[data-theme="light"] #task-modal-panel label { color: #555 !important; }
+/* Subtask text in kanban */
+[data-theme="light"] [data-task-id] div[style*="height:3px"] { background: rgba(0,0,0,0.06) !important; }
+/* Comment section inside task modal */
+[data-theme="light"] #task-modal-comments { color: #333 !important; }
+/* Bulk actions bar */
+[data-theme="light"] #tasks-bulk-actions {
+  background: rgba(255,255,255,0.97) !important;
+  border-color: rgba(96,165,250,0.3) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+}
+
 /* ── Cantina public page is unaffected (standalone page) ── */
 
 /* ── Customizações page in light mode ── */
