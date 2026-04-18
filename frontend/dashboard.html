@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-title" content="Zelo">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <link rel="stylesheet" href="/hub.css?v=20260418v6">
+    <link rel="stylesheet" href="/hub.css?v=20260418v7">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -1130,7 +1130,7 @@
                 <span class="nav-icon" style="color:var(--text-mid);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                 </span>
-                <span class="nav-label" style="font-weight:700;">Tasks</span>
+                <span class="nav-label">Tasks</span>
                 <span id="admin-tasks-badge" style="display:none;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-size:.58rem;font-weight:900;align-items:center;justify-content:center;animation:badgePulse 2s ease infinite;margin-left:auto;">0</span>
             </li>
 
@@ -1181,7 +1181,7 @@
                 <span class="nav-icon" style="color:#25D366;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </span>
-                <span class="nav-label" style="font-weight:700;">Chat ao Vivo</span>
+                <span class="nav-label">Chat ao Vivo</span>
                 <span id="chat-unread-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:#f87171;color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
             </li>
 
@@ -1190,14 +1190,14 @@
                 <span class="nav-icon" style="color:#a78bfa;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 </span>
-                <span class="nav-label" style="font-weight:700;">Transmissão</span>
+                <span class="nav-label">Transmissão</span>
             </li>
 
 
             <li class="nav-group" id="nav-group-crie">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
                     <span class="nav-icon" style="color:#F59E0B;">C*</span>
-                    <span class="nav-label" style="font-weight:800;">CRIE</span>
+                    <span class="nav-label">CRIE</span>
                     <span class="nav-item-arrow">▶</span>
                 </div>
                 <div class="nav-submenu-wrap">
@@ -1230,7 +1230,7 @@
                         </li>
                         <li id="nav-crie-connect" onclick="switchTab('crie-connect')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></span>
-                            <span class="nav-label" style="font-weight:700;">Connect</span>
+                            <span class="nav-label">Connect</span>
                         </li>
                     </ul>
                 </div>
@@ -1240,7 +1240,7 @@
             <li class="nav-group" id="nav-group-cantina">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
                     <span class="nav-icon" style="color:#fb7185;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-                    <span class="nav-label" style="font-weight:800;">Cantina</span>
+                    <span class="nav-label">Cantina</span>
                     <span id="cantina-orders-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#fb7185,#f43f5e);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
                     <span class="nav-item-arrow">▶</span>
                 </div>
@@ -1261,7 +1261,7 @@
                         </li>
                         <li id="nav-cantina-pos" onclick="switchTab('cantina-pos')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-                            <span class="nav-label" style="font-weight:700;">POS</span>
+                            <span class="nav-label">POS</span>
                         </li>
                         <li id="nav-cantina-config" onclick="switchTab('cantina-config')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
@@ -1293,7 +1293,7 @@
             <li class="nav-group" id="nav-group-financeiro">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
                     <span class="nav-icon" style="color:#10B981;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-                    <span class="nav-label" style="font-weight:700;">Financeiro</span>
+                    <span class="nav-label">Financeiro</span>
                     <span class="nav-item-arrow">▶</span>
                 </div>
                 <div class="nav-submenu-wrap">
@@ -1321,7 +1321,7 @@
             <li class="nav-group" id="nav-group-relatorios">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
                     <span class="nav-icon" style="color:var(--text-mid);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                    <span class="nav-label" style="font-weight:700;">Relatórios</span>
+                    <span class="nav-label">Relatórios</span>
                     <span class="nav-item-arrow">▶</span>
                 </div>
                 <div class="nav-submenu-wrap">
@@ -1356,7 +1356,7 @@
                         <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2c0-1.1.9-2 2-2zm0 4a4 4 0 0 1 4 4v5h-8v-5a4 4 0 0 1 4-4zm-4 4H4v5h4v-5zm12 0h-4v5h4v-5z"/>
                     </svg>
                 </span>
-                <span class="nav-label" style="font-weight:700;">Suporte (Mila)</span>
+                <span class="nav-label">Suporte (Mila)</span>
             </li>
 
             <!-- 15. Configurações -->
