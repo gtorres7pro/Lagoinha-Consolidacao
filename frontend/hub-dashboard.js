@@ -13679,6 +13679,18 @@ function openAddWorkshopContent() {
 function clearYtPreview() {
     const el = document.getElementById('ws-yt-preview');
     if (el) el.style.display = 'none';
+}
+
+async function fetchYouTubeMeta() {
+    const url = document.getElementById('ws-youtube-url')?.value?.trim();
+    if (!url) return;
+    const ytId = extractYtId(url);
+    if (!ytId) { showHubToast('URL do YouTube inválido.', 'error'); return; }
+
+    // Use oEmbed (no API key needed)
+    try {
+        const res  = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`);
+        const data = await res.json();
 
         // Populate fields
         const titleEl = document.getElementById('ws-content-title');
