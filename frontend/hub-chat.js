@@ -1639,15 +1639,17 @@ function closeTemplateModal() {
 
 async function sendSelectedTemplate() {
   if (!_selectedTemplate || !chatState.selectedLeadId) return;
+  // Capture template data locally to avoid race condition if modal closes during await
+  const tpl = { ..._selectedTemplate };
   const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
 
   const sendBtn = document.getElementById('chat-tpl-send-btn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Enviando...'; }
 
   const components = [];
-  if (_selectedTemplate.variables_count > 0) {
+  if (tpl.variables_count > 0) {
     // Collect values from user-filled inputs
-    const params = Array.from({ length: _selectedTemplate.variables_count }, (_, i) => {
+    const params = Array.from({ length: tpl.variables_count }, (_, i) => {
       const input = document.getElementById(`tpl-var-${i}`);
       return input?.value?.trim() || '';
     });
@@ -1658,12 +1660,11 @@ async function sendSelectedTemplate() {
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
       return;
     }
-    const varNames = _selectedTemplate.var_names || [];
+    const varNames = tpl.var_names || [];
     components.push({
       type: 'body',
       parameters: params.map((v, i) => {
         const p = { type: 'text', text: v };
-        // If it's a named param (not numeric), add parameter_name for Meta API
         if (varNames[i] && isNamedParam(varNames[i])) {
           p.parameter_name = varNames[i];
         }
@@ -1683,8 +1684,8 @@ async function sendSelectedTemplate() {
         message: {
           type: 'template',
           content: {
-            name: _selectedTemplate.name,
-            language: _selectedTemplate.language_code,
+            name: tpl.name,
+            language: tpl.language_code,
             components,
           },
         },
@@ -1698,7 +1699,7 @@ async function sendSelectedTemplate() {
         workspace_id: chatState.workspaceId,
         lead_id: chatState.selectedLeadId,
         direction: 'outbound', type: 'template',
-        content: `📨 Template: ${_selectedTemplate.name}`,
+        content: `📨 Template: ${tpl.name}`,
         automated: false, responded_at: now,
         wa_message_id: result.wa_message_id || null,
       });
@@ -1706,7 +1707,7 @@ async function sendSelectedTemplate() {
       showChatToast('✅ Template enviado com sucesso!', 'success');
       chatState.messages.push({
         id: crypto.randomUUID(), direction: 'outbound', type: 'template',
-        content: `📨 Template: ${_selectedTemplate.name}`,
+        content: `📨 Template: ${tpl.name}`,
         automated: false, created_at: now,
       });
       renderMessages();
@@ -2066,6 +2067,8 @@ function _updateNewConvoSendBtn() {
 
 async function sendNewConversation() {
   if (!_newConvoTemplate) return;
+  // Capture template data locally to avoid race condition if modal closes during await
+  const tpl = { ..._newConvoTemplate };
   const rawPhone = document.getElementById('new-convo-phone')?.value?.trim();
   if (!rawPhone) return;
 
@@ -2076,7 +2079,7 @@ async function sendNewConversation() {
     const session = (await window._sb.auth.getSession()).data.session;
 
     // Collect variable values
-    const params = Array.from({ length: _newConvoTemplate.variables_count }, (_, i) => {
+    const params = Array.from({ length: tpl.variables_count }, (_, i) => {
       return document.getElementById(`nc-var-${i}`)?.value?.trim() || '';
     });
     const empty = params.findIndex(p => !p);
@@ -2111,7 +2114,7 @@ async function sendNewConversation() {
     // Build components with named parameter support
     const components = [];
     if (params.length > 0) {
-      const varNames = _newConvoTemplate.var_names || [];
+      const varNames = tpl.var_names || [];
       components.push({
         type: 'body',
         parameters: params.map((v, i) => {
@@ -2134,8 +2137,8 @@ async function sendNewConversation() {
         message: {
           type: 'template',
           content: {
-            name: _newConvoTemplate.name,
-            language: _newConvoTemplate.language_code,
+            name: tpl.name,
+            language: tpl.language_code,
             components,
           },
         },
@@ -2150,7 +2153,7 @@ async function sendNewConversation() {
         workspace_id: chatState.workspaceId,
         lead_id: leadId,
         direction: 'outbound', type: 'template',
-        content: `📨 Template: ${_newConvoTemplate.name} (${params.join(', ')})`,
+        content: `📨 Template: ${tpl.name} (${params.join(', ')})`,
         automated: false, responded_at: now,
         wa_message_id: result.wa_message_id || null,
       });
