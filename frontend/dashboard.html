@@ -1377,6 +1377,10 @@
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Equipe</span>
                         </li>
+                        <li id="nav-whatsapp-config" onclick="switchTab('whatsapp-config')">
+                            <span class="nav-icon" style="color:#25D366;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+                            <span class="nav-label">WhatsApp</span>
+                        </li>
                     </ul>
                 </div>
             </li>
@@ -2453,47 +2457,36 @@
             </div>
         </div>
 
-        <!-- View: Workspace Settings (LLM Prompts) -->
-        <div id="view-settings" class="view-section">
+        <!-- ════════════════════════════════════════════════════════
+             View: WhatsApp Config (Configurações > WhatsApp)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-whatsapp-config" class="view-section">
+
             <header class="top-bar">
                 <div class="page-title">
-                    <h1>🤖 Automações</h1>
-                    <p>Regras de Automação de Leads · IA Atendente · Base de Conhecimento</p>
-                </div>
-                <div class="actions" id="auto-save-ai-btn">
-                    <button type="button" class="btn-outline" onclick="saveAIInstructions()" style="background: var(--accent); color: #000; border: none; font-weight: 600;">Salvar Instruções (Nuvem)</button>
+                    <h1 style="display:flex;align-items:center;gap:12px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        WhatsApp
+                    </h1>
+                    <p>Configure a conexão oficial do WhatsApp da sua igreja</p>
                 </div>
             </header>
 
-            <!-- ── Tab bar ────────────────────────────────────── -->
-            <div style="padding:0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px;overflow-x:auto;white-space:nowrap;flex-shrink:0;position:sticky;top:0;z-index:50;background:var(--bg-main);">
-                <button id="auto-tab-btn-ia" onclick="switchAutoTab('ia')" class="auto-tab-btn auto-tab-active">🧠 Conexão &amp; IA</button>
-                <button id="auto-tab-btn-atendente" onclick="switchAutoTab('atendente')" class="auto-tab-btn">🤖 IA Atendente</button>
-                <button id="auto-tab-btn-regras" onclick="switchAutoTab('regras')" class="auto-tab-btn">⚡ Regras de Automação</button>
-                <button id="auto-tab-btn-n8n" onclick="switchAutoTab('n8n')" class="auto-tab-btn">🔗 n8n</button>
-            </div>
-            <style>
-                .auto-tab-btn{padding:10px 16px;border-radius:10px 10px 0 0;border:none;background:transparent;color:rgba(255,255,255,0.45);font-weight:600;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;white-space:nowrap;flex-shrink:0;}
-                .auto-tab-btn:hover{color:rgba(255,255,255,0.75);}
-                .auto-tab-active{background:rgba(255,215,0,0.12)!important;color:var(--accent)!important;font-weight:700!important;}
-            </style>
+            <div style="padding:0 28px 60px; max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:24px;">
 
-            <!-- ── Tab: IA & Conhecimento (existing content) ─────────── -->
-            <div id="auto-tab-ia" style="display:block;">
-                
-                <!-- WhatsApp Connection Panel — Meta Cloud API Official -->
-                <div style="width: 100%; background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.95)); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 50px 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; overflow: hidden;">
-                    
+                <!-- ─── Section 1: Connection Status ─────────────────── -->
+                <div style="background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.95)); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 44px 36px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; overflow: hidden;">
+
                     <!-- Glows -->
-                    <div style="position: absolute; top: -50px; left: -50px; width: 250px; height: 250px; background: rgba(37,211,102,0.08); filter: blur(70px); border-radius: 50%; pointer-events: none;"></div>
-                    <div style="position: absolute; bottom: -50px; right: -50px; width: 250px; height: 250px; background: rgba(24,119,242,0.08); filter: blur(70px); border-radius: 50%; pointer-events: none;"></div>
+                    <div style="position:absolute;top:-50px;left:-50px;width:250px;height:250px;background:rgba(37,211,102,0.08);filter:blur(70px);border-radius:50%;pointer-events:none;"></div>
+                    <div style="position:absolute;bottom:-50px;right:-50px;width:250px;height:250px;background:rgba(24,119,242,0.08);filter:blur(70px);border-radius:50%;pointer-events:none;"></div>
 
-                    <div style="position: relative; z-index: 1; text-align: center; margin-bottom: 36px;">
-                        <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
+                    <div style="position:relative;z-index:1;text-align:center;margin-bottom:32px;">
+                        <div style="width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 10px 20px rgba(0,0,0,0.2);">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                         </div>
-                        <h3 style="color: #FFF; font-size: 1.6rem; font-weight: 700; margin: 0 0 12px 0; letter-spacing: -0.5px;">Conexão WhatsApp</h3>
-                        <p style="font-size: 0.92rem; color: rgba(255,255,255,0.5); line-height: 1.6; max-width: 560px; margin: 0 auto;">Conecte o WhatsApp da sua igreja via <strong style="color:rgba(255,255,255,0.8);">Meta Cloud API Oficial</strong> para envio de mensagens, automações e Chat ao Vivo.</p>
+                        <h3 style="color:#FFF;font-size:1.5rem;font-weight:700;margin:0 0 10px 0;letter-spacing:-0.5px;">Conexão WhatsApp</h3>
+                        <p style="font-size:0.88rem;color:rgba(255,255,255,0.5);line-height:1.6;max-width:520px;margin:0 auto;">Conecte o WhatsApp da sua igreja via <strong style="color:rgba(255,255,255,0.8);">Meta Cloud API Oficial</strong> para envio de mensagens, automações e Chat ao Vivo.</p>
                     </div>
 
                     <!-- Status pill -->
@@ -2519,7 +2512,7 @@
                         <div id="wa-meta-date" style="font-size:0.72rem;color:rgba(255,255,255,0.25);margin-top:8px;"></div>
                     </div>
 
-                    <!-- Facebook Login button (primary) + Manual fallback -->
+                    <!-- Facebook Login button (primary) -->
                     <div style="max-width:480px;margin:0 auto;position:relative;z-index:1;">
                         <button onclick="launchWhatsAppSignup()" id="wa-signup-btn"
                             style="width:100%;padding:16px;border-radius:12px;background:linear-gradient(135deg,#1877F2,#0a5ec7);color:white;border:none;cursor:pointer;font-size:0.95rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;box-shadow:0 8px 20px rgba(24,119,242,0.25);font-family:var(--font);margin-bottom:16px;"
@@ -2528,29 +2521,6 @@
                             Continuar com Facebook Business
                         </button>
                         <div id="wa-signup-status" style="display:none;margin-bottom:16px;padding:12px;font-size:0.85rem;border-radius:8px;"></div>
-
-                        <details style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
-                            <summary style="cursor:pointer;font-size:0.8rem;color:rgba(255,255,255,0.3);user-select:none;text-align:center;transition:color .2s;" onmouseover="this.style.color='rgba(255,255,255,0.6)'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">⚙️ Configuração Manual (Avançado)</summary>
-                            <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px;">
-                                <div>
-                                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">Phone Number ID</label>
-                                    <input type="text" id="cloud-phone-id" placeholder="Ex: 722270310975891" class="hub-field-input" style="width:100%;box-sizing:border-box;">
-                                </div>
-                                <div>
-                                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">WhatsApp Business Account ID (WABA)</label>
-                                    <input type="text" id="cloud-business-id" placeholder="Ex: 517931274727525" class="hub-field-input" style="width:100%;box-sizing:border-box;">
-                                </div>
-                                <div>
-                                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">Access Token (EAAN...)</label>
-                                    <input type="text" id="cloud-token" placeholder="EAAN3YuNZAZA8..." class="hub-field-input" style="width:100%;box-sizing:border-box;">
-                                </div>
-                                <div>
-                                    <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">App Secret</label>
-                                    <input type="password" id="cloud-app-secret" placeholder="Chave secreta do App Meta" class="hub-field-input" style="width:100%;box-sizing:border-box;">
-                                </div>
-                                <button type="button" onclick="saveCloudCredentials()" style="background:rgba(37,211,102,0.1);color:#25D366;border:1px solid rgba(37,211,102,0.3);padding:12px;border-radius:8px;cursor:pointer;font-weight:600;transition:background .2s;font-family:var(--font);" onmouseover="this.style.background='rgba(37,211,102,0.18)'" onmouseout="this.style.background='rgba(37,211,102,0.1)'">Salvar Credenciais API</button>
-                            </div>
-                        </details>
                     </div>
 
                     <!-- Legacy compat placeholders -->
@@ -2559,113 +2529,350 @@
                     <div id="wa-meta-connected-info" style="display:none;"></div>
                     <div id="wa-account-picker" style="display:none;"></div>
                 </div>
-            </div>
 
-        <!-- ─── G3: Configurações do Workspace ─────────────────────── -->
-        <div id="settings-workspace-section" style="padding:0 40px 32px; max-width:1500px; margin:0 auto;">
-            <div style="border-top:1px solid var(--border); padding-top:28px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                    <div>
-                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Informações da Igreja</h3>
-                        <p style="font-size:.78rem; color:var(--text-dim);">Dados institucionais do workspace — usados pela IA e no perfil público.</p>
-                    </div>
-                    <button onclick="saveWorkspaceSettings()" class="hub-btn-primary" style="padding:9px 20px; font-size:.82rem;">Salvar Informações</button>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px;">
-                    <div>
-                        <label class="hub-field-label">Nome da Igreja</label>
-                        <input id="ws-cfg-name" type="text" class="hub-input" placeholder="Ex: Lagoinha Orlando">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">Pastor Responsável</label>
-                        <input id="ws-cfg-pastor" type="text" class="hub-input" placeholder="Ex: André Valadão">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">Endereço</label>
-                        <input id="ws-cfg-address" type="text" class="hub-input" placeholder="Ex: 2040 Americana Blvd, Orlando, FL">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">País</label>
-                        <input id="ws-cfg-country" type="text" class="hub-input" placeholder="Ex: United States">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">Telefone / WhatsApp</label>
-                        <input id="ws-cfg-phone" type="text" class="hub-input" placeholder="+1 (407) 000-0000">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">Instagram</label>
-                        <input id="ws-cfg-instagram" type="text" class="hub-input" placeholder="@lagoinhaorlandochurch">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">YouTube</label>
-                        <input id="ws-cfg-youtube" type="text" class="hub-input" placeholder="youtube.com/@lagoinha">
-                    </div>
-                    <div>
-                        <label class="hub-field-label">Facebook</label>
-                        <input id="ws-cfg-facebook" type="text" class="hub-input" placeholder="facebook.com/lagoinha">
-                    </div>
-                </div>
-            </div>
-        </div>
+                <!-- ─── Section 2: Step-by-Step Guide ─────────────────── -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:28px 32px;position:relative;overflow:hidden;">
+                    <!-- Gold accent top bar -->
+                    <div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,#25D366,var(--accent),#1877F2);border-radius:20px 20px 0 0;"></div>
 
-        <!-- ─── Settings: Notificações ──────────────────────────────────── -->
-        <div id="settings-notifications-section" style="padding:0 40px 32px; max-width:1500px; margin:0 auto;">
-            <div style="border-top:1px solid var(--border); padding-top:28px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                    <div>
-                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Notificações e Alertas</h3>
-                        <p style="font-size:.78rem; color:var(--text-dim);">Escolha quais alertas você deseja receber por email ou WhatsApp para as tarefas geradas automaticamente.</p>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                        <div style="width:36px;height:36px;border-radius:12px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">📋</div>
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:700;margin:0;color:#fff;">Guia de Configuração</h3>
+                            <p style="font-size:0.75rem;color:var(--text-dim);margin:2px 0 0;">Siga os passos abaixo para configurar tudo corretamente com a Meta</p>
+                        </div>
                     </div>
-                    <button onclick="saveNotificationSettings()" class="hub-btn-primary" style="padding:9px 20px; font-size:.82rem;">Salvar Preferências</button>
+
+                    <div style="display:flex;flex-direction:column;gap:0;margin-top:20px;" id="wa-setup-steps">
+
+                        <!-- Step 1 -->
+                        <details class="wa-setup-step" open>
+                            <summary>
+                                <span class="wa-step-num">1</span>
+                                <span class="wa-step-title">Criar Conta Meta Business</span>
+                                <span class="wa-step-arrow">›</span>
+                            </summary>
+                            <div class="wa-step-body">
+                                <p>Para usar a API oficial do WhatsApp, sua igreja precisa ter uma conta no <strong>Meta Business Suite</strong>.</p>
+                                <ul>
+                                    <li>Acesse <a href="https://business.facebook.com" target="_blank" style="color:var(--accent);text-decoration:underline;">business.facebook.com</a> e crie sua conta empresarial (é gratuito)</li>
+                                    <li>Use o nome oficial da sua igreja ou organização</li>
+                                    <li>Adicione um e-mail profissional (evite @gmail.com se possível)</li>
+                                </ul>
+                                <div class="wa-step-tip">💡 <strong>Dica:</strong> Se sua igreja já possui uma Página do Facebook, ela provavelmente já tem uma conta Meta Business.</div>
+                            </div>
+                        </details>
+
+                        <!-- Step 2 -->
+                        <details class="wa-setup-step">
+                            <summary>
+                                <span class="wa-step-num">2</span>
+                                <span class="wa-step-title">Verificação do Negócio</span>
+                                <span class="wa-step-arrow">›</span>
+                            </summary>
+                            <div class="wa-step-body">
+                                <p>A Meta exige que organizações sejam <strong>verificadas</strong> antes de usar a API do WhatsApp. Prepare os seguintes documentos:</p>
+                                <ul>
+                                    <li>📄 Documento de registro legal da organização (CNPJ, Articles of Incorporation, etc.)</li>
+                                    <li>📄 Comprovante de endereço (conta de utilidade ou extrato bancário)</li>
+                                    <li>🌐 Website ativo com nome, endereço e informações de contato da igreja</li>
+                                </ul>
+                                <p style="margin-top:10px;">Acesse <strong>Meta Business Suite → Configurações → Central de Segurança → Verificação do Negócio</strong> para iniciar.</p>
+                                <div class="wa-step-tip">⏱ <strong>Prazo:</strong> A verificação costuma levar 2-5 dias úteis. Você pode conectar o WhatsApp antes, mas envios em massa só são liberados após a verificação.</div>
+                            </div>
+                        </details>
+
+                        <!-- Step 3 -->
+                        <details class="wa-setup-step">
+                            <summary>
+                                <span class="wa-step-num">3</span>
+                                <span class="wa-step-title">Número de WhatsApp Dedicado</span>
+                                <span class="wa-step-arrow">›</span>
+                            </summary>
+                            <div class="wa-step-body">
+                                <p>Você precisará de um <strong>número de telefone dedicado</strong> para a API do WhatsApp.</p>
+                                <ul>
+                                    <li>O número <strong>não pode</strong> estar ativo no WhatsApp pessoal ou WhatsApp Business App</li>
+                                    <li>Se já tiver um número no WhatsApp Business App, será necessário <strong>deletar a conta</strong> do app para liberar o número para a API</li>
+                                    <li>Aceita números de celular, fixo ou até VoIP (desde que receba SMS ou chamada)</li>
+                                </ul>
+                                <div class="wa-step-tip">📱 <strong>Recomendação:</strong> Use um número exclusivo da igreja que será reconhecido pelos membros. Não use seu número pessoal.</div>
+                            </div>
+                        </details>
+
+                        <!-- Step 4 -->
+                        <details class="wa-setup-step">
+                            <summary>
+                                <span class="wa-step-num">4</span>
+                                <span class="wa-step-title">Conectar via Facebook</span>
+                                <span class="wa-step-arrow">›</span>
+                            </summary>
+                            <div class="wa-step-body">
+                                <p>Clique no botão <strong>"Continuar com Facebook Business"</strong> acima para iniciar o processo automatizado de conexão:</p>
+                                <ol style="padding-left:18px;">
+                                    <li>Faça login com a conta do Facebook que administra o Meta Business Suite da igreja</li>
+                                    <li>Selecione (ou crie) a conta WhatsApp Business Account (WABA)</li>
+                                    <li>Vincule o número de telefone dedicado</li>
+                                    <li>Pronto — o Zelo salva as credenciais automaticamente!</li>
+                                </ol>
+                                <div class="wa-step-tip">✅ <strong>Nenhuma senha é armazenada</strong> — o Zelo usa apenas tokens OAuth da Meta, que podem ser revogados a qualquer momento.</div>
+                            </div>
+                        </details>
+
+                        <!-- Step 5 -->
+                        <details class="wa-setup-step">
+                            <summary>
+                                <span class="wa-step-num">5</span>
+                                <span class="wa-step-title">Configuração Manual (Avançado)</span>
+                                <span class="wa-step-arrow">›</span>
+                            </summary>
+                            <div class="wa-step-body">
+                                <p>Se preferir configurar manualmente (para desenvolvedores ou cenários avançados), preencha os campos abaixo com os dados do <a href="https://developers.facebook.com" target="_blank" style="color:var(--accent);">Meta Developer Console</a>:</p>
+                                <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+                                    <div>
+                                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">Phone Number ID</label>
+                                        <input type="text" id="cloud-phone-id" placeholder="Ex: 722270310975891" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">WhatsApp Business Account ID (WABA)</label>
+                                        <input type="text" id="cloud-business-id" placeholder="Ex: 517931274727525" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">Access Token (EAAN...)</label>
+                                        <input type="text" id="cloud-token" placeholder="EAAN3YuNZAZA8..." class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:6px;display:block;">App Secret</label>
+                                        <input type="password" id="cloud-app-secret" placeholder="Chave secreta do App Meta" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                                    </div>
+                                    <button type="button" onclick="saveCloudCredentials()" style="background:rgba(37,211,102,0.1);color:#25D366;border:1px solid rgba(37,211,102,0.3);padding:12px;border-radius:8px;cursor:pointer;font-weight:600;transition:background .2s;font-family:var(--font);" onmouseover="this.style.background='rgba(37,211,102,0.18)'" onmouseout="this.style.background='rgba(37,211,102,0.1)'">Salvar Credenciais API</button>
+                                </div>
+                            </div>
+                        </details>
+
+                    </div>
+
+                    <!-- Step styling -->
+                    <style>
+                        .wa-setup-step { border-bottom: 1px solid rgba(255,255,255,0.04); }
+                        .wa-setup-step:last-child { border-bottom: none; }
+                        .wa-setup-step summary {
+                            display: flex; align-items: center; gap: 14px; padding: 16px 4px;
+                            cursor: pointer; list-style: none; user-select: none; transition: all .2s;
+                        }
+                        .wa-setup-step summary::-webkit-details-marker { display: none; }
+                        .wa-setup-step summary:hover { background: rgba(255,255,255,0.02); border-radius: 10px; }
+                        .wa-setup-step[open] summary { background: rgba(255,255,255,0.02); border-radius: 10px 10px 0 0; }
+                        .wa-step-num {
+                            width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                            font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
+                            background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.08);
+                            transition: all .3s;
+                        }
+                        .wa-setup-step[open] .wa-step-num {
+                            background: rgba(37,211,102,0.15); color: #25D366; border-color: rgba(37,211,102,0.3);
+                        }
+                        .wa-step-title { font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.7); flex: 1; }
+                        .wa-setup-step[open] .wa-step-title { color: #fff; }
+                        .wa-step-arrow {
+                            font-size: 1.2rem; color: rgba(255,255,255,0.2); transition: transform .2s; flex-shrink: 0;
+                        }
+                        .wa-setup-step[open] .wa-step-arrow { transform: rotate(90deg); color: var(--accent); }
+                        .wa-step-body {
+                            padding: 4px 4px 20px 46px; font-size: 0.84rem; color: rgba(255,255,255,0.6); line-height: 1.7;
+                        }
+                        .wa-step-body ul, .wa-step-body ol { padding-left: 18px; margin: 8px 0; }
+                        .wa-step-body li { margin-bottom: 6px; }
+                        .wa-step-body strong { color: rgba(255,255,255,0.85); }
+                        .wa-step-tip {
+                            background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.12); border-radius: 10px;
+                            padding: 10px 14px; font-size: 0.78rem; color: rgba(255,255,255,0.55); margin-top: 12px; line-height: 1.5;
+                        }
+                        .wa-step-tip strong { color: var(--accent); }
+                    </style>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr; gap:16px; max-width:900px;">
-                    
-                    <div style="background:var(--bg-card); border:1px solid var(--card-border); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <strong style="font-size:0.95rem; color:#fff;">Aconselhamento / Pedido Pastoral</strong>
-                                <p style="font-size:0.8rem; color:var(--text-dim); margin-top:4px;">Avisar quando um lead necessitar de contato com um pastor para pedido de oração e aconselhamento.</p>
+
+                <!-- ─── Section 3: Webhook & Technical Info ──────────── -->
+                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:24px 28px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+                        <div style="width:36px;height:36px;border-radius:12px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🔗</div>
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:700;margin:0;color:#fff;">Webhook da Meta</h3>
+                            <p style="font-size:0.75rem;color:var(--text-dim);margin:2px 0 0;">Use estes dados no <a href="https://developers.facebook.com" target="_blank" style="color:var(--accent);">Meta Developer Console</a> → WhatsApp → Configuração</p>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                        <div>
+                            <label class="hub-field-label">URL de Callback (Webhook)</label>
+                            <div style="display:flex;gap:8px;">
+                                <input id="wa-webhook-url-display" type="text" class="hub-field-input" style="flex:1;font-family:monospace;font-size:.78rem;" readonly value="https://n8n.7prolabs.com/webhook/zelo-whatsapp">
+                                <button onclick="navigator.clipboard.writeText(document.getElementById('wa-webhook-url-display').value).then(()=>showToast('URL copiada!'))" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:var(--accent);border-radius:10px;padding:8px 14px;cursor:pointer;font-family:var(--font);font-size:.78rem;font-weight:600;white-space:nowrap;">📋 Copiar</button>
                             </div>
                         </div>
-                        <div style="display:flex; gap:20px; margin-top:10px;">
-                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.85rem;">
-                                <input type="checkbox" id="notif-email-pastor" style="accent-color:var(--accent); width:16px; height:16px;" checked> 📧 Receber por Email
-                            </label>
-                            <label style="display:flex; align-items:center; gap:8px; cursor:not-allowed; font-size:0.85rem; opacity:0.5;" title="Em breve">
-                                <input type="checkbox" id="notif-wpp-pastor" style="accent-color:var(--accent); width:16px; height:16px;" disabled> 💬 Receber por WhatsApp <span style="font-size:0.6rem;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">breve</span>
-                            </label>
+                        <div>
+                            <label class="hub-field-label">Verify Token</label>
+                            <div style="display:flex;gap:8px;">
+                                <input id="wa-verify-token-display" type="text" class="hub-field-input" style="flex:1;font-family:monospace;font-size:.78rem;" readonly value="zelo_whatsapp_verify_2026">
+                                <button onclick="navigator.clipboard.writeText(document.getElementById('wa-verify-token-display').value).then(()=>showToast('Token copiado!'))" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:var(--accent);border-radius:10px;padding:8px 14px;cursor:pointer;font-family:var(--font);font-size:.78rem;font-weight:600;white-space:nowrap;">📋 Copiar</button>
+                            </div>
                         </div>
                     </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- ─── Settings: Plano Atual ──────────────────────────────────── -->
-        <div id="settings-plan-section" style="padding:0 40px 40px; max-width:1500px; margin:0 auto;">
-
-            <div style="border-top:1px solid var(--border); padding-top:28px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                    <div>
-                        <h3 style="font-size:1rem; font-weight:700; margin-bottom:4px;">Plano Atual</h3>
-                        <p style="font-size:.82rem; color:var(--text-dim); margin:0;">Módulos disponíveis para este workspace.</p>
+                    <div style="margin-top:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:12px 16px;">
+                        <p style="font-size:.78rem;color:rgba(255,255,255,0.45);line-height:1.6;margin:0;">
+                            <strong style="color:rgba(255,255,255,0.6);">Como configurar:</strong> No Meta Developer Console, vá em seu App → WhatsApp → Configuração → Webhook.
+                            Cole a <strong>URL de Callback</strong> e o <strong>Verify Token</strong> acima. Assine os campos: <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;">messages</code>.
+                        </p>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span id="settings-plan-badge" class="ws-plan-badge" style="font-size:.85rem; padding:5px 16px;">—</span>
-                        <div id="settings-plan-upgrade-container">
-                            <button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px; font-size:.8rem;">⚡ Fazer Upgrade</button>
+                </div>
+
+                <!-- ─── Section 4: Informações da Igreja ─────────────── -->
+                <div id="settings-workspace-section" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:24px 28px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:1.1rem;">🏛️</span> Informações da Igreja
+                            </h3>
+                            <p style="font-size:.78rem;color:var(--text-dim);">Dados institucionais do workspace — usados pela IA e no perfil público.</p>
+                        </div>
+                        <button onclick="saveWorkspaceSettings()" class="hub-btn-primary" style="padding:9px 20px;font-size:.82rem;">Salvar Informações</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:900px;">
+                        <div>
+                            <label class="hub-field-label">Nome da Igreja</label>
+                            <input id="ws-cfg-name" type="text" class="hub-input" placeholder="Ex: Lagoinha Orlando">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Pastor Responsável</label>
+                            <input id="ws-cfg-pastor" type="text" class="hub-input" placeholder="Ex: André Valadão">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Endereço</label>
+                            <input id="ws-cfg-address" type="text" class="hub-input" placeholder="Ex: 2040 Americana Blvd, Orlando, FL">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">País</label>
+                            <input id="ws-cfg-country" type="text" class="hub-input" placeholder="Ex: United States">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Telefone / WhatsApp</label>
+                            <input id="ws-cfg-phone" type="text" class="hub-input" placeholder="+1 (407) 000-0000">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Instagram</label>
+                            <input id="ws-cfg-instagram" type="text" class="hub-input" placeholder="@lagoinhaorlandochurch">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">YouTube</label>
+                            <input id="ws-cfg-youtube" type="text" class="hub-input" placeholder="youtube.com/@lagoinha">
+                        </div>
+                        <div>
+                            <label class="hub-field-label">Facebook</label>
+                            <input id="ws-cfg-facebook" type="text" class="hub-input" placeholder="facebook.com/lagoinha">
                         </div>
                     </div>
                 </div>
-                <div id="settings-modules-grid" style="display:flex; flex-wrap:wrap; gap:10px;">
-                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
-                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
-                    <div class="hub-skeleton" style="width:130px; height:38px; border-radius:10px;"></div>
+
+                <!-- ─── Section 5: Notificações ─────────────────────── -->
+                <div id="settings-notifications-section" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:24px 28px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:1.1rem;">🔔</span> Notificações e Alertas
+                            </h3>
+                            <p style="font-size:.78rem;color:var(--text-dim);">Escolha quais alertas você deseja receber por email ou WhatsApp para as tarefas geradas automaticamente.</p>
+                        </div>
+                        <button onclick="saveNotificationSettings()" class="hub-btn-primary" style="padding:9px 20px;font-size:.82rem;">Salvar Preferências</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr;gap:16px;max-width:900px;">
+                        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.95rem;color:#fff;">Aconselhamento / Pedido Pastoral</strong>
+                                    <p style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">Avisar quando um lead necessitar de contato com um pastor para pedido de oração e aconselhamento.</p>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:20px;margin-top:10px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;">
+                                    <input type="checkbox" id="notif-email-pastor" style="accent-color:var(--accent);width:16px;height:16px;" checked> 📧 Receber por Email
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:not-allowed;font-size:0.85rem;opacity:0.5;" title="Em breve">
+                                    <input type="checkbox" id="notif-wpp-pastor" style="accent-color:var(--accent);width:16px;height:16px;" disabled> 💬 Receber por WhatsApp <span style="font-size:0.6rem;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">breve</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- ─── Section 6: Plano Atual ──────────────────────── -->
+                <div id="settings-plan-section" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:20px;padding:24px 28px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:1.1rem;">⚡</span> Plano Atual
+                            </h3>
+                            <p style="font-size:.82rem;color:var(--text-dim);margin:0;">Módulos disponíveis para este workspace.</p>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span id="settings-plan-badge" class="ws-plan-badge" style="font-size:.85rem;padding:5px 16px;">—</span>
+                            <div id="settings-plan-upgrade-container">
+                                <button onclick="showUpgradeModal()" class="hub-btn-primary" style="padding:8px 16px;font-size:.8rem;">⚡ Fazer Upgrade</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="settings-modules-grid" style="display:flex;flex-wrap:wrap;gap:10px;">
+                        <div class="hub-skeleton" style="width:130px;height:38px;border-radius:10px;"></div>
+                        <div class="hub-skeleton" style="width:130px;height:38px;border-radius:10px;"></div>
+                        <div class="hub-skeleton" style="width:130px;height:38px;border-radius:10px;"></div>
+                    </div>
+                </div>
+
             </div>
-        </div>
+        </div><!-- /#view-whatsapp-config -->
+
+
+        <!-- View: Workspace Settings (LLM Prompts) -->
+        <div id="view-settings" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>🤖 Automações</h1>
+                    <p>IA Atendente · Regras de Automação · Integrações</p>
+                </div>
+                <div class="actions" id="auto-save-ai-btn">
+                    <button type="button" class="btn-outline" onclick="saveAIInstructions()" style="background: var(--accent); color: #000; border: none; font-weight: 600;">Salvar Instruções (Nuvem)</button>
+                </div>
+            </header>
+
+            <!-- ── Tab bar ────────────────────────────────────── -->
+            <div style="padding:0 24px;border-bottom:1px solid var(--border);display:flex;gap:4px;overflow-x:auto;white-space:nowrap;flex-shrink:0;position:sticky;top:0;z-index:50;background:var(--bg-main);">
+                <button id="auto-tab-btn-ia" onclick="switchAutoTab('ia')" class="auto-tab-btn auto-tab-active">🧠 Conexão &amp; IA</button>
+                <button id="auto-tab-btn-atendente" onclick="switchAutoTab('atendente')" class="auto-tab-btn">🤖 IA Atendente</button>
+                <button id="auto-tab-btn-regras" onclick="switchAutoTab('regras')" class="auto-tab-btn">⚡ Regras de Automação</button>
+                <button id="auto-tab-btn-n8n" onclick="switchAutoTab('n8n')" class="auto-tab-btn">🔗 n8n</button>
             </div>
-        </div><!-- /#auto-tab-ia -->
+            <style>
+                .auto-tab-btn{padding:10px 16px;border-radius:10px 10px 0 0;border:none;background:transparent;color:rgba(255,255,255,0.45);font-weight:600;font-size:.82rem;cursor:pointer;font-family:var(--font);transition:all .2s;white-space:nowrap;flex-shrink:0;}
+                .auto-tab-btn:hover{color:rgba(255,255,255,0.75);}
+                .auto-tab-active{background:rgba(255,215,0,0.12)!important;color:var(--accent)!important;font-weight:700!important;}
+            </style>
+
+            <!-- ── Tab: IA & Conhecimento (existing content) ─────────── -->
+            <div id="auto-tab-ia" style="display:block;">
+                
+                <!-- Redirect notice — content moved to Configurações > WhatsApp -->
+                <div style="padding:60px 40px;text-align:center;max-width:560px;margin:0 auto;">
+                    <div style="width:56px;height:56px;border-radius:18px;background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.6rem;">📱</div>
+                    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px;color:#fff;">Conexão WhatsApp</h3>
+                    <p style="font-size:.88rem;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:24px;">
+                        A configuração do WhatsApp, informações da igreja, notificações e plano foram movidos para uma área dedicada.
+                    </p>
+                    <button onclick="switchTab('whatsapp-config')" style="background:linear-gradient(135deg,#25D366,#128C7E);border:none;color:#fff;padding:12px 28px;border-radius:10px;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:transform .2s,box-shadow .2s;box-shadow:0 6px 18px rgba(37,211,102,0.2);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 24px rgba(37,211,102,0.3)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 18px rgba(37,211,102,0.2)'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        Ir para Configurações → WhatsApp
+                    </button>
+                </div>
+
+            </div><!-- /#auto-tab-ia -->
+
 
             <!-- ── Tab: Regras de Automação ──────────────────────── -->
             <div id="auto-tab-regras" style="display:none; padding:32px 40px; max-width:1100px; margin:0 auto; width:100%;">

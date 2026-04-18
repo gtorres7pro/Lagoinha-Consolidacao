@@ -4497,9 +4497,45 @@ async function saveNotificationSettings() {
     } catch(e) { console.error('saveNotificationSettings:', e); window.showToast && showToast('Erro ao salvar notificações', 'error'); }
 }
 
+// ─── WhatsApp Config: Plan & Modules display ──────────────────────────────
+function _loadWhatsAppConfigPlanSection() {
+    // Plan badge
+    const planBadge = document.getElementById('settings-plan-badge');
+    const plan = window._currentWorkspacePlan || 'free';
+    const planLabels = { free:'Free', trial:'Trial', starter:'Starter', essencial:'Essencial', founders:'Founders' };
+    if (planBadge) {
+        planBadge.textContent = planLabels[plan] || plan;
+        planBadge.className = `ws-plan-badge plan-${plan}`;
+    }
+    // Hide upgrade button for founders/trial
+    const upgradeContainer = document.getElementById('settings-plan-upgrade-container');
+    if (upgradeContainer) upgradeContainer.style.display = (plan === 'founders') ? 'none' : '';
+
+    // Modules grid
+    const grid = document.getElementById('settings-modules-grid');
+    if (!grid) return;
+    const modules = window._wsModules || [];
+    const modLabels = {
+        consolidacao:'Consolidação', visitantes:'Visitantes', start:'Start',
+        batismo:'Batismo', novos_membros:'Novos Membros', chat:'Chat ao Vivo',
+        automacao:'Automação IA', crie:'CRIE', cantina:'Cantina',
+        financeiro:'Financeiro', voluntarios:'Voluntários', we_care:'We Care',
+        aniversariantes:'Aniversariantes', transmissao:'Transmissão'
+    };
+    if (modules.length === 0) {
+        grid.innerHTML = '<span style="color:var(--text-dim);font-size:.82rem;">Nenhum módulo ativo encontrado.</span>';
+        return;
+    }
+    grid.innerHTML = modules.map(m => `
+        <span style="background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.15);color:var(--accent);padding:7px 14px;border-radius:8px;font-size:.78rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+            ✓ ${modLabels[m] || m}
+        </span>`).join('');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTOMAÇÕES TAB — Tab switching + Automation Config CRUD
 // ═══════════════════════════════════════════════════════════════════════════
+
 
 window.switchAutoTab = function(tab) {
     const tabs = ['ia', 'regras', 'atendente', 'n8n'];
@@ -5344,6 +5380,15 @@ async function saveOverrideModules() {
         if (tab === 'settings') {
             loadWorkspaceSettings();
             loadNotificationSettings();
+        }
+        if (tab === 'whatsapp-config') {
+            // Init WhatsApp connection state
+            if (window.initWhatsappSettings) window.initWhatsappSettings();
+            // Load workspace info & notifications into the new view
+            loadWorkspaceSettings();
+            loadNotificationSettings();
+            // Populate plan/modules display
+            _loadWhatsAppConfigPlanSection();
         }
     };
 })();
