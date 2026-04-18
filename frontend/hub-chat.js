@@ -1513,9 +1513,9 @@ function extractTemplateBody(components) {
   return body?.text || '';
 }
 
-// Count how many template variables exist — supports both {{1}} numeric AND {{name}} named styles
+// Count how many template variables exist — {{name}}, {{1}}, etc.
+// NOTE: Meta's {{}} (empty braces) = 0 params, do NOT count those
 function countTemplateVars(text) {
-  // Match {{anything}} where content is non-empty
   const matches = text.match(/\{\{[^{}]+\}\}/g);
   return matches ? matches.length : 0;
 }
@@ -1524,6 +1524,11 @@ function countTemplateVars(text) {
 function extractTemplateVarNames(text) {
   const matches = text.match(/\{\{([^{}]+)\}\}/g) || [];
   return matches.map(m => m.replace(/\{\{|\}\}/g, '').trim());
+}
+
+// Check if a variable name is a named param (not a numeric positional like "1" or "2")
+function isNamedParam(varName) {
+  return varName && !/^\d+$/.test(varName);
 }
 
 // Interpolate variable placeholders for preview display only
@@ -1653,9 +1658,17 @@ async function sendSelectedTemplate() {
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
       return;
     }
+    const varNames = _selectedTemplate.var_names || [];
     components.push({
       type: 'body',
-      parameters: params.map(v => ({ type: 'text', text: v })),
+      parameters: params.map((v, i) => {
+        const p = { type: 'text', text: v };
+        // If it's a named param (not numeric), add parameter_name for Meta API
+        if (varNames[i] && isNamedParam(varNames[i])) {
+          p.parameter_name = varNames[i];
+        }
+        return p;
+      }),
     });
   }
 
@@ -2095,12 +2108,19 @@ async function sendNewConversation() {
       leadId = newLead.id;
     }
 
-    // Build components
+    // Build components with named parameter support
     const components = [];
     if (params.length > 0) {
+      const varNames = _newConvoTemplate.var_names || [];
       components.push({
         type: 'body',
-        parameters: params.map(v => ({ type: 'text', text: v })),
+        parameters: params.map((v, i) => {
+          const p = { type: 'text', text: v };
+          if (varNames[i] && isNamedParam(varNames[i])) {
+            p.parameter_name = varNames[i];
+          }
+          return p;
+        }),
       });
     }
 
