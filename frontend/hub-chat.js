@@ -639,6 +639,13 @@ function buildChatLayout() {
       background:#141418; color:#5a5a72; font-size:.74rem;
       padding:5px 12px; border-radius:7.5px; border:1px solid #1e1e28;
     }
+    .msg-system-divider { display:flex; justify-content:center; margin:10px 0; user-select:none; }
+    .msg-system-divider span {
+      background:rgba(255,215,0,0.06); color:#d4a017; font-size:.72rem;
+      padding:5px 14px; border-radius:7.5px; border:1px solid rgba(255,215,0,0.15);
+      letter-spacing:0.01em;
+    }
+    .msg-system-divider small { color:#8a7535; margin-left:6px; }
 
     /* ═══════════ BOTTOM COMPOSER ═══════════ */
     .chat-bottom-bar {
@@ -948,13 +955,15 @@ async function selectLead(leadId) {
   subscribeToLead(leadId);
 }
 
+// Track window expire timer so we can clear it
+let _windowExpireTimer = null;
+
 function applyWindowUI(lead) {
   const now = new Date();
   const expiresAt = lead.wa_window_expires_at ? new Date(lead.wa_window_expires_at) : null;
   const lastMsg = lead.last_message_at ? new Date(lead.last_message_at) : null;
 
   // Grace period: if there was an inbound in the last 60 minutes, treat the window as open
-  // (the Edge Function may still be updating wa_window_expires_at)
   const recentActivity = lastMsg && (now - lastMsg) < 60 * 60 * 1000;
   const windowOpen = (expiresAt && expiresAt > now) || recentActivity;
 
@@ -993,12 +1002,37 @@ function applyWindowUI(lead) {
     }
   }
 
+  // Clear any previous window expire timer
+  if (_windowExpireTimer) { clearTimeout(_windowExpireTimer); _windowExpireTimer = null; }
+
   if (windowOpen) {
     // 24h window is open: full input available
     warnEl.style.display = 'none';
     inputEl.disabled = false;
     sendBtn.disabled = false;
     if (attachBtn) attachBtn.disabled = false;
+
+    // Set auto-expire timer to lock input when window closes
+    const effectiveExpiry = expiresAt || (lastMsg ? new Date(lastMsg.getTime() + 24 * 60 * 60 * 1000) : null);
+    if (effectiveExpiry) {
+      const msUntilExpiry = effectiveExpiry - now;
+      if (msUntilExpiry > 0 && msUntilExpiry < 48 * 60 * 60 * 1000) {
+        _windowExpireTimer = setTimeout(() => {
+          // Re-apply UI to lock the input
+          const currentLead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+          if (currentLead) {
+            applyWindowUI(currentLead);
+            // Inject a system message about window closing
+            chatState.messages.push({
+              id: crypto.randomUUID(), direction: 'system', type: 'system',
+              content: '🔒 Janela de 24h encerrada. Use um template para reabrir.',
+              created_at: new Date().toISOString(),
+            });
+            renderMessages();
+          }
+        }, msUntilExpiry);
+      }
+    }
   } else {
     // 24h window closed: show warning + template button, disable free-text input
     warnEl.style.display = 'flex';
@@ -1043,6 +1077,14 @@ function renderMessages() {
       lastDate = msgDate;
       showDate = true;
       lastSenderKey = null;
+    }
+
+    // System messages (24h window events)
+    if (msg.direction === 'system' || msg.type === 'system') {
+      const sysTime = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      html += `<div class="msg-system-divider"><span>${escapeHtml(msg.content)} <small>${sysTime}</small></span></div>`;
+      lastSenderKey = null;
+      continue;
     }
 
     const currentSenderKey = `${msg.direction}-${msg.automated ? 'auto' : 'manual'}`;
@@ -1108,7 +1150,20 @@ function buildMessageBubble(msg, isConsecutive) {
         <span style="font-size:.82rem;text-decoration:underline;word-break:break-all;">${escapeHtml(fileName)}</span>
       </a>`;
   } else if (type === 'template') {
-    content = `<span style="color:#8696a0;font-style:italic;">${escapeHtml(raw)}</span>`;
+    // Show a styled template card with the actual body text
+    const tplLabel = raw.match(/^📨 Template: ([\w_]+)$/)?.[1]?.replace(/_/g, ' ') || '';
+    const tplBody = raw.replace(/^📨 Template: [\w_]+(\s*\|\s*)?/, '').trim();
+    if (tplBody && tplBody !== raw) {
+      content = `<div style="border-left:3px solid #FFD700;padding:4px 10px;margin-bottom:4px;border-radius:0 6px 6px 0;background:rgba(255,215,0,0.06);">
+        <div style="font-size:.68rem;color:#FFD700;font-weight:600;margin-bottom:3px;">📋 Template${tplLabel ? ': ' + escapeHtml(tplLabel) : ''}</div>
+        <div style="font-size:.82rem;color:#d1d5db;line-height:1.4;">${escapeHtml(tplBody)}</div>
+      </div>`;
+    } else {
+      content = `<div style="border-left:3px solid #FFD700;padding:4px 10px;border-radius:0 6px 6px 0;background:rgba(255,215,0,0.06);">
+        <div style="font-size:.68rem;color:#FFD700;font-weight:600;margin-bottom:2px;">📋 Template</div>
+        <div style="font-size:.82rem;color:#8696a0;font-style:italic;">${escapeHtml(raw)}</div>
+      </div>`;
+    }
   } else {
     // Plain text — linkify URLs
     content = escapeHtml(raw).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#FFD700;">$1</a>');
@@ -1394,11 +1449,24 @@ function setupRealtime() {
       // Update lead state
       const lead = chatState.leads.find(l => l.id === msg.lead_id);
       if (lead) {
+        const hadWindowBefore = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
         lead.last_message_at = msg.created_at;
         // If inbound, refresh the 24h window so input unlocks without reload
         if (msg.direction === 'inbound') {
-          lead.wa_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-          if (msg.lead_id === chatState.selectedLeadId) applyWindowUI(lead);
+          const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          lead.wa_window_expires_at = newExpiry.toISOString();
+          if (msg.lead_id === chatState.selectedLeadId) {
+            applyWindowUI(lead);
+            // If window was previously closed (or first inbound), inject a system message
+            if (!hadWindowBefore) {
+              const expiryTime = newExpiry.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              chatState.messages.push({
+                id: crypto.randomUUID(), direction: 'system', type: 'system',
+                content: `🔓 Janela de 24h aberta — expira às ${expiryTime}`,
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
         }
       }
       // If this lead is open, add message live
@@ -1693,21 +1761,39 @@ async function sendSelectedTemplate() {
     });
     const result = await res.json();
     if (res.ok && result.ok) {
-      // Persist template message to DB
+      // Build actual displayed content: "📨 Template: name | interpolated body"
+      const cached = window._tplBodyCache?.[tpl.name] || {};
+      let displayBody = cached.bodyText || '';
+      if (tpl.variables_count > 0) {
+        const params = Array.from({ length: tpl.variables_count }, (_, i) => {
+          return document.getElementById(`tpl-var-${i}`)?.value?.trim() || '';
+        });
+        // Interpolate named params like {{name}} and positional {{1}}
+        (tpl.var_names || []).forEach((vName, i) => {
+          displayBody = displayBody.replace(`{{${vName}}}`, params[i] || '');
+        });
+        params.forEach((v, i) => { displayBody = displayBody.replace(`{{${i + 1}}}`, v); });
+      }
+      // Remove empty {{}} placeholders
+      displayBody = displayBody.replace(/\{\{\}\}/g, '');
+      const content = displayBody ? `📨 Template: ${tpl.name} | ${displayBody}` : `📨 Template: ${tpl.name}`;
+
       const now = new Date().toISOString();
       await window._sb.from('messages').insert({
         workspace_id: chatState.workspaceId,
         lead_id: chatState.selectedLeadId,
         direction: 'outbound', type: 'template',
-        content: `📨 Template: ${tpl.name}`,
+        content,
         automated: false, responded_at: now,
         wa_message_id: result.wa_message_id || null,
       });
       closeTemplateModal();
+      // Log Meta response for debugging
+      console.log('[Template OK] Meta response:', result.meta_response, 'status:', result.message_status);
       showChatToast('✅ Template enviado com sucesso!', 'success');
       chatState.messages.push({
         id: crypto.randomUUID(), direction: 'outbound', type: 'template',
-        content: `📨 Template: ${tpl.name}`,
+        content,
         automated: false, created_at: now,
       });
       renderMessages();
@@ -2147,17 +2233,29 @@ async function sendNewConversation() {
     const result = await res.json();
 
     if (res.ok && result.ok) {
-      // Save message record
+      // Build actual displayed content with interpolated body
+      const cached = window._tplBodyCache?.[tpl.name] || {};
+      let displayBody = cached.bodyText || '';
+      if (params.length > 0) {
+        (tpl.var_names || []).forEach((vName, i) => {
+          displayBody = displayBody.replace(`{{${vName}}}`, params[i] || '');
+        });
+        params.forEach((v, i) => { displayBody = displayBody.replace(`{{${i + 1}}}`, v); });
+      }
+      displayBody = displayBody.replace(/\{\{\}\}/g, '');
+      const content = displayBody ? `📨 Template: ${tpl.name} | ${displayBody}` : `📨 Template: ${tpl.name}`;
+
       const now = new Date().toISOString();
       await window._sb.from('messages').insert({
         workspace_id: chatState.workspaceId,
         lead_id: leadId,
         direction: 'outbound', type: 'template',
-        content: `📨 Template: ${tpl.name} (${params.join(', ')})`,
+        content,
         automated: false, responded_at: now,
         wa_message_id: result.wa_message_id || null,
       });
       closeNewConvoModal();
+      console.log('[NewConvo Template OK] Meta response:', result.meta_response, 'status:', result.message_status);
       showChatToast('✅ Mensagem enviada!', 'success');
       // Reload leads to show the new one
       await loadLeads();
