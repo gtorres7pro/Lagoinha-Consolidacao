@@ -89,6 +89,7 @@ function buildChatLayout() {
           <div class="chat-sidebar-title">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#FFD700" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Conversas</span>
+            <span id="chat-realtime-dot" title="Conectando..." style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;margin-left:6px;flex-shrink:0;transition:background .3s;"></span>
           </div>
           <div class="chat-sidebar-actions">
             <button class="csb" onclick="openBroadcastModal()" title="Broadcast">
@@ -1120,12 +1121,17 @@ async function sendManualMessage() {
 
       input.value = '';
       input.style.height = '';
+      // Update in-memory lead so window stays open
       lead.llm_lock_until = lockUntil;
+      lead.last_message_at = now;
+      lead.wa_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       updateLockUI(lead);
-      chatState.messages.push({
+      applyWindowUI(lead);
+      const msgObj = {
         id: crypto.randomUUID(), direction: 'outbound', type: 'text',
         content: message, automated: false, created_at: now,
-      });
+      };
+      chatState.messages.push(msgObj);
       renderMessages();
     } else {
       const errMsg = result.error || result.message || 'Erro ao enviar mensagem.';
@@ -1263,10 +1269,23 @@ async function toggleHighlightCurrentLead() {
 }
 
 // ─── REALTIME ─────────────────────────────────────────────────────────────────
+function _setRealtimeStatus(status) {
+  // status: 'connecting' | 'connected' | 'reconnecting' | 'error'
+  const dot = document.getElementById('chat-realtime-dot');
+  if (!dot) return;
+  const colors = { connecting: '#fbbf24', connected: '#4ade80', reconnecting: '#f59e0b', error: '#f87171' };
+  dot.style.background = colors[status] || '#666';
+  dot.title = status === 'connected' ? 'Tempo real ativo' : status === 'error' ? 'Reconectando...' : 'Conectando...';
+}
+
 function setupRealtime() {
   if (chatState.realtimeChannel) {
     window._sb.removeChannel(chatState.realtimeChannel);
+    chatState.realtimeChannel = null;
   }
+
+  _setRealtimeStatus('connecting');
+
   chatState.realtimeChannel = window._sb
     .channel(`chat-workspace-${chatState.workspaceId}`)
     .on('postgres_changes', {
@@ -1274,19 +1293,44 @@ function setupRealtime() {
       filter: `workspace_id=eq.${chatState.workspaceId}`
     }, (payload) => {
       const msg = payload.new;
-      // Update lead last_message_at in state
+      // Update lead state
       const lead = chatState.leads.find(l => l.id === msg.lead_id);
-      if (lead) lead.last_message_at = msg.created_at;
+      if (lead) {
+        lead.last_message_at = msg.created_at;
+        // If inbound, refresh the 24h window so input unlocks without reload
+        if (msg.direction === 'inbound') {
+          lead.wa_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          if (msg.lead_id === chatState.selectedLeadId) applyWindowUI(lead);
+        }
+      }
       // If this lead is open, add message live
       if (msg.lead_id === chatState.selectedLeadId) {
-        chatState.messages.push(msg);
-        renderMessages();
+        // Avoid duplicates from optimistic inserts
+        if (!chatState.messages.find(m => m.id === msg.id)) {
+          chatState.messages.push(msg);
+          renderMessages();
+        }
       }
       renderLeadsList();
       updateSidebarBadge();
       loadKPIs();
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        _setRealtimeStatus('connected');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
+        _setRealtimeStatus('error');
+        // Auto-reconnect after 5 seconds
+        setTimeout(() => {
+          if (chatState.workspaceId) setupRealtime();
+        }, 5000);
+      } else if (status === 'CLOSED') {
+        _setRealtimeStatus('reconnecting');
+        setTimeout(() => {
+          if (chatState.workspaceId) setupRealtime();
+        }, 3000);
+      }
+    });
 }
 
 function subscribeToLead(leadId) {
