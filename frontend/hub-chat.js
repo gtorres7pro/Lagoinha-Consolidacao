@@ -1475,8 +1475,13 @@ function setupRealtime() {
       }
       // If this lead is open, add message live
       if (msg.lead_id === chatState.selectedLeadId) {
-        // Avoid duplicates from optimistic inserts
-        if (!chatState.messages.find(m => m.id === msg.id)) {
+        // Avoid duplicates from optimistic inserts (check by id OR by content+direction within 3s)
+        const isDupe = chatState.messages.find(m => 
+          m.id === msg.id || 
+          (m.direction === msg.direction && m.content === msg.content && 
+           Math.abs(new Date(m.created_at) - new Date(msg.created_at)) < 3000)
+        );
+        if (!isDupe) {
           chatState.messages.push(msg);
           renderMessages();
         }
