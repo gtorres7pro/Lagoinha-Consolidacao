@@ -2243,15 +2243,26 @@ html, body {
 [data-theme="light"] .hub-card,
 [data-theme="light"] .hub-kpi-card,
 [data-theme="light"] .crie-kpi-card,
+[data-theme="light"] .chart-box,
+[data-theme="light"] .kpi-box,
 [data-theme="light"] .home-glass-card {
   background: #fff !important;
   border-color: var(--border) !important;
 }
 [data-theme="light"] .hub-kpi-card:hover,
+[data-theme="light"] .kpi-box:hover,
+[data-theme="light"] .chart-box:hover,
 [data-theme="light"] .crie-kpi-card:hover { border-color: rgba(251,191,36,0.25) !important; }
-[data-theme="light"] .hub-kpi-label { color: var(--text-muted) !important; }
-[data-theme="light"] .hub-kpi-value { color: #111 !important; }
-[data-theme="light"] .hub-kpi-sub { color: var(--text-muted) !important; }
+[data-theme="light"] .hub-kpi-label,
+[data-theme="light"] .kpi-title,
+[data-theme="light"] .chart-title,
+[data-theme="light"] .crie-kpi-card h3 { color: var(--text-muted) !important; }
+[data-theme="light"] .chart-title { border-bottom-color: var(--border) !important; }
+[data-theme="light"] .hub-kpi-value,
+[data-theme="light"] .crie-kpi-val,
+[data-theme="light"] .kpi-number { color: #111 !important; }
+[data-theme="light"] .hub-kpi-sub,
+[data-theme="light"] .kpi-total { color: var(--text-muted) !important; }
 
 /* ── KPI generic inline cards (many modules use rgba bg) ── */
 [data-theme="light"] [style*="rgba(255,255,255,0.04)"],
@@ -2488,17 +2499,54 @@ html, body {
 [data-theme="light"] .retencao-bar-wrap { background: rgba(0,0,0,0.07); }
 [data-theme="light"] .retencao-section-title { color: rgba(0,0,0,0.3); }
 
-/* ── Buttons (ghost) ── */
+/* ── Buttons (ghost/outline) ── */
 [data-theme="light"] .hub-btn-ghost { color: var(--text-muted); border-color: var(--border); }
 [data-theme="light"] .hub-btn-ghost:hover { background: rgba(0,0,0,0.05); color: #111; }
+[data-theme="light"] .btn-outline { border-color: rgba(0,0,0,0.12) !important; color: #111 !important; }
+[data-theme="light"] .btn-outline:hover { border-color: rgba(0,0,0,0.25) !important; color: #000 !important; background: rgba(0,0,0,0.04) !important; }
 
 /* ── Chat module ── */
-[data-theme="light"] #chat-container { background: #f2f3f6 !important; }
-[data-theme="light"] #contact-list { background: #e8eaee !important; border-right-color: var(--border) !important; }
-[data-theme="light"] #chat-header { background: #e8eaee !important; border-bottom-color: var(--border) !important; }
-[data-theme="light"] #message-input-bar { background: #e8eaee !important; border-top-color: var(--border) !important; }
-[data-theme="light"] .message-bubble-out { background: #FBBF24 !important; color: #000 !important; }
-[data-theme="light"] .message-bubble-in  { background: #fff !important; color: #111 !important; border: 1px solid rgba(0,0,0,0.07) !important; }
+[data-theme="light"] .chat-root,
+[data-theme="light"] .chat-list-panel,
+[data-theme="light"] .chat-search-wrap { background: var(--bg-dashboard) !important; }
+[data-theme="light"] .chat-sidebar-header,
+[data-theme="light"] .chat-header,
+[data-theme="light"] .chat-bottom-bar,
+[data-theme="light"] .chat-template-modal { background: #fff !important; border-color: var(--border) !important; }
+[data-theme="light"] .chat-list-panel { border-right-color: var(--border) !important; }
+[data-theme="light"] .chat-search-inner { background: #fff !important; border-color: var(--border) !important; color: #111 !important; }
+[data-theme="light"] .chat-search-inner input { color: #111 !important; }
+[data-theme="light"] .chat-lead-card:hover { background: rgba(0,0,0,0.03) !important; }
+[data-theme="light"] .chat-lead-card.active { background: #fff !important; border-left-color: var(--accent) !important; border-bottom-color: var(--border) !important; box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important; }
+[data-theme="light"] .lead-card-body { border-bottom-color: var(--border) !important; }
+[data-theme="light"] .lead-card-name,
+[data-theme="light"] .chat-header-name { color: #111 !important; }
+[data-theme="light"] .chat-window,
+[data-theme="light"] .chat-empty-state,
+[data-theme="light"] .chat-messages { background-color: var(--bg-canvas) !important; }
+[data-theme="light"] .chat-composer { background: #fff !important; border-color: var(--border) !important; }
+[data-theme="light"] .chat-composer textarea { color: #111 !important; }
+
+[data-theme="light"] .msg-row.inbound .msg-bubble { background: #fff !important; color: #111 !important; border: 1px solid var(--border) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .msg-row.inbound .msg-bubble::before { border-right-color: #fff !important; filter: drop-shadow(-1px 0px 0px var(--border)); }
+[data-theme="light"] .msg-row.inbound .msg-sender-name { color: var(--text-muted) !important; }
+
+[data-theme="light"] .msg-row.outbound.manual .msg-bubble { background: #e3f2fd !important; color: #0d1a2e !important; border: 1px solid rgba(13,26,46,0.1) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .msg-row.outbound.manual .msg-bubble::before { border-left-color: #e3f2fd !important; filter: drop-shadow(1px 0px 0px rgba(13,26,46,0.1)); }
+[data-theme="light"] .msg-row.outbound.manual .msg-sender-name { color: #1e3a8a !important; }
+
+[data-theme="light"] .msg-row.outbound:not(.manual) .msg-bubble { background: #fef3c7 !important; color: #78350f !important; border: 1px solid rgba(251,191,36,0.3) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important; }
+[data-theme="light"] .msg-row.outbound:not(.manual) .msg-bubble::before { border-left-color: #fef3c7 !important; filter: drop-shadow(1px 0px 0px rgba(251,191,36,0.3)); }
+[data-theme="light"] .msg-row.outbound:not(.manual) .msg-sender-name { color: #b45309 !important; }
+
+[data-theme="light"] .messages-date-divider span { background: #fff !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+[data-theme="light"] .chat-template-modal-header { border-bottom-color: var(--border) !important; color: #111 !important; }
+[data-theme="light"] .chat-tpl-card { background: #fff !important; border-color: var(--border) !important; }
+[data-theme="light"] .chat-tpl-card:hover { background: rgba(0,0,0,0.02) !important; }
+[data-theme="light"] .chat-tpl-card.selected { background: rgba(251,191,36,0.1) !important; border-color: rgba(251,191,36,0.3) !important; }
+[data-theme="light"] .chat-tpl-name { color: #111 !important; }
+[data-theme="light"] .chat-sidebar-title { color: #111 !important; }
+[data-theme="light"] .chat-empty-state h3 { color: #111 !important; }
 
 /* ── Cantina public page is unaffected (standalone page) ── */
 
