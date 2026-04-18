@@ -1,3 +1,13 @@
+/* ── Theme: apply before first paint to prevent flash ──────────────────── */
+(function() {
+    try {
+        const saved = localStorage.getItem('zelo_theme');
+        if (saved === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    } catch(e) { /* localStorage unavailable */ }
+})();
+
 /* hub-dashboard.js — Zelo Pro Dashboard Logic */
 /* Auto-extracted from dashboard.html — Fase J Security Hardening */
 
@@ -13669,18 +13679,6 @@ function openAddWorkshopContent() {
 function clearYtPreview() {
     const el = document.getElementById('ws-yt-preview');
     if (el) el.style.display = 'none';
-}
-
-async function fetchYouTubeMeta() {
-    const url = document.getElementById('ws-youtube-url')?.value?.trim();
-    if (!url) return;
-    const ytId = extractYtId(url);
-    if (!ytId) { showHubToast('URL do YouTube inválido.', 'error'); return; }
-
-    // Use oEmbed (no API key needed)
-    try {
-        const res  = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`);
-        const data = await res.json();
 
         // Populate fields
         const titleEl = document.getElementById('ws-content-title');
@@ -14141,3 +14139,77 @@ function showHubToast(msg, type = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUSTOMIZAÇÕES MODULE — Theme Toggle
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Called by the toggle checkbox in view-customizacoes.
+ * @param {boolean} isLight  true = switch to light mode.
+ */
+window.handleThemeToggle = function(isLight) {
+    try {
+        if (isLight) {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('zelo_theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('zelo_theme', 'dark');
+        }
+        _syncThemeUI(isLight);
+    } catch(e) { console.error('handleThemeToggle:', e); }
+};
+
+/** Sync all theme UI indicators after a theme change. */
+function _syncThemeUI(isLight) {
+    const toggle = document.getElementById('theme-toggle-input');
+    if (toggle) toggle.checked = isLight;
+
+    const labelText = document.getElementById('theme-label-text');
+    const labelSub  = document.getElementById('theme-label-sub');
+    if (labelText) labelText.textContent = isLight ? 'Tema Claro' : 'Tema Escuro';
+    if (labelSub)  labelSub.textContent  = isLight
+        ? 'Fundo claro ideal para ambientes iluminados'
+        : 'Fundo escuro com acentos em dourado — ideal para uso noturno';
+
+    const sunIcon  = document.getElementById('theme-icon-sun');
+    const moonIcon = document.getElementById('theme-icon-moon');
+    if (sunIcon)  sunIcon.style.display  = isLight ? 'none' : '';
+    if (moonIcon) moonIcon.style.display = isLight ? '' : 'none';
+
+    const pillDark  = document.querySelector('.theme-pill-icon-dark');
+    const pillLight = document.querySelector('.theme-pill-icon-light');
+    if (pillDark)  pillDark.style.display  = isLight ? 'none' : '';
+    if (pillLight) pillLight.style.display = isLight ? '' : 'none';
+}
+
+/** Reads localStorage and syncs the toggle UI — called on tab open. */
+function initCustomizacoes() {
+    try {
+        const isLight = (localStorage.getItem('zelo_theme') || 'dark') === 'light';
+        _syncThemeUI(isLight);
+    } catch(e) { console.error('initCustomizacoes:', e); }
+}
+
+/* Patch switchTab to intercept 'customizacoes' ─────────────────────────── */
+(function() {
+    const _prev = window.switchTab;
+    window.switchTab = function(tab) {
+        if (tab === 'customizacoes') {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            const view = document.getElementById('view-customizacoes');
+            if (view) view.classList.add('active');
+            document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
+            const navItem = document.getElementById('nav-customizacoes');
+            if (navItem) navItem.classList.add('active');
+            // Auto-open the settings submenu if it is closed
+            if (typeof settingsMenuOpen !== 'undefined' && !settingsMenuOpen &&
+                typeof toggleSettingsMenu === 'function') {
+                toggleSettingsMenu();
+            }
+            initCustomizacoes();
+            return;
+        }
+        if (_prev) _prev(tab);
+    };
+})();

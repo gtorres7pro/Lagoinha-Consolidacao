@@ -1381,6 +1381,10 @@
                             <span class="nav-icon" style="color:#25D366;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
                             <span class="nav-label">WhatsApp</span>
                         </li>
+                        <li id="nav-customizacoes" onclick="switchTab('customizacoes')">
+                            <span class="nav-icon" style="color:#a78bfa;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125 0-.92.747-1.687 1.688-1.687H16c2.97 0 5.4-2.43 5.4-5.4C21.39 6.88 17.16 2 12 2z"/></svg></span>
+                            <span class="nav-label">Customizações</span>
+                        </li>
                     </ul>
                 </div>
             </li>
@@ -2828,6 +2832,107 @@
 
             </div>
         </div><!-- /#view-whatsapp-config -->
+
+
+        <!-- ════════════════════════════════════════════════════════
+             View: Customizações (Configurações > Customizações)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="view-customizacoes" class="view-section">
+
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1 style="display:flex;align-items:center;gap:12px;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="#a78bfa"/><circle cx="17.5" cy="10.5" r=".5" fill="#a78bfa"/><circle cx="8.5" cy="7.5" r=".5" fill="#a78bfa"/><circle cx="6.5" cy="12.5" r=".5" fill="#a78bfa"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125 0-.92.747-1.687 1.688-1.687H16c2.97 0 5.4-2.43 5.4-5.4C21.39 6.88 17.16 2 12 2z"/></svg>
+                        Customizações
+                    </h1>
+                    <p>Personalize a aparência e o comportamento da plataforma</p>
+                </div>
+            </header>
+
+            <div style="padding:0 28px 60px; max-width:700px; display:flex; flex-direction:column; gap:20px;">
+
+                <!-- ─── Section: Aparência ─────────────────────────── -->
+                <div class="custom-settings-section">
+                    <div class="custom-settings-section-header">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1.1rem;">🎨</span>
+                            <div>
+                                <div style="font-weight:700;font-size:0.95rem;color:var(--text);">Aparência</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">Controle o tema visual da plataforma</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle Row -->
+                    <div class="custom-settings-row" id="theme-toggle-row">
+                        <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+                            <div class="custom-setting-icon" id="theme-icon-display" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:#FBBF24;">
+                                <!-- Sun icon (dark mode) / Moon icon (light mode) — toggled via JS -->
+                                <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;font-size:0.88rem;color:var(--text);" id="theme-label-text">Tema Escuro</div>
+                                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;" id="theme-label-sub">Fundo escuro com acentos em dourado — ideal para uso noturno</div>
+                            </div>
+                        </div>
+                        <!-- iOS-style Toggle -->
+                        <label class="theme-pill-toggle" title="Alternar tema">
+                            <input type="checkbox" id="theme-toggle-input" onchange="handleThemeToggle(this.checked)">
+                            <span class="theme-pill-track">
+                                <span class="theme-pill-thumb">
+                                    <svg class="theme-pill-icon-dark" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                    <svg class="theme-pill-icon-light" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ─── Section: Notificações (Em breve) ──────────── -->
+                <div class="custom-settings-section custom-settings-section-dimmed">
+                    <div class="custom-settings-section-header">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1.1rem;">🔔</span>
+                            <div>
+                                <div style="font-weight:700;font-size:0.95rem;color:var(--text-muted);">Notificações Visuais</div>
+                                <div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">Sons, badges e alertas de atividade</div>
+                            </div>
+                        </div>
+                        <span class="custom-soon-badge">Em breve</span>
+                    </div>
+                    <div class="custom-settings-row custom-settings-row-disabled">
+                        <div style="display:flex;align-items:center;gap:14px;flex:1;">
+                            <div class="custom-setting-icon" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text-dim);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            </div>
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;color:var(--text-dim);">Sons de notificação</div>
+                                <div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">Toque ao receber mensagem ou novo lead</div>
+                            </div>
+                        </div>
+                        <div class="theme-pill-toggle theme-pill-toggle-disabled" style="opacity:0.35;pointer-events:none;">
+                            <span class="theme-pill-track"><span class="theme-pill-thumb"></span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─── Section: Idioma (Em breve) ────────────────── -->
+                <div class="custom-settings-section custom-settings-section-dimmed">
+                    <div class="custom-settings-section-header">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1.1rem;">🌎</span>
+                            <div>
+                                <div style="font-weight:700;font-size:0.95rem;color:var(--text-muted);">Idioma & Região</div>
+                                <div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">Português, English, Español</div>
+                            </div>
+                        </div>
+                        <span class="custom-soon-badge">Em breve</span>
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- /#view-customizacoes -->
 
 
         <!-- View: Workspace Settings (LLM Prompts) -->
