@@ -1260,18 +1260,6 @@ async function sendManualMessage() {
       const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
       const now = new Date().toISOString();
 
-      // Persist outbound message + human lock
-      await window._sb.from('messages').insert({
-        workspace_id: chatState.workspaceId,
-        lead_id: chatState.selectedLeadId,
-        direction: 'outbound', type: 'text',
-        content: message, automated: false, responded_at: now,
-      });
-      await window._sb.from('leads').update({
-        llm_lock_until: lockUntil,
-        last_message_at: now,
-      }).eq('id', chatState.selectedLeadId);
-
       input.value = '';
       input.style.height = '';
       // Update in-memory lead so window stays open
@@ -1286,6 +1274,22 @@ async function sendManualMessage() {
       };
       chatState.messages.push(msgObj);
       renderMessages();
+
+      // Persist to DB (separate try-catch to not block UI)
+      try {
+        await window._sb.from('messages').insert({
+          workspace_id: chatState.workspaceId,
+          lead_id: chatState.selectedLeadId,
+          direction: 'outbound', type: 'text',
+          content: message, automated: false, responded_at: now,
+        });
+        await window._sb.from('leads').update({
+          llm_lock_until: lockUntil,
+          last_message_at: now,
+        }).eq('id', chatState.selectedLeadId);
+      } catch(dbErr) {
+        console.warn('[Chat] DB persist failed:', dbErr.message);
+      }
     } else {
       const errMsg = result.error || result.message || 'Erro ao enviar mensagem.';
       showChatToast(`❌ ${errMsg}`, 'error');
@@ -1779,16 +1783,8 @@ async function sendSelectedTemplate() {
       const content = displayBody ? `📨 Template: ${tpl.name} | ${displayBody}` : `📨 Template: ${tpl.name}`;
 
       const now = new Date().toISOString();
-      await window._sb.from('messages').insert({
-        workspace_id: chatState.workspaceId,
-        lead_id: chatState.selectedLeadId,
-        direction: 'outbound', type: 'template',
-        content,
-        automated: false, responded_at: now,
-        wa_message_id: result.wa_message_id || null,
-      });
+      // Close modal + show success FIRST (before DB insert which may fail due to RLS)
       closeTemplateModal();
-      // Log Meta response for debugging
       console.log('[Template OK] Meta response:', result.meta_response, 'status:', result.message_status);
       showChatToast('✅ Template enviado com sucesso!', 'success');
       chatState.messages.push({
@@ -1797,6 +1793,19 @@ async function sendSelectedTemplate() {
         automated: false, created_at: now,
       });
       renderMessages();
+      // Persist to DB (separate try-catch to not block UI)
+      try {
+        await window._sb.from('messages').insert({
+          workspace_id: chatState.workspaceId,
+          lead_id: chatState.selectedLeadId,
+          direction: 'outbound', type: 'template',
+          content,
+          automated: false, responded_at: now,
+          wa_message_id: result.wa_message_id || null,
+        });
+      } catch(dbErr) {
+        console.warn('[Template] DB insert failed (RLS?):', dbErr.message);
+      }
     } else {
       const errMsg = result.error || 'Erro desconhecido';
       showChatToast(`❌ ${errMsg}`, 'error');
