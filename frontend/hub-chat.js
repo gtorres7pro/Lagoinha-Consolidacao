@@ -198,7 +198,7 @@ function buildChatLayout() {
             <button class="cbb" id="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Anexar arquivo">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
-            <input type="file" id="chat-file-input" style="display:none;" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" onchange="handleChatFileAttach(event)">
+            <input type="file" id="chat-file-input" style="display:none;" accept="image/*,audio/*,video/mp4,application/pdf,.doc,.docx,.xls,.xlsx" onchange="handleChatFileAttach(event)">
             
             <div class="chat-composer">
               <button class="cbb cbb-inner" title="Emoji">
@@ -622,6 +622,17 @@ function buildChatLayout() {
 
     .msg-audio-indicator { display:flex; align-items:center; gap:6px; }
     .msg-audio-indicator::before { content:'🎵'; }
+
+    /* Rich media messages */
+    .msg-audio-player {
+      display:flex; align-items:center; gap:8px; min-width:200px;
+    }
+    .msg-image-wrap {
+      cursor:pointer; line-height:0; border-radius:8px; overflow:hidden;
+    }
+    .msg-image-wrap img { display:block; border-radius:8px; transition:opacity .15s; }
+    .msg-image-wrap img:hover { opacity:.88; }
+    .msg-content a { color:#FFD700; }
 
     .messages-date-divider { display:flex; justify-content:center; margin:14px 0; user-select:none; }
     .messages-date-divider span {
@@ -1047,17 +1058,67 @@ function renderMessages() {
 function buildMessageBubble(msg, isConsecutive) {
   const isOutbound = msg.direction === 'outbound';
   const isManual = isOutbound && !msg.automated;
-  const isAudio = msg.type === 'audio';
   const time = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const rowClass = `msg-row ${isOutbound ? 'outbound' : 'inbound'} ${isManual ? 'manual' : ''} ${isConsecutive ? 'consecutive' : ''}`;
 
-  let content = escapeHtml(msg.content || '');
-  if (isAudio) {
-    const audioText = msg.content?.replace(/^\[ÁUDIO GERADO\]: /, '') || '';
-    content = `<div class="msg-audio-indicator">${escapeHtml(audioText)}</div>`;
+  const type = msg.type || 'text';
+  const raw = msg.content || '';
+
+  // Extract URL from content if present (handles "[Imagem: file.jpg] https://..." format)
+  const urlMatch = raw.match(/https?:\/\/[^\s]+/);
+  const rawUrl = urlMatch ? urlMatch[0] : null;
+
+  let content = '';
+
+  if (type === 'audio' || type === 'voice') {
+    // Check if the content is a URL we can play or a meta media ID
+    const audioUrl = rawUrl || (raw.startsWith('http') ? raw : null);
+    if (audioUrl) {
+      content = `
+        <div class="msg-audio-player">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <audio controls preload="none" style="height:32px;flex:1;min-width:0;accent-color:#FFD700;">
+            <source src="${audioUrl}">
+            Seu browser não suporta áudio.
+          </audio>
+        </div>`;
+    } else {
+      // Media ID — needs to be fetched via API, show a playable loading button
+      const mediaId = raw.replace(/[^\w-]/g, '');
+      content = `
+        <div class="msg-audio-player" id="ap-${msg.id}">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <button onclick="playAudioMessage('${msg.id}','${mediaId}')" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#FFD700;border-radius:20px;padding:4px 14px;cursor:pointer;font-size:.75rem;">▶ Ouvir áudio</button>
+        </div>`;
+    }
+  } else if (type === 'image') {
+    const imgUrl = rawUrl || raw;
+    content = `
+      <div class="msg-image-wrap">
+        <img src="${imgUrl}" alt="Imagem" loading="lazy" onclick="window.open('${imgUrl}','_blank')" style="max-width:260px;max-height:200px;border-radius:8px;cursor:pointer;display:block;object-fit:cover;">
+      </div>`;
+  } else if (type === 'document' || type === 'file') {
+    const docUrl = rawUrl || raw;
+    // Extract filename from URL or content
+    const fnMatch = raw.match(/\[(?:Imagem|Arquivo|Documento): ([^\]]+)\]/) || raw.match(/([^/]+\.[a-z]{2,5})$/i);
+    const fileName = fnMatch ? fnMatch[1] : 'Arquivo';
+    content = `
+      <a href="${docUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;color:#FFD700;text-decoration:none;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span style="font-size:.82rem;text-decoration:underline;word-break:break-all;">${escapeHtml(fileName)}</span>
+      </a>`;
+  } else if (type === 'template') {
+    content = `<span style="color:#8696a0;font-style:italic;">${escapeHtml(raw)}</span>`;
+  } else {
+    // Plain text — linkify URLs
+    content = escapeHtml(raw).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#FFD700;">$1</a>');
   }
 
-  const badge = (!isConsecutive) ? (isManual ? '👤 Equipe' : isAudio ? '🎵 Áudio' : isOutbound ? '🤖 Mila' : '') : '';
+  const badge = (!isConsecutive) ? (
+    isManual ? '👤 Equipe' :
+    (type === 'audio' || type === 'voice') ? '🎵 Áudio' :
+    isOutbound ? '🤖 Mila' : ''
+  ) : '';
 
   const doubleCheck = isOutbound ? `<svg viewBox="0 0 16 11" width="16" height="11" fill="none"><path d="M11.07 0L5.43 5.57 2.93 3.06 0 5.97l5.43 5.34L14 2.92z" fill="currentColor" opacity=".5"/><path d="M14.07 0L8.43 5.57 7.5 4.65 4.57 7.56l3.86 3.75L17 2.92z" fill="currentColor" opacity=".5"/></svg>` : '';
 
@@ -1655,8 +1716,17 @@ async function handleChatFileAttach(event) {
   event.target.value = '';
   if (!file || !chatState.selectedLeadId) return;
 
-  const maxSize = 10 * 1024 * 1024;
-  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 10MB.', 'error'); return; }
+  const maxSize = 16 * 1024 * 1024; // 16MB (Meta's limit)
+  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 16MB.', 'error'); return; }
+
+  const isImage = file.type.startsWith('image/');
+  const isAudio = file.type.startsWith('audio/');
+  const isVideo = file.type.startsWith('video/');
+  // Everything else is a document
+  let msgType = 'document';
+  if (isImage) msgType = 'image';
+  else if (isAudio) msgType = 'audio';
+  else if (isVideo) msgType = 'video';
 
   showChatToast('📎 Fazendo upload...', 'info');
 
@@ -1671,11 +1741,10 @@ async function handleChatFileAttach(event) {
 
     const { data: urlData } = window._sb.storage.from('app_files').getPublicUrl(path);
     const publicUrl = urlData?.publicUrl;
+    if (!publicUrl) throw new Error('Falha ao obter URL do arquivo');
 
-    // Send URL as text message via Meta Cloud API
+    // Send as proper Meta media message using link (Meta accepts public URLs)
     const session = (await window._sb.auth.getSession()).data.session;
-    const isImage = file.type.startsWith('image/');
-    const msgContent = isImage ? `📷 ${publicUrl}` : `📎 ${publicUrl}`;
 
     const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-send-message`, {
       method: 'POST',
@@ -1683,25 +1752,30 @@ async function handleChatFileAttach(event) {
       body: JSON.stringify({
         workspace_id: chatState.workspaceId,
         lead_id: chatState.selectedLeadId,
-        message: { type: 'text', content: publicUrl },
+        message: {
+          type: msgType,
+          content: publicUrl,
+          filename: file.name, // used for document display name
+        },
       }),
     });
     const result = await res.json();
     if (res.ok && result.ok) {
       const now = new Date().toISOString();
+      const dbContent = isImage
+        ? publicUrl
+        : `[${file.name}] ${publicUrl}`;
       await window._sb.from('messages').insert({
         workspace_id: chatState.workspaceId,
         lead_id: chatState.selectedLeadId,
-        direction: 'outbound', type: isImage ? 'image' : 'document',
-        content: `[${isImage ? 'Imagem' : 'Arquivo'}: ${file.name}] ${publicUrl}`,
+        direction: 'outbound', type: msgType,
+        content: dbContent,
         automated: false, responded_at: now,
       });
       showChatToast('✅ Arquivo enviado!', 'success');
       chatState.messages.push({
-        id: crypto.randomUUID(), direction: 'outbound',
-        type: isImage ? 'image' : 'document',
-        content: `[${isImage ? 'Imagem' : 'Arquivo'}: ${file.name}] ${publicUrl}`,
-        automated: false, created_at: now,
+        id: crypto.randomUUID(), direction: 'outbound', type: msgType,
+        content: dbContent, automated: false, created_at: now,
       });
       renderMessages();
     } else {
@@ -2108,4 +2182,37 @@ window.selectNewConvoTemplate = selectNewConvoTemplate;
 window.sendNewConversation = sendNewConversation;
 window._lookupConvoPhone = _lookupConvoPhone;
 window._updateNewConvoSendBtn = _updateNewConvoSendBtn;
+
+// ─── AUDIO MEDIA FETCH ──────────────────────────────────────────────────────
+// Called when an inbound audio message has a Meta media ID (not a URL)
+// Fetches the temporary download URL from Meta via a helper EF, then injects player
+async function playAudioMessage(msgId, mediaId) {
+  const container = document.getElementById(`ap-${msgId}`);
+  if (!container) return;
+  const btn = container.querySelector('button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Carregando...'; }
+
+  try {
+    const session = (await window._sb.auth.getSession()).data.session;
+    const res = await fetch(`${EDGE_URL_CHAT}/whatsapp-get-media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ workspace_id: chatState.workspaceId, media_id: mediaId }),
+    });
+    const data = await res.json();
+    if (data.ok && data.url) {
+      container.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+        <audio controls autoplay preload="auto" style="height:32px;flex:1;min-width:0;accent-color:#FFD700;">
+          <source src="${data.url}">
+        </audio>`;
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = '❌ Falha ao carregar'; }
+    }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = `❌ ${e.message}`; }
+  }
+}
+window.playAudioMessage = playAudioMessage;
+
 
