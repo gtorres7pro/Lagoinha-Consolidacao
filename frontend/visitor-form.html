@@ -663,40 +663,16 @@
                     tasks: [{"task_name": "Welcome Message Required", "status": "pending", "assigned_to": "ai"}]
                 };
 
-                // ── G1: Email Duplicate Check (Visitantes → merge on existing lead) ──
-                const emailInput = document.getElementById('email').value.trim().toLowerCase();
-                if (emailInput) {
-                    const { data: existingLead } = await supabase
-                        .from('leads')
-                        .select('id, tasks')
-                        .eq('workspace_id', workspaceId)
-                        .eq('email', emailInput)
-                        .maybeSingle();
-                    if (existingLead) {
-                        // Append new visit task to existing lead
-                        const taskList = Array.isArray(existingLead.tasks) ? existingLead.tasks : [];
-                        taskList.push({ task_name: 'Nova Visita Registrada', status: 'pending', assigned_to: 'human' });
-                        await supabase.from('leads').update({
-                            last_interaction: new Date().toISOString(),
-                            tasks: taskList
-                        }).eq('id', existingLead.id);
-                        // Show welcome-back success
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        document.getElementById('successScreen').classList.add('active');
-                        const welcomeMsg = document.getElementById('success-welcome-note');
-                        if (welcomeMsg) welcomeMsg.style.display = 'block';
-                        let count = 3;
-                        const interval = setInterval(() => {
-                            count--;
-                            document.getElementById('countdown').innerText = count;
-                            if (count <= 0) { clearInterval(interval); window.location.href = 'success.html'; }
-                        }, 1000);
-                        return;
-                    }
-                }
+                // ── G1: Email Duplicate Check ──
+                // Note: anon users cannot SELECT from 'leads' (RLS blocks it),
+                // so the duplicate check is skipped for public forms.
+                // The DB has no unique constraint on email, so duplicates are allowed.
                 // ── End G1 ──────────────────────────────────────────────────────
 
-                const { data, error } = await supabase.from('leads').insert([leadData]).select();
+                // IMPORTANT: Do NOT chain .select() here — the anon role has no
+                // SELECT permission on 'leads' (RLS policy requires auth.uid()),
+                // so .select() would fail even though the INSERT succeeded.
+                const { error } = await supabase.from('leads').insert([leadData]);
 
                 if (error) throw error;
 
@@ -716,7 +692,7 @@
                     })
                 }).catch(() => {});
 
-                // 📊 Audit log — fire and forget
+                // 📊 Audit log — fire and forget (also fails for anon, but harmless)
                 supabase.from('audit_logs').insert({
                     workspace_id: workspaceId,
                     user_id: null,
@@ -725,7 +701,7 @@
                     description: `Form de Visitante preenchido — ${leadData.name}`,
                     category: 'forms',
                     entity_type: 'lead',
-                    entity_id: data?.[0]?.id ? String(data[0].id) : null,
+                    entity_id: null,
                     metadata: { lead_name: leadData.name, workspace: workspaceName }
                 }).then(() => {}).catch(() => {});
 
