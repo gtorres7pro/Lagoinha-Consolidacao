@@ -467,6 +467,7 @@
     let _isFree               = false;
     let _wsDefaultCountryCode = '+55'; // loaded from workspace crie_settings
     let _wsDefaultCurrency    = 'BRL'; // loaded from workspace crie_settings
+    let _wsTimezone           = 'Europe/Lisbon'; // loaded from workspace crie_settings
 
     function show(id) {
         ['loading-state','no-event-state','form-state','success-state','payment-success-state','payment-cancelled-state']
@@ -481,9 +482,14 @@
 
     function fmtDate(iso) {
         if (!iso) return '—';
+        // Use the workspace's timezone for display.
+        // Events are stored in UTC (converted via localLisbonToUTC on save),
+        // so we convert back to the workspace's local tz for display.
+        // _wsTimezone is set during init from workspace crie_settings.
+        const tz = _wsTimezone || 'Europe/Lisbon';
         return new Date(iso).toLocaleDateString('pt-PT', {
             weekday:'long', day:'numeric', month:'long', year:'numeric',
-            hour:'2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo'
+            hour:'2-digit', minute:'2-digit', timeZone: tz
         });
     }
 
@@ -521,6 +527,7 @@
             const cs = ws?.crie_settings || {};
             _wsDefaultCountryCode = cs.crie_default_country_code || '+55';
             _wsDefaultCurrency    = cs.crie_default_currency    || 'BRL';
+            _wsTimezone           = cs.timezone                  || 'Europe/Lisbon';
 
             // Pre-select default country code in phone select
             const countrySel = document.getElementById('cr-phone-country');
