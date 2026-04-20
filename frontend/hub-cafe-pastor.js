@@ -45,17 +45,17 @@
 
     /* ── CSS snippets used throughout ── */
     var CSS_CARD  = 'background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:12px;padding:16px;';
-    var CSS_INPUT = 'background:#2a2830 !important;border:1px solid rgba(212,165,116,.25) !important;border-radius:8px !important;'
+    var CSS_INPUT = 'background:var(--bg-input,rgba(0,0,0,0.06)) !important;border:1px solid var(--border,rgba(212,165,116,.25)) !important;border-radius:8px !important;'
                   + 'padding:9px 12px !important;color:var(--text,#f0ede8) !important;font-family:inherit;font-size:.88rem !important;'
                   + 'width:100%;outline:none;box-sizing:border-box;';
     var CSS_SELECT = '-webkit-appearance:none;-moz-appearance:none;appearance:none;'
-                   + 'background:#2a2830 url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23d4a574\'/%3E%3C/svg%3E") no-repeat right 10px center/10px 6px !important;'
+                   + 'background:var(--bg-input,rgba(0,0,0,0.06)) url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23d4a574\'/%3E%3C/svg%3E") no-repeat right 10px center/10px 6px !important;'
                    + 'border:1px solid rgba(212,165,116,.25) !important;border-radius:8px !important;'
                    + 'padding:9px 30px 9px 12px !important;color:var(--text,#f0ede8) !important;'
                    + 'font-family:inherit;font-size:.88rem !important;width:100%;outline:none;box-sizing:border-box;cursor:pointer;';
     var CSS_BTN_GOLD = 'background:#d4a574;color:#111;border:none;padding:10px 18px;border-radius:8px;'
                      + 'font-weight:700;font-size:.88rem;cursor:pointer;';
-    var CSS_BTN_GHOST = 'background:rgba(255,255,255,.08);color:#e0dbd0;border:1px solid rgba(255,255,255,.15);'
+    var CSS_BTN_GHOST = 'background:var(--bg-card,rgba(0,0,0,.035));color:var(--text);border:1px solid var(--border);'
                       + 'padding:10px 18px;border-radius:8px;font-weight:600;font-size:.88rem;cursor:pointer;';
 
     var lbl = function(txt, sub) {
@@ -91,7 +91,7 @@
             s.id = styleId;
             s.textContent = [
                 '#cp-modal-overlay input, #cp-modal-overlay textarea {',
-                '  background: #2a2830 !important; color: var(--text,#f0ede8) !important;',
+                '  background: var(--bg-input,rgba(0,0,0,0.06)) !important; color: var(--text,#f0ede8) !important;',
                 '  border: 1px solid rgba(212,165,116,.3) !important;',
                 '  border-radius: 8px !important; font-size: .88rem !important;',
                 '}',
@@ -100,7 +100,7 @@
                 '  box-shadow: 0 0 0 3px rgba(212,165,116,.12) !important;',
                 '}',
                 '#cp-modal-overlay select {',
-                '  background-color: #2a2830 !important; color: var(--text,#f0ede8) !important;',
+                '  background-color: var(--bg-input,rgba(0,0,0,0.06)) !important; color: var(--text,#f0ede8) !important;',
                 '  border: 1px solid rgba(212,165,116,.3) !important;',
                 '  border-radius: 8px !important; font-size: .88rem !important;',
                 '  -webkit-appearance: none !important; appearance: none !important;',
@@ -115,11 +115,11 @@
                 '  outline: none !important;',
                 '}',
                 '#cp-modal-overlay select option {',
-                '  background: #1e1c24 !important; color: var(--text,#f0ede8) !important;',
+                '  background: var(--bg-card-solid,#131318) !important; color: var(--text,#f0ede8) !important;',
                 '}',
                 '.cp-filter-select {',
 
-                '  background-color: #1f1d24 !important; color: #e0dbd0 !important;',
+                '  background-color: var(--bg-input,rgba(0,0,0,0.06)) !important; color: var(--text,#f0ede8) !important;',
                 '  border: 1px solid rgba(255,255,255,.12) !important;',
                 '  border-radius: 8px !important; font-size: .82rem !important;',
                 '  padding: 7px 28px 7px 10px !important;',
@@ -130,7 +130,7 @@
                 '  background-size: 9px 5px !important;',
                 '  cursor: pointer;',
                 '}',
-                '.cp-filter-select option { background: #1e1c24 !important; color: var(--text,#f0ede8) !important; }',
+                '.cp-filter-select option { background: var(--bg-card-solid,#131318) !important; color: var(--text,#f0ede8) !important; }',
                 '.cp-table-row { border-bottom: 1px solid rgba(255,255,255,.05); }',
                 '.cp-table-row:hover { background: rgba(212,165,116,.04) !important; }',
             ].join('\n');
