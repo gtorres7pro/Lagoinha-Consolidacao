@@ -813,7 +813,7 @@
                 '<textarea id="cp-cfg-instructions" style="' + CSS_INPUT + 'resize:vertical;" rows="3" placeholder="Ex: Um link de Google Meet será enviado para o seu email antes da sessão.">'
                 + esc(cfg.meeting_link_instructions||'') + '</textarea>') + '</div>'
 
-            + '<div style="margin-bottom:12px;">' + _field('Email para notificações', '<input id="cp-cfg-email" type="email" style="' + CSS_INPUT + '" value="' + esc(cfg.notification_email||'') + '" placeholder="pastor@igreja.com"/>') + '</div>'
+            
 
             + '<button onclick="cpSaveConfig()" id="cp-cfg-save-btn" style="' + CSS_BTN_GOLD + 'width:100%;padding:13px;font-size:.95rem;">💾 Salvar Configurações</button>'
             + '</div>'
@@ -827,6 +827,10 @@
             + '<button onclick="navigator.clipboard.writeText(\'' + pubUrl.replace(/'/g,"\\'") + '\').then(function(){window.hubToast&&window.hubToast(\'Link copiado!\',\'success\');})" '
             + 'style="background:#252525;border:1px solid rgba(255,255,255,.15);color:#ccc;padding:0 14px;border-radius:8px;cursor:pointer;font-size:1rem;" title="Copiar link">📋</button>'
             + '<a href="' + esc(pubUrl) + '" target="_blank" style="background:#252525;border:1px solid rgba(255,255,255,.15);color:#ccc;padding:0 14px;border-radius:8px;cursor:pointer;font-size:1rem;text-decoration:none;display:flex;align-items:center;" title="Abrir">↗</a>'
+            + '</div>'
+            + '<div style="margin-top:16px;text-align:center;">'
+            + '<p style="font-size:.75rem;color:var(--text-muted,#6b7280);margin-bottom:8px;">QR Code para o formulário público</p>'
+            + '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(pubUrl) + '" style="border-radius:8px;border:4px solid rgba(212,165,116,.2);" alt="QR Code" />'
             + '</div>'
             + '</div>'
 
