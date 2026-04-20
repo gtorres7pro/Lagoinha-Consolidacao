@@ -4,340 +4,586 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Café com Pastor — Zelo</title>
-    <link rel="stylesheet" href="/hub.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --accent: #d4a574;
+            --accent-hover: #c8956c;
+            --bg: #0f0f13;
+            --bg-card: #17151c;
+            --bg-el: #1f1c26;
+            --border: rgba(212,165,116,0.18);
+            --text: #f0ede8;
+            --muted: rgba(240,237,232,0.45);
+            --dim: rgba(240,237,232,0.65);
+            --radius: 14px;
+        }
         body {
-            background: var(--bg, #0f0f13);
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
             color: var(--text);
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
             min-height: 100vh;
-        }
-
-        .container {
-            background: var(--bg-card);
-            width: 100%;
-            max-width: 650px;
-            border-radius: 28px;
-            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
-            position: relative;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            padding-bottom: 48px;
-            animation: fadeInUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
-        }
-
-        .banner {
-            width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg, #d4a574 0%, #aa845d 50%, rgba(212,165,116,0.3) 100%);
-        }
-
-        .form-content {
-            padding: 0 36px;
-            margin-top: 32px;
-        }
-
-        @media (max-width: 500px) {
-            .form-content { padding: 0 20px; }
-        }
-
-        .header-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: #d4a574;
             display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 16px;
         }
-
-        .header-desc {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 30px;
-            line-height: 1.4;
-        }
-
-        /* Form Rendering Styles */
-        .fb-field { margin-bottom: 20px; }
-        .fb-label { 
-            display: block; 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            color: var(--text-muted); 
-            margin-bottom: 6px; 
-        }
-        .fb-label.required::after { content: " *"; color: #f43f5e; }
-        
-        .fb-input {
+        .card {
             width: 100%;
-            padding: 13px 16px;
-            border-radius: 12px;
+            max-width: 560px;
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            background: var(--bg-input);
-            color: var(--text);
-            font-family: inherit;
-            font-size: 0.9rem;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+            animation: fadeUp .4s ease both;
         }
-        .fb-input:focus {
-            border-color: #d4a574;
-            box-shadow: 0 0 0 3px rgba(212,165,116,0.12);
-        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .card-banner { height: 6px; background: linear-gradient(90deg, var(--accent), var(--accent-hover), rgba(212,165,116,.3)); }
+        .card-body { padding: 32px; }
+        @media(max-width:480px){ .card-body { padding: 22px 18px; } }
 
-        /* success overlay */
-        .success-overlay {
-            position: fixed; inset: 0;
-            background: rgba(5,5,5,0.96);
-            backdrop-filter: blur(12px);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 40px;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10000;
-        }
-        .success-overlay.active { opacity: 1; pointer-events: auto; }
+        /* ── Step indicator ── */
+        .steps { display: flex; gap: 8px; margin-bottom: 28px; }
+        .step-dot { height: 4px; flex: 1; border-radius: 99px; background: rgba(212,165,116,.2); transition: background .25s; }
+        .step-dot.done { background: var(--accent); }
+        .step-dot.active { background: rgba(212,165,116,.7); }
 
-        .btn-submit {
-            background: #d4a574;
-            color: #111;
-            border: none;
-            padding: 15px 28px;
-            border-radius: 100px;
-            font-size: 0.95rem;
-            font-weight: 800;
-            width: 100%;
-            cursor: pointer;
-            margin-top: 28px;
-            transition: all 0.2s;
-        }
-        .btn-submit:hover { background: #c29566; transform: translateY(-1px); }
+        /* ── Typography ── */
+        .step-title { font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+        .step-desc  { font-size: .88rem; color: var(--muted); line-height: 1.5; margin-bottom: 26px; }
 
+        /* ── Fields ── */
+        .field { margin-bottom: 18px; }
+        .field label { display: block; font-size: .82rem; font-weight: 600; color: var(--dim); margin-bottom: 6px; }
+        .field label.req::after { content: " *"; color: #f43f5e; }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 12px 14px;
+            background: var(--bg-el); border: 1px solid rgba(212,165,116,.2);
+            border-radius: 10px; color: var(--text); font-family: inherit;
+            font-size: .9rem; outline: none; transition: border .2s, box-shadow .2s;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212,165,116,.12);
+        }
+        .field select option { background: #1f1c26; }
+
+        /* ── Radio-cards ── */
+        .radio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+        .radio-card { padding: 18px; border: 2px solid rgba(212,165,116,.2); border-radius: var(--radius); cursor: pointer; text-align: center; transition: all .2s; user-select: none; }
+        .radio-card:hover { border-color: rgba(212,165,116,.5); background: rgba(212,165,116,.05); }
+        .radio-card.selected { border-color: var(--accent); background: rgba(212,165,116,.1); }
+        .radio-card .icon { font-size: 2rem; margin-bottom: 8px; }
+        .radio-card .label { font-weight: 700; font-size: .9rem; color: var(--text); }
+        .radio-card .sublabel { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+        /* ── Slot list ── */
+        .slot-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; max-height: 340px; overflow-y: auto; }
+        .slot-item { padding: 14px 18px; border: 2px solid rgba(212,165,116,.2); border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 14px; transition: all .2s; }
+        .slot-item:hover { border-color: rgba(212,165,116,.5); background: rgba(212,165,116,.05); }
+        .slot-item.selected { border-color: var(--accent); background: rgba(212,165,116,.1); }
+        .slot-item .slot-date { font-weight: 700; font-size: .9rem; }
+        .slot-item .slot-time { font-size: .82rem; color: var(--dim); margin-top: 2px; }
+        .slot-item .slot-type { margin-left: auto; font-size: .75rem; background: rgba(212,165,116,.12); color: var(--accent); border-radius: 20px; padding: 2px 10px; }
+
+        /* ── Buttons ── */
+        .btn { width: 100%; padding: 14px; border-radius: 100px; font-family: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+        .btn-primary { background: var(--accent); color: #111; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-secondary { background: transparent; color: var(--dim); border: 1px solid rgba(255,255,255,.12); margin-top: 10px; }
+        .btn-secondary:hover { background: rgba(255,255,255,.04); }
+
+        /* ── Success ── */
+        .success-wrap { text-align: center; padding: 20px 0; }
+        .success-icon { font-size: 4rem; margin-bottom: 16px; animation: pop .4s ease; }
+        @keyframes pop { 0%{transform:scale(0)} 80%{transform:scale(1.1)} 100%{transform:scale(1)} }
+        .success-title { font-size: 1.4rem; font-weight: 800; color: var(--accent); margin-bottom: 10px; }
+        .success-detail { font-size: .88rem; color: var(--muted); line-height: 1.6; }
+
+        /* ── Error / loading ── */
+        .error-msg { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.3); border-radius: 10px; padding: 12px 16px; font-size: .85rem; color: #f87171; margin-bottom: 16px; }
+        .loader-wrap { text-align: center; padding: 40px 0; }
+        .spinner { width: 32px; height: 32px; border: 3px solid rgba(212,165,116,.2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div class="success-overlay" id="successScreen">
-        <h3 id="success-title" style="color: #d4a574; font-size: 2rem; margin-bottom: 10px;">Solicitação Enviada!</h3>
-        <p id="success-message" style="color:var(--text-muted);">Sua solicitação de agendamento foi registrada com sucesso. Entraremos em contato.</p>
-    </div>
+<div class="card">
+    <div class="card-banner"></div>
+    <div class="card-body">
 
-    <div class="container">
-        <div class="banner"></div>
-        <div class="form-content">
-            <h1 class="header-title" id="form-title">
-                <svg viewBox="0 0 24 24" width="28" height="28" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
-                Café com Pastor
-            </h1>
-            <p class="header-desc" id="form-desc">Carregando formulário...</p>
+        <!-- Step dots -->
+        <div class="steps" id="step-dots"></div>
 
-            <form id="dynamicForm" onsubmit="handleFormSubmit(event)" style="display:none;">
-                <div id="fields-container"></div>
-
-                <div class="fb-field" style="margin-top: 30px;">
-                    <!-- Fixed gender select for Match engine -->
-                    <label class="fb-label required">Gênero</label>
-                    <select id="user-gender" class="fb-input" required>
-                        <option value="" disabled selected>Selecione...</option>
-                        <option value="male">Masculino</option>
-                        <option value="female">Feminino</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn-submit" id="btn-submit-form">Solicitar Agendamento</button>
-            </form>
+        <!-- Content area -->
+        <div id="cp-content">
+            <div class="loader-wrap">
+                <div class="spinner"></div>
+                <div style="color:var(--muted);font-size:.88rem;">A carregar...</div>
+            </div>
         </div>
+
     </div>
+</div>
 
-    <script src="/hub-init.js?v=20260404v1"></script>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const wsSlug = urlParams.get('ws');
-        let _workspaceId = null;
-        let _formConfig = null;
-        
-        async function fetchConfig() {
-            if (!wsSlug) {
-                document.getElementById('form-desc').innerHTML = "<b>Erro:</b> Workspace invisível na URL (?ws=slug).";
-                return;
-            }
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   INIT SUPABASE
+═══════════════════════════════════════════════════════════════ */
+var SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxMDY1MjEsImV4cCI6MjA1ODY4MjUyMX0.PGJFqVPKRSMOR3G5F9G1RA4i2SLaOBnIf5W9p9s6Nt4';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-            // Get Ws
-            const { data: ws, error: e1 } = await window.supabase
-                .from('workspaces')
-                .select('id, name')
-                .eq('slug', wsSlug).single();
-                
-            if (!ws) {
-                document.getElementById('form-desc').innerHTML = "Workspace não encontrado.";
-                return;
-            }
-            _workspaceId = ws.id;
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+var STATE = {
+    step: 0,       // 0=loading, 1=personal, 2=session-type, 3=slots, 4=confirm, 5=success
+    totalSteps: 4, // visible steps (1-4; 5 is success)
+    wsId: null,
+    wsName: null,
+    cfg: null,
+    slots: [],
+    // collected data
+    name: '', email: '', phone: '',
+    gender: '',          // M | F | couple | family
+    sessionType: '',     // online | inperson
+    selectedSlot: null,
+    apptId: null
+};
 
-            // Get Cafe Pastor Config
-            const { data: cfg } = await window.supabase
-                .from('cafe_pastor_config')
-                .select('enabled, form_builder_id')
-                .eq('workspace_id', _workspaceId).single();
+/* ═══════════════════════════════════════════════════════════════
+   BOOTSTRAP
+═══════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function() {
+    var params = new URLSearchParams(window.location.search);
+    var wsParam = params.get('ws'); // accepts slug OR uuid
+    if (!wsParam) { showError('Parâmetro ?ws= ausente na URL.'); return; }
+    init(wsParam);
+});
 
-            if (!cfg || !cfg.enabled) {
-                document.getElementById('form-desc').innerHTML = "Este módulo está inativo para esta igreja.";
-                return;
-            }
+async function init(wsParam) {
+    try {
+        // Try as uuid first, then as slug
+        var isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wsParam);
+        var q = sb.from('workspaces').select('id, name, slug');
+        if (isUUID) q = q.eq('id', wsParam);
+        else        q = q.eq('slug', wsParam);
+        var { data: ws, error: e1 } = await q.maybeSingle();
 
-            if (!cfg.form_builder_id) {
-                document.getElementById('form-desc').innerHTML = "Formulário não configurado pelas configurações da Igreja.";
-                return;
-            }
+        if (e1 || !ws) { showError('Igreja não encontrada. Verifique o link.'); return; }
+        STATE.wsId   = ws.id;
+        STATE.wsName = ws.name;
 
-            // Fetch form definition
-            const { data: formRec } = await window.supabase
-                .from('form_builder_forms')
-                .select('title, description, fields')
-                .eq('id', cfg.form_builder_id)
-                .single();
+        // Config
+        var { data: cfg } = await sb.from('cafe_pastor_config').select('*').eq('workspace_id', ws.id).maybeSingle();
 
-            if (!formRec) {
-                document.getElementById('form-desc').innerHTML = "Formulário corrompido / não encontrado.";
-                return;
-            }
-
-            _formConfig = formRec;
-            document.getElementById('form-title').innerHTML = formRec.title;
-            document.getElementById('form-desc').innerHTML = formRec.description || 'Preencha o briefing abaixo para solicitar seu café.';
-            
-            renderFields(formRec.fields);
-            document.getElementById('dynamicForm').style.display = 'block';
+        if (!cfg || !cfg.enabled) {
+            showError('O módulo Café com Pastor não está ativo para esta igreja.');
+            return;
         }
+        STATE.cfg = cfg;
 
-        function renderFields(fields) {
-            const container = document.getElementById('fields-container');
-            container.innerHTML = '';
-            
-            fields.forEach(field => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'fb-field';
+        // Update page title
+        document.title = 'Café com Pastor — ' + ws.name;
+        STATE.step = 1;
+        renderStep();
+    } catch(err) {
+        showError('Erro ao carregar: ' + (err.message || err));
+    }
+}
 
-                const label = document.createElement('label');
-                label.className = 'fb-label' + (field.required ? ' required' : '');
-                label.textContent = field.label;
-                wrapper.appendChild(label);
+/* ═══════════════════════════════════════════════════════════════
+   STEP DOTS
+═══════════════════════════════════════════════════════════════ */
+function renderDots() {
+    var dots = document.getElementById('step-dots');
+    if (!dots) return;
+    var html = '';
+    for (var i = 1; i <= STATE.totalSteps; i++) {
+        var cls = i < STATE.step ? 'done' : i === STATE.step ? 'active' : '';
+        html += '<div class="step-dot ' + cls + '"></div>';
+    }
+    dots.innerHTML = html;
+    dots.style.display = STATE.step >= 1 && STATE.step <= STATE.totalSteps ? 'flex' : 'none';
+}
 
-                if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
-                    const input = document.createElement('input');
-                    input.type = field.type === 'phone' ? 'tel' : field.type;
-                    input.className = 'fb-input';
-                    input.id = 'field_' + field.id;
-                    if (field.required) input.required = true;
-                    if (field.placeholder) input.placeholder = field.placeholder;
-                    wrapper.appendChild(input);
+/* ═══════════════════════════════════════════════════════════════
+   STEP ROUTER
+═══════════════════════════════════════════════════════════════ */
+function renderStep() {
+    renderDots();
+    switch(STATE.step) {
+        case 1: renderPersonal();     break;
+        case 2: renderSessionType();  break;
+        case 3: renderSlots();        break;
+        case 4: renderConfirm();      break;
+        case 5: renderSuccess();      break;
+    }
+}
 
-                    if (field.type === 'phone') {
-                        setTimeout(() => {
-                            window.intlTelInput(input, {
-                                initialCountry: "br",
-                                preferredCountries: ["br", "us", "pt"],
-                                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js"
-                            });
-                        }, 100);
-                    }
-                } 
-                else if (field.type === 'textarea') {
-                    const textarea = document.createElement('textarea');
-                    textarea.className = 'fb-input';
-                    textarea.id = 'field_' + field.id;
-                    if (field.required) textarea.required = true;
-                    if (field.placeholder) textarea.placeholder = field.placeholder;
-                    textarea.rows = 4;
-                    wrapper.appendChild(textarea);
-                } 
-                else if (field.type === 'select' && field.options) {
-                    const select = document.createElement('select');
-                    select.className = 'fb-input';
-                    select.id = 'field_' + field.id;
-                    if (field.required) select.required = true;
-                    
-                    const emptyOpt = document.createElement('option');
-                    emptyOpt.value = "";
-                    emptyOpt.disabled = true;
-                    emptyOpt.selected = true;
-                    emptyOpt.textContent = "Selecione...";
-                    select.appendChild(emptyOpt);
+/* ═══════════════════════════════════════════════════════════════
+   STEP 1 — DADOS PESSOAIS
+═══════════════════════════════════════════════════════════════ */
+function renderPersonal() {
+    var wsNote = STATE.wsName ? 'Agendar atendimento em ' + STATE.wsName : 'Agende seu atendimento pastoral';
+    set('cp-content',
+        hdr('☕ Café com Pastor', wsNote)
+        + '<div class="field"><label class="req">Nome completo</label>'
+        + '<input id="f-name" type="text" placeholder="Como podemos te chamar?" value="' + esc(STATE.name) + '" /></div>'
 
-                    field.options.forEach(opt => {
-                        const option = document.createElement('option');
-                        option.value = opt;
-                        option.textContent = opt;
-                        select.appendChild(option);
-                    });
-                    wrapper.appendChild(select);
-                }
+        + '<div class="field"><label class="req">Email</label>'
+        + '<input id="f-email" type="email" placeholder="seu@email.com" value="' + esc(STATE.email) + '" /></div>'
 
-                container.appendChild(wrapper);
+        + '<div class="field"><label class="req">Telefone / WhatsApp</label>'
+        + '<input id="f-phone" type="tel" placeholder="+55 11 ..." value="' + esc(STATE.phone) + '" /></div>'
+
+        + '<div class="field"><label class="req">Você virá como</label>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">'
+        + genderCard('M',      '🧔',  'Homem',  'Atendimento individual')
+        + genderCard('F',      '👩',  'Mulher', 'Atendimento individual')
+        + genderCard('couple', '💑',  'Casal',  'Ambos participam')
+        + genderCard('family', '👨‍👩‍👧', 'Família', 'Atendimento familiar')
+        + '</div></div>'
+
+        + '<button class="btn btn-primary" onclick="submitPersonal()" style="margin-top:8px;">Próximo →</button>'
+    );
+}
+
+function genderCard(val, icon, label, sub) {
+    var sel = STATE.gender === val ? ' selected' : '';
+    return '<div class="radio-card' + sel + '" onclick="selectGender(\'' + val + '\')" id="gc-' + val + '">'
+        + '<div class="icon">' + icon + '</div>'
+        + '<div class="label">' + label + '</div>'
+        + '<div class="sublabel">' + sub + '</div></div>';
+}
+
+window.selectGender = function(val) {
+    STATE.gender = val;
+    ['M','F','couple','family'].forEach(function(v) {
+        var el = document.getElementById('gc-' + v);
+        if (el) el.className = 'radio-card' + (v === val ? ' selected' : '');
+    });
+};
+
+window.submitPersonal = function() {
+    var name  = (document.getElementById('f-name')||{}).value.trim();
+    var email = (document.getElementById('f-email')||{}).value.trim();
+    var phone = (document.getElementById('f-phone')||{}).value.trim();
+    if (!name || !email || !phone || !STATE.gender) {
+        alert('Por favor preencha todos os campos e selecione uma opção.'); return;
+    }
+    STATE.name = name; STATE.email = email; STATE.phone = phone;
+    STATE.step = 2; renderStep();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP 2 — TIPO DE SESSÃO
+═══════════════════════════════════════════════════════════════ */
+function renderSessionType() {
+    var types = (STATE.cfg && STATE.cfg.session_types) || ['online','inperson'];
+    var hasOnline   = types.indexOf('online') >= 0;
+    var hasInperson = types.indexOf('inperson') >= 0;
+
+    var cards = '';
+    if (hasOnline)   cards += sessionCard('online',   '💻', 'Online',    'Via Google Meet, Zoom, etc.');
+    if (hasInperson) cards += sessionCard('inperson', '🏛️', 'Presencial', STATE.cfg.church_address || 'Na igreja');
+
+    if (!hasOnline && !hasInperson) {
+        cards = '<p style="color:var(--muted);">Nenhum tipo de sessão disponível. Contacte a igreja.</p>';
+    }
+
+    set('cp-content',
+        hdr('🎯 Tipo de Sessão', 'Como você prefere realizar o atendimento?')
+        + '<div class="radio-grid">' + cards + '</div>'
+        + '<button class="btn btn-primary" onclick="submitSessionType()">Próximo →</button>'
+        + '<button class="btn btn-secondary" onclick="STATE.step=1;renderStep()">← Voltar</button>'
+    );
+
+    // Auto-select if only one type
+    if (hasOnline && !hasInperson) { STATE.sessionType = 'online'; selectSessionType('online'); }
+    if (!hasOnline && hasInperson) { STATE.sessionType = 'inperson'; selectSessionType('inperson'); }
+}
+
+function sessionCard(val, icon, label, sub) {
+    var sel = STATE.sessionType === val ? ' selected' : '';
+    return '<div class="radio-card' + sel + '" onclick="selectSessionType(\'' + val + '\')" id="sc-' + val + '">'
+        + '<div class="icon">' + icon + '</div>'
+        + '<div class="label">' + label + '</div>'
+        + '<div class="sublabel">' + sub + '</div></div>';
+}
+
+window.selectSessionType = function(val) {
+    STATE.sessionType = val;
+    ['online','inperson'].forEach(function(v) {
+        var el = document.getElementById('sc-' + v);
+        if (el) el.className = 'radio-card' + (v === val ? ' selected' : '');
+    });
+};
+
+window.submitSessionType = function() {
+    if (!STATE.sessionType) { alert('Selecione o tipo de sessão.'); return; }
+    STATE.step = 3; renderStep();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP 3 — HORÁRIOS DISPONÍVEIS
+═══════════════════════════════════════════════════════════════ */
+async function renderSlots() {
+    set('cp-content',
+        hdr('📅 Escolha um Horário', 'Buscando horários disponíveis...')
+        + '<div class="loader-wrap"><div class="spinner"></div></div>'
+    );
+
+    try {
+        // Call the matching edge function
+        var EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+        var resp = await fetch(EDGE + '/cafe-pastor-match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                workspace_id: STATE.wsId,
+                requester_gender: STATE.gender,
+                requester_type: STATE.gender,
+                session_type: STATE.sessionType
+            })
+        });
+        var result = await resp.json();
+        STATE.slots = (result && result.slots) || [];
+    } catch(e) {
+        // If edge function doesn't exist yet, show placeholder slots (next 5 working days)
+        STATE.slots = generatePlaceholderSlots();
+    }
+
+    if (!STATE.slots || STATE.slots.length === 0) {
+        set('cp-content',
+            hdr('📅 Sem Horários', '')
+            + '<div class="error-msg">Nenhum horário disponível nos próximos dias. Por favor contacte a igreja diretamente.</div>'
+            + '<button class="btn btn-secondary" onclick="STATE.step=2;renderStep();">← Voltar</button>'
+        );
+        return;
+    }
+
+    STATE.selectedSlot = null;
+    var items = STATE.slots.map(function(slot, i) {
+        var d = new Date(slot.datetime || slot.slot_datetime || slot);
+        var dateStr = d.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+        var timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        return '<div class="slot-item" onclick="selectSlot(' + i + ')" id="slot-' + i + '">'
+            + '<div><div class="slot-date">' + cap(dateStr) + '</div>'
+            + '<div class="slot-time">' + timeStr + ' · ' + (slot.duration_minutes || STATE.cfg.default_duration_minutes || 60) + 'min</div></div>'
+            + '<div class="slot-type">' + (STATE.sessionType === 'online' ? '💻 Online' : '🏛️ Presencial') + '</div>'
+            + '</div>';
+    }).join('');
+
+    renderDots();
+    set('cp-content',
+        hdr('📅 Escolha um Horário', 'Selecione o melhor horário para você.')
+        + '<div class="slot-list" id="slot-list">' + items + '</div>'
+        + '<button class="btn btn-primary" onclick="submitSlot()">Próximo →</button>'
+        + '<button class="btn btn-secondary" onclick="STATE.step=2;renderStep()">← Voltar</button>'
+    );
+}
+
+function generatePlaceholderSlots() {
+    // Fallback: generate slots for next 5 working days (Mon–Fri, 9h–17h every 60min)
+    var slots = [];
+    var d = new Date();
+    var dur = (STATE.cfg && STATE.cfg.default_duration_minutes) || 60;
+    var window_days = (STATE.cfg && STATE.cfg.booking_window_days) || 14;
+    var advance = (STATE.cfg && STATE.cfg.min_advance_hours) || 24;
+    var minDt = new Date(Date.now() + advance * 3600000);
+
+    for (var day = 1; day <= window_days && slots.length < 8; day++) {
+        var cur = new Date(d.getTime() + day * 86400000);
+        if (cur.getDay() === 0 || cur.getDay() === 6) continue; // skip weekends
+        [9, 10, 11, 14, 15, 16].forEach(function(h) {
+            var dt = new Date(cur); dt.setHours(h, 0, 0, 0);
+            if (dt > minDt && slots.length < 8) {
+                slots.push({ datetime: dt.toISOString(), duration_minutes: dur });
+            }
+        });
+    }
+    return slots;
+}
+
+window.selectSlot = function(i) {
+    STATE.selectedSlot = STATE.slots[i];
+    document.querySelectorAll('.slot-item').forEach(function(el) { el.classList.remove('selected'); });
+    var el = document.getElementById('slot-' + i);
+    if (el) el.classList.add('selected');
+};
+
+window.submitSlot = function() {
+    if (!STATE.selectedSlot) { alert('Selecione um horário.'); return; }
+    STATE.step = 4; renderStep();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP 4 — CONFIRMAÇÃO
+═══════════════════════════════════════════════════════════════ */
+function renderConfirm() {
+    var slot = STATE.selectedSlot;
+    var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    var dur = slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60;
+    var typeLabel = STATE.sessionType === 'online' ? '💻 Online' : '🏛️ Presencial';
+
+    renderDots();
+    set('cp-content',
+        hdr('✅ Confirmar Agendamento', 'Verifique os dados antes de confirmar.')
+        + '<div style="background:var(--bg-el);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:22px;">'
+        + row('👤 Nome', STATE.name)
+        + row('📧 Email', STATE.email)
+        + row('📱 Telefone', STATE.phone)
+        + row('📅 Data', cap(dateStr))
+        + row('⏰ Horário', timeStr + ' · ' + dur + ' min')
+        + row('🎯 Sessão', typeLabel)
+        + '</div>'
+
+        + (STATE.sessionType === 'online'
+            ? '<div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:14px;font-size:.83rem;color:rgba(96,165,250,.9);margin-bottom:18px;">'
+              + '<strong>📧 Link Online:</strong> ' + (STATE.cfg.meeting_link_instructions || 'Um link de acesso será enviado para o seu email antes da sessão.')
+              + '</div>'
+            : '')
+
+        + (STATE.sessionType === 'inperson' && STATE.cfg.church_address
+            ? '<div style="background:rgba(212,165,116,.08);border:1px solid rgba(212,165,116,.2);border-radius:10px;padding:14px;font-size:.83rem;color:rgba(212,165,116,.9);margin-bottom:18px;">'
+              + '<strong>📍 Local:</strong> ' + esc(STATE.cfg.church_address)
+              + '</div>'
+            : '')
+
+        + '<button class="btn btn-primary" onclick="submitBooking()" id="btn-confirm">☕ Confirmar Agendamento</button>'
+        + '<button class="btn btn-secondary" onclick="STATE.step=3;renderSlots()">← Escolher outro horário</button>'
+    );
+}
+
+function row(k, v) {
+    return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.88rem;">'
+        + '<span style="color:var(--muted);min-width:90px;">' + k + '</span>'
+        + '<span style="font-weight:600;">' + esc(v || '—') + '</span></div>';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUBMIT BOOKING
+═══════════════════════════════════════════════════════════════ */
+window.submitBooking = async function() {
+    var btn = document.getElementById('btn-confirm');
+    if (btn) { btn.disabled = true; btn.innerText = 'Confirmando...'; }
+
+    try {
+        var slot = STATE.selectedSlot;
+        var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+
+        // Try edge function first
+        var booked = false;
+        try {
+            var EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+            var resp = await fetch(EDGE + '/cafe-pastor-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    workspace_id: STATE.wsId,
+                    scheduled_at: dt.toISOString(),
+                    duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
+                    requester_name: STATE.name,
+                    requester_email: STATE.email,
+                    requester_phone: STATE.phone,
+                    requester_gender: STATE.gender,
+                    appointment_type: STATE.sessionType
+                })
             });
+            var result = await resp.json();
+            if (result && result.appointment_id) { STATE.apptId = result.appointment_id; booked = true; }
+        } catch(ef) { /* fallback to direct insert */ }
+
+        // Fallback: direct Supabase insert
+        if (!booked) {
+            var orderNum = Math.random().toString(36).substring(2,8).toUpperCase();
+            var { data: appt, error: ae } = await sb.from('cafe_pastor_appointments').insert({
+                workspace_id: STATE.wsId,
+                requester_name: STATE.name,
+                requester_email: STATE.email,
+                requester_phone: STATE.phone,
+                requester_gender: STATE.gender,
+                appointment_type: STATE.sessionType,
+                scheduled_at: dt.toISOString(),
+                duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
+                status: 'pending'
+            }).select('id').single();
+            if (ae) throw ae;
+            STATE.apptId = appt && appt.id;
         }
 
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-submit-form');
-            btn.disabled = true;
-            btn.innerText = 'Processando MATCH...';
+        STATE.step = 5; renderStep();
+    } catch(err) {
+        console.error('[CafePastor] booking error:', err);
+        if (btn) { btn.disabled = false; btn.innerText = '☕ Confirmar Agendamento'; }
+        var errDiv = document.createElement('div');
+        errDiv.className = 'error-msg';
+        errDiv.style.marginTop = '12px';
+        errDiv.innerText = 'Erro ao confirmar: ' + (err.message || err) + '. Tente novamente.';
+        if (btn) btn.parentNode.insertBefore(errDiv, btn.nextSibling);
+    }
+};
 
-            try {
-                // Collect answers
-                const answers = {};
-                let userEmail = null;
-                let userPhone = null;
-                let userName = null;
+/* ═══════════════════════════════════════════════════════════════
+   STEP 5 — SUCESSO
+═══════════════════════════════════════════════════════════════ */
+function renderSuccess() {
+    var slot = STATE.selectedSlot;
+    var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 
-                _formConfig.fields.forEach(field => {
-                    const el = document.getElementById('field_' + field.id);
-                    if (el) {
-                        answers[field.id] = el.value;
-                        if (field.type === 'email') userEmail = el.value;
-                        if (field.type === 'phone') userPhone = el.value;
-                        if (field.label.toLowerCase().includes('nome')) userName = el.value;
-                    }
-                });
+    set('step-dots', ''); // hide dots
+    set('cp-content',
+        '<div class="success-wrap">'
+        + '<div class="success-icon">☕</div>'
+        + '<div class="success-title">Agendamento Confirmado!</div>'
+        + '<div class="success-detail">'
+        + 'Olá, <strong>' + esc(STATE.name) + '</strong>!<br><br>'
+        + 'Sua sessão foi agendada para<br>'
+        + '<strong>' + cap(dateStr) + ' às ' + timeStr + '</strong>.<br><br>'
+        + 'Você receberá um email de confirmação em breve.<br>'
+        + (STATE.sessionType === 'online' ? (STATE.cfg.meeting_link_instructions || 'O link de acesso será enviado antes da sessão.') : (STATE.cfg.church_address ? 'Local: ' + STATE.cfg.church_address : ''))
+        + '</div>'
+        + '<div style="margin-top:30px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);font-size:.8rem;color:var(--muted);">Se precisar reagendar, entre em contacto com a igreja. 🙏</div>'
+        + '</div>'
+    );
+}
 
-                const gender = document.getElementById('user-gender').value;
-
-                console.log("Calling Match Engine...");
-                
-                // Call the Edge Function "cafe-pastor-match"
-                const { data: edgeData, error: edgeError } = await window.supabase.functions.invoke('cafe-pastor-match', {
-                    body: { 
-                        workspace_id: _workspaceId,
-                        requester_name: userName || 'Visitante',
-                        requester_email: userEmail,
-                        requester_phone: userPhone,
-                        requester_gender: gender,
-                        briefing_answers: answers
-                    }
-                });
-
-                if (edgeError) throw edgeError;
-                console.log("Match Result:", edgeData);
-
-                // Show success
-                document.getElementById('successScreen').classList.add('active');
-
-            } catch (err) {
-                console.error(err);
-                alert('Ocorreu um erro ao agendar. Tente novamente mais tarde. Erro: ' + err.message);
-                btn.disabled = false;
-                btn.innerText = 'Solicitar Agendamento';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', fetchConfig);
-    </script>
+/* ═══════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════ */
+function set(id, html) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function hdr(title, desc) {
+    return '<div class="step-title">' + title + '</div>'
+         + (desc ? '<div class="step-desc">' + esc(desc) + '</div>' : '');
+}
+function showError(msg) {
+    set('step-dots','');
+    set('cp-content',
+        '<div style="text-align:center;padding:30px 0;">'
+        + '<div style="font-size:2.5rem;margin-bottom:14px;">☕</div>'
+        + '<div style="font-weight:700;color:var(--accent);margin-bottom:8px;">Café com Pastor</div>'
+        + '<div class="error-msg">' + esc(msg) + '</div>'
+        + '</div>'
+    );
+}
+</script>
 </body>
 </html>
