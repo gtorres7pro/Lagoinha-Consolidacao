@@ -857,7 +857,6 @@
             session_types:             types,
             church_address:            ($('cp-cfg-address')||{}).value || null,
             meeting_link_instructions: ($('cp-cfg-instructions')||{}).value || null,
-            notification_email:        ($('cp-cfg-email')||{}).value || null,
             updated_at:                new Date().toISOString(),
         };
 
