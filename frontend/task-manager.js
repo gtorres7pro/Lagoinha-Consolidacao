@@ -33,14 +33,7 @@ const TASK_PRIORITY = {
     const _prevST = window.switchTab;
     window.switchTab = function (tab) {
         if (tab === 'admin-tarefas') {
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
-            const viewEl = document.getElementById('view-admin-tarefas');
-            if (viewEl) { viewEl.classList.add('active'); viewEl.style.display = ''; }
-            const navEl = document.getElementById('nav-administrativo');
-            if (navEl) navEl.classList.add('active');
-            loadTaskManager();
-            return;
+            if (typeof loadTaskManager === 'function') loadTaskManager();
         }
         if (_prevST) _prevST(tab);
     };
