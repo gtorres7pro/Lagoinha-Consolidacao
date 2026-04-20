@@ -2244,40 +2244,7 @@ html, body {
 [data-theme="light"] .hamburger { color: #111 !important; }
 [data-theme="light"] .sidebar-overlay { background: rgba(0,0,0,0.5) !important; }
 
-/* ── Top Bar ── */
-[data-theme="light"] .top-bar {
-  background: var(--bg) !important;
-  border-bottom-color: var(--border) !important;
-}
-[data-theme="light"] .top-bar h1,
-[data-theme="light"] .page-title h1 { color: #111 !important; }
-[data-theme="light"] .top-bar p,
-[data-theme="light"] .page-title p { color: var(--text-muted) !important; }
-
-/* ── Cards ── */
-[data-theme="light"] .hub-card,
-[data-theme="light"] .hub-kpi-card,
-[data-theme="light"] .crie-kpi-card,
-[data-theme="light"] .chart-box,
-[data-theme="light"] .kpi-box,
-[data-theme="light"] .home-glass-card {
-  background: #fff !important;
-  border-color: var(--border) !important;
-}
-[data-theme="light"] .hub-kpi-card:hover,
-[data-theme="light"] .kpi-box:hover,
-[data-theme="light"] .chart-box:hover,
-[data-theme="light"] .crie-kpi-card:hover { border-color: rgba(251,191,36,0.25) !important; }
-[data-theme="light"] .hub-kpi-label,
-[data-theme="light"] .kpi-title,
-[data-theme="light"] .chart-title,
-[data-theme="light"] .crie-kpi-card h3 { color: var(--text-muted) !important; }
-[data-theme="light"] .chart-title { border-bottom-color: var(--border) !important; }
-[data-theme="light"] .hub-kpi-value,
-[data-theme="light"] .crie-kpi-val,
-[data-theme="light"] .kpi-number { color: #111 !important; }
-[data-theme="light"] .hub-kpi-sub,
-[data-theme="light"] .kpi-total { color: var(--text-muted) !important; }
+/* ── Removed hardcoded global overrides: now relies on --bg-card, --text, etc. ── */
 
 /* ── KPI generic inline cards (many modules use rgba bg) ── */
 [data-theme="light"] [style*="rgba(255,255,255,0.04)"],

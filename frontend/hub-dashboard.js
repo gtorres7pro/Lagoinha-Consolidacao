@@ -4865,12 +4865,13 @@ window.loadAutomationConfig = async function() {
         const sb = window.supabaseClient;
         const { data, error } = await sb
             .from('workspaces')
-            .select('automation_config')
+            .select('automation_config, credentials')
             .eq('id', window.currentWorkspaceId)
             .single();
         if (error) throw error;
 
         const cfg = data?.automation_config || {};
+        const creds = data?.credentials || {};
 
         // Enable toggle
         const enabled = cfg.enabled === true;
@@ -4887,75 +4888,129 @@ window.loadAutomationConfig = async function() {
         const delayInput = document.getElementById('auto-delay-input');
         if (delayInput) delayInput.value = cfg.delay_minutes ?? 0;
 
-        // Default template
-        const defTmpl = document.getElementById('auto-default-template');
-        const defLang = document.getElementById('auto-default-language');
-        if (defTmpl) defTmpl.value = cfg.default_template || '';
-        if (defLang && cfg.default_language) defLang.value = cfg.default_language;
-
         // Rules
         window._autoRules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
-        renderAutomationRules();
+
+        // Fetch and populate Meta templates
+        await _fetchAndPopulateMetaTemplates(creds, window._autoRules);
 
     } catch(e) { console.error('loadAutomationConfig:', e); }
 };
 
-// ── Render rules table ─────────────────────────────────────────────────────
-function renderAutomationRules() {
-    const tbody = document.getElementById('auto-rules-tbody');
-    const empty = document.getElementById('auto-rules-empty');
-    if (!tbody) return;
-
-    const rules = window._autoRules || [];
-
-    // Clear existing rule rows (keep empty row template hidden)
-    [...tbody.querySelectorAll('tr.auto-rule-row')].forEach(r => r.remove());
-
-    if (rules.length === 0) {
-        if (empty) empty.style.display = '';
+async function _fetchAndPopulateMetaTemplates(creds, rules) {
+    const token = creds?.whatsapp_token;
+    const phoneId = creds?.phone_id;
+    const selects = document.querySelectorAll('.auto-template-select');
+    if (!selects.length) return;
+    
+    if (!token || !phoneId) {
+        selects.forEach(s => {
+            s.innerHTML = '<option value="">⚠️ Credenciais Meta não configuradas</option>';
+            s.disabled = true;
+        });
         return;
     }
-    if (empty) empty.style.display = 'none';
+    
+    try {
+        const resp = await fetch(
+            `https://graph.facebook.com/v18.0/${phoneId}/message_templates?status=APPROVED&limit=100&fields=name,language,status,components`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const json = await resp.json();
+        const templates = json.data || [];
+        
+        window._wabaTemplatesCache = templates;
+        
+        selects.forEach(select => {
+            const formKey = select.getAttribute('data-form');
+            const rule = rules.find(r => r.source === formKey);
+            
+            select.innerHTML = '<option value="">Nenhuma Automação (Desativado)</option>';
+            select.disabled = false;
+            
+            templates.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.name;
+                opt.textContent = `${t.name} (${t.language})`;
+                if (rule && rule.template === t.name) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+            
+            select.onchange = () => _renderVariablesBlock(formKey, select.value, rule?.variables || {});
+            
+            if (rule && rule.template) {
+                _renderVariablesBlock(formKey, rule.template, rule.variables || {});
+            } else {
+                _renderVariablesBlock(formKey, '', {});
+            }
+        });
+        
+    } catch(e) {
+        console.error('Error fetching templates:', e);
+    }
+}
 
-    const channelLabel = { meta: '📱 Meta API', evolution: '🔄 Evolution', none: '⛔ Bloqueado' };
-
-    rules.forEach((rule, i) => {
-        const tr = document.createElement('tr');
-        tr.className = 'auto-rule-row';
-        tr.style.cssText = 'border-top:1px solid var(--border);transition:background .15s;';
-        tr.innerHTML = `
-            <td style="padding:12px 18px;">
-                <code style="background:rgba(255,255,255,.07);padding:2px 8px;border-radius:6px;font-size:.8rem;">${escHtml(rule.source || '—')}</code>
-            </td>
-            <td style="padding:12px 18px;font-weight:600;color:${rule.template ? '#fff' : 'var(--text-dim)'};">
-                ${rule.template ? escHtml(rule.template) : '<em style="color:var(--text-dim);font-weight:400;font-size:.8rem;">nenhum</em>'}
-            </td>
-            <td style="padding:12px 18px;color:var(--text-dim);font-size:.8rem;">${escHtml(rule.language || 'pt_BR')}</td>
-            <td style="padding:12px 18px;font-size:.82rem;">${channelLabel[rule.channel] || rule.channel || '—'}</td>
-            <td style="padding:12px 18px;color:var(--text-dim);font-size:.82rem;">${rule.delay_minutes ?? 0}min</td>
-            <td style="padding:12px 18px;">
-                <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;
-                    background:${rule.enabled !== false ? 'rgba(34,197,94,.12)' : 'rgba(255,255,255,.07)'};
-                    color:${rule.enabled !== false ? '#4ade80' : 'var(--text-dim)'};">
-                    ${rule.enabled !== false ? 'Ativa' : 'Inativa'}
-                </span>
-            </td>
-            <td style="padding:12px 8px;text-align:right;white-space:nowrap;">
-                <button onclick="openEditRuleModal(${i})" title="Editar"
-                    style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:1rem;padding:4px 6px;">✏️</button>
-                <button onclick="deleteAutomationRule(${i})" title="Excluir"
-                    style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem;padding:4px 6px;">🗑️</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
+function _renderVariablesBlock(formKey, templateName, savedVars) {
+    const block = document.querySelector(`.auto-vars-block[data-form="${formKey}"]`);
+    const container = block?.querySelector('.auto-vars-container');
+    if (!block || !container) return;
+    
+    if (!templateName) {
+        block.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+    
+    const template = (window._wabaTemplatesCache || []).find(t => t.name === templateName);
+    if (!template) {
+        block.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+    
+    let vars = [];
+    template.components?.forEach(comp => {
+        if (comp.text) {
+            const matches = comp.text.match(/\{\{\d+\}\}/g);
+            if (matches) {
+                matches.forEach(m => {
+                    const v = m.replace(/[{}]/g, '');
+                    if (!vars.includes(v)) vars.push(v);
+                });
+            }
+        }
     });
+    
+    if (vars.length === 0) {
+        block.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+    
+    block.style.display = 'block';
+    container.innerHTML = vars.map(v => {
+        const val = savedVars[v] || '';
+        return `
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:.75rem;color:var(--text-dim);font-weight:600;">Variável {{${escHtml(v)}}}</label>
+                <input type="text" 
+                       class="hub-field-input auto-var-input" 
+                       data-var="${escHtml(v)}" 
+                       data-form="${formKey}" 
+                       value="${escHtml(val)}" 
+                       placeholder="Ex: {{lead.name}}"
+                       style="padding:8px 12px;font-size:.8rem;">
+            </div>
+        `;
+    }).join('');
 }
 
 function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Toggle enabled ─────────────────────────────────────────────────────────
 window.toggleAutomationEnabled = async function() {
     if (!window.currentWorkspaceId) return;
     try {
@@ -4969,299 +5024,65 @@ window.toggleAutomationEnabled = async function() {
     } catch(e) { console.error('toggleAutomationEnabled:', e); }
 };
 
-// ── Save global settings (delay + default template) ────────────────────────
 window.saveAutomationGlobal = async function() {
     if (!window.currentWorkspaceId) return;
     try {
         const sb  = window.supabaseClient;
         const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
         const cfg = { ...(ws?.automation_config || {}) };
-        cfg.delay_minutes    = parseInt(document.getElementById('auto-delay-input')?.value || '0', 10);
-        cfg.default_template = (document.getElementById('auto-default-template')?.value || '').trim();
-        cfg.default_language = document.getElementById('auto-default-language')?.value || 'pt_BR';
+        cfg.delay_minutes = parseInt(document.getElementById('auto-delay-input')?.value || '0', 10);
         await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
-        window.showToast && showToast('Configurações globais salvas!', 'success');
+        window.showToast && showToast('Atraso global salvo!', 'success');
     } catch(e) { console.error('saveAutomationGlobal:', e); window.showToast && showToast('Erro ao salvar', 'error'); }
 };
 
-// ── Source change: show/hide custom input ──────────────────────────────────
-window.onAutoRuleSourceChange = function(val) {
-    const custom = document.getElementById('auto-rule-source-custom');
-    if (!custom) return;
-    custom.style.display = val === '__custom__' ? 'block' : 'none';
-    if (val !== '__custom__') custom.value = '';
-};
-
-// ── Channel change: show Meta vs Evolution sections ────────────────────────
-window.onAutoRuleChannelChange = function(channel) {
-    const meta = document.getElementById('auto-rule-meta-section');
-    const evo  = document.getElementById('auto-rule-evolution-section');
-    if (meta) meta.style.display = (channel === 'meta') ? '' : 'none';
-    if (evo)  evo.style.display  = (channel === 'evolution') ? '' : 'none';
-};
-
-// ── Fetch approved Meta templates from Graph API ────────────────────────────
-window.fetchMetaTemplates = async function() {
-    const statusEl = document.getElementById('auto-rule-fetch-status');
-    const btn      = document.getElementById('auto-rule-fetch-btn');
-    const input    = document.getElementById('auto-rule-template-input');
-    const select   = document.getElementById('auto-rule-template-select');
-
-    if (!statusEl || !btn || !input || !select) return;
-
-    // Load credentials from current workspace
-    if (!window.currentWorkspaceId) { showToast && showToast('Workspace não carregado', 'error'); return; }
-
-    btn.disabled   = true;
-    btn.textContent = '⏳ Buscando...';
-    statusEl.style.display = 'block';
-    statusEl.style.color   = 'var(--text-dim)';
-    statusEl.textContent   = 'Conectando à Meta API...';
-
+window.saveWabaAutomations = async function() {
+    if (!window.currentWorkspaceId) return;
     try {
-        const sb  = window.supabaseClient;
-        const { data: ws } = await sb
-            .from('workspaces')
-            .select('credentials')
-            .eq('id', window.currentWorkspaceId)
-            .single();
-
-        const token   = ws?.credentials?.whatsapp_token;
-        const phoneId = ws?.credentials?.phone_id;
-
-        if (!token || !phoneId) {
-            statusEl.style.color = '#f87171';
-            statusEl.textContent = '⚠️ Credenciais Meta não configuradas. Vá em Configurações > WhatsApp Connection (Meta).';
-            btn.disabled = false;
-            btn.textContent = '⬇ Buscar Templates';
-            return;
-        }
-
-        // Call Meta Graph API
-        const resp = await fetch(
-            `https://graph.facebook.com/v18.0/${phoneId}/message_templates?status=APPROVED&limit=100&fields=name,language,status,components`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const json = await resp.json();
-
-        if (!resp.ok || json.error) {
-            throw new Error(json.error?.message || `HTTP ${resp.status}`);
-        }
-
-        const templates = json.data || [];
-        if (templates.length === 0) {
-            statusEl.style.color = '#fbbf24';
-            statusEl.textContent = 'Nenhum template aprovado encontrado nesta conta.';
-            btn.disabled = false;
-            btn.textContent = '⬇ Buscar Templates';
-            return;
-        }
-
-        // Populate select
-        const currentVal = input.value.trim();
-        select.innerHTML = `<option value="">Selecione um template aprovado...</option>`;
-        templates.forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t.name;
-            opt.textContent = `${t.name}  (${t.language || '—'})`;
-            if (t.name === currentVal) opt.selected = true;
-            select.appendChild(opt);
+        const selects = document.querySelectorAll('.auto-template-select');
+        const rules = [];
+        
+        selects.forEach(select => {
+            const formKey = select.getAttribute('data-form');
+            const templateName = select.value;
+            if (!templateName) return; 
+            
+            const template = (window._wabaTemplatesCache || []).find(t => t.name === templateName);
+            const language = template ? template.language : 'pt_BR';
+            
+            const varsContainer = document.querySelector(`.auto-vars-block[data-form="${formKey}"]`);
+            const inputs = varsContainer ? varsContainer.querySelectorAll('.auto-var-input') : [];
+            const variables = {};
+            inputs.forEach(input => {
+                const varIdx = input.getAttribute('data-var');
+                variables[varIdx] = input.value.trim();
+            });
+            
+            rules.push({
+                source: formKey,
+                template: templateName,
+                language: language,
+                channel: 'meta',
+                delay_minutes: 0,
+                enabled: true,
+                variables: variables
+            });
         });
-
-        // Show select, hide input
-        input.style.display  = 'none';
-        select.style.display = '';
-
-        // When user picks a template, auto-set language field
-        select.onchange = () => {
-            const chosen = templates.find(t => t.name === select.value);
-            if (chosen?.language) {
-                const langEl = document.getElementById('auto-rule-language');
-                // Map Meta's language codes to our select options
-                const map = { 'pt_BR': 'pt_BR', 'en_US': 'en_US', 'en': 'en_US', 'es': 'es', 'es_ES': 'es', 'es_LA': 'es' };
-                if (langEl && map[chosen.language]) langEl.value = map[chosen.language];
-            }
-        };
-
-        statusEl.style.color = '#4ade80';
-        statusEl.textContent = `✅ ${templates.length} templates aprovados carregados.`;
-        btn.textContent = `✅ ${templates.length} templates`;
-
-    } catch(e) {
-        console.error('fetchMetaTemplates:', e);
-        statusEl.style.color = '#f87171';
-        statusEl.textContent = `❌ Erro: ${e.message}`;
-        btn.disabled = false;
-        btn.textContent = '⬇ Buscar Templates';
-    }
-};
-
-// ── Modal helpers ─────────────────────────────────────────────────────────--
-function _resetRuleModal() {
-    // Reset source
-    const src = document.getElementById('auto-rule-source');
-    if (src) src.value = '';
-    const srcCustom = document.getElementById('auto-rule-source-custom');
-    if (srcCustom) { srcCustom.value = ''; srcCustom.style.display = 'none'; }
-    // Reset channel → force Meta
-    const ch = document.getElementById('auto-rule-channel');
-    if (ch) ch.value = 'meta';
-    onAutoRuleChannelChange('meta');
-    // Reset template fields
-    const inp = document.getElementById('auto-rule-template-input');
-    if (inp) { inp.value = ''; inp.style.display = ''; }
-    const sel = document.getElementById('auto-rule-template-select');
-    if (sel) { sel.innerHTML = ''; sel.style.display = 'none'; }
-    const status = document.getElementById('auto-rule-fetch-status');
-    if (status) { status.textContent = ''; status.style.display = 'none'; }
-    const fetchBtn = document.getElementById('auto-rule-fetch-btn');
-    if (fetchBtn) { fetchBtn.disabled = false; fetchBtn.textContent = '⬇ Buscar Templates'; }
-    // Reset language
-    const lang = document.getElementById('auto-rule-language');
-    if (lang) lang.value = 'pt_BR';
-    // Reset delay
-    const delay = document.getElementById('auto-rule-delay');
-    if (delay) delay.value = '0';
-    // Reset message body
-    const body = document.getElementById('auto-rule-message-body');
-    if (body) body.value = '';
-    // Reset enabled
-    const en = document.getElementById('auto-rule-enabled');
-    if (en) en.checked = true;
-    // Reset index
-    const idx = document.getElementById('auto-rule-edit-index');
-    if (idx) idx.value = '-1';
-}
-
-// ── Modal: open / close ────────────────────────────────────────────────────
-window.openAddRuleModal = function() {
-    document.getElementById('auto-rule-modal-title').textContent = 'Nova Regra de Automação';
-    _resetRuleModal();
-    const m = document.getElementById('modal-auto-rule');
-    if (m) { m.style.display = 'flex'; }
-};
-
-window.openEditRuleModal = function(index) {
-    const rule = (window._autoRules || [])[index];
-    if (!rule) return;
-    _resetRuleModal();
-    document.getElementById('auto-rule-modal-title').textContent = 'Editar Regra';
-    document.getElementById('auto-rule-edit-index').value = String(index);
-
-    // Source — check if it matches a known option
-    const srcEl = document.getElementById('auto-rule-source');
-    const srcCustom = document.getElementById('auto-rule-source-custom');
-    const knownSources = ['consolida-form','visitante-form','batismo-form','start-form','novos-membros-form','cantina-order','crie-app'];
-    if (srcEl) {
-        if (knownSources.includes(rule.source)) {
-            srcEl.value = rule.source;
-        } else if (rule.source) {
-            srcEl.value = '__custom__';
-            if (srcCustom) { srcCustom.value = rule.source; srcCustom.style.display = 'block'; }
-        }
-    }
-
-    // Channel
-    const chEl = document.getElementById('auto-rule-channel');
-    if (chEl) { chEl.value = rule.channel || 'meta'; onAutoRuleChannelChange(rule.channel || 'meta'); }
-
-    // Template (Meta)
-    const inp = document.getElementById('auto-rule-template-input');
-    if (inp) inp.value = rule.template || '';
-
-    // Language
-    const langEl = document.getElementById('auto-rule-language');
-    if (langEl && rule.language) langEl.value = rule.language;
-
-    // Evolution message body
-    const body = document.getElementById('auto-rule-message-body');
-    if (body) body.value = rule.message_body || '';
-
-    // Delay + enabled
-    const delayEl = document.getElementById('auto-rule-delay');
-    if (delayEl) delayEl.value = String(rule.delay_minutes ?? 0);
-    const enEl = document.getElementById('auto-rule-enabled');
-    if (enEl) enEl.checked = rule.enabled !== false;
-
-    const m = document.getElementById('modal-auto-rule');
-    if (m) { m.style.display = 'flex'; }
-};
-
-window.closeRuleModal = function() {
-    const m = document.getElementById('modal-auto-rule');
-    if (m) m.style.display = 'none';
-};
-
-// ── Save rule (add or update) ──────────────────────────────────────────────
-window.saveAutomationRule = async function() {
-    if (!window.currentWorkspaceId) return;
-
-    // Source — prefer custom input if __custom__ is selected
-    const srcSel    = document.getElementById('auto-rule-source')?.value || '';
-    const srcCustom = (document.getElementById('auto-rule-source-custom')?.value || '').trim();
-    const source    = srcSel === '__custom__' ? srcCustom : srcSel;
-
-    // Template — prefer dropdown if it's visible, else use text input
-    const tmplSelect = document.getElementById('auto-rule-template-select');
-    const tmplInput  = document.getElementById('auto-rule-template-input');
-    const template   = (tmplSelect?.style.display !== 'none' ? tmplSelect?.value : tmplInput?.value)?.trim() || null;
-
-    const language    = document.getElementById('auto-rule-language')?.value || 'pt_BR';
-    const channel     = document.getElementById('auto-rule-channel')?.value   || 'meta';
-    const delay       = parseInt(document.getElementById('auto-rule-delay')?.value || '0', 10);
-    const enabled     = document.getElementById('auto-rule-enabled')?.checked !== false;
-    const message_body = (document.getElementById('auto-rule-message-body')?.value || '').trim() || null;
-    const editIdx     = parseInt(document.getElementById('auto-rule-edit-index')?.value ?? '-1', 10);
-
-    if (!source) { window.showToast && showToast('Origem é obrigatória', 'error'); return; }
-    if (channel === 'meta' && !template) { window.showToast && showToast('Selecione ou digite um template Meta', 'error'); return; }
-    if (channel === 'evolution' && !message_body) { window.showToast && showToast('Escreva a mensagem para Evolution', 'error'); return; }
-
-    const rule = { source, template, language, channel, delay_minutes: delay, enabled,
-                   ...(message_body ? { message_body } : {}) };
-
-    try {
-        const sb  = window.supabaseClient;
+        
+        const sb = window.supabaseClient;
         const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
-        const cfg   = { ...(ws?.automation_config || {}) };
-        const rules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
-
-        if (editIdx >= 0) {
-            rules[editIdx] = rule;
-        } else {
-            rules.push(rule);
-        }
+        const cfg = { ...(ws?.automation_config || {}) };
+        
         cfg.rules = rules;
-
-        const { error } = await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
-        if (error) throw error;
-
-        window._autoRules = rules;
-        renderAutomationRules();
-        closeRuleModal();
-        window.showToast && showToast(editIdx >= 0 ? 'Regra atualizada!' : 'Regra adicionada!', 'success');
-    } catch(e) {
-        console.error('saveAutomationRule:', e);
-        window.showToast && showToast('Erro ao salvar regra', 'error');
-    }
-};
-
-
-window.deleteAutomationRule = async function(index) {
-    if (!window.currentWorkspaceId) return;
-    if (!confirm('Remover esta regra?')) return;
-    try {
-        const sb  = window.supabaseClient;
-        const { data: ws } = await sb.from('workspaces').select('automation_config').eq('id', window.currentWorkspaceId).single();
-        const cfg   = { ...(ws?.automation_config || {}) };
-        const rules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
-        rules.splice(index, 1);
-        cfg.rules = rules;
+        
         await sb.from('workspaces').update({ automation_config: cfg }).eq('id', window.currentWorkspaceId);
         window._autoRules = rules;
-        renderAutomationRules();
-        window.showToast && showToast('Regra removida', 'info');
-    } catch(e) { console.error('deleteAutomationRule:', e); }
+        window.showToast && showToast('Automações salvas com sucesso! 💾', 'success');
+        
+    } catch(e) {
+        console.error('saveWabaAutomations:', e);
+        window.showToast && showToast('Erro ao salvar automações', 'error');
+    }
 };
 
 

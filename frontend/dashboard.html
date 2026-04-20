@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FBBF24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' fill='%23000'%3EZ%3C/text%3E%3C/svg%3E">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zelo</title>
     
     <!-- PWA Settings -->
@@ -1060,7 +1060,7 @@
                 appId      : '934037612918640', // Configurado pelo Admin Zelo
                 cookie     : true,
                 xfbml      : true,
-                version    : 'v20.0'
+                version    : 'v25.0'
             });
             FB.AppEvents.logPageView();
         };
@@ -3008,49 +3008,151 @@
                     </div>
                 </div>
 
-                <!-- Rules table header -->
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <div>
-                        <h3 style="font-size:.95rem;font-weight:700;margin-bottom:4px;">Regras por Origem</h3>
-                        <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Cada regra mapeia a origem do lead (nome do formulário) para um template WhatsApp específico e canal de envio.</p>
-                    </div>
-                    <button onclick="openAddRuleModal()" class="hub-btn-primary" style="padding:9px 18px;font-size:.82rem;flex-shrink:0;">+ Nova Regra</button>
+                <!-- Fixed Forms Automações -->
+                <div style="margin-bottom:16px;">
+                    <h3 style="font-size:.95rem;font-weight:700;margin-bottom:4px;">Gatilhos por Módulo</h3>
+                    <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Selecione qual template de WhatsApp será disparado automaticamente quando um lead preencher o formulário público correspondente.</p>
                 </div>
 
-                <!-- Rules table -->
-                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;overflow:hidden;">
-                    <table style="width:100%;border-collapse:collapse;font-size:.83rem;">
-                        <thead>
-                            <tr style="border-bottom:1px solid var(--border);">
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Origem (source)</th>
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Template</th>
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Idioma</th>
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Canal</th>
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Atraso</th>
-                                <th style="padding:13px 18px;text-align:left;color:var(--text-dim);font-weight:600;">Ativo</th>
-                                <th style="padding:13px 4px;text-align:right;color:var(--text-dim);font-weight:600;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="auto-rules-tbody">
-                            <tr id="auto-rules-empty">
-                                <td colspan="7" style="padding:32px;text-align:center;color:var(--text-dim);">Nenhuma regra configurada. Clique em &ldquo;+ Nova Regra&rdquo; para começar.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="auto-forms-container" style="display:flex;flex-direction:column;gap:16px;">
+                    <!-- Forms will be generated dynamically or directly embedded here. I will embed them directly for easier manipulation. -->
+                    
+                    <!-- 1. Consolida -->
+                    <div class="auto-form-card" data-form="consolida-form" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">🔥</span> Consolidação
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>consolida-form</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="consolida-form" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="consolida-form" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Visitantes -->
+                    <div class="auto-form-card" data-form="visitor-form" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">👋</span> Visitantes
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>visitor-form</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="visitor-form" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="visitor-form" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Start -->
+                    <div class="auto-form-card" data-form="start-form" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">🚀</span> Start
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>start-form</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="start-form" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="start-form" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Batismos -->
+                    <div class="auto-form-card" data-form="batismo-form" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">💧</span> Batismos
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>batismo-form</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="batismo-form" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="batismo-form" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Novos Membros -->
+                    <div class="auto-form-card" data-form="novos-membros-form" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">👥</span> Novos Membros
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>novos-membros-form</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="novos-membros-form" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="novos-membros-form" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 6. CRIE -->
+                    <div class="auto-form-card" data-form="crie-inscricao" style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
+                            <div style="flex:1;min-width:200px;">
+                                <h4 style="font-size:.9rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                   <span style="font-size:1.1rem;">🌟</span> CRIE
+                                </h4>
+                                <p style="font-size:.78rem;color:var(--text-dim);margin:0;">Destino do formulário: <code>crie-inscricao</code></p>
+                            </div>
+                            <div style="flex:2;min-width:250px;">
+                                <label style="font-size:.75rem;color:var(--text-dim);margin-bottom:4px;display:block;">Template Disparado</label>
+                                <select class="hub-field-input auto-template-select" data-form="crie-inscricao" style="width:100%;font-size:.85rem;">
+                                    <option value="">Nenhuma Automação (Desativado)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="auto-vars-block" data-form="crie-inscricao" style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--border);display:none;">
+                            <h5 style="font-size:.82rem;font-weight:600;margin-bottom:12px;color:var(--text-muted);">Mapeamento de Variáveis</h5>
+                            <div class="auto-vars-container" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"></div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- Default template fallback -->
-                <div style="background:var(--bg-card);border:1px solid var(--card-border);border-radius:16px;padding:18px 24px;margin-top:20px;">
-                    <h4 style="font-size:.85rem;font-weight:700;margin-bottom:12px;">Template Padrão (quando nenhuma regra corresponder)</h4>
-                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-                        <input id="auto-default-template" type="text" class="hub-field-input" placeholder="Ex: consolidacao" style="flex:1;min-width:180px;">
-                        <select id="auto-default-language" class="hub-field-input" style="width:120px;">
-                            <option value="pt_BR">pt_BR</option>
-                            <option value="en_US">en_US</option>
-                            <option value="es">es</option>
-                        </select>
-                        <button onclick="saveAutomationGlobal()" class="hub-btn-primary" style="padding:8px 16px;font-size:.8rem;">Salvar</button>
-                    </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+                    <button onclick="saveWabaAutomations()" class="hub-btn-primary" style="padding:10px 24px;font-size:.85rem;font-weight:700;background:linear-gradient(135deg,var(--accent),#FFA000);color:#000;border:none;">💾 Salvar Automações</button>
                 </div>
 
             </div><!-- /#auto-tab-regras -->
