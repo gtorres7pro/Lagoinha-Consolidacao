@@ -2856,3 +2856,117 @@ body *[class*="anim-"],
 body *[data-no-transition] {
   transition: none !important;
 }
+
+/* ── Phase 3: Action Bundles & Expandable Cards ── */
+.hub-action-bundle {
+    position: relative;
+    display: inline-block;
+}
+.hub-action-trigger {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    font-weight: bold;
+    transition: all 0.2s;
+}
+.hub-action-trigger:hover {
+    background: rgba(255,255,255,0.1);
+}
+.hub-action-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border-radius: 10px;
+    min-width: 180px;
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    padding: 6px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.hub-action-menu.active {
+    display: flex;
+    animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.hub-action-item {
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 0.85rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+.hub-action-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+.hub-action-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.hub-card-expandable {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    opacity: 0;
+    margin-top: 0;
+}
+/* When expanded, the margin-top triggers a smoother visual flow */
+.hub-card-expandable.expanded {
+    max-height: 1000px;
+    opacity: 1;
+    margin-top: 10px;
+}
+.hub-expand-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: 0.2s;
+    border-radius: 0 0 12px 12px;
+}
+.hub-expand-btn:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.02);
+}
+
+[data-theme="light"] .hub-action-trigger { background: transparent; border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .hub-action-trigger:hover { background: rgba(0,0,0,0.05); }
+[data-theme="light"] .hub-action-menu { background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .hub-action-item:hover { background: rgba(0,0,0,0.05); }
+[data-theme="light"] .hub-expand-btn { border-top-color: rgba(0,0,0,0.05); }
+[data-theme="light"] .hub-expand-btn:hover { background: rgba(0,0,0,0.02); }
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
