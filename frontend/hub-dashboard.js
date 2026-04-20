@@ -960,6 +960,8 @@
             if (tabName === 'global'   && window.loadGlobalView)   window.loadGlobalView();
             // CRIE Connect module
             if (tabName === 'crie-connect' && window.loadCrieConnect) window.loadCrieConnect();
+            // Café com Pastor module
+            if (tabName === 'cafe-pastor' && window._cpLoadData) window._cpLoadData();
         }
 
         // --- SIDEBAR DUAL PANE: close secondary sidebar ------------------
@@ -11526,7 +11528,7 @@ async function sendMilaMessage() {
         if (tab === 'transmissao') {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             const v = document.getElementById('view-transmissao');
-            if (v) v.classList.add('active');
+            if (v) { v.style.display = ''; v.classList.add('active'); }
             document.querySelectorAll('.nav li').forEach(el => el.classList.remove('active'));
             const n = document.getElementById('nav-transmissao');
             if (n) n.classList.add('active');
