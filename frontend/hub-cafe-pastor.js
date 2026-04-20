@@ -44,17 +44,22 @@
     var DAYS_SHORT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
     /* ── CSS snippets used throughout ── */
-    var CSS_CARD  = 'background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;';
-    var CSS_INPUT = 'background:#252525;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;'
-                  + 'color:#f0ede8;font-family:inherit;font-size:.88rem;width:100%;outline:none;box-sizing:border-box;';
-    var CSS_SELECT = CSS_INPUT;
+    var CSS_CARD  = 'background:#1f1d24;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;';
+    var CSS_INPUT = 'background:#2a2830 !important;border:1px solid rgba(212,165,116,.25) !important;border-radius:8px !important;'
+                  + 'padding:9px 12px !important;color:#f0ede8 !important;font-family:inherit;font-size:.88rem !important;'
+                  + 'width:100%;outline:none;box-sizing:border-box;';
+    var CSS_SELECT = '-webkit-appearance:none;-moz-appearance:none;appearance:none;'
+                   + 'background:#2a2830 url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23d4a574\'/%3E%3C/svg%3E") no-repeat right 10px center/10px 6px !important;'
+                   + 'border:1px solid rgba(212,165,116,.25) !important;border-radius:8px !important;'
+                   + 'padding:9px 30px 9px 12px !important;color:#f0ede8 !important;'
+                   + 'font-family:inherit;font-size:.88rem !important;width:100%;outline:none;box-sizing:border-box;cursor:pointer;';
     var CSS_BTN_GOLD = 'background:#d4a574;color:#111;border:none;padding:10px 18px;border-radius:8px;'
                      + 'font-weight:700;font-size:.88rem;cursor:pointer;';
-    var CSS_BTN_GHOST = 'background:rgba(255,255,255,.06);color:#ccc;border:1px solid rgba(255,255,255,.12);'
+    var CSS_BTN_GHOST = 'background:rgba(255,255,255,.08);color:#e0dbd0;border:1px solid rgba(255,255,255,.15);'
                       + 'padding:10px 18px;border-radius:8px;font-weight:600;font-size:.88rem;cursor:pointer;';
 
     var lbl = function(txt, sub) {
-        return '<label style="display:block;font-size:.79rem;font-weight:600;color:rgba(200,180,150,.9);margin-bottom:5px;">'
+        return '<label style="display:block;font-size:.8rem;font-weight:600;color:#c8a87c;margin-bottom:6px;">'
              + esc(txt) + (sub ? '<span style="font-weight:400;color:rgba(255,255,255,.3);"> ' + esc(sub) + '</span>' : '')
              + '</label>';
     };
@@ -78,6 +83,60 @@
         if (window.hubToast) window.hubToast(msg, type || 'info');
     };
 
+    /* ─── Inject global CSS for Chrome macOS form elements ──────────── */
+    (function() {
+        var styleId = 'cp-module-styles';
+        if (!document.getElementById(styleId)) {
+            var s = document.createElement('style');
+            s.id = styleId;
+            s.textContent = [
+                '#cp-modal-overlay input, #cp-modal-overlay textarea {',
+                '  background: #2a2830 !important; color: #f0ede8 !important;',
+                '  border: 1px solid rgba(212,165,116,.3) !important;',
+                '  border-radius: 8px !important; font-size: .88rem !important;',
+                '}',
+                '#cp-modal-overlay input:focus, #cp-modal-overlay textarea:focus {',
+                '  border-color: rgba(212,165,116,.7) !important;',
+                '  box-shadow: 0 0 0 3px rgba(212,165,116,.12) !important;',
+                '}',
+                '#cp-modal-overlay select {',
+                '  background-color: #2a2830 !important; color: #f0ede8 !important;',
+                '  border: 1px solid rgba(212,165,116,.3) !important;',
+                '  border-radius: 8px !important; font-size: .88rem !important;',
+                '  -webkit-appearance: none !important; appearance: none !important;',
+                '  background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23d4a574\'/%3E%3C%2Fsvg%3E") !important;',
+                '  background-repeat: no-repeat !important;',
+                '  background-position: right 10px center !important;',
+                '  background-size: 10px 6px !important;',
+                '  padding-right: 32px !important;',
+                '}',
+                '#cp-modal-overlay select:focus {',
+                '  border-color: rgba(212,165,116,.7) !important;',
+                '  outline: none !important;',
+                '}',
+                '#cp-modal-overlay select option {',
+                '  background: #1e1c24 !important; color: #f0ede8 !important;',
+                '}',
+                '.cp-filter-select {',
+
+                '  background-color: #1f1d24 !important; color: #e0dbd0 !important;',
+                '  border: 1px solid rgba(255,255,255,.12) !important;',
+                '  border-radius: 8px !important; font-size: .82rem !important;',
+                '  padding: 7px 28px 7px 10px !important;',
+                '  -webkit-appearance: none !important; appearance: none !important;',
+                '  background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg\' viewBox=\'0 0 10 6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%23aaa\'/%3E%3C%2Fsvg%3E") !important;',
+                '  background-repeat: no-repeat !important;',
+                '  background-position: right 8px center !important;',
+                '  background-size: 9px 5px !important;',
+                '  cursor: pointer;',
+                '}',
+                '.cp-filter-select option { background: #1e1c24 !important; color: #f0ede8 !important; }',
+                '.cp-table-row { border-bottom: 1px solid rgba(255,255,255,.05); }',
+                '.cp-table-row:hover { background: rgba(212,165,116,.04) !important; }',
+            ].join('\n');
+            document.head.appendChild(s);
+        }
+    })();
     /* ═══════════════════════════════════════════════════════════════════
        MAIN ENTRY
     ═══════════════════════════════════════════════════════════════════ */
@@ -183,10 +242,11 @@
         var weekEnd = new Date(today.getTime() + 7 * 86400000);
 
         var kpi = function(title, val, color, sub) {
-            return '<div style="' + CSS_CARD + '">'
-                + '<div style="font-size:.73rem;color:rgba(255,255,255,.4);margin-bottom:3px;">' + esc(title) + '</div>'
-                + '<div style="font-size:1.7rem;font-weight:800;color:' + color + ';">' + val + '</div>'
-                + '<div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:1px;">' + esc(sub) + '</div>'
+            return '<div style="background:#1f1d24;border:1px solid rgba(255,255,255,.08);border-top:3px solid ' + color + '33;'
+                + 'border-radius:12px;padding:16px;min-width:0;">'
+                + '<div style="font-size:.75rem;font-weight:600;color:rgba(255,255,255,.45);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">' + esc(title) + '</div>'
+                + '<div style="font-size:1.8rem;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>'
+                + '<div style="font-size:.72rem;color:rgba(255,255,255,.3);margin-top:4px;">' + esc(sub) + '</div>'
                 + '</div>';
         };
 
@@ -237,7 +297,7 @@
         var selStyle = CSS_SELECT + 'width:auto;display:inline-block;padding:7px 10px;font-size:.82rem;';
 
         c.innerHTML =
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;">'
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">'
             + kpi('Total', total, '#60A5FA', 'no período')
             + kpi('Confirmados', confirmed, '#60A5FA', 'aguardando')
             + kpi('Concluídos', completed, '#4ADE80', 'realizados')
@@ -246,17 +306,17 @@
             + '</div>'
 
             + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">'
-            + '<select id="cp-f-pastor" onchange="cpApplyFilter()" style="' + selStyle + '">' + pastOpts + '</select>'
-            + '<select id="cp-f-status" onchange="cpApplyFilter()" style="' + selStyle + '">' + statOpts + '</select>'
-            + '<select id="cp-f-period" onchange="cpApplyFilter()" style="' + selStyle + '">' + perOpts + '</select>'
+            + '<select id="cp-f-pastor" onchange="cpApplyFilter()" class="cp-filter-select">' + pastOpts + '</select>'
+            + '<select id="cp-f-status" onchange="cpApplyFilter()" class="cp-filter-select">' + statOpts + '</select>'
+            + '<select id="cp-f-period" onchange="cpApplyFilter()" class="cp-filter-select">' + perOpts + '</select>'
             + '<button onclick="cpNewApptModal()" style="margin-left:auto;' + CSS_BTN_GOLD + '">+ Novo Agendamento</button>'
             + '</div>'
 
-            + '<div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,.08);">'
+            + '<div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#1f1d24;">'
             + '<table style="width:100%;border-collapse:collapse;">'
-            + '<thead><tr style="background:#1a1a1a;">'
+            + '<thead><tr style="background:rgba(212,165,116,.06);border-bottom:1px solid rgba(212,165,116,.15);">'
             + ['Solicitante','Pastor','Data / Hora','Tipo','Status','Ação'].map(function(h){
-                return '<th style="padding:11px 14px;text-align:left;font-size:.75rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">' + h + '</th>';
+                return '<th style="padding:11px 14px;text-align:left;font-size:.72rem;font-weight:700;color:rgba(212,165,116,.7);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">' + h + '</th>';
               }).join('')
             + '</tr></thead>'
             + '<tbody style="divide-y:rgba(255,255,255,.06);">' + rows + '</tbody>'
