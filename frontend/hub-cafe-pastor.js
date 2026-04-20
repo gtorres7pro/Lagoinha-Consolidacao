@@ -37,7 +37,11 @@
        MAIN ENTRY — exposed as window._cpLoadData
     ═══════════════════════════════════════════════════════════════════ */
     window._cpLoadData = async function () {
-        if (!window._currentWsId) { console.warn('[CP] No workspace ID'); return; }
+        // Support both globals — hub-dashboard.js sets window.currentWorkspaceId
+        var wsId = window._currentWsId || window.currentWorkspaceId || window._currentWorkspace?.id;
+        if (!wsId) { console.warn('[CP] No workspace ID'); return; }
+        // Normalise to one global
+        window._currentWsId = wsId;
         var c = $('cp-panels-container');
         if (c) c.innerHTML = loader;
 
