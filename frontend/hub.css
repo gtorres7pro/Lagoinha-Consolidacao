@@ -2235,11 +2235,18 @@ html, body {
 [data-theme="light"] .user-name { color: #111 !important; }
 [data-theme="light"] .user-label { color: var(--text-muted) !important; }
 
-/* Mobile topbar */
+/* Mobile & Global Topbars */
 [data-theme="light"] .mobile-topbar {
-  background: var(--bg-deep) !important;
+  background: var(--bg-deep) !important; /* Will evaluate to light bg in light mode */
   border-bottom-color: var(--border) !important;
 }
+[data-theme="light"] .top-bar { 
+  background: rgba(255,255,255,0.85) !important; 
+  border-bottom-color: var(--border) !important; 
+}
+[data-theme="light"] .page-title h1 { color: #111 !important; }
+[data-theme="light"] .page-title p { color: var(--text-muted) !important; }
+[data-theme="light"] .page-title h1 svg { stroke: #111 !important; }
 [data-theme="light"] .mobile-logo span,
 [data-theme="light"] .hamburger { color: #111 !important; }
 [data-theme="light"] .sidebar-overlay { background: rgba(0,0,0,0.5) !important; }

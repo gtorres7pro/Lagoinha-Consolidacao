@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Café com Pastor — Zelo</title>
+    <link rel="stylesheet" href="/hub.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+        body {
+            background: var(--bg, #0f0f13);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 650px;
+            border-radius: 28px;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            padding-bottom: 48px;
+            animation: fadeInUp 0.45s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .banner {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #d4a574 0%, #aa845d 50%, rgba(212,165,116,0.3) 100%);
+        }
+
+        .form-content {
+            padding: 0 36px;
+            margin-top: 32px;
+        }
+
+        @media (max-width: 500px) {
+            .form-content { padding: 0 20px; }
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #d4a574;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .header-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        /* Form Rendering Styles */
+        .fb-field { margin-bottom: 20px; }
+        .fb-label { 
+            display: block; 
+            font-size: 0.85rem; 
+            font-weight: 600; 
+            color: var(--text-muted); 
+            margin-bottom: 6px; 
+        }
+        .fb-label.required::after { content: " *"; color: #f43f5e; }
+        
+        .fb-input {
+            width: 100%;
+            padding: 13px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+        }
+        .fb-input:focus {
+            border-color: #d4a574;
+            box-shadow: 0 0 0 3px rgba(212,165,116,0.12);
+        }
+
+        /* success overlay */
+        .success-overlay {
+            position: fixed; inset: 0;
+            background: rgba(5,5,5,0.96);
+            backdrop-filter: blur(12px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 40px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 10000;
+        }
+        .success-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .btn-submit {
+            background: #d4a574;
+            color: #111;
+            border: none;
+            padding: 15px 28px;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 28px;
+            transition: all 0.2s;
+        }
+        .btn-submit:hover { background: #c29566; transform: translateY(-1px); }
+
+    </style>
+</head>
+<body>
+
+    <div class="success-overlay" id="successScreen">
+        <h3 id="success-title" style="color: #d4a574; font-size: 2rem; margin-bottom: 10px;">Solicitação Enviada!</h3>
+        <p id="success-message" style="color:var(--text-muted);">Sua solicitação de agendamento foi registrada com sucesso. Entraremos em contato.</p>
+    </div>
+
+    <div class="container">
+        <div class="banner"></div>
+        <div class="form-content">
+            <h1 class="header-title" id="form-title">
+                <svg viewBox="0 0 24 24" width="28" height="28" style="stroke:currentColor;fill:none;stroke-width:2;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                Café com Pastor
+            </h1>
+            <p class="header-desc" id="form-desc">Carregando formulário...</p>
+
+            <form id="dynamicForm" onsubmit="handleFormSubmit(event)" style="display:none;">
+                <div id="fields-container"></div>
+
+                <div class="fb-field" style="margin-top: 30px;">
+                    <!-- Fixed gender select for Match engine -->
+                    <label class="fb-label required">Gênero</label>
+                    <select id="user-gender" class="fb-input" required>
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="male">Masculino</option>
+                        <option value="female">Feminino</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btn-submit-form">Solicitar Agendamento</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/hub-init.js?v=20260404v1"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const wsSlug = urlParams.get('ws');
+        let _workspaceId = null;
+        let _formConfig = null;
+        
+        async function fetchConfig() {
+            if (!wsSlug) {
+                document.getElementById('form-desc').innerHTML = "<b>Erro:</b> Workspace invisível na URL (?ws=slug).";
+                return;
+            }
+
+            // Get Ws
+            const { data: ws, error: e1 } = await window.supabase
+                .from('workspaces')
+                .select('id, name')
+                .eq('slug', wsSlug).single();
+                
+            if (!ws) {
+                document.getElementById('form-desc').innerHTML = "Workspace não encontrado.";
+                return;
+            }
+            _workspaceId = ws.id;
+
+            // Get Cafe Pastor Config
+            const { data: cfg } = await window.supabase
+                .from('cafe_pastor_config')
+                .select('enabled, form_builder_id')
+                .eq('workspace_id', _workspaceId).single();
+
+            if (!cfg || !cfg.enabled) {
+                document.getElementById('form-desc').innerHTML = "Este módulo está inativo para esta igreja.";
+                return;
+            }
+
+            if (!cfg.form_builder_id) {
+                document.getElementById('form-desc').innerHTML = "Formulário não configurado pelas configurações da Igreja.";
+                return;
+            }
+
+            // Fetch form definition
+            const { data: formRec } = await window.supabase
+                .from('form_builder_forms')
+                .select('title, description, fields')
+                .eq('id', cfg.form_builder_id)
+                .single();
+
+            if (!formRec) {
+                document.getElementById('form-desc').innerHTML = "Formulário corrompido / não encontrado.";
+                return;
+            }
+
+            _formConfig = formRec;
+            document.getElementById('form-title').innerHTML = formRec.title;
+            document.getElementById('form-desc').innerHTML = formRec.description || 'Preencha o briefing abaixo para solicitar seu café.';
+            
+            renderFields(formRec.fields);
+            document.getElementById('dynamicForm').style.display = 'block';
+        }
+
+        function renderFields(fields) {
+            const container = document.getElementById('fields-container');
+            container.innerHTML = '';
+            
+            fields.forEach(field => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'fb-field';
+
+                const label = document.createElement('label');
+                label.className = 'fb-label' + (field.required ? ' required' : '');
+                label.textContent = field.label;
+                wrapper.appendChild(label);
+
+                if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
+                    const input = document.createElement('input');
+                    input.type = field.type === 'phone' ? 'tel' : field.type;
+                    input.className = 'fb-input';
+                    input.id = 'field_' + field.id;
+                    if (field.required) input.required = true;
+                    if (field.placeholder) input.placeholder = field.placeholder;
+                    wrapper.appendChild(input);
+
+                    if (field.type === 'phone') {
+                        setTimeout(() => {
+                            window.intlTelInput(input, {
+                                initialCountry: "br",
+                                preferredCountries: ["br", "us", "pt"],
+                                utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js"
+                            });
+                        }, 100);
+                    }
+                } 
+                else if (field.type === 'textarea') {
+                    const textarea = document.createElement('textarea');
+                    textarea.className = 'fb-input';
+                    textarea.id = 'field_' + field.id;
+                    if (field.required) textarea.required = true;
+                    if (field.placeholder) textarea.placeholder = field.placeholder;
+                    textarea.rows = 4;
+                    wrapper.appendChild(textarea);
+                } 
+                else if (field.type === 'select' && field.options) {
+                    const select = document.createElement('select');
+                    select.className = 'fb-input';
+                    select.id = 'field_' + field.id;
+                    if (field.required) select.required = true;
+                    
+                    const emptyOpt = document.createElement('option');
+                    emptyOpt.value = "";
+                    emptyOpt.disabled = true;
+                    emptyOpt.selected = true;
+                    emptyOpt.textContent = "Selecione...";
+                    select.appendChild(emptyOpt);
+
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        select.appendChild(option);
+                    });
+                    wrapper.appendChild(select);
+                }
+
+                container.appendChild(wrapper);
+            });
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-form');
+            btn.disabled = true;
+            btn.innerText = 'Processando MATCH...';
+
+            try {
+                // Collect answers
+                const answers = {};
+                let userEmail = null;
+                let userPhone = null;
+                let userName = null;
+
+                _formConfig.fields.forEach(field => {
+                    const el = document.getElementById('field_' + field.id);
+                    if (el) {
+                        answers[field.id] = el.value;
+                        if (field.type === 'email') userEmail = el.value;
+                        if (field.type === 'phone') userPhone = el.value;
+                        if (field.label.toLowerCase().includes('nome')) userName = el.value;
+                    }
+                });
+
+                const gender = document.getElementById('user-gender').value;
+
+                console.log("Calling Match Engine...");
+                
+                // Call the Edge Function "cafe-pastor-match"
+                const { data: edgeData, error: edgeError } = await window.supabase.functions.invoke('cafe-pastor-match', {
+                    body: { 
+                        workspace_id: _workspaceId,
+                        requester_name: userName || 'Visitante',
+                        requester_email: userEmail,
+                        requester_phone: userPhone,
+                        requester_gender: gender,
+                        briefing_answers: answers
+                    }
+                });
+
+                if (edgeError) throw edgeError;
+                console.log("Match Result:", edgeData);
+
+                // Show success
+                document.getElementById('successScreen').classList.add('active');
+
+            } catch (err) {
+                console.error(err);
+                alert('Ocorreu um erro ao agendar. Tente novamente mais tarde. Erro: ' + err.message);
+                btn.disabled = false;
+                btn.innerText = 'Solicitar Agendamento';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchConfig);
+    </script>
+</body>
+</html>

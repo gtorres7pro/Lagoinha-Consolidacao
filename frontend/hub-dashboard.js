@@ -1191,18 +1191,18 @@
 
         const PLAN_CONFIG = {
             free:     { label:'Gratuito',  modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
-            trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             starter:  { label:'Starter',   modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
             // Planos documentados no GEMINI.md (slugs canônicos do banco)
-            essencial:{ label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            founders: { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            essencial:{ label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            founders: { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             // Aliases mantidos para compatibilidade com planos legados
-            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            advanced: { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            advanced: { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
-        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs'];
+        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs','cafe_pastor'];
 
         // Map: module slug → { nav id, view id }
         // Slugs canônicos são em EN. Aliases PT são mapeados em SLUG_ALIASES.
@@ -1212,6 +1212,7 @@
             ia_whatsapp:     { nav:'nav-chat-ao-vivo', view:'view-chat-ao-vivo' },
             crie:            { nav:'nav-crie',       view:'view-crie' },
             cantina:         { nav:'nav-cantina',    view:'view-cantina' },
+            cafe_pastor:     { nav:'nav-cafe-pastor',view:'view-cafe-pastor' },
             financeiro:      { nav:'nav-finance-col',view:'view-null' },
             tasks:           { nav:'nav-tasks-col',  view:'view-tasks' },
             aniversariantes: { nav:'nav-birthdays',  view:'view-birthdays' },
@@ -1348,6 +1349,7 @@
                 wecare:          'nav-wecare',
                 voluntarios:     'nav-voluntarios',
                 tasks:           'nav-tasks',
+                cafe_pastor:     'nav-cafe-pastor',
             };
 
             Object.entries(USER_NAV_MAP).forEach(([slug, navId]) => {
@@ -1627,6 +1629,7 @@
             ia_whatsapp:'IA WhatsApp', financeiro:'Financeiro',
             start:'START', aniversariantes:'Aniversariantes',
             crie:'CRIE', voluntarios:'Voluntários',
+            cafe_pastor:'Café com Pastor',
         };
         const ROLE_LABELS = {
             master_admin:{ label:'Master Admin', color:'rgba(255,215,0,.14)', text:'var(--accent)' },
