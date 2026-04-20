@@ -186,7 +186,7 @@
     ═══════════════════════════════════════════════════════════════════ */
     window.cpSwitchPanel = function(panel) {
         _cpPanel = panel;
-        ['agenda','pastores','config'].forEach(function(p) {
+        ['agenda','pastores','config','pessoas'].forEach(function(p) {
             var b = $('cp-tab-' + p);
             if (!b) return;
             if (p === panel) {
@@ -214,6 +214,7 @@
         if (panel === 'agenda')        _cpRenderAgenda();
         else if (panel === 'pastores') _cpRenderPastores();
         else if (panel === 'config')   _cpRenderConfig();
+        else if (panel === 'pessoas')  _cpRenderPessoas();
     };
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -553,7 +554,10 @@
                     + '<div style="display:flex;gap:8px;">'
                     + '<button onclick="cpEditPastor(\'' + esc(p.id) + '\')" style="flex:1;background:rgba(212,165,116,.12);color:#d4a574;border:1px solid rgba(212,165,116,.3);padding:7px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;">✏️ Editar</button>'
                     + '<button onclick="cpManageAvailability(\'' + esc(p.id) + '\')" style="flex:1;background:rgba(96,165,250,.1);color:#60A5FA;border:1px solid rgba(96,165,250,.25);padding:7px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;">🗓️ Horários</button>'
-                    + '</div></div>';
+                    + '</div>'
+                    + '<button onclick="cpCopyICal(\'' + esc(p.id) + '\')" '
+                    + 'style="margin-top:8px;width:100%;background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.25);padding:6px;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;">📅 Copiar Link iCal</button>'
+                    + '</div>';
             });
         }
 
@@ -589,6 +593,8 @@
             + '</div>'
 
             + _field('Nome de Exibição *', '<input id="cppm-name" style="' + CSS_INPUT + '" placeholder="Ex: Pastor João" value="' + esc(p.display_name||'') + '"/>')
+
+            + _field('Email para Notificações', '<input id="cppm-email" type="email" style="' + CSS_INPUT + '" placeholder="pastor@igreja.com" value="' + esc(p.email||'') + '"/>')
 
             + _field('Gênero *',
                 '<select id="cppm-gender" style="' + CSS_SELECT + '">'
@@ -653,8 +659,10 @@
             } catch(e) { toast('Aviso: não foi possível fazer upload da foto. ' + e.message, 'info'); }
         }
 
+        var email  = ($('cppm-email')||{}).value.trim() || null;
+
         var payload = {
-            workspace_id: getWsId(), display_name:name, gender:gender, bio:bio,
+            workspace_id: getWsId(), display_name:name, gender:gender, bio:bio, email:email,
             session_duration_minutes:dur, max_weekly_sessions:maxS, photo_url:photoUrl, is_active:active
         };
 
@@ -683,6 +691,28 @@
             toast('Pastor '+(newVal?'ativado':'desativado')+'!','success');
             _cpRenderPastores();
         } catch(err) { toast('Erro: '+(err.message||err),'error'); }
+    };
+
+    /* ─── ICAL LINK ──────────────────────────────────────────────────── */
+    window.cpCopyICal = function(pastorId) {
+        var pastor = _cpPastors.find(function(p){ return p.id === pastorId; });
+        var token = pastor && pastor.ical_token;
+        if (!token) {
+            toast('Token iCal não disponível. O pastor precisa ter sido salvo primeiro.', 'error');
+            return;
+        }
+        var url = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1/cafe-pastor-ical?token=' + token;
+        navigator.clipboard.writeText(url).then(function() {
+            toast('Link iCal copiado! Cole no seu Apple Calendar / Google Calendar.', 'success');
+        }).catch(function() {
+            var ta = document.createElement('textarea');
+            ta.value = url;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            toast('Link iCal copiado!', 'success');
+        });
     };
 
     /* ─── AVAILABILITY MODAL ──────────────────────────────────────────── */
@@ -728,11 +758,70 @@
         }
 
         _cpModal(
-            '🗓️ Horários de Atendimento — ' + esc(pastor.display_name),
-            '<p style="font-size:.83rem;color:rgba(255,255,255,.4);margin-bottom:16px;">Defina em quais dias e horários o pastor atende, e se é presencial, online ou ambos. Se marcado como "presencial" o pastor pode atender online também naquele horário.</p>'
-            + rows,
+            '🗓️ Horários — ' + esc(pastor.display_name),
+            '<p style="font-size:.83rem;color:var(--text-muted,#6b7280);margin-bottom:16px;">Defina os dias e horários de atendimento do pastor.</p>'
+            + rows
+            + '<div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.07);">'
+            + '<div style="font-size:.73rem;font-weight:700;color:rgba(212,165,116,.8);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🚫 Bloquear Data Específica</div>'
+            + '<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:end;">'
+            + '<div>' + lbl('Data') + '<input type="date" id="cp-block-date" style="' + CSS_INPUT + '"/></div>'
+            + '<div>' + lbl('Início') + '<input type="time" id="cp-block-start" value="00:00" style="' + CSS_INPUT + 'width:auto;padding:9px 8px;"/></div>'
+            + '<div>' + lbl('Fim') + '<input type="time" id="cp-block-end" value="23:59" style="' + CSS_INPUT + 'width:auto;padding:9px 8px;"/></div>'
+            + '<button onclick="cpAddBlock(\'' + esc(pastorId) + '\')" style="' + CSS_BTN_GOLD + 'padding:9px 14px;white-space:nowrap;">+ Bloquear</button>'
+            + '</div>'
+            + '<div id="cp-blocks-list" style="margin-top:10px;"></div>'
+            + '</div>',
             '<button onclick="cpSaveAvailability(\'' + esc(pastorId) + '\')" style="' + CSS_BTN_GOLD + 'width:100%;padding:12px;">💾 Salvar Horários</button>'
         );
+
+        // Load existing blocks
+        cpLoadBlocks(pastorId);
+    };
+
+    window.cpLoadBlocks = async function(pastorId) {
+        var el = $('cp-blocks-list');
+        if (!el) return;
+        try {
+            var { data } = await _sb().from('cafe_pastor_blocked_slots')
+                .select('*').eq('pastor_id', pastorId).order('blocked_date');
+            var blocks = data || [];
+            if (blocks.length === 0) {
+                el.innerHTML = '<div style="font-size:.78rem;color:rgba(255,255,255,.25);padding:8px 0;">Nenhum bloqueio registrado.</div>';
+            } else {
+                el.innerHTML = blocks.map(function(b) {
+                    var timeRange = (b.blocked_start && b.blocked_end)
+                        ? ' · ' + b.blocked_start.substring(0,5) + '–' + b.blocked_end.substring(0,5)
+                        : ' · Dia todo';
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.15);border-radius:8px;margin-bottom:6px;">'
+                        + '<span style="font-size:.82rem;color:var(--text,#fff);">' + esc(b.blocked_date) + timeRange + (b.reason ? ' — ' + esc(b.reason) : '') + '</span>'
+                        + '<button onclick="cpDeleteBlock(\'' + esc(b.id) + '\',\'' + esc(pastorId) + '\')" style="background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer;">✕</button>'
+                        + '</div>';
+                }).join('');
+            }
+        } catch(e) { if (el) el.innerHTML = ''; }
+    };
+
+    window.cpAddBlock = async function(pastorId) {
+        var date  = ($('cp-block-date')||{}).value;
+        var start = ($('cp-block-start')||{}).value || null;
+        var end   = ($('cp-block-end')||{}).value   || null;
+        if (!date) { toast('Selecione uma data para bloquear.', 'error'); return; }
+        var row = { workspace_id: getWsId(), pastor_id: pastorId, blocked_date: date,
+                    blocked_start: start, blocked_end: end };
+        try {
+            var { error } = await _sb().from('cafe_pastor_blocked_slots').insert(row);
+            if (error) throw error;
+            toast('Data bloqueada!', 'success');
+            cpLoadBlocks(pastorId);
+        } catch(err) { toast('Erro: ' + (err.message||err), 'error'); }
+    };
+
+    window.cpDeleteBlock = async function(blockId, pastorId) {
+        try {
+            var { error } = await _sb().from('cafe_pastor_blocked_slots').delete().eq('id', blockId);
+            if (error) throw error;
+            cpLoadBlocks(pastorId);
+        } catch(err) { toast('Erro: ' + (err.message||err), 'error'); }
     };
 
     window.cpAvailToggleDay = function(dow) {
@@ -876,6 +965,72 @@
             if (btn) { btn.disabled = false; btn.innerText = '💾 Salvar Configurações'; }
         }
     };
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PANEL 4 — PESSOAS ATENDIDAS
+    ═══════════════════════════════════════════════════════════════════ */
+    function _cpRenderPessoas() {
+        var c = $('cp-panels-container');
+        if (!c) return;
+        c.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;text-align:center;padding:50px 0;">Carregando...</div>';
+
+        // Group appointments by requester_email (or name fallback)
+        var map = {};
+        _cpAppts.forEach(function(a) {
+            if (a.status === 'cancelled' || a.status === 'no_show') return;
+            var key = (a.requester_email || '').toLowerCase() || a.requester_name;
+            if (!map[key]) {
+                map[key] = { name: a.requester_name, email: a.requester_email, phone: a.requester_phone,
+                             sessions: [], lastAt: null, pastors: [] };
+            }
+            map[key].sessions.push(a);
+            if (!map[key].lastAt || new Date(a.scheduled_at) > new Date(map[key].lastAt)) {
+                map[key].lastAt = a.scheduled_at;
+            }
+            if (a.pastor_id && map[key].pastors.indexOf(a.pastor_id) < 0) {
+                map[key].pastors.push(a.pastor_id);
+            }
+        });
+
+        var people = Object.values(map).sort(function(a,b) {
+            return new Date(b.lastAt) - new Date(a.lastAt);
+        });
+
+        var rows = '';
+        if (people.length === 0) {
+            rows = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted,#6b7280);font-size:.88rem;">☕ Nenhuma pessoa atendida ainda.</td></tr>';
+        } else {
+            people.forEach(function(p) {
+                var pastorNames = p.pastors.map(function(pid) {
+                    var pastor = _cpPastors.find(function(x){ return x.id === pid; });
+                    return pastor ? pastor.display_name : '—';
+                }).join(', ');
+                rows += '<tr class="cp-table-row">'
+                    + '<td style="padding:11px 14px;"><div style="font-weight:600;color:var(--text,#fff);">' + esc(p.name||'—') + '</div>'
+                    +     '<div style="font-size:.73rem;color:var(--text-muted,#6b7280);">' + esc(p.email||'') + '</div></td>'
+                    + '<td style="padding:11px 14px;color:var(--text-muted,#6b7280);font-size:.84rem;">' + esc(p.phone||'—') + '</td>'
+                    + '<td style="padding:11px 14px;text-align:center;"><span style="background:rgba(212,165,116,.15);color:#d4a574;border:1px solid rgba(212,165,116,.3);border-radius:20px;padding:2px 12px;font-weight:700;">' + p.sessions.length + '</span></td>'
+                    + '<td style="padding:11px 14px;color:var(--text,#fff);font-size:.84rem;">' + esc(fmtDT(p.lastAt)) + '</td>'
+                    + '<td style="padding:11px 14px;font-size:.82rem;color:var(--text-muted,#6b7280);">' + esc(pastorNames||'—') + '</td>'
+                    + '</tr>';
+            });
+        }
+
+        c.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'
+            + '<h3 style="font-size:1.05rem;margin:0;color:var(--text,#fff);">👥 Pessoas Atendidas</h3>'
+            + '<span style="font-size:.82rem;color:var(--text-muted,#6b7280);">' + people.length + ' pessoas</span>'
+            + '</div>'
+            + '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.07));">'
+            + '<table style="width:100%;border-collapse:collapse;">'
+            + '<thead><tr style="background:var(--bg-card-solid,#131318);border-bottom:2px solid rgba(212,165,116,.3);">'
+            + ['Nome / Email','Telefone','Sessões','Última Sessão','Pastor Habitual'].map(function(h){
+                return '<th style="padding:11px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#d4a574;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">' + h + '</th>';
+              }).join('')
+            + '</tr></thead>'
+            + '<tbody>' + rows + '</tbody>'
+            + '</table></div>';
+    }
 
     /* ═══════════════════════════════════════════════════════════════════
        GENERIC MODAL
