@@ -46,7 +46,7 @@ window.loadTaskManager = async function () {
     if (!sb || !wsId) return;
 
     const tbody = document.getElementById('tasks-list-tbody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:60px;text-align:center;color:rgba(255,255,255,.2);">Carregando tarefas...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:60px;text-align:center;color:var(--text-muted, rgba(255,255,255,.2));">Carregando tarefas...</td></tr>';
 
     try {
         const userId = window._currentUser?.id;
@@ -147,7 +147,7 @@ window.loadTaskManager = async function () {
 
     } catch (e) {
         console.error('loadTaskManager error:', e);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="padding:60px;text-align:center;color:#EF4444;">Erro: ${e.message}</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="padding:60px;text-align:center;color:var(--danger, #EF4444);">Erro: ${e.message}</td></tr>`;
     }
 };
 

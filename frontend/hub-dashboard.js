@@ -8619,16 +8619,24 @@ window.toggleAdminMenu = function() { /* menus are now fixed/non-collapsible */ 
         const newTabs = ['relatorios-geral','relatorios-local','relatorios-regional','relatorios-global',
                          'admin-tarefas','admin-financeiro','desenvolvedor'];
         if (newTabs.includes(tab)) {
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
+            // First, let the original switchTab handle history, mainContent, and basic view switching
+            if (_prev) _prev(tab);
 
             // Redirect legacy tabs to the unified view
             const viewId = (tab === 'relatorios-local' || tab === 'relatorios-regional' || tab === 'relatorios-global')
                 ? 'view-relatorios-geral' : ('view-' + tab);
+            
+            // Ensure the correct view is active (especially if original failed because of ID mismatch)
+            // Original switchTab will have already hidden the old views properly.
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             const viewEl = document.getElementById(viewId);
-            if (viewEl) { viewEl.classList.add('active'); viewEl.style.display = ''; }
+            if (viewEl) { 
+                viewEl.classList.add('active'); 
+                if (tab !== 'chat-ao-vivo' && tab !== 'mila' && tab !== 'transmissao') viewEl.style.display = ''; 
+            }
 
-            // Highlight nav item
+            // Fix the sidebar navigation highlight (original failed because IDs don't perfectly match)
+            document.querySelectorAll('#sidebar li').forEach(li => li.classList.remove('active'));
             if (tab === 'admin-tarefas') {
                 const navEl = document.getElementById('nav-tasks');
                 if (navEl) navEl.classList.add('active');
@@ -8636,6 +8644,7 @@ window.toggleAdminMenu = function() { /* menus are now fixed/non-collapsible */ 
                 const navEl = document.getElementById('nav-' + tab) || document.getElementById('nav-relatorios-toggle');
                 if (navEl) navEl.classList.add('active');
             }
+            
             // Highlight Relatórios header when on any relatorios-* tab
             if (tab.startsWith('relatorios-')) {
                 const relToggle = document.getElementById('nav-relatorios-toggle');
