@@ -288,55 +288,117 @@ function renderStep() {
 ═══════════════════════════════════════════════════════════════ */
 function renderPersonal() {
     var wsNote = STATE.wsName ? 'Agendar atendimento em ' + STATE.wsName : 'Agende seu atendimento pastoral';
+    var countryOpts = COUNTRIES.map(function(c) {
+        return '<div class="country-option" onclick="selectCountry(\'' + c.flag + '\',\'' + c.dial + '\')">'
+             + '<span>' + c.flag + '</span><span>' + c.name + '</span>'
+             + '<span class="dial">' + c.dial + '</span></div>';
+    }).join('');
+
     set('cp-content',
         hdr('☕ Café com Pastor', wsNote)
+
         + '<div class="field"><label class="req">Nome completo</label>'
         + '<input id="f-name" type="text" placeholder="Como podemos te chamar?" value="' + esc(STATE.name) + '" /></div>'
 
-        + '<div class="field"><label class="req">Email</label>'
+        + '<div class="field"><label>Email <span style="font-weight:400;opacity:.5;">(opcional)</span></label>'
         + '<input id="f-email" type="email" placeholder="seu@email.com" value="' + esc(STATE.email) + '" /></div>'
 
         + '<div class="field"><label class="req">Telefone / WhatsApp</label>'
-        + '<input id="f-phone" type="tel" placeholder="+55 11 ..." value="' + esc(STATE.phone) + '" /></div>'
-
-        + '<div class="field"><label class="req">Você virá como</label>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">'
-        + genderCard('M',      '🧔',  'Homem',  'Atendimento individual')
-        + genderCard('F',      '👩',  'Mulher', 'Atendimento individual')
-        + genderCard('couple', '💑',  'Casal',  'Ambos participam')
-        + genderCard('family', '👨‍👩‍👧', 'Família', 'Atendimento familiar')
+        + '<div class="phone-group">'
+        + '<button type="button" class="country-btn" onclick="toggleCountryPicker(event)">'
+        + '<span id="country-btn-label">' + STATE.countryFlag + '\u00a0' + STATE.countryCode + '</span>'
+        + '<span class="chevron">\u25be</span>'
+        + '</button>'
+        + '<div class="country-dropdown" id="country-dd">' + countryOpts + '</div>'
+        + '<input id="f-phone" type="tel" placeholder="(11) 9 8765-4321" value="' + esc(STATE.phone) + '" />'
         + '</div></div>'
 
-        + '<button class="btn btn-primary" onclick="submitPersonal()" style="margin-top:8px;">Próximo →</button>'
+        // ── Sexo
+        + '<div class="field" style="margin-bottom:22px;">'
+        + '<span class="section-label">Sexo *</span>'
+        + '<div class="radio-grid">'
+        + sexCard('M', '\ud83e\uddd4', 'Masculino')
+        + sexCard('F', '\ud83d\udc69', 'Feminino')
+        + '</div></div>'
+
+        // ── Tipo de atendimento
+        + '<div class="field">'
+        + '<span class="section-label">Tipo de atendimento *</span>'
+        + '<div class="radio-grid-3">'
+        + sessionCatCard('individual', '\ud83d\udc64', 'Individual', 'S\u00f3 voc\u00ea')
+        + sessionCatCard('couple',     '\ud83d\udc91', 'Casal',      'Com parceiro(a)')
+        + sessionCatCard('family',     '\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67', 'Fam\u00edlia', 'Todos juntos')
+        + '</div></div>'
+
+        + '<button class="btn btn-primary" onclick="submitPersonal()" style="margin-top:4px;">Pr\u00f3ximo \u2192</button>'
     );
 }
 
-function genderCard(val, icon, label, sub) {
+function sexCard(val, icon, label) {
     var sel = STATE.gender === val ? ' selected' : '';
     return '<div class="radio-card' + sel + '" onclick="selectGender(\'' + val + '\')" id="gc-' + val + '">'
+        + '<div class="icon">' + icon + '</div>'
+        + '<div class="label">' + label + '</div></div>';
+}
+
+function sessionCatCard(val, icon, label, sub) {
+    var sel = STATE.sessionCategory === val ? ' selected' : '';
+    return '<div class="radio-card' + sel + '" onclick="selectSessionCat(\'' + val + '\')" id="sc-cat-' + val + '">'
         + '<div class="icon">' + icon + '</div>'
         + '<div class="label">' + label + '</div>'
         + '<div class="sublabel">' + sub + '</div></div>';
 }
 
+window.toggleCountryPicker = function(e) {
+    if (e) e.stopPropagation();
+    var dd = document.getElementById('country-dd');
+    if (dd) dd.classList.toggle('open');
+};
+window.selectCountry = function(flag, dial) {
+    STATE.countryFlag = flag; STATE.countryCode = dial;
+    var lbl = document.getElementById('country-btn-label');
+    if (lbl) lbl.textContent = flag + '\u00a0' + dial;
+    var dd = document.getElementById('country-dd');
+    if (dd) dd.classList.remove('open');
+};
+document.addEventListener('click', function(e) {
+    if (!e.target.closest || !e.target.closest('.phone-group')) {
+        var dd = document.getElementById('country-dd');
+        if (dd) dd.classList.remove('open');
+    }
+});
+
 window.selectGender = function(val) {
     STATE.gender = val;
-    ['M','F','couple','family'].forEach(function(v) {
+    ['M','F'].forEach(function(v) {
         var el = document.getElementById('gc-' + v);
         if (el) el.className = 'radio-card' + (v === val ? ' selected' : '');
     });
 };
 
-window.submitPersonal = function() {
-    var name  = (document.getElementById('f-name')||{}).value.trim();
-    var email = (document.getElementById('f-email')||{}).value.trim();
-    var phone = (document.getElementById('f-phone')||{}).value.trim();
-    if (!name || !email || !phone || !STATE.gender) {
-        alert('Por favor preencha todos os campos e selecione uma opção.'); return;
-    }
-    STATE.name = name; STATE.email = email; STATE.phone = phone;
-    STATE.step = 2; renderStep();
+window.selectSessionCat = function(val) {
+    STATE.sessionCategory = val;
+    ['individual','couple','family'].forEach(function(v) {
+        var el = document.getElementById('sc-cat-' + v);
+        if (el) el.className = 'radio-card' + (v === val ? ' selected' : '');
+    });
 };
+
+window.submitPersonal = function() {
+    var name     = (document.getElementById('f-name')  ||{}).value.trim();
+    var email    = (document.getElementById('f-email') ||{}).value.trim();
+    var rawPhone = (document.getElementById('f-phone') ||{}).value.trim();
+    if (!name || !rawPhone || !STATE.gender || !STATE.sessionCategory) {
+        alert('Por favor preencha nome, telefone, sexo e tipo de atendimento.'); return;
+    }
+    STATE.name  = name;
+    STATE.email = email;
+    STATE.phone = STATE.countryCode + ' ' + rawPhone;
+    STATE.step  = 2; renderStep();
+};
+
+
+
 
 /* ═══════════════════════════════════════════════════════════════
    STEP 2 — TIPO DE SESSÃO
