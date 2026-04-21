@@ -1,4 +1,4 @@
-// hub-cafe-pastor.js — Café com Pastor — Admin Module (v4)
+// hub-cafe-pastor.js — Café com Pastor — Admin Module (v6-cal)
 // ─ Fixes: correct supabase client ref, first-load agenda blank,
 //   manual appt modal, photo upload, availability UI, config save + slug, no QR
 
@@ -90,6 +90,9 @@
             var s = document.createElement('style');
             s.id = styleId;
             s.textContent = [
+                '.cp-cal-event { cursor: pointer; transition: opacity .15s; }',
+                '.cp-cal-event:hover { opacity: .8; }',
+                '.cp-table-row:hover td { background: rgba(255,255,255,.03); }',
                 '#cp-modal-overlay input, #cp-modal-overlay textarea {',
                 '  background: var(--bg-input,rgba(0,0,0,0.06)) !important; color: var(--text,#f0ede8) !important;',
                 '  border: 1px solid rgba(212,165,116,.3) !important;',
@@ -236,101 +239,303 @@
         });
     }
 
+    /* ─── CAL STATE ─────────────────────────────────────────────────── */
+    var _calView   = 'month';   // 'month' | 'week' | 'day' | 'list'
+    var _calDate   = new Date();  // anchor date for view navigation
+
+    /* ─── CALENDAR ENTRY POINT ──────────────────────────────────────── */
     function _cpRenderAgenda() {
         var c = $('cp-panels-container');
         if (!c) return;
 
-        var list = _cpFilteredList();
-        var today = new Date(); today.setHours(0,0,0,0);
-        var weekEnd = new Date(today.getTime() + 7 * 86400000);
+        // KPIs (always shown above cal)
+        var all    = _cpAppts.filter(function(a){ return a.status !== 'cancelled' && a.status !== 'no_show'; });
+        var today2 = new Date(); today2.setHours(0,0,0,0);
+        var weekE  = new Date(today2.getTime() + 7*86400000);
+        var kpiHtml =
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;">'
+            + _calKpi('Total', all.length, '#60A5FA', 'agendamentos')
+            + _calKpi('Confirmados', all.filter(function(a){return a.status==='confirmed';}).length, '#60A5FA', 'aguardando')
+            + _calKpi('Concluídos',  all.filter(function(a){return a.status==='completed';}).length, '#4ADE80', 'realizados')
+            + _calKpi('Esta semana', all.filter(function(a){var d=new Date(a.scheduled_at);return d>=today2&&d<weekE;}).length, '#d4a574', 'agendados')
+            + _calKpi('Cancelados',  _cpAppts.filter(function(a){return a.status==='cancelled'||a.status==='no_show';}).length, '#F87171', 'desistências')
+            + '</div>';
 
-        var kpi = function(title, val, color, sub) {
-            return '<div style="background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));'
-                + 'border-top:3px solid ' + color + ';border-radius:12px;padding:16px;min-width:0;">'
-                + '<div style="font-size:.72rem;font-weight:600;color:var(--text-label,#9ca3af);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">' + esc(title) + '</div>'
-                + '<div style="font-size:1.8rem;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>'
-                + '<div style="font-size:.72rem;color:var(--text-muted,#6b7280);margin-top:4px;">' + esc(sub) + '</div>'
-                + '</div>';
-        };
-
-        // KPI values
-        var total = list.length;
-        var confirmed = list.filter(function(a){return a.status==='confirmed';}).length;
-        var completed = list.filter(function(a){return a.status==='completed';}).length;
-        var thisWeek  = list.filter(function(a){ var d=new Date(a.scheduled_at); return d>=today && d<weekEnd; }).length;
-        var cancelled = list.filter(function(a){return a.status==='cancelled'||a.status==='no_show';}).length;
-
-        // Pastor dropdown
+        // Toolbar
         var pastOpts = '<option value="">Todos os Pastores</option>'
             + _cpPastors.map(function(p){
                 return '<option value="' + esc(p.id) + '"' + (p.id===_cpApptFilter.pastor?' selected':'') + '>' + esc(p.display_name) + '</option>';
             }).join('');
 
-        // Status dropdown
-        var statOpts = [['','Todos os Status'],['pending','Pendente'],['confirmed','Confirmado'],
-            ['completed','Concluído'],['cancelled','Cancelado'],['no_show','Não veio']]
-            .map(function(x){ return '<option value="' + x[0] + '"' + (x[0]===_cpApptFilter.status?' selected':'') + '>' + x[1] + '</option>'; }).join('');
+        var toolbarHtml =
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">'
+            // prev/today/next
+            + '<div style="display:flex;gap:4px;">'
+            + '<button onclick="cpCalNav(-1)" style="' + CSS_BTN_GHOST + 'padding:7px 12px;">◀</button>'
+            + '<button onclick="cpCalToday()" style="' + CSS_BTN_GHOST + 'padding:7px 12px;">Hoje</button>'
+            + '<button onclick="cpCalNav(1)"  style="' + CSS_BTN_GHOST + 'padding:7px 12px;">▶</button>'
+            + '</div>'
+            // title
+            + '<span id="cp-cal-title" style="font-weight:700;font-size:.95rem;color:var(--text,#fff);margin:0 6px;"></span>'
+            // view switcher
+            + '<div style="display:flex;gap:4px;margin-left:auto;">'
+            + ['month','week','day','list'].map(function(v){
+                var lbl = {month:'Mês',week:'Semana',day:'Dia',list:'Lista'}[v];
+                var act = v===_calView;
+                return '<button onclick="cpCalView(\'' + v + '\')" style="' + (act ? CSS_BTN_GOLD : CSS_BTN_GHOST) + 'padding:6px 12px;font-size:.8rem;">' + lbl + '</button>';
+              }).join('')
+            + '</div>'
+            // pastor filter
+            + '<select id="cp-f-pastor" onchange="cpApplyFilter()" class="cp-filter-select">' + pastOpts + '</select>'
+            // new appt
+            + '<button onclick="cpNewApptModal()" style="' + CSS_BTN_GOLD + '">+ Agendar</button>'
+            + '</div>';
 
-        // Period dropdown
-        var perOpts = [['7','7 dias'],['30','30 dias'],['90','90 dias']]
-            .map(function(x){ return '<option value="' + x[0] + '"' + (_cpApptFilter.period===x[0]?' selected':'') + '>' + x[1] + '</option>'; }).join('');
+        c.innerHTML = kpiHtml + toolbarHtml + '<div id="cp-cal-body"></div>';
 
-        // Table rows
-        var rows = '';
-        if (list.length === 0) {
-            rows = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted,#6b7280);font-size:.88rem;">☕ Nenhum agendamento no período selecionado.</td></tr>';
+        _calRenderBody();
+    }
+
+    function _calKpi(title, val, color, sub) {
+        return '<div style="background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));'
+            + 'border-top:3px solid ' + color + ';border-radius:12px;padding:14px;min-width:0;">'
+            + '<div style="font-size:.7rem;font-weight:600;color:var(--text-muted,#9ca3af);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">' + esc(title) + '</div>'
+            + '<div style="font-size:1.7rem;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>'
+            + '<div style="font-size:.7rem;color:var(--text-muted,#6b7280);margin-top:3px;">' + esc(sub) + '</div>'
+            + '</div>';
+    }
+
+    function _calRenderBody() {
+        var body = $('cp-cal-body');
+        if (!body) return;
+        // Update title
+        var titleEl = $('cp-cal-title');
+        var d = _calDate;
+        var MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        if (_calView === 'month')  { if(titleEl) titleEl.textContent = MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+        else if (_calView === 'week') {
+            var ws = _calWeekStart(d), we = new Date(ws.getTime()+6*86400000);
+            if(titleEl) titleEl.textContent = ws.getDate()+'/'+(ws.getMonth()+1)+' – '+we.getDate()+'/'+(we.getMonth()+1)+'/'+we.getFullYear();
+        }
+        else if (_calView === 'day')  { if(titleEl) titleEl.textContent = DAYS[d.getDay()]+', '+d.getDate()+' de '+MONTHS[d.getMonth()]+' '+d.getFullYear(); }
+        else { if(titleEl) titleEl.textContent = 'Lista de Agendamentos'; }
+
+        if (_calView === 'month') _calRenderMonth(body);
+        else if (_calView === 'week') _calRenderWeek(body);
+        else if (_calView === 'day') _calRenderDay(body);
+        else _calRenderList(body);
+    }
+
+    /* navigation */
+    window.cpCalNav = function(dir) {
+        if (_calView === 'month') {
+            _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth() + dir, 1);
+        } else if (_calView === 'week') {
+            _calDate = new Date(_calDate.getTime() + dir * 7 * 86400000);
+        } else if (_calView === 'day') {
+            _calDate = new Date(_calDate.getTime() + dir * 86400000);
         } else {
-            list.forEach(function(a) {
+            _cpApptFilter.period = dir > 0 ? '90' : '30';
+        }
+        _calRenderBody();
+    };
+    window.cpCalToday = function() { _calDate = new Date(); _calRenderBody(); };
+    window.cpCalView  = function(v) { _calView = v; _cpRenderAgenda(); };
+
+    function _calEventsForDate(dateStr) {
+        return _cpAppts.filter(function(a) {
+            if (!a.scheduled_at) return false;
+            if (_cpApptFilter.pastor && a.pastor_id !== _cpApptFilter.pastor) return false;
+            return a.scheduled_at.substring(0,10) === dateStr;
+        });
+    }
+
+    function _calEventPill(a) {
+        var s = STATUS[a.status] || {color:'#aaa'};
+        var pastor = _cpPastors.find(function(p){ return p.id === a.pastor_id; });
+        var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;background:' + s.color + '22;border-left:3px solid ' + s.color + ';'
+            + 'color:var(--text,#fff);border-radius:5px;padding:3px 7px;font-size:.73rem;margin-bottom:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'
+            + time + ' ' + esc(a.requester_name || '?') + (pastor ? ' · ' + esc(pastor.display_name) : '')
+            + '</div>';
+    }
+
+    function _calWeekStart(d) {
+        var start = new Date(d);
+        start.setDate(d.getDate() - d.getDay()); // Sunday start
+        start.setHours(0,0,0,0);
+        return start;
+    }
+
+    /* ---- MONTH VIEW ---- */
+    function _calRenderMonth(body) {
+        var year = _calDate.getFullYear(), month = _calDate.getMonth();
+        var firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+        var daysInMonth = new Date(year, month+1, 0).getDate();
+        var today = new Date(); today.setHours(0,0,0,0);
+
+        var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border,rgba(255,255,255,.07));border-radius:12px;overflow:hidden;">';
+        // Day headers
+        ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(function(d){
+            html += '<div style="background:var(--bg-card-solid,#131318);padding:8px;text-align:center;font-size:.72rem;font-weight:700;color:#d4a574;text-transform:uppercase;">' + d + '</div>';
+        });
+        // Empty cells before month start
+        for (var i = 0; i < firstDay; i++) {
+            html += '<div style="background:var(--bg-deep,#0d0d0f);min-height:80px;padding:6px;opacity:.4;"></div>';
+        }
+        // Day cells
+        for (var day = 1; day <= daysInMonth; day++) {
+            var dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+            var cellDate = new Date(year, month, day);
+            var isToday  = cellDate.getTime() === today.getTime();
+            var events   = _calEventsForDate(dateStr);
+            var MAX_SHOW = 2;
+            var pillsHtml = events.slice(0, MAX_SHOW).map(_calEventPill).join('');
+            if (events.length > MAX_SHOW) {
+                pillsHtml += '<div style="font-size:.7rem;color:#d4a574;cursor:pointer;" onclick="cpCalView(\'day\');_calDate=new Date(\'' + dateStr + '\');_calRenderBody();">+' + (events.length-MAX_SHOW) + ' mais</div>';
+            }
+            html += '<div onclick="if(!event.target.closest(\'[onclick]\'))cpCalDrillDay(\'' + dateStr + '\')" style="background:' + (isToday?'rgba(212,165,116,.08)':'var(--bg-deep,#0d0d0f)') + ';min-height:80px;padding:6px;cursor:pointer;transition:background .15s;" '
+                + 'onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'' + (isToday?'rgba(212,165,116,.08)':'var(--bg-deep,#0d0d0f)') + '\'">'
+                + '<div style="font-size:.78rem;font-weight:' + (isToday?'800':'600') + ';color:' + (isToday?'#d4a574':'var(--text-muted,#6b7280)') + ';margin-bottom:4px;">'
+                + (isToday ? '<span style="background:#d4a574;color:#111;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;">' + day + '</span>' : day)
+                + '</div>'
+                + pillsHtml
+                + '</div>';
+        }
+        // Trailing empty cells
+        var total = firstDay + daysInMonth;
+        var trailing = total % 7 === 0 ? 0 : 7 - (total % 7);
+        for (var j = 0; j < trailing; j++) {
+            html += '<div style="background:var(--bg-deep,#0d0d0f);min-height:80px;padding:6px;opacity:.4;"></div>';
+        }
+        html += '</div>';
+        body.innerHTML = html;
+    }
+    window.cpCalDrillDay = function(dateStr) {
+        _calDate = new Date(dateStr + 'T00:00:00');
+        _calView = 'day';
+        _cpRenderAgenda();
+    };
+
+    /* ---- WEEK VIEW ---- */
+    function _calRenderWeek(body) {
+        var ws = _calWeekStart(_calDate);
+        var days = [];
+        for (var i = 0; i < 7; i++) {
+            var d = new Date(ws.getTime() + i*86400000);
+            days.push(d);
+        }
+        var today = new Date(); today.setHours(0,0,0,0);
+
+        var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border,rgba(255,255,255,.07));border-radius:12px;overflow:hidden;">';
+        days.forEach(function(d) {
+            var isToday = d.getTime() === today.getTime();
+            html += '<div style="background:var(--bg-card-solid,#131318);padding:8px 6px;text-align:center;">'
+                + '<div style="font-size:.72rem;font-weight:700;color:' + (isToday?'#d4a574':'var(--text-muted)') + ';text-transform:uppercase;">' + DAYS_SHORT[d.getDay()] + '</div>'
+                + '<div style="font-size:1.1rem;font-weight:' + (isToday?'800':'600') + ';color:' + (isToday?'#d4a574':'var(--text)') + ';">' + d.getDate() + '</div>'
+                + '</div>';
+        });
+        days.forEach(function(d) {
+            var dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+            var events = _calEventsForDate(dateStr);
+            var isToday = d.getTime() === today.getTime();
+            html += '<div style="background:' + (isToday?'rgba(212,165,116,.05)':'var(--bg-deep,#0d0d0f)') + ';min-height:120px;padding:6px;">'
+                + events.map(_calEventPill).join('')
+                + (events.length === 0 ? '<div style="font-size:.7rem;color:rgba(255,255,255,.1);text-align:center;padding:10px 0;">—</div>' : '')
+                + '</div>';
+        });
+        html += '</div>';
+        body.innerHTML = html;
+    }
+
+    /* ---- DAY VIEW ---- */
+    function _calRenderDay(body) {
+        var d = _calDate;
+        var dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        var events = _calEventsForDate(dateStr).sort(function(a,b){ return new Date(a.scheduled_at)-new Date(b.scheduled_at); });
+
+        var html = '<div style="background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:12px;padding:20px;">';
+        if (events.length === 0) {
+            html += '<div style="text-align:center;padding:40px 0;color:var(--text-muted,#6b7280);">☕ Nenhum agendamento neste dia.</div>';
+        } else {
+            events.forEach(function(a) {
+                var s = STATUS[a.status] || {label:a.status,color:'#aaa'};
                 var pastor = _cpPastors.find(function(p){ return p.id === a.pastor_id; });
-                var pName  = pastor ? esc(pastor.display_name) : '<span style="color:rgba(255,255,255,.25)">—</span>';
-                var typeIco = a.appointment_type === 'online' ? '💻' : (a.appointment_type === 'inperson' ? '🏛️' : '');
-                rows += '<tr>'
-                    + '<td><div style="font-weight:600;color:var(--text,#fff);">' + esc(a.requester_name||'—') + '</div>'
-                    +     '<div style="font-size:.73rem;color:rgba(255,255,255,.35);">' + esc(a.requester_phone||a.requester_email||'') + '</div></td>'
-                    + '<td style="color:rgba(255,255,255,.7);">' + pName + '</td>'
-                    + '<td style="color:var(--text,#f0ede8);font-weight:600;">' + fmtDT(a.scheduled_at) + '</td>'
-                    + '<td style="text-align:center;font-size:1rem;">' + typeIco + '</td>'
-                    + '<td>' + badge(a.status) + '</td>'
-                    + '<td><button onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="background:rgba(212,165,116,.12);color:#d4a574;border:1px solid rgba(212,165,116,.3);'
-                    +     'border-radius:6px;padding:4px 10px;font-size:.78rem;cursor:pointer;font-weight:600;">Detalhes</button></td>'
-                    + '</tr>';
+                var time = new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+                var typeIco = a.appointment_type==='online'?'💻':'🏛️';
+                html += '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;display:flex;gap:14px;align-items:flex-start;'
+                    + 'padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.07);margin-bottom:10px;'
+                    + 'background:' + s.color + '11;border-left:4px solid ' + s.color + ';'
+                    + 'transition:background .15s;" onmouseover="this.style.background=\'' + s.color + '22\'" onmouseout="this.style.background=\'' + s.color + '11\'">'
+                    + '<div style="min-width:52px;text-align:center;">'
+                    + '<div style="font-size:1rem;font-weight:700;color:' + s.color + ';">' + time + '</div>'
+                    + '<div style="font-size:1.2rem;margin-top:2px;">' + typeIco + '</div>'
+                    + '</div>'
+                    + '<div style="flex:1;min-width:0;">'
+                    + '<div style="font-weight:700;color:var(--text,#fff);font-size:.92rem;">' + esc(a.requester_name||'—') + '</div>'
+                    + '<div style="font-size:.78rem;color:var(--text-muted,#6b7280);margin-top:2px;">' + esc(a.requester_email||'') + (a.requester_phone?' · '+esc(a.requester_phone):'') + '</div>'
+                    + (pastor ? '<div style="font-size:.78rem;color:#d4a574;margin-top:4px;">Pastor: ' + esc(pastor.display_name) + '</div>' : '')
+                    + '</div>'
+                    + '<div>' + badge(a.status) + '</div>'
+                    + '</div>';
             });
         }
+        html += '</div>';
+        body.innerHTML = html;
+    }
 
-        var selStyle = CSS_SELECT + 'width:auto;display:inline-block;padding:7px 10px;font-size:.82rem;';
+    /* ---- LIST VIEW ---- */
+    function _calRenderList(body) {
+        var list = _cpFilteredList();
+        if (list.length === 0) {
+            body.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted,#6b7280);">☕ Nenhum agendamento encontrado.</div>';
+            return;
+        }
+        // Group by date
+        var byDate = {};
+        list.forEach(function(a) {
+            var key = a.scheduled_at ? a.scheduled_at.substring(0,10) : 'sem-data';
+            if (!byDate[key]) byDate[key] = [];
+            byDate[key].push(a);
+        });
+        var keys = Object.keys(byDate).sort().reverse();
+        var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-        c.innerHTML =
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">'
-            + kpi('Total', total, '#60A5FA', 'no período')
-            + kpi('Confirmados', confirmed, '#60A5FA', 'aguardando')
-            + kpi('Concluídos', completed, '#4ADE80', 'realizados')
-            + kpi('Esta semana', thisWeek, '#d4a574', 'agendados')
-            + kpi('Cancelados', cancelled, '#F87171', 'desistências')
-            + '</div>'
-
-            + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">'
-            + '<select id="cp-f-pastor" onchange="cpApplyFilter()" class="cp-filter-select">' + pastOpts + '</select>'
-            + '<select id="cp-f-status" onchange="cpApplyFilter()" class="cp-filter-select">' + statOpts + '</select>'
-            + '<select id="cp-f-period" onchange="cpApplyFilter()" class="cp-filter-select">' + perOpts + '</select>'
-            + '<button onclick="cpNewApptModal()" style="margin-left:auto;' + CSS_BTN_GOLD + '">+ Novo Agendamento</button>'
-            + '</div>'
-
-            + '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.07));">'
-            + '<table style="width:100%;border-collapse:collapse;">'
-            + '<thead><tr style="background:var(--bg-card-solid,#131318);border-bottom:2px solid rgba(212,165,116,.3);">'
-            + ['Solicitante','Pastor','Data / Hora','Tipo','Status','Ação'].map(function(h){
-                return '<th style="padding:11px 14px;text-align:left;font-size:.72rem;font-weight:700;color:#d4a574;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;">' + h + '</th>';
-              }).join('')
-            + '</tr></thead>'
-            + '<tbody style="">' + rows + '</tbody>'
-            + '</table></div>';
+        var html = '';
+        keys.forEach(function(key) {
+            var label = key === 'sem-data' ? 'Sem data' : (function(){
+                var parts = key.split('-'); var dd=parseInt(parts[2]),mm=parseInt(parts[1])-1,yyyy=parseInt(parts[0]);
+                var d = new Date(yyyy,mm,dd);
+                return DAYS[d.getDay()] + ', ' + dd + ' de ' + MONTHS[mm] + ' ' + yyyy;
+            })();
+            html += '<div style="font-size:.72rem;font-weight:700;color:#d4a574;text-transform:uppercase;letter-spacing:.06em;padding:14px 0 6px;">' + label + '</div>';
+            byDate[key].forEach(function(a) {
+                var s = STATUS[a.status] || {label:a.status,color:'#aaa'};
+                var pastor = _cpPastors.find(function(p){ return p.id===a.pastor_id; });
+                var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+                var typeIco = a.appointment_type==='online'?'💻':'🏛️';
+                html += '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;display:flex;gap:12px;align-items:center;'
+                    + 'padding:12px 14px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.07));margin-bottom:6px;'
+                    + 'background:var(--bg-card-solid,#131318);transition:background .15s;"'
+                    + ' onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'var(--bg-card-solid,#131318)\'">'
+                    + '<div style="min-width:38px;text-align:center;font-size:.85rem;font-weight:700;color:' + s.color + ';">' + time + '</div>'
+                    + '<div style="font-size:1rem;">' + typeIco + '</div>'
+                    + '<div style="flex:1;min-width:0;">'
+                    + '<div style="font-weight:600;color:var(--text,#fff);font-size:.88rem;">' + esc(a.requester_name||'—') + '</div>'
+                    + '<div style="font-size:.74rem;color:var(--text-muted,#6b7280);">' + esc((pastor&&pastor.display_name)||'—') + '</div>'
+                    + '</div>'
+                    + badge(a.status)
+                    + '</div>';
+            });
+        });
+        body.innerHTML = html;
     }
 
     window.cpApplyFilter = function() {
         _cpApptFilter.pastor = ($('cp-f-pastor')||{}).value || '';
         _cpApptFilter.status = ($('cp-f-status')||{}).value || '';
         _cpApptFilter.period = ($('cp-f-period')||{}).value || '30';
-        _cpRenderAgenda();
+        _calRenderBody();
     };
 
     /* ─── MANUAL APPOINTMENT MODAL ────────────────────────────────────── */
