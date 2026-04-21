@@ -1174,44 +1174,91 @@
     /* ═══════════════════════════════════════════════════════════════════
        PANEL 4 — PESSOAS ATENDIDAS
     ═══════════════════════════════════════════════════════════════════ */
+    var _cpPessoasFilter = '';
+
     function _cpRenderPessoas() {
         var c = $('cp-panels-container');
         if (!c) return;
-        c.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;text-align:center;padding:50px 0;">Carregando...</div>';
 
-        // Group appointments by requester_email (or name fallback)
+        // ── Compute per-pastor stats ──────────────────────────────────────
+        var pastorStats = {};
+        _cpPastors.forEach(function(p) {
+            pastorStats[p.id] = { id: p.id, name: p.display_name, photo: p.photo_url, total: 0, completed: 0, pending: 0, unique: new Set() };
+        });
+        _cpAppts.forEach(function(a) {
+            if (!a.pastor_id || !pastorStats[a.pastor_id]) return;
+            var ps = pastorStats[a.pastor_id];
+            if (a.status === 'cancelled' || a.status === 'no_show') return;
+            ps.total++;
+            if (a.status === 'completed') ps.completed++;
+            else ps.pending++;
+            var key = (a.requester_email || '').toLowerCase() || a.requester_name;
+            if (key) ps.unique.add(key);
+        });
+        var statsArr = Object.values(pastorStats).filter(function(s){ return s.total > 0; })
+            .sort(function(a,b){ return b.total - a.total; });
+        var maxTotal = statsArr.length ? statsArr[0].total : 1;
+
+        // ── Build people map (grouped by requester) ───────────────────────
         var map = {};
         _cpAppts.forEach(function(a) {
             if (a.status === 'cancelled' || a.status === 'no_show') return;
             var key = (a.requester_email || '').toLowerCase() || a.requester_name;
+            if (!key) return;
             if (!map[key]) {
                 map[key] = { name: a.requester_name, email: a.requester_email, phone: a.requester_phone,
                              sessions: [], lastAt: null, pastors: [] };
             }
             map[key].sessions.push(a);
-            if (!map[key].lastAt || new Date(a.scheduled_at) > new Date(map[key].lastAt)) {
-                map[key].lastAt = a.scheduled_at;
-            }
-            if (a.pastor_id && map[key].pastors.indexOf(a.pastor_id) < 0) {
-                map[key].pastors.push(a.pastor_id);
-            }
+            if (!map[key].lastAt || new Date(a.scheduled_at) > new Date(map[key].lastAt)) map[key].lastAt = a.scheduled_at;
+            if (a.pastor_id && map[key].pastors.indexOf(a.pastor_id) < 0) map[key].pastors.push(a.pastor_id);
         });
 
-        var people = Object.values(map).sort(function(a,b) {
-            return new Date(b.lastAt) - new Date(a.lastAt);
-        });
+        var allPeople = Object.values(map).sort(function(a,b){ return new Date(b.lastAt) - new Date(a.lastAt); });
 
+        // Apply filter
+        var people = allPeople;
+        if (_cpPessoasFilter) {
+            people = allPeople.filter(function(p){ return p.pastors.indexOf(_cpPessoasFilter) >= 0; });
+        }
+
+        // ── KPI bar cards per pastor ─────────────────────────────────────
+        var pastorCards = statsArr.map(function(ps) {
+            var pct = Math.round((ps.total / maxTotal) * 100);
+            var avatar = ps.photo
+                ? '<img src="' + esc(ps.photo) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid rgba(212,165,116,.4);" />'
+                : '<div style="width:36px;height:36px;border-radius:50%;background:rgba(212,165,116,.2);display:flex;align-items:center;justify-content:center;font-size:1rem;">🧑‍💼</div>';
+            var isActive = _cpPessoasFilter === ps.id;
+            return '<div onclick="window.cpFilterPessoas(\'' + esc(ps.id) + '\')" style="cursor:pointer;background:' + (isActive ? 'rgba(212,165,116,.12)' : 'var(--bg-card-solid,#131318)') + ';border:1px solid ' + (isActive ? 'rgba(212,165,116,.5)' : 'var(--border,rgba(255,255,255,.07))') + ';border-radius:14px;padding:16px;transition:all .2s;">'
+                + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+                + avatar
+                + '<div><div style="font-weight:700;font-size:.88rem;color:var(--text,#fff);">' + esc(ps.name) + '</div>'
+                + '<div style="font-size:.72rem;color:var(--text-muted,#6b7280);">' + ps.unique.size + ' pessoas únicas</div></div></div>'
+                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+                + '<div style="flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;">'
+                + '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#d4a574,#f0c070);border-radius:99px;transition:width .6s;"></div></div>'
+                + '<span style="font-weight:700;font-size:.95rem;color:#d4a574;min-width:24px;text-align:right;">' + ps.total + '</span></div>'
+                + '<div style="display:flex;gap:8px;">'
+                + '<span style="font-size:.72rem;background:rgba(74,222,128,.1);color:#4ade80;border-radius:20px;padding:2px 8px;">✓ ' + ps.completed + ' concluídos</span>'
+                + (ps.pending ? '<span style="font-size:.72rem;background:rgba(251,191,36,.1);color:#fbbf24;border-radius:20px;padding:2px 8px;">⏳ ' + ps.pending + ' pendentes</span>' : '')
+                + '</div></div>';
+        }).join('');
+
+        // ── Table rows ────────────────────────────────────────────────────
         var rows = '';
         if (people.length === 0) {
-            rows = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted,#6b7280);font-size:.88rem;">☕ Nenhuma pessoa atendida ainda.</td></tr>';
+            rows = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted,#6b7280);font-size:.88rem;">☕ '
+                 + (_cpPessoasFilter ? 'Nenhuma pessoa encontrada para este pastor.' : 'Nenhuma pessoa atendida ainda.') + '</td></tr>';
         } else {
             people.forEach(function(p) {
                 var pastorNames = p.pastors.map(function(pid) {
-                    var pastor = _cpPastors.find(function(x){ return x.id === pid; });
-                    return pastor ? pastor.display_name : '—';
+                    var pp = _cpPastors.find(function(x){ return x.id === pid; });
+                    return pp ? pp.display_name : '—';
                 }).join(', ');
+                var recurBadge = p.sessions.length > 1
+                    ? '<span style="margin-left:6px;font-size:.68rem;background:rgba(212,165,116,.15);color:#d4a574;border-radius:20px;padding:1px 7px;">↩ recorrente</span>' : '';
                 rows += '<tr class="cp-table-row">'
-                    + '<td style="padding:11px 14px;"><div style="font-weight:600;color:var(--text,#fff);">' + esc(p.name||'—') + '</div>'
+                    + '<td style="padding:11px 14px;"><div style="font-weight:600;color:var(--text,#fff);">' + esc(p.name||'—') + recurBadge + '</div>'
                     +     '<div style="font-size:.73rem;color:var(--text-muted,#6b7280);">' + esc(p.email||'') + '</div></td>'
                     + '<td style="padding:11px 14px;color:var(--text-muted,#6b7280);font-size:.84rem;">' + esc(p.phone||'—') + '</td>'
                     + '<td style="padding:11px 14px;text-align:center;"><span style="background:rgba(212,165,116,.15);color:#d4a574;border:1px solid rgba(212,165,116,.3);border-radius:20px;padding:2px 12px;font-weight:700;">' + p.sessions.length + '</span></td>'
@@ -1221,11 +1268,54 @@
             });
         }
 
+        // ── CSV export helper ─────────────────────────────────────────────
+        window.cpExportPessoas = function() {
+            var header = 'Nome,Email,Telefone,Total Sessões,Última Sessão,Pastor(es)\n';
+            var csv = header + allPeople.map(function(p) {
+                return [
+                    '"' + (p.name||'').replace(/"/g,'""') + '"',
+                    '"' + (p.email||'').replace(/"/g,'""') + '"',
+                    '"' + (p.phone||'').replace(/"/g,'""') + '"',
+                    p.sessions.length,
+                    '"' + fmtDT(p.lastAt) + '"',
+                    '"' + p.pastors.map(function(pid){ var pp = _cpPastors.find(function(x){return x.id===pid;}); return pp ? pp.display_name : pid; }).join('; ') + '"'
+                ].join(',');
+            }).join('\n');
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'cafe-pastor-pessoas.csv';
+            a.click();
+            toast('CSV baixado!', 'success');
+        };
+
+        window.cpFilterPessoas = function(pastorId) {
+            _cpPessoasFilter = (_cpPessoasFilter === pastorId) ? '' : pastorId;
+            _cpRenderPessoas();
+        };
+
+        // ── Render ─────────────────────────────────────────────────────────
         c.innerHTML =
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'
-            + '<h3 style="font-size:1.05rem;margin:0;color:var(--text,#fff);">👥 Pessoas Atendidas</h3>'
-            + '<span style="font-size:.82rem;color:var(--text-muted,#6b7280);">' + people.length + ' pessoas</span>'
+            // Top bar
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">'
+            + '<div>'
+            +   '<h3 style="font-size:1.05rem;margin:0 0 2px;color:var(--text,#fff);">👥 Pessoas Atendidas</h3>'
+            +   '<div style="font-size:.78rem;color:var(--text-muted,#6b7280);">' + allPeople.length + ' pessoas · ' + _cpAppts.filter(function(a){ return a.status !== 'cancelled' && a.status !== 'no_show'; }).length + ' atendimentos'
+            +   (_cpPessoasFilter ? ' · <span style="color:#d4a574;">Filtrado por pastor</span>' : '') + '</div>'
             + '</div>'
+            + '<button onclick="window.cpExportPessoas()" style="' + CSS_BTN_GHOST + 'font-size:.8rem;padding:7px 13px;">⬇️ Exportar CSV</button>'
+            + '</div>'
+
+            // Pastor KPI cards
+            + (statsArr.length
+                ? '<div style="margin-bottom:22px;">'
+                +   '<div style="font-size:.72rem;font-weight:700;color:rgba(212,165,116,.7);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">Clique num pastor para filtrar</div>'
+                +   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;">'
+                +   pastorCards
+                +   '</div></div>'
+                : '')
+
+            // Table
             + '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.07));">'
             + '<table style="width:100%;border-collapse:collapse;">'
             + '<thead><tr style="background:var(--bg-card-solid,#131318);border-bottom:2px solid rgba(212,165,116,.3);">'
