@@ -156,7 +156,7 @@ Deno.serve(async (req: Request) => {
     .gt("created_at", message_created_at).limit(1);
   if (newer?.length) return new Response("skipped", { status: 200 });
 
-  const { data: lead } = await sb.from("leads").select("id, phone, workspace_id, name, llm_lock_until").eq("id", lead_id).maybeSingle();
+  const { data: lead } = await sb.from("leads").select("id, phone, workspace_id, name, llm_lock_until, bot_context").eq("id", lead_id).maybeSingle();
   if (!lead) return new Response("not found", { status: 404 });
 
   if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
@@ -178,6 +178,263 @@ Deno.serve(async (req: Request) => {
   await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
 
   const { data: ws } = await sb.from("workspaces").select("id, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
+
+  // ── CAFÉ COM PASTOR MULTI-TURN BOT ───────────────────────────────────────
+  const cpCtx: any = (lead as any).bot_context ?? null;
+  const EDGE = Deno.env.get("SUPABASE_URL") + "/functions/v1";
+  const SRK  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  async function cpBotQuery() {
+    const r = await fetch(`${EDGE}/cafe-pastor-bot-query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SRK}` },
+      body: JSON.stringify({ workspace_id: lead.workspace_id })
+    });
+    return r.ok ? await r.json() : { pastors: [], slots: [] };
+  }
+
+  async function cpBookAppt(slotIso: string, pastorId: string, apptType: string) {
+    const r = await fetch(`${EDGE}/cafe-pastor-book`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SRK}` },
+      body: JSON.stringify({
+        workspace_id: lead.workspace_id,
+        pastor_id: pastorId,
+        scheduled_at: slotIso,
+        appointment_type: apptType,
+        requester_name: lead.name || firstName,
+        requester_phone: lead.phone,
+        briefing_data: { source: "whatsapp_bot" }
+      })
+    });
+    return r.ok ? await r.json() : null;
+  }
+
+  async function cpNotifyPastor(apptId: string) {
+    try {
+      await fetch(`${EDGE}/cafe-pastor-notify-pastor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SRK}` },
+        body: JSON.stringify({ appointment_id: apptId, workspace_id: lead.workspace_id })
+      });
+    } catch(e) { console.warn("[CP] notify-pastor failed:", e); }
+  }
+
+  async function cpSaveCtx(ctx: any | null) {
+    await sb.from("leads").update({ bot_context: ctx }).eq("id", lead.id);
+  }
+
+  // Helper: format a slot for display in WhatsApp
+  function fmtSlot(s: any) {
+    const days: Record<string,string> = { domingo:"Dom", segunda:"Seg", terça:"Ter", quarta:"Qua", quinta:"Qui", sexta:"Sex", sábado:"Sáb" };
+    return `${days[s.day_label] || s.day_label} ${s.date.slice(8)} às ${s.time}`;
+  }
+
+  // ── Is cafe_pastor flow active? Check context OR freshly triggered ────────
+  if (cpCtx?.flow === "cafe_pastor" && cpCtx?.step) {
+    const step = cpCtx.step as string;
+    const msgLower = userTextCombined.toLowerCase().trim();
+
+    // ── Step: awaiting_type ─────────────────────────────────────────────────
+    if (step === "awaiting_type") {
+      let apptType = "both";
+      if (/presencial|pessoalmente|igreja|em pessoa/.test(msgLower)) apptType = "inperson";
+      else if (/online|virtual|vídeo|video|zoom|meet/.test(msgLower)) apptType = "online";
+
+      // Fetch pastors
+      const { pastors, slots } = await cpBotQuery();
+      const activePastors = (pastors as any[]).filter((p: any) =>
+        apptType === "both" ? true :
+        slots.some((s: any) => s.pastor_id === p.id && (s.session_type === apptType || s.session_type === "both"))
+      );
+
+      if (!activePastors.length) {
+        await cpSaveCtx(null);
+        const outMsg = "Hmm, no momento não há pastores com horários disponíveis para esse tipo de sessão. 😕 Que tal tentar de forma diferente ou falar com nosso time? ☕";
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors" }), { status: 200 });
+      }
+
+      // Show pastor list
+      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
+");
+      const outMsg = `Ótimo! Que tipo de sessão prefere: *presencial* ou *online*? Aqui estão os pastores disponíveis:
+
+${pastorList}
+
+Responda com o número ou nome do pastor. 👆`;
+      
+      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_pastor", appointment_type: apptType, pastors: activePastors });
+      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_pastor" }), { status: 200 });
+    }
+
+    // ── Step: awaiting_pastor ───────────────────────────────────────────────
+    if (step === "awaiting_pastor") {
+      const storedPastors: any[] = cpCtx.pastors || [];
+      const apptType: string = cpCtx.appointment_type || "both";
+
+      // Try to match pastor by number or name
+      let chosenPastor: any = null;
+      const numMatch = msgLower.match(/^(\d+)/);
+      if (numMatch) {
+        const idx = parseInt(numMatch[1]) - 1;
+        if (idx >= 0 && idx < storedPastors.length) chosenPastor = storedPastors[idx];
+      }
+      if (!chosenPastor) {
+        chosenPastor = storedPastors.find((p: any) => msgLower.includes(p.display_name.split(" ")[0].toLowerCase()));
+      }
+      // "tanto faz" / "qualquer" → pick first
+      if (!chosenPastor && /tanto faz|qualquer|nao importa|não importa|qualquer um/.test(msgLower)) {
+        chosenPastor = storedPastors[0];
+      }
+
+      if (!chosenPastor) {
+        // Didn't understand — re-ask
+        const list = storedPastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
+");
+        const outMsg = `Não consegui identificar o pastor. Digite o *número* ou *nome*:
+
+${list}`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_pastor" }), { status: 200 });
+      }
+
+      // Get available slots for this pastor
+      const { slots } = await cpBotQuery();
+      const pastoSlots = (slots as any[]).filter((s: any) =>
+        s.pastor_id === chosenPastor.id &&
+        (apptType === "both" || s.session_type === apptType || s.session_type === "both")
+      ).slice(0, 5);
+
+      if (!pastoSlots.length) {
+        await cpSaveCtx(null);
+        const outMsg = `😕 ${chosenPastor.display_name} não tem horários disponíveis nos próximos dias. Gostaria de escolher outro pastor? Diga *sim* para recomeçar, ou acesse o link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "no_slots" }), { status: 200 });
+      }
+
+      const slotList = pastoSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("
+");
+      const outMsg = `Ótimo! Aqui estão os horários disponíveis com ${chosenPastor.display_name}:
+
+${slotList}
+
+Digite o *número* do horário desejado. 📅`;
+      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_slot", pastor_id: chosenPastor.id, pastor_name: chosenPastor.display_name, appointment_type: apptType, slots: pastoSlots });
+      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_slot" }), { status: 200 });
+    }
+
+    // ── Step: awaiting_slot ─────────────────────────────────────────────────
+    if (step === "awaiting_slot") {
+      const storedSlots: any[] = cpCtx.slots || [];
+      const pastorId: string = cpCtx.pastor_id;
+      const pastorName: string = cpCtx.pastor_name || "o pastor";
+      const apptType: string = cpCtx.appointment_type || "both";
+
+      const numMatch = userTextCombined.trim().match(/^(\d+)/);
+      const idx = numMatch ? parseInt(numMatch[1]) - 1 : -1;
+
+      if (idx < 0 || idx >= storedSlots.length) {
+        const slotList = storedSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("
+");
+        const outMsg = `Por favor, escolha o *número* de um dos horários:
+
+${slotList}`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_slot" }), { status: 200 });
+      }
+
+      const chosen = storedSlots[idx];
+      // Confirm step
+      const finalType = apptType === "both" ? chosen.session_type : apptType;
+      const typeLabel = finalType === "inperson" ? "🏛️ Presencial" : "💻 Online";
+      const outMsg = `Perfeito! Confirmo seu agendamento:
+
+☕ *Café com Pastor*
+👤 Pastor: *${pastorName}*
+📅 Data: *${fmtSlot(chosen)}*
+${typeLabel}
+
+Confirma? (Sim / Não)`;
+      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_confirm", pastor_id: pastorId, pastor_name: pastorName, slot: chosen, appointment_type: finalType });
+      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_confirm" }), { status: 200 });
+    }
+
+    // ── Step: awaiting_confirm ──────────────────────────────────────────────
+    if (step === "awaiting_confirm") {
+      const msgLower = userTextCombined.toLowerCase().trim();
+      const isYes = /^s(im)?|^yes|confirm|ok|isso|exato|certo/.test(msgLower);
+      const isNo  = /^n(ao|ão)?|^no|cancel|errado|nao quero|não quero/.test(msgLower);
+
+      if (isNo) {
+        await cpSaveCtx(null);
+        const outMsg = `Tudo bem! Seu agendamento foi cancelado. Se quiser reagendar, é só falar comigo! 😊☕`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "cancelled" }), { status: 200 });
+      }
+
+      if (!isYes) {
+        const outMsg = `Confirma o agendamento com ${cpCtx.pastor_name}? Responda *Sim* ou *Não*.`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_confirm" }), { status: 200 });
+      }
+
+      // ── BOOK IT ────────────────────────────────────────────────────────────
+      const result = await cpBookAppt(cpCtx.slot.slot_iso, cpCtx.pastor_id, cpCtx.appointment_type);
+      await cpSaveCtx(null); // Clear state
+
+      if (!result?.ok) {
+        const outMsg = `Ops! Houve um erro ao confirmar o agendamento. 😕 Por favor, tente pelo link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "book_error" }), { status: 200 });
+      }
+
+      // Notify pastor in background
+      if (result.appointment?.id) {
+        cpNotifyPastor(result.appointment.id).catch(() => {});
+      }
+
+      const slot = cpCtx.slot;
+      const typeLabel = cpCtx.appointment_type === "inperson" ? "🏛️ Presencialmente" : "💻 Online";
+      const outMsg = `✅ *Agendamento confirmado!* Que alegria, ${firstName}!
+
+☕ *Café com Pastor*
+👤 ${cpCtx.pastor_name}
+📅 ${fmtSlot(slot)}
+${typeLabel}
+
+O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! 🙏`;
+
+      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
+      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
+      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString(), inbox_status: "highlighted", inbox_priority: "cafe_pastor" }).eq("id", lead.id);
+      return new Response(JSON.stringify({ ok: true, cp_step: "booked", appointment: result.appointment }), { status: 200 });
+    }
+  }
+  // ── END CAFÉ COM PASTOR MULTI-TURN ────────────────────────────────────────
 
   const creds = ws?.credentials ?? {};
   const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
@@ -232,7 +489,7 @@ Deno.serve(async (req: Request) => {
   });
   const dateContext = `DATA/HORA ATUAL (Eastern Time, Orlando): ${orlandoTime}`;
 
-  const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
+  const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare | cafe_pastor"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- cafe_pastor: quer falar com pastor, agendar cafe com pastor, agendamento pastoral\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
 
   // ── Build system instruction ──────────────────────────────────────────────
   // Priority: ia_system_prompt from credentials > ju_prompt from KB > built-in default
@@ -389,6 +646,35 @@ Deno.serve(async (req: Request) => {
 
   // ─── KANBAN AUTOMATION ────────────────────────────────────────────────────
   if (detectedIntention && detectedIntention !== "none") {
+    // ── If cafe_pastor detected: start the booking flow ───────────────────────
+    if (detectedIntention === "cafe_pastor") {
+      const { pastors, slots } = await cpBotQuery();
+      const activePastors = pastors as any[];
+      if (!activePastors.length) {
+        const pubLink = `https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
+        const noMsg = `Olá ${firstName}! Adoramos a ideia de um Café com Pastor! ☕ No momento estamos organizando os horários. Acesse o link para agendar: ${pubLink}`;
+        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, noMsg);
+        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: noMsg, automated: true, responded_at: new Date().toISOString() });
+        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors_initial" }), { status: 200 });
+      }
+      // Start flow: ask type
+      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
+");
+      const startMsg = `Olá ${firstName}! Que boa iniciativa — adoramos o Café com Pastor! ☕
+
+Temos os seguintes pastores disponíveis:
+
+${pastorList}
+
+Primeiro: prefere uma sessão *presencial* na igreja ou *online* (vídeo chamada)?`;
+      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_type" });
+      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, startMsg);
+      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: startMsg, automated: true, responded_at: new Date().toISOString() });
+      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString(), inbox_status: "highlighted", inbox_priority: "cafe_pastor" }).eq("id", lead.id);
+      return new Response(JSON.stringify({ ok: true, cp_step: "started" }), { status: 200 });
+    }
+
     const titles: Record<string, string> = {
       "escalation": "Aconselhamento / Contato Pastoral",
       "batismo": "Deseja se Batizar",
