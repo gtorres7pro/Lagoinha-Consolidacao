@@ -10614,6 +10614,12 @@ window.closeFinMsgDrawer = function() {
     if (overlay) setTimeout(function() { overlay.style.display = 'none'; }, 340);
 };
 
+function _escHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+
 async function renderFinMessages(reportId, role) {
     const sb   = window.supabaseClient;
     const title = document.getElementById('fin-msg-title');
@@ -10634,8 +10640,8 @@ async function renderFinMessages(reportId, role) {
                     (role === 'master' && m.direction.startsWith('global'));
         return '<div style="display:flex;justify-content:' + (isOwn?'flex-end':'flex-start') + ';">'
             + '<div style="max-width:80%;background:' + (isOwn?'rgba(255,215,0,.1)':'rgba(255,255,255,.05)') + ';border:1px solid ' + (isOwn?'rgba(255,215,0,.2)':'rgba(255,255,255,.08)') + ';border-radius:14px;padding:12px 16px;">'
-            + '<div style="font-size:.68rem;font-weight:700;color:' + (isOwn?'#FFD700':'rgba(255,255,255,.4)') + ';margin-bottom:5px;">' + m.sender_name + '</div>'
-            + '<p style="margin:0;font-size:.85rem;line-height:1.5;">' + m.message + '</p>'
+            + '<div style="font-size:.68rem;font-weight:700;color:' + (isOwn?'#FFD700':'rgba(255,255,255,.4)') + ';margin-bottom:5px;">' + _escHtml(m.sender_name) + '</div>'
+            + '<p style="margin:0;font-size:.85rem;line-height:1.5;">' + _escHtml(m.message) + '</p>'
             + '<div style="font-size:.65rem;color:rgba(255,255,255,.25);margin-top:5px;text-align:right;">' + new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + '</div>'
             + '</div></div>';
     }).join('');

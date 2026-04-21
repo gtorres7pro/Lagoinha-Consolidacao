@@ -1,7 +1,6 @@
 import os
 import json
-import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -224,7 +223,8 @@ async def new_lead_webhook(request: Request, background_tasks: BackgroundTasks):
 @app.get("/webhook")
 def verify_webhook(request: Request):
     params = dict(request.query_params)
-    if params.get("hub.verify_token") == "meu_token_secreto":
+    expected_token = os.environ.get("META_VERIFY_TOKEN", "")
+    if expected_token and params.get("hub.verify_token") == expected_token:
         return int(params.get("hub.challenge", 0))
     raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -290,7 +290,7 @@ async def receive_webhook(request: Request):
             supabase.table("leads").update({
                 "last_interaction": datetime.now().isoformat(),
                 "inbox_status": "highlighted",
-                "wa_window_expires_at": (datetime.now() + datetime.timedelta(hours=24)).isoformat()
+                "wa_window_expires_at": (datetime.now() + timedelta(hours=24)).isoformat()
             }).eq("id", lead_id).execute()
         else:
             new_lead = supabase.table("leads").insert({
@@ -299,7 +299,7 @@ async def receive_webhook(request: Request):
                 "phone": phone_digits,
                 "type": "visitor",
                 "last_interaction": datetime.now().isoformat(),
-                "wa_window_expires_at": (datetime.now() + datetime.timedelta(hours=24)).isoformat()
+                "wa_window_expires_at": (datetime.now() + timedelta(hours=24)).isoformat()
             }).execute()
             if _rows(new_lead):
                 lead_id = _rows(new_lead)[0]["id"]
@@ -429,8 +429,10 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
             # Set human lock (30 min)
             lock_until = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
             supabase.table("leads").update({"llm_lock_until": lock_until}).eq("id", data.lead_id).execute()
+        else:
+            lock_until = None
 
-        return {"status": "success", "ok": True, "lock_until": lock_until if data.lead_id else None}
+        return {"status": "success", "ok": True, "lock_until": lock_until}
 
     except Exception as e:
         import traceback
