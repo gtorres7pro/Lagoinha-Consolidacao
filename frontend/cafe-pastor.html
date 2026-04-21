@@ -73,14 +73,46 @@
         }
         .field select option { background: #1f1c26; }
 
+        /* ── Phone with country picker ── */
+        .phone-group { display: flex; gap: 8px; position: relative; }
+        .country-btn {
+            flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+            padding: 0 12px; height: 48px;
+            background: var(--bg-el); border: 1px solid rgba(212,165,116,.2);
+            border-radius: 10px; color: var(--text); font-family: inherit;
+            font-size: .9rem; cursor: pointer; white-space: nowrap;
+            transition: border .2s; user-select: none;
+        }
+        .country-btn:hover { border-color: rgba(212,165,116,.45); }
+        .country-btn .chevron { font-size: .65rem; opacity: .5; margin-left: 2px; }
+        .phone-group input { flex: 1; min-width: 0; }
+        .country-dropdown {
+            position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+            background: #1c1924; border: 1px solid rgba(212,165,116,.25);
+            border-radius: 12px; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,.6);
+            min-width: 230px; max-height: 260px; overflow-y: auto;
+            display: none;
+        }
+        .country-dropdown.open { display: block; }
+        .country-option {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            cursor: pointer; font-size: .88rem; color: var(--text);
+            transition: background .15s;
+        }
+        .country-option:hover { background: rgba(212,165,116,.1); }
+        .country-option .dial { font-weight: 700; color: var(--accent); margin-left: auto; }
+
         /* ── Radio-cards ── */
         .radio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-        .radio-card { padding: 18px; border: 2px solid rgba(212,165,116,.2); border-radius: var(--radius); cursor: pointer; text-align: center; transition: all .2s; user-select: none; }
+        .radio-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .radio-card { padding: 16px 10px; border: 2px solid rgba(212,165,116,.2); border-radius: var(--radius); cursor: pointer; text-align: center; transition: all .2s; user-select: none; }
         .radio-card:hover { border-color: rgba(212,165,116,.5); background: rgba(212,165,116,.05); }
         .radio-card.selected { border-color: var(--accent); background: rgba(212,165,116,.1); }
-        .radio-card .icon { font-size: 2rem; margin-bottom: 8px; }
-        .radio-card .label { font-weight: 700; font-size: .9rem; color: var(--text); }
-        .radio-card .sublabel { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+        .radio-card .icon { font-size: 1.8rem; margin-bottom: 6px; }
+        .radio-card .label { font-weight: 700; font-size: .88rem; color: var(--text); }
+        .radio-card .sublabel { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+        /* Section label above radio groups */
+        .section-label { font-size: .82rem; font-weight: 700; color: rgba(212,165,116,.85); margin-bottom: 10px; display: block; }
 
         /* ── Slot list ── */
         .slot-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; max-height: 340px; overflow-y: auto; }
@@ -153,11 +185,33 @@ var STATE = {
     slots: [],
     // collected data
     name: '', email: '', phone: '',
-    gender: '',          // M | F | couple | family
+    countryCode: '+55',  // default Brazil
+    countryFlag: '🇧🇷',
+    gender: '',          // M | F
+    sessionCategory: '', // individual | couple | family
     sessionType: '',     // online | inperson
     selectedSlot: null,
     apptId: null
 };
+
+/* ── Country dial codes ── */
+var COUNTRIES = [
+    { flag:'🇧🇷', name:'Brasil',           dial:'+55'  },
+    { flag:'🇵🇹', name:'Portugal',         dial:'+351' },
+    { flag:'🇺🇸', name:'EUA / Canadá',     dial:'+1'   },
+    { flag:'🇦🇴', name:'Angola',           dial:'+244' },
+    { flag:'🇲🇿', name:'Moçambique',       dial:'+258' },
+    { flag:'🇨🇻', name:'Cabo Verde',       dial:'+238' },
+    { flag:'🇬🇧', name:'Reino Unido',      dial:'+44'  },
+    { flag:'🇩🇪', name:'Alemanha',         dial:'+49'  },
+    { flag:'🇮🇹', name:'Itália',           dial:'+39'  },
+    { flag:'🇪🇸', name:'Espanha',          dial:'+34'  },
+    { flag:'🇫🇷', name:'França',           dial:'+33'  },
+    { flag:'🇳🇱', name:'Holanda',          dial:'+31'  },
+    { flag:'🇦🇷', name:'Argentina',        dial:'+54'  },
+    { flag:'🇨🇴', name:'Colômbia',         dial:'+57'  },
+    { flag:'🇵🇾', name:'Paraguai',         dial:'+595' },
+];
 
 /* ═══════════════════════════════════════════════════════════════
    BOOTSTRAP
@@ -343,22 +397,24 @@ async function renderSlots() {
     );
 
     try {
-        // Call the matching edge function
+        // Determine gender to send based on session category:
+        // individual → match same sex; couple/family → any pastor
+        var matchGender = STATE.sessionCategory === 'individual' ? STATE.gender : null;
+
         var EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
         var resp = await fetch(EDGE + '/cafe-pastor-match', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 workspace_id: STATE.wsId,
-                requester_gender: STATE.gender,
-                requester_type: STATE.gender,
+                gender: matchGender,
                 session_type: STATE.sessionType
             })
         });
         var result = await resp.json();
         STATE.slots = (result && result.slots) || [];
     } catch(e) {
-        // If edge function doesn't exist yet, show placeholder slots (next 5 working days)
+        // Fallback to placeholder slots if function unavailable
         STATE.slots = generatePlaceholderSlots();
     }
 
@@ -492,13 +548,18 @@ window.submitBooking = async function() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     workspace_id: STATE.wsId,
+                    pastor_id: (STATE.selectedSlot && STATE.selectedSlot.pastor_id) || null,
                     scheduled_at: dt.toISOString(),
                     duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
                     requester_name: STATE.name,
-                    requester_email: STATE.email,
+                    requester_email: STATE.email || null,
                     requester_phone: STATE.phone,
-                    requester_gender: STATE.gender,
-                    appointment_type: STATE.sessionType
+                    appointment_type: STATE.sessionType,
+                    briefing_data: {
+                        gender: STATE.gender,
+                        session_category: STATE.sessionCategory,
+                        source: 'public_form'
+                    }
                 })
             });
             var result = await resp.json();
@@ -507,16 +568,16 @@ window.submitBooking = async function() {
 
         // Fallback: direct Supabase insert
         if (!booked) {
-            var orderNum = Math.random().toString(36).substring(2,8).toUpperCase();
             var { data: appt, error: ae } = await sb.from('cafe_pastor_appointments').insert({
                 workspace_id: STATE.wsId,
+                pastor_id: (STATE.selectedSlot && STATE.selectedSlot.pastor_id) || null,
                 requester_name: STATE.name,
-                requester_email: STATE.email,
+                requester_email: STATE.email || null,
                 requester_phone: STATE.phone,
-                requester_gender: STATE.gender,
                 appointment_type: STATE.sessionType,
                 scheduled_at: dt.toISOString(),
                 duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
+                briefing_data: { gender: STATE.gender, session_category: STATE.sessionCategory, source: 'public_form' },
                 status: 'pending'
             }).select('id').single();
             if (ae) throw ae;
