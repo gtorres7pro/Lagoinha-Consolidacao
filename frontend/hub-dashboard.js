@@ -471,7 +471,7 @@
                 // (JWT metadata is not reliably updated and was causing master_admin to be treated as regular user)
                 const { data: userRow, error: userErr } = await sb
                     .from('users')
-                    .select('role, workspace_id, level, regional_id, global_id')
+                    .select('role, workspace_id, level, regional_id, global_id, modules')
                     .eq('id', userId)
                     .maybeSingle();
 
@@ -1192,34 +1192,45 @@
         // ═══════════════════════════════════════════════════════════
 
         const PLAN_CONFIG = {
-            free:     { label:'Gratuito',  modules:['consolidation','visitors','start'], color:'rgba(255,255,255,.1)', text:'#aaa' },
-            trial:    { label:'Trial Pro', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
-            starter:  { label:'Starter',   modules:['consolidation','visitors','aniversariantes','broadcast','tasks','start'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
+            free:     { label:'Gratuito',  modules:['consolidation','visitors','start','batismo','novos_membros'], color:'rgba(255,255,255,.1)', text:'#aaa' },
+            trial:    { label:'Trial Pro', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            starter:  { label:'Starter',   modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
             // Planos documentados no GEMINI.md (slugs canônicos do banco)
-            essencial:{ label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            founders: { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            essencial:{ label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            founders: { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             // Aliases mantidos para compatibilidade com planos legados
-            medium:   { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            advanced: { label:'Essencial', modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','start','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            premium:  { label:'Founders',  modules:['consolidation','visitors','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','start','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            medium:   { label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            advanced: { label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
+            premium:  { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
-        const ALL_MODULES_LIST = ['consolidation','visitors','ia_whatsapp','financeiro','start','aniversariantes','crie','voluntarios','tasks','broadcast','wecare','cantina','relatorios','logs','cafe_pastor'];
+        const ALL_MODULES_LIST = [
+            'consolidation','visitors','start','batismo','novos_membros',
+            'ia_whatsapp','financeiro','aniversariantes',
+            'crie','voluntarios','tasks','broadcast',
+            'wecare','cantina','relatorios','logs','cafe_pastor'
+        ];
 
         // Map: module slug → { nav id, view id }
         // Slugs canônicos são em EN. Aliases PT são mapeados em SLUG_ALIASES.
         const PLAN_NAV_MAP = {
-            consolidation:   { nav:'nav-dashboard',  view:'view-dashboard'  },
-            visitors:        { nav:'nav-visitors',   view:'view-visitors'   },
-            ia_whatsapp:     { nav:'nav-chat-ao-vivo', view:'view-chat-ao-vivo' },
-            crie:            { nav:'nav-crie',       view:'view-crie' },
-            cantina:         { nav:'nav-cantina',    view:'view-cantina' },
-            cafe_pastor:     { nav:'nav-cafe-pastor',view:'view-cafe-pastor' },
-            financeiro:      { nav:'nav-finance-col',view:'view-null' },
-            tasks:           { nav:'nav-tasks-col',  view:'view-tasks' },
-            aniversariantes: { nav:'nav-birthdays',  view:'view-birthdays' },
-            broadcast:       { nav:'nav-broadcast',  view:'view-broadcast' },
-            relatorios:      { nav:'nav-relatorios', view:'view-relatorios' }
+            consolidation:   { nav:'nav-dashboard',        view:'view-dashboard' },
+            visitors:        { nav:'nav-visitors',         view:'view-visitors' },
+            start:           { nav:'nav-start',            view:'view-start' },
+            batismo:         { nav:'nav-batismo',          view:'view-batismo' },
+            novos_membros:   { nav:'nav-membros',          view:'view-membros' },
+            ia_whatsapp:     { nav:'nav-chat-ao-vivo',     view:'view-chat-ao-vivo' },
+            crie:            { nav:'nav-group-crie',       view:'view-null' },
+            cantina:         { nav:'nav-group-cantina',    view:'view-null' },
+            cafe_pastor:     { nav:'nav-cafe-pastor',      view:'view-cafe-pastor' },
+            financeiro:      { nav:'nav-group-financeiro', view:'view-null' },
+            tasks:           { nav:'nav-tasks',            view:'view-admin-tarefas' },
+            aniversariantes: { nav:'nav-birthdays',        view:'view-birthdays' },
+            broadcast:       { nav:'nav-transmissao',      view:'view-transmissao' },
+            relatorios:      { nav:'nav-group-relatorios', view:'view-null' },
+            voluntarios:     { nav:'nav-voluntarios',      view:'view-null' },
+            wecare:          { nav:'nav-wecare',           view:'view-null' },
+            logs:            { nav:'nav-logs',             view:'view-null' },
         };
 
         // Mapeamento de slugs legados PT → slug canônico EN
@@ -1229,6 +1240,7 @@
             visitantes:    'visitors',
             ai_whatsapp:   'ia_whatsapp',
             ia_chat:       'ia_whatsapp',
+            transmissao:   'broadcast',
         };
 
         // Normaliza um array de slugs: substitui aliases pelo slug canônico
@@ -1321,53 +1333,91 @@
         };
 
         // ─── USER-LEVEL MODULE GATING ─────────────────────────────────────────
-        // Runs AFTER applyPlanGating — further restricts sidebar by user.modules
         window.applyUserModuleGating = function() {
             const user = window._currentUser;
             if (!user) return;
 
-            // Admins/master_admin bypass user-level restrictions
+            // Admins/master_admin bypass user-level restrictions purely based on role
             const adminRoles = ['master_admin', 'admin', 'pastor_senior', 'church_admin'];
             if (adminRoles.includes(user.role)) return;
 
-            const userModules = user.modules || [];
-            if (!userModules.length) return; // no restriction = show everything plan allows
+            const baseModules = user.modules || [];
+            // If empty or explicitly null/undefined, it means no restriction set → "show everything plan allows"
+            if (!baseModules.length) return;
 
-            // Map of module key → nav element ID (mirrors PLAN_NAV_MAP)
+            // Normalize so we can compare legacy database records if any
+            const userModules = normalizeModuleSlugs(baseModules);
+
             const USER_NAV_MAP = {
-                consolidados:    'nav-dashboard',
-                visitantes:      'nav-visitors',
+                consolidation:   'nav-dashboard',
+                visitors:        'nav-visitors',
                 start:           'nav-start',
                 batismo:         'nav-batismo',
-                novos_membros:   'nav-novos-membros',
+                novos_membros:   'nav-membros',
                 aniversariantes: 'nav-birthdays',
                 ia_whatsapp:     'nav-chat-ao-vivo',
-                transmissao:     'nav-transmissao',
-                crie:            'nav-crie-toggle',
-                cantina:         'nav-cantina-toggle',
-                relatorios:      'nav-relatorios-toggle',
-                financeiro:      'nav-financeiro-toggle',
+                broadcast:       'nav-transmissao',
+                cafe_pastor:     'nav-cafe-pastor',
+                crie:            'nav-group-crie',
+                cantina:         'nav-group-cantina',
+                relatorios:      'nav-group-relatorios',
+                financeiro:      'nav-group-financeiro',
+                configuracoes:   'nav-group-config',
+                
+                // Submodules need their own mapping to hide explicit items
+                crie_inscritos:  'nav-crie-inscritos',
+                crie_membros:    'nav-crie-membros',
+                crie_eventos:    'nav-crie-eventos',
+                crie_checkin:    'nav-crie-checkin',
+                crie_workshop:   'nav-crie-workshop',
+                crie_relatorios: 'nav-crie-relatorios',
+                crie_connect:    'nav-crie-connect',
+
+                cantina_pedidos:   'nav-cantina-pedidos',
+                cantina_estoque:   'nav-cantina-estoque',
+                cantina_financeiro:'nav-cantina-financeiro',
+                cantina_pos:       'nav-cantina-pos',
+                cantina_config:    'nav-cantina-config',
+
                 logs:            'nav-logs',
                 wecare:          'nav-wecare',
                 voluntarios:     'nav-voluntarios',
                 tasks:           'nav-tasks',
-                cafe_pastor:     'nav-cafe-pastor',
             };
 
             Object.entries(USER_NAV_MAP).forEach(([slug, navId]) => {
                 const navEl = document.getElementById(navId);
                 if (!navEl) return;
 
-                // If user doesn't have this module AND it's not already plan-locked
-                if (!userModules.includes(slug) && navEl.getAttribute('data-locked') !== '1') {
-                    navEl.style.display = 'none'; // hide completely (user access, not plan)
-                } else if (userModules.includes(slug)) {
-                    // If it was user-hidden before, restore it (plan gating still applies)
+                const allowed = userModules.includes(slug);
+
+                if (!allowed) {
+                    // Group parents bypass if at least ONE specific sub-module is allowed
+                    if (slug === 'crie' && userModules.some(m => m.startsWith('crie_'))) return;
+                    if (slug === 'cantina' && userModules.some(m => m.startsWith('cantina_'))) return;
+                    if (slug === 'relatorios' && userModules.some(m => m.startsWith('relatorios_'))) return;
+                    if (slug === 'financeiro' && userModules.some(m => m.startsWith('financeiro_'))) return;
+
+                    navEl.style.display = 'none'; // hide for this specific user
+                } else {
+                    // Restore if hidden (e.g., if re-running after hot role change)
                     if (navEl.getAttribute('data-locked') !== '1') {
                         navEl.style.display = '';
                     }
                 }
             });
+
+            // Handle the parent "Jornada" group which bundles visitors, consolidation, start, etc.
+            const jornadaGroup = document.getElementById('nav-group-jornada');
+            if (jornadaGroup) {
+                const jornadaModules = ['consolidation', 'visitors', 'start', 'batismo', 'cafe_pastor', 'novos_membros'];
+                const anyJornadaVisible = jornadaModules.some(m => userModules.includes(m));
+                if (!anyJornadaVisible) {
+                    jornadaGroup.style.display = 'none';
+                } else if (jornadaGroup.getAttribute('data-locked') !== '1') {
+                    jornadaGroup.style.display = '';
+                }
+            }
         };
 
         // ─── LOAD SETTINGS PLAN SECTION ──────────────────────────────────
@@ -3116,20 +3166,36 @@
 
     // ─── Module + Submenu definitions matching actual sidebar ──────────────
     const AVAILABLE_MODULES = [
-        { key: 'consolidados',    label: 'Consolidados',    navIds: ['nav-dashboard'],
+        { key: 'consolidation',   label: 'Consolidados',    navIds: ['nav-dashboard'],
           svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
-        { key: 'visitantes',      label: 'Visitantes',      navIds: ['nav-visitors'],
+        { key: 'visitors',      label: 'Visitantes',      navIds: ['nav-visitors'],
           svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>' },
-        { key: 'start',           label: 'Start',           navIds: ['nav-start'],
+        { key: 'start',           label: 'Start (Jornada)',    navIds: ['nav-start'],
           svg: '<polygon points="5 3 19 12 5 21 5 3"/>' },
+        { key: 'batismo',       label: 'Batismo (Jornada)',  navIds: ['nav-batismo'],
+          svg: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+        { key: 'novos_membros', label: 'Novos Membros', navIds: ['nav-membros'],
+          svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
+        { key: 'cafe_pastor',   label: 'Café com Pastor', navIds: ['nav-cafe-pastor'],
+          svg: '<path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/>' },
         { key: 'aniversariantes', label: 'Aniversariantes', navIds: ['nav-birthdays'],
           svg: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
-        { key: 'ia_chat',         label: 'IA Chat',         navIds: ['nav-messages'],
+        { key: 'ia_whatsapp',     label: 'IA Chat',         navIds: ['nav-messages'],
           svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
-        { key: 'relatorios',      label: 'Relatórios',      navIds: ['nav-relatorios'],
+        { key: 'broadcast',       label: 'Transmissão',     navIds: ['nav-transmissao'],
+          svg: '<path d="M18 8L22 12L18 16"/><path d="M2 12H22"/>' },
+        { key: 'financeiro',      label: 'Financeiro',      navIds: ['nav-group-financeiro'],
+          svg: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+        { key: 'relatorios',      label: 'Relatórios',      navIds: ['nav-group-relatorios'],
           svg: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
         { key: 'logs',            label: 'Logs',            navIds: ['nav-logs'],
           svg: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+        { key: 'wecare',          label: 'We Care',         navIds: ['nav-wecare'],
+          svg: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' },
+        { key: 'voluntarios',     label: 'Voluntários',     navIds: ['nav-voluntarios'],
+          svg: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+        { key: 'tasks',           label: 'Tarefas',         navIds: ['nav-tasks'],
+          svg: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>' },
         { key: 'crie',            label: 'CRIE',            navIds: ['nav-crie-toggle'],
           svg: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
           submodules: [
@@ -3139,6 +3205,17 @@
               { key: 'crie_checkin',    label: 'Check-in',   navId: 'nav-crie-checkin' },
               { key: 'crie_workshop',   label: 'Workshop',   navId: 'nav-crie-workshop' },
               { key: 'crie_relatorios', label: 'Controle',   navId: 'nav-crie-relatorios' },
+              { key: 'crie_connect',    label: 'Connect',    navId: 'nav-crie-connect' },
+          ]
+        },
+        { key: 'cantina',         label: 'Cantina',         navIds: ['nav-cantina-toggle'],
+          svg: '<path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/>',
+          submodules: [
+              { key: 'cantina_pedidos',   label: 'Pedidos',    navId: 'nav-cantina-pedidos' },
+              { key: 'cantina_estoque',   label: 'Estoque',    navId: 'nav-cantina-estoque' },
+              { key: 'cantina_financeiro',label: 'Financeiro', navId: 'nav-cantina-financeiro' },
+              { key: 'cantina_pos',       label: 'POS',        navId: 'nav-cantina-pos' },
+              { key: 'cantina_config',    label: 'Configurar', navId: 'nav-cantina-config' },
           ]
         },
         { key: 'configuracoes',   label: 'Configurações',   navIds: ['nav-settings-toggle'],
@@ -9383,20 +9460,18 @@ window.renderDevWorkspacesTable = function(workspaces, leadsPerWs, lastActPerWs,
             <td style="padding:10px 14px;text-align:center;font-weight:700;font-size:.85rem;">${leadsCount.toLocaleString('pt-BR')}</td>
             <td style="padding:10px 14px;text-align:center;">
               ${(() => {
-                const addonCfg = Array.isArray(ws.addon_modules_config) ? ws.addon_modules_config : [];
-                const activeAddons = addonCfg.filter(a => !a.expires_at || new Date(a.expires_at) > new Date());
-                const badge = activeAddons.length > 0
-                  ? `<span style="display:inline-block;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.3);color:#a78bfa;border-radius:10px;font-size:.6rem;font-weight:800;padding:1px 5px;margin-left:3px;">${activeAddons.length}</span>`
+                const mods = Array.isArray(ws.modules) ? ws.modules : [];
+                // If the array explicitly has crie, cantina, or ia_whatsapp we consider them premium mods
+                const premium = mods.filter(m => ['crie','cantina','ia_whatsapp', 'wecare'].includes(m)).length;
+                const badge = premium > 0
+                  ? `<span style="display:inline-block;background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.3);color:#a78bfa;border-radius:10px;font-size:.6rem;font-weight:800;padding:1px 5px;margin-left:3px;">+${premium}</span>`
                   : '';
-                return `<button onclick="openModulesModal('${ws.id}','${ws.name}','${plan}')"
-                  style="font-size:.65rem;padding:3px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
-                         color:rgba(255,255,255,.45);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:2px;"
-                  title="Gerenciar módulos add-on">Mods${badge}</button>`;
+                return `<span style="font-size:.65rem;color:rgba(255,255,255,.45);">${mods.length} mods${badge}</span>`;
               })()}
             </td>
             <td style="padding:10px 14px;text-align:center;">
               <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
-                <button onclick="openOverrideModal('${ws.id}','${ws.name}','${plan}','${ws.saas_plan_expires_at||''}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Plano</button>
+                <button onclick="openOverrideModal('${ws.id}')" style="font-size:.68rem;padding:3px 9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;cursor:pointer;">Configurar</button>
                 ${wsUrl ? `<a href="${wsUrl}" target="_blank" style="font-size:.68rem;padding:3px 9px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);color:#FBBF24;border-radius:8px;cursor:pointer;text-decoration:none;">Abrir</a>` : ''}
                 <button onclick="deleteWorkspace('${ws.id}','${ws.name}')" title="Excluir workspace e usuários" style="font-size:.68rem;padding:3px 9px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:8px;cursor:pointer;font-weight:700;transition:all .15s;" onmouseover="this.style.background='rgba(239,68,68,.18)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">🗑️</button>
               </div>
@@ -9457,18 +9532,22 @@ window.deleteWorkspace = async function(wsId, wsName) {
     }
 };
 
-// ── Plan Override Modal ──────────────────────────────────────────────
-// Called from workspace table row → "Plano" button
+// ── Plan & Modules Override Modal ──────────────────────────────────────────────
+// Called from workspace table row → "Editar" button
 let _overrideWsId = null;
-window.openOverrideModal = function(wsId, wsName, currentPlan, currentExpires) {
+window.openOverrideModal = function(wsId) {
     _overrideWsId = wsId;
+    const ws = _devWorkspacesAll.find(w => w.id === wsId);
+    if (!ws) return;
+
     // Populate header
     const header = document.getElementById('wspm-ws-name');
-    if (header) header.textContent = wsName;
+    if (header) header.textContent = ws.name;
 
     // Set current plan selector
     const planSel = document.getElementById('wspm-plan');
-    if (planSel) planSel.value = currentPlan || 'free';
+    const currentPlan = ws.plan || 'free';
+    if (planSel) planSel.value = currentPlan;
 
     // Toggle trial panel visibility based on current plan
     const trialPanel = document.getElementById('wspm-trial-panel');
@@ -9477,8 +9556,8 @@ window.openOverrideModal = function(wsId, wsName, currentPlan, currentExpires) {
     // Set current expiry date if exists
     const expiresInput = document.getElementById('wspm-expires-date');
     if (expiresInput) {
-        if (currentExpires) {
-            expiresInput.value = new Date(currentExpires).toISOString().slice(0, 10);
+        if (ws.saas_plan_expires_at) {
+            expiresInput.value = new Date(ws.saas_plan_expires_at).toISOString().slice(0, 10);
         } else {
             // Default: 30 days from now
             const d = new Date(); d.setDate(d.getDate() + 30);
@@ -9489,9 +9568,62 @@ window.openOverrideModal = function(wsId, wsName, currentPlan, currentExpires) {
     // Clear duration preset buttons highlight
     document.querySelectorAll('.wspm-dur-btn').forEach(b => b.style.background = 'rgba(255,255,255,.05)');
 
+    // Render modules grid
+    renderWspmModulesGrid(currentPlan, ws.modules || []);
+
     // Show modal
     const overlay = document.getElementById('wspm-overlay');
     if (overlay) overlay.style.display = 'flex';
+};
+
+window.renderWspmModulesGrid = function(planOrModulesList, currentModules) {
+    const grid = document.getElementById('wspm-modules-grid');
+    if (!grid) return;
+
+    // If string passed, it's a plan name -> look up PLAN_CONFIG defaults
+    let enforcedBase = [];
+    if (typeof planOrModulesList === 'string') {
+        const pcfg = PLAN_CONFIG[planOrModulesList];
+        if (pcfg && Array.isArray(pcfg.modules)) {
+            enforcedBase = pcfg.modules;
+        }
+    } else if (Array.isArray(planOrModulesList)) {
+        enforcedBase = planOrModulesList;
+    }
+
+    // `currentModules` might be empty for a new WS overriding from plan.
+    // So if currentModules is empty, we default to the enforced base.
+    const activeMods = currentModules && currentModules.length > 0 ? currentModules : enforcedBase;
+
+    grid.innerHTML = AVAILABLE_MODULES.map(mod => {
+        // Find if this parent module is active
+        const isParentActive = activeMods.includes(mod.key);
+        // Build submodules
+        const subHtml = (mod.submodules || []).map(sub => {
+            const isSubActive = activeMods.includes(sub.key);
+            return `
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:.7rem; color:rgba(255,255,255,.6); margin-top:4px; padding-left:22px;">
+                <input type="checkbox" value="${sub.key}" ${isSubActive ? 'checked' : ''} style="accent-color:#a78bfa;">
+                ${sub.label}
+            </label>`;
+        }).join('');
+
+        return `
+        <div style="background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); border-radius:10px; padding:10px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.8rem; font-weight:600; color:#fff;">
+                <input type="checkbox" value="${mod.key}" ${isParentActive ? 'checked' : ''} onchange="wspmToggleParent(this)" style="accent-color:#a78bfa;">
+                <span style="display:flex;align-items:center;gap:6px;">${mod.svg||''} ${mod.label}</span>
+            </label>
+            ${subHtml}
+        </div>
+        `;
+    }).join('');
+};
+
+window.wspmToggleParent = function(checkbox) {
+    const container = checkbox.closest('div');
+    const subCheckboxes = container.querySelectorAll('input[type="checkbox"]:not([value="'+checkbox.value+'"])');
+    subCheckboxes.forEach(cb => cb.checked = checkbox.checked);
 };
 
 window.closeOverrideModal = function() {
@@ -9503,6 +9635,9 @@ window.closeOverrideModal = function() {
 window.wspmToggleTrialPanel = function(planSel) {
     const trialPanel = document.getElementById('wspm-trial-panel');
     if (trialPanel) trialPanel.style.display = (planSel.value === 'trial') ? 'block' : 'none';
+
+    // Auto-update checkboxes based on plan default when changing plan
+    renderWspmModulesGrid(planSel.value, []);
 };
 
 window.wspmSetDuration = function(days, btn) {
@@ -9533,177 +9668,28 @@ window.saveOverrideModal = async function() {
             if (!expiresDate) { hubToast('Defina a data de expiração do trial', 'warn'); return; }
             update.saas_plan_expires_at = new Date(expiresDate + 'T23:59:59Z').toISOString();
             update.trial_started_at = new Date().toISOString();
-            // Trial = all modules unlocked (keys MUST match AVAILABLE_MODULES in hub-dashboard.js)
-            update.modules = ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina'];
         } else {
             // For non-trial plans, clear trial expiry
             update.saas_plan_expires_at = null;
         }
 
+        // Get modules
+        const checkedModules = [...document.querySelectorAll('#wspm-modules-grid input[type=checkbox]:checked')]
+                                .map(cb => cb.value);
+        
+        update.modules = checkedModules;
+
         const { error } = await sb.from('workspaces').update(update).eq('id', _overrideWsId);
         if (error) throw error;
 
         const planLabels = { free:'Free', starter:'Starter', essencial:'Essencial', founders:'Founders', trial:'Trial' };
-        hubToast(`✅ Plano atualizado para ${planLabels[plan]||plan}!`, 'success');
+        hubToast(`✅ Workspace atualizado para ${planLabels[plan]||plan}!`, 'success');
         window.closeOverrideModal();
         loadDevPanel();
     } catch(e) {
         hubToast('Erro: ' + e.message, 'error');
     } finally {
-        if (btn) { btn.textContent = 'Salvar'; btn.disabled = false; }
-    }
-};
-
-// ══════════════════════════════════════════════════════════════════
-// ADD-ON MODULES MODAL
-// ══════════════════════════════════════════════════════════════════
-
-// Plan → base modules matrix
-const WS_PLAN_MODULES = {
-    free:      ['consolidados','visitantes','start'],
-    starter:   ['consolidados','visitantes','start','aniversariantes','tasks','transmissao'],
-    essencial: ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios'],
-    founders:  ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios','ia_whatsapp','wecare','crie','cantina','logs'],
-    trial:     ['consolidados','visitantes','start','aniversariantes','tasks','transmissao','financeiro','relatorios','voluntarios','ia_whatsapp','wecare','crie','cantina','logs'],
-};
-
-// All modules with labels and icons
-const WS_ALL_MODULES = [
-    { key:'consolidados',  label:'Consolidação',   icon:'🙏' },
-    { key:'visitantes',    label:'Visitantes',      icon:'👋' },
-    { key:'start',         label:'Start',           icon:'▶️' },
-    { key:'aniversariantes',label:'Aniversariantes',icon:'🎂' },
-    { key:'tasks',         label:'Tarefas',         icon:'✅' },
-    { key:'transmissao',   label:'Transmissão',     icon:'📡' },
-    { key:'financeiro',    label:'Financeiro',      icon:'💰' },
-    { key:'relatorios',    label:'Relatórios',      icon:'📊' },
-    { key:'voluntarios',   label:'Voluntários',     icon:'🤝' },
-    { key:'ia_whatsapp',   label:'IA / WhatsApp',   icon:'🤖' },
-    { key:'wecare',        label:'We Care',         icon:'❤️' },
-    { key:'crie',          label:'CRIE',            icon:'✨' },
-    { key:'cantina',       label:'Cantina',         icon:'🍽️' },
-    { key:'logs',          label:'Logs / Auditoria',icon:'📋' },
-];
-
-let _modsWsId = null;
-let _modsWsAddonCfg = [];
-
-window.openModulesModal = async function(wsId, wsName, plan) {
-    _modsWsId = wsId;
-    const sb = window.supabaseClient;
-
-    // Fetch latest addon_modules_config from DB
-    const { data: wsData } = await sb.from('workspaces')
-        .select('addon_modules_config')
-        .eq('id', wsId).single();
-    _modsWsAddonCfg = (wsData?.addon_modules_config) || [];
-
-    const baseMods = WS_PLAN_MODULES[plan] || WS_PLAN_MODULES['free'];
-    const now = new Date();
-
-    // Header
-    document.getElementById('mods-ws-name').textContent = wsName;
-    document.getElementById('mods-plan-label').textContent =
-        ({free:'Free',starter:'Starter',essencial:'Essencial',founders:'Founders ⭐',trial:'Trial 🟢'})[plan] || plan;
-
-    // Render module rows
-    const container = document.getElementById('mods-modules-list');
-    container.innerHTML = WS_ALL_MODULES.map(mod => {
-        const isBase = baseMods.includes(mod.key);
-        const addonEntry = _modsWsAddonCfg.find(a => a.module === mod.key);
-        const isAddon = !!addonEntry;
-        const isExpired = isAddon && addonEntry.expires_at && new Date(addonEntry.expires_at) < now;
-        const expiresVal = isAddon && addonEntry.expires_at
-            ? new Date(addonEntry.expires_at).toISOString().slice(0,10) : '';
-
-        if (isBase) {
-            // Base module — included in plan, not editable
-            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
-                               background:rgba(52,211,153,.04);border:1px solid rgba(52,211,153,.12);
-                               border-radius:10px;margin-bottom:6px;">
-                <span style="font-size:.9rem;">${mod.icon}</span>
-                <span style="flex:1;font-size:.82rem;font-weight:600;color:rgba(255,255,255,.75);">${mod.label}</span>
-                <span style="font-size:.65rem;padding:2px 8px;border-radius:20px;
-                             background:rgba(52,211,153,.12);color:#34D399;border:1px solid rgba(52,211,153,.2);
-                             font-weight:700;">Incluído no plano</span>
-            </div>`;
-        } else {
-            // Add-on eligible module
-            const checkedAttr = isAddon && !isExpired ? 'checked' : '';
-            const defaultDate = (() => { const d = new Date(); d.setDate(d.getDate()+30); return d.toISOString().slice(0,10); })();
-            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
-                               background:${isAddon && !isExpired ? 'rgba(167,139,250,.05)' : 'rgba(255,255,255,.02)'};
-                               border:1px solid ${isAddon && !isExpired ? 'rgba(167,139,250,.2)' : 'rgba(255,255,255,.06)'};
-                               border-radius:10px;margin-bottom:6px;" id="mod-row-${mod.key}">
-                <span style="font-size:.9rem;">${mod.icon}</span>
-                <span style="flex:1;font-size:.82rem;font-weight:600;color:rgba(255,255,255,${isExpired?'.3':'.7'});">${mod.label}
-                    ${isExpired ? `<span style="font-size:.6rem;color:#f87171;margin-left:4px;">expirado</span>` : ''}
-                </span>
-                <input type="checkbox" data-module="${mod.key}" ${checkedAttr}
-                       onchange="modsToggleDate('${mod.key}', this.checked)"
-                       style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;flex-shrink:0;">
-                <input type="date" id="mod-date-${mod.key}" value="${expiresVal || defaultDate}"
-                       style="display:${isAddon && !isExpired ? 'block' : 'none'};
-                              padding:4px 8px;border-radius:7px;background:rgba(255,255,255,.06);
-                              border:1px solid rgba(167,139,250,.25);color:#fff;font-size:.72rem;
-                              width:120px;flex-shrink:0;">
-            </div>`;
-        }
-    }).join('');
-
-    document.getElementById('mods-overlay').style.display = 'flex';
-};
-
-window.modsToggleDate = function(moduleKey, checked) {
-    const dateInput = document.getElementById(`mod-date-${moduleKey}`);
-    if (dateInput) dateInput.style.display = checked ? 'block' : 'none';
-    const row = document.getElementById(`mod-row-${moduleKey}`);
-    if (row) {
-        row.style.background = checked ? 'rgba(167,139,250,.05)' : 'rgba(255,255,255,.02)';
-        row.style.borderColor = checked ? 'rgba(167,139,250,.2)' : 'rgba(255,255,255,.06)';
-    }
-};
-
-window.closeModulesModal = function() {
-    document.getElementById('mods-overlay').style.display = 'none';
-    _modsWsId = null;
-};
-
-window.saveModulesModal = async function() {
-    if (!_modsWsId) return;
-    const sb = window.supabaseClient;
-    const btn = document.getElementById('mods-save-btn');
-    if (btn) { btn.textContent = 'Salvando...'; btn.disabled = true; }
-
-    try {
-        // Collect checked add-on modules with their dates
-        const newAddonCfg = [];
-        document.querySelectorAll('#mods-modules-list input[type=checkbox]').forEach(cb => {
-            if (cb.checked) {
-                const moduleKey = cb.getAttribute('data-module');
-                const dateInput = document.getElementById(`mod-date-${moduleKey}`);
-                const expiresAt = dateInput?.value
-                    ? new Date(dateInput.value + 'T23:59:59Z').toISOString() : null;
-                newAddonCfg.push({ module: moduleKey, expires_at: expiresAt });
-            }
-        });
-
-        // Also build the flat addon_modules array (for backward compat with gating)
-        const addonModulesFlat = newAddonCfg.map(a => a.module);
-
-        const { error } = await sb.from('workspaces').update({
-            addon_modules_config: newAddonCfg,
-            addon_modules: addonModulesFlat,
-        }).eq('id', _modsWsId);
-        if (error) throw error;
-
-        hubToast && hubToast(`✅ Módulos add-on atualizados!`, 'success');
-        window.closeModulesModal();
-        loadDevPanel();
-    } catch(e) {
-        hubToast && hubToast('Erro: ' + e.message, 'error');
-    } finally {
-        if (btn) { btn.textContent = 'Salvar Add-ons'; btn.disabled = false; }
+        if (btn) { btn.textContent = 'Salvar Configurações'; btn.disabled = false; }
     }
 };
 

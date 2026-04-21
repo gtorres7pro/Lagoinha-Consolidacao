@@ -10,127 +10,93 @@
 ```
 MÓDULO: _______________  |  CHAVE: _______________  |  PLANO MÍNIMO: _______________
 
-[ ] 1. Chave snake_case definida
-[ ] 2. Adicionado à matriz de planos (showUpgradeModal)
-[ ] 3. Sidebar nav item com data-module criado
-[ ] 4. Gate automático verificado (applyUserModuleGating)
-[ ] 5. Adicionado ao MODULE_OPTIONS (gestão de equipe)
-[ ] 6. Override manual testado (painel Dev ou SQL)
-[ ] 7. Lazy-load implementado em hub-<modulo>.js
-[ ] 8. GEMINI.md atualizado (seções 2, 3, 4, 8)
+[ ] 1. Chave snake_case e metadados adicionados a AVAILABLE_MODULES (hub-dashboard.js)
+[ ] 2. Chave adicionada à sua respectiva lista em PLAN_CONFIG (se aplicável ao plano base)
+[ ] 3. Sidebar nav item com id "nav-<chave>" criado em dashboard.html
+[ ] 4. Mapeado nos arrays PLAN_NAV_MAP e USER_NAV_MAP (hub-dashboard.js)
+[ ] 5. Override/teste do Master Admin verificado (Painel Dev)
+[ ] 6. Lazy-load implementado em hub-<modulo>.js
+[ ] 7. GEMINI.md atualizado (seções 2, 3, 4, 8)
 ```
 
 ---
 
-## Passo 1 — Definir a Chave do Módulo
+## Passo 1 — Definir o Módulo em AVAILABLE_MODULES
 
-Escolha uma chave em `snake_case`. Ela será usada em:
-- `workspaces.modules[]` no banco de dados
-- Atributo `data-module` no sidebar HTML
-- `applyUserModuleGating()` no JS
-- Lazy-load em `hub-<modulo>.js`
+**Arquivo:** `frontend/hub-dashboard.js` → constante `AVAILABLE_MODULES`
 
-**Exemplos existentes:** `consolidados`, `visitantes`, `start`, `crie`, `cantina`, `financeiro`, `voluntarios`, `we_care`
-
----
-
-## Passo 2 — Adicionar à Matriz de Planos
-
-**Arquivo:** `frontend/hub-dashboard.js` → função `showUpgradeModal()`
-
-Adicione a chave no plano correto e defina os módulos base de cada tier:
+Escolha uma chave em `snake_case`. Defina os sub-módulos se existirem (ex: CRIE tem playlists, workshop, etc.). Isso automaticamente populamenta os editores de Workspace (Painel Dev) e Usuário (Configurações).
 
 ```js
-const PLAN_MODULES = {
-  free:      ['consolidados', 'visitantes', 'start', 'batismo', 'novos_membros'],
-  starter:   [...free, 'tasks', 'transmissao', 'aniversariantes'],
-  essencial: [...starter, 'financeiro', 'relatorios', 'voluntarios'],
-  founders:  [...essencial, 'crie', 'cantina', 'ai_whatsapp', 'we_care'],
-};
-// Adicione '<nova_chave>' no tier correto acima ↑
-```
-
-**Também em `dashboard.html`**, adicione o item `<li>` na coluna correta do modal de planos:
-
-```html
-<!-- No card do plano correspondente -->
-<li class="included">Nome do Módulo</li>
-<!-- Nos planos inferiores, adicione como locked: -->
-<li class="locked">Nome do Módulo</li>
+const AVAILABLE_MODULES = [
+    // ... módulos existentes ...
+    {
+        key: '<nova_chave>',
+        label: 'Nome do Módulo',
+        svg: '<svg>icone</svg>',
+        submodules: [
+            { key: '<nova_chave>.sub_1', label: 'Funcionalidade Extra 1' }, // se aplicável
+        ]
+    }
+];
 ```
 
 ---
 
-## Passo 3 — Sidebar Nav Item
+## Passo 2 — Adicionar à Matriz de Planos (PLAN_CONFIG)
+
+**Arquivo:** `frontend/hub-dashboard.js` → constante `PLAN_CONFIG`
+
+Adicione a chave e seus sub-módulos base ao array respectivo do plano onde ele deve ser introduzido na hierarquia, por exemplo, `essencial` ou `founders`.
+
+```js
+const PLAN_CONFIG = {
+    free: { modules: ['consolidados', 'visitantes', 'start'] },
+    starter: { modules: ['consolidados', 'visitantes', 'start', 'tasks', 'transmissao', 'aniversariantes'] },
+    // Adicione a <nova_chave> e os submódulos que acompanham o plano
+};
+```
+
+---
+
+## Passo 3 — Sidebar Nav Item e Mapeamento
 
 **Arquivo:** `frontend/dashboard.html` → seção da sidebar
 
+Crie o item no HTML da Sidebar usando um **ID** correspondente ao módulo (ou classe/submódulo).
+
 ```html
-<div class="nav-item" data-module="<nova_chave>" onclick="switchTab('<nova_chave>')">
+<div class="nav-item" id="nav-<nova_chave>" onclick="switchTab('<nova_chave>')">
   <span class="nav-icon">🆕</span>
   <span class="nav-label">Nome do Módulo</span>
 </div>
 ```
 
-> ⚠️ O atributo `data-module` é **obrigatório** — é o que `applyUserModuleGating()` lê para esconder/mostrar automaticamente o item na sidebar.
+**Arquivo:** `frontend/hub-dashboard.js` → constantes `PLAN_NAV_MAP` e `USER_NAV_MAP`
+
+Adicione o mapeamento para que a automação `applyPlanGating` e `applyUserModuleGating` consigam encontrar seus elementos HTML pelo DOM e realizar o toggle de visibilidade `display: block|none`.
 
 ---
 
 ## Passo 4 — Gate Automático (sem código extra)
 
-A função `applyUserModuleGating()` em `hub-dashboard.js` já lê **todos os `data-module`** do sidebar e oculta automaticamente os que não estão em `window._wsModules`.
-
-**Nenhum código adicional é necessário**, desde que o `data-module` esteja correto no passo 3.
-
-> Se o módulo tiver vistas/divs secundárias que também precisam de gate, adicione ao mapa:
-> ```js
-> const moduleViewMap = { '<nova_chave>': '#view-<nova_chave>' };
-> ```
+A função `applyUserModuleGating()` lê os mapas configurados acima para avaliar a coluna `users.modules` e comparar com o `workspaces.modules` base do plano. 
+**Nenhum código condicional adicional de mostrar/esconder HTML** é necessário, a arquitetura garante permissões modulares do Workspace para baixo ao Usuário final.
 
 ---
 
-## Passo 5 — Controle de Acesso por Usuário
+## Passo 5 — Override do Master Admin
 
-**Arquivo:** `frontend/hub-dashboard.js` → `openManageTeam()` / constante `MODULE_OPTIONS`
+Para testar ou liberar os recursos explicitamente num workspace (modo trial, suporte ou Venda de Adicional):
 
-```js
-const MODULE_OPTIONS = [
-  { key: 'consolidados', label: 'Consolidação' },
-  { key: 'visitantes',   label: 'Visitantes'  },
-  // ... módulos existentes ...
-  { key: '<nova_chave>', label: 'Nome do Módulo' }, // ← adicionar aqui
-];
-```
-
-Isso permite que o admin do workspace conceda ou revogue acesso ao módulo **por usuário**, independentemente do plano do workspace.
-
----
-
-## Passo 6 — Override Master Admin
-
-Para ativar manualmente o módulo em um workspace específico (modo suporte ou demo):
-
-**Via painel Dev (UI):**
+**Via Painel Dev (Unified Workspace Editor UI):**
 1. Acessar `dashboard.html` → aba Desenvolvedor
-2. Clicar em **"Plano"** ao lado do workspace
-3. Selecionar o plano correto, **ou**
-
-**Via Supabase Studio (SQL direto):**
-```sql
--- Adicionar módulo avulso sem alterar o plano
-UPDATE workspaces
-SET addon_modules = array_append(addon_modules, '<nova_chave>')
-WHERE id = '<workspace_id>';
-
--- Ou adicionar diretamente no array de módulos
-UPDATE workspaces
-SET modules = array_append(modules, '<nova_chave>')
-WHERE id = '<workspace_id>';
-```
+2. Clicar em **"Configurar"** no workspace
+3. Marcar livremente o módulo avulso ou alterar o plano base -> O sistema grava o override final no `workspaces.modules` do banco.
 
 ---
 
-## Passo 7 — Lazy Load em hub-\<modulo\>.js
+## Passo 6 — Lazy Load em hub-\<modulo\>.js
 
 **Arquivo:** `frontend/hub-<modulo>.js` (criar se não existir)
 
@@ -146,22 +112,13 @@ WHERE id = '<workspace_id>';
     }
   };
 })();
-
-async function load<Modulo>Data() {
-  const sb = window.supabaseClient;
-  const wsId = window._currentWorkspaceId;
-  // ... carregar dados do módulo ...
-}
 ```
 
-Incluir o script no `dashboard.html` antes do `</body>`:
-```html
-<script src="/hub-<modulo>.js"></script>
-```
+Fazer a inclusão `<script src="/hub-<modulo>.js"></script>` no `dashboard.html`.
 
 ---
 
-## Passo 8 — Atualizar GEMINI.md
+## Passo 7 — Atualizar GEMINI.md
 
 Após implementar, adicionar nas seções:
 
@@ -176,10 +133,10 @@ Após implementar, adicionar nas seções:
 
 ## 🔒 Regras de Segurança
 
-- **Frontend gate ≠ segurança.** O gating de sidebar é apenas UI. Toda Edge Function do módulo deve validar acesso via `workspaces.modules` no banco antes de processar qualquer ação.
-- **RLS obrigatório.** Toda nova tabela deve ter RLS ativado com política `workspace_id = auth.uid()` ou equivalente.
-- **Admin override nunca em código frontend.** Toda liberação manual deve passar pelo painel Dev ou SQL — nunca hardcoded no JS.
+- **Frontend gate ≠ segurança.** O gating de sidebar é apenas UI. Toda Edge Function do módulo deve validar acesso listado via `workspaces.modules` ou `users.modules`.
+- **RLS obrigatório.** Toda tabela nova deve ter RLS ativo `workspace_id = auth.uid()` limitando o escopo ao provedor de tenancy do projeto.
+- **Não crie hardcodes JS.** Se precisar esconder itens adicionais, coloque restrições via `window._wsModules` ou o objeto do membro logado `window._currentUser.modules`.
 
 ---
 
-*Protocolo mantido em sincronia com GEMINI.md Seção 9. Última atualização: 2026-04-12*
+*Protocolo reformulado para Granularidade de Nível Acesso 2.0. Última atualização: 2026-04-21*

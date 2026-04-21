@@ -3347,6 +3347,8 @@ graph TD
 
 
 
+        </div><!-- /#view-settings -->
+
         <!-- ════════════════════════════════════════════════════════
              View: Desenvolvedor (master_admin only)
         ═══════════════════════════════════════════════════════════ -->
@@ -3839,7 +3841,6 @@ graph TD
                 </div>
             </div>
         </div>
-        </div><!-- /#view-settings -->
 
         <!-- ════════════════════════════════════════════════════════
              View: Relatórios — Local
@@ -6713,20 +6714,20 @@ graph TD
             </div>
         </div>
 
-        <!-- ── Workspace Plan & Trial Modal (wspm) ──────────────────────── -->
+        <!-- ── Workspace Editor Modal (wspm) ──────────────────────── -->
         <div id="wspm-overlay" onclick="if(event.target===this)closeOverrideModal()"
              style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75);
                     backdrop-filter:blur(12px); z-index:9200;
-                    align-items:center; justify-content:center; padding:20px;">
+                    align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
             <div style="background:#111116; border:1px solid rgba(255,255,255,.08);
-                        border-radius:22px; padding:28px; width:100%; max-width:460px;
-                        box-shadow:0 32px 80px rgba(0,0,0,.6); position:relative;">
+                        border-radius:22px; padding:28px; width:100%; max-width:600px;
+                        box-shadow:0 32px 80px rgba(0,0,0,.6); position:relative; margin:auto;">
 
                 <!-- Header -->
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <div>
-                        <h3 style="font-size:1rem; font-weight:800; margin:0 0 2px; color:#fff;">Configurar Plano</h3>
-                        <p id="wspm-ws-name" style="font-size:.78rem; color:rgba(255,255,255,.35); margin:0;"></p>
+                        <h3 style="font-size:1.1rem; font-weight:800; margin:0 0 2px; color:#fff;">Editar Workspace</h3>
+                        <p id="wspm-ws-name" style="font-size:.85rem; color:rgba(255,255,255,.4); margin:0;"></p>
                     </div>
                     <button onclick="closeOverrideModal()"
                             style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
@@ -6734,35 +6735,33 @@ graph TD
                                    cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center;">✕</button>
                 </div>
 
-                <!-- Plan Selector -->
-                <div style="margin-bottom:18px;">
-                    <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
-                                  text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
-                        Plano
-                    </label>
-                    <select id="wspm-plan" class="hub-field-input" onchange="wspmToggleTrialPanel(this)"
-                            style="width:100%; padding:10px 14px; border-radius:10px;
-                                   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
-                                   color:#fff; font-size:.88rem; cursor:pointer;">
-                        <option value="free">🔵 Free</option>
-                        <option value="starter">🔵 Starter</option>
-                        <option value="essencial">🟣 Essencial</option>
-                        <option value="founders">⭐ Founders</option>
-                        <option value="trial">🟢 Trial (acesso total temporário)</option>
-                    </select>
-                </div>
+                <div style="display:grid; grid-template-columns:1fr; gap:20px; margin-bottom:18px;">
+                    <!-- Plan Selector -->
+                    <div>
+                        <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
+                                      text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
+                            Plano Base
+                        </label>
+                        <select id="wspm-plan" class="hub-field-input" onchange="wspmToggleTrialPanel(this)"
+                                style="width:100%; padding:10px 14px; border-radius:10px;
+                                       background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+                                       color:#fff; font-size:.88rem; cursor:pointer;">
+                            <option value="free">🔵 Free</option>
+                            <option value="starter">🔵 Starter</option>
+                            <option value="essencial">🟣 Essencial</option>
+                            <option value="founders">⭐ Founders</option>
+                            <option value="trial">🟢 Trial (acesso total temporário)</option>
+                        </select>
+                    </div>
 
-                <!-- Trial Panel — shown when plan=trial -->
-                <div id="wspm-trial-panel" style="display:none;">
-                    <div style="background:rgba(52,211,153,.06); border:1px solid rgba(52,211,153,.2);
-                                border-radius:14px; padding:18px; margin-bottom:18px;">
-
+                    <!-- Trial Panel — shown when plan=trial -->
+                    <div id="wspm-trial-panel" style="display:none; background:rgba(52,211,153,.06); border:1px solid rgba(52,211,153,.2);
+                                      border-radius:14px; padding:18px;">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
                             <span style="font-size:1rem;">🟢</span>
                             <span style="font-size:.82rem; font-weight:700; color:#34D399;">Configurações do Trial</span>
                         </div>
 
-                        <!-- Duration presets -->
                         <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
                                       text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
                             Duração rápida
@@ -6793,8 +6792,6 @@ graph TD
                                            font-weight:700; border:1px solid rgba(52,211,153,.25); color:#34D399;
                                            background:rgba(255,255,255,.05); cursor:pointer; transition:background .15s;">12 meses</button>
                         </div>
-
-                        <!-- Custom date -->
                         <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35);
                                       text-transform:uppercase; letter-spacing:.07em; display:block; margin-bottom:8px;">
                             Data exata de expiração
@@ -6804,10 +6801,26 @@ graph TD
                                       background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
                                       color:#fff; font-size:.88rem; box-sizing:border-box;"
                                oninput="document.querySelectorAll('.wspm-dur-btn').forEach(b=>b.style.background='rgba(255,255,255,.05)')">
-
                         <p style="font-size:.72rem; color:rgba(255,255,255,.25); margin:10px 0 0; line-height:1.4;">
                             ⓘ Ao ativar o trial, todos os módulos são liberados. Ao expirar, o sistema rebaixa para <b>Free</b> automaticamente.
                         </p>
+                    </div>
+
+                    <!-- Módulos Override -->
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="font-size:.72rem; font-weight:700; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.07em; margin:0;">
+                                Módulos Habilitados
+                            </label>
+                            <button onclick="document.querySelectorAll('#wspm-modules-grid input[type=checkbox]').forEach(c => c.checked = true)"
+                                    style="font-size:.65rem; background:none; border:none; color:rgba(255,255,255,.5); cursor:pointer; padding:0; text-decoration:underline;">Selecionar Todos</button>
+                        </div>
+                        <p style="font-size:.72rem; color:rgba(255,255,255,.3); margin:0 0 12px 0;">
+                            Ao mudar o plano, os módulos padrões serão pré-selecionados. Você pode marcar ou desmarcar livremente para forçar uma configuração.
+                        </p>
+                        <div id="wspm-modules-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px;">
+                            <!-- Module UI Checkboxes injected here dynamically -->
+                        </div>
                     </div>
                 </div>
 
@@ -6821,76 +6834,12 @@ graph TD
                     </button>
                     <button id="wspm-save-btn" onclick="saveOverrideModal()" class="hub-btn-primary"
                             style="flex:2; padding:11px; border-radius:11px; font-size:.88rem; font-weight:700;">
-                        ✓ Salvar Plano
+                        ✓ Salvar Configurações
                     </button>
                 </div>
             </div>
         </div>
-        <!-- ── /Workspace Plan Modal ──────────────────────────────────────── -->
-
-        <!-- ── Add-on Modules Modal (mods) ──────────────────────────────── -->
-        <div id="mods-overlay" onclick="if(event.target===this)closeModulesModal()"
-             style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.78);
-                    backdrop-filter:blur(14px); z-index:9210;
-                    align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
-            <div style="background:#111116; border:1px solid rgba(255,255,255,.08);
-                        border-radius:22px; padding:28px; width:100%; max-width:500px;
-                        box-shadow:0 32px 80px rgba(0,0,0,.6); margin:auto; position:relative;">
-
-                <!-- Header -->
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                    <div>
-                        <h3 style="font-size:1rem; font-weight:800; margin:0 0 3px; color:#fff;">Módulos & Add-ons</h3>
-                        <p id="mods-ws-name" style="font-size:.78rem; color:rgba(255,255,255,.35); margin:0;"></p>
-                    </div>
-                    <button onclick="closeModulesModal()"
-                            style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
-                                   color:rgba(255,255,255,.5); width:32px; height:32px; border-radius:8px;
-                                   cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
-                </div>
-
-                <!-- Plan badge -->
-                <div style="margin-bottom:16px;">
-                    <span style="font-size:.7rem; color:rgba(255,255,255,.3);">Plano atual: </span>
-                    <span id="mods-plan-label" style="font-size:.75rem; font-weight:700; color:#FBBF24;"></span>
-                </div>
-
-                <!-- Legend -->
-                <div style="display:flex; gap:14px; margin-bottom:12px; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span style="width:8px;height:8px;border-radius:50%;background:#34D399;display:inline-block;"></span>
-                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Incluído no plano</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span style="width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>
-                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Add-on ativo (trial)</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);display:inline-block;"></span>
-                        <span style="font-size:.68rem; color:rgba(255,255,255,.35);">Não habilitado</span>
-                    </div>
-                </div>
-
-                <!-- Module list (rendered by JS) -->
-                <div id="mods-modules-list" style="max-height:55vh; overflow-y:auto; padding-right:4px;"></div>
-
-                <!-- Actions -->
-                <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button onclick="closeModulesModal()"
-                            style="flex:1; padding:11px; border-radius:11px; font-size:.85rem; font-weight:600;
-                                   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
-                                   color:rgba(255,255,255,.5); cursor:pointer;">
-                        Cancelar
-                    </button>
-                    <button id="mods-save-btn" onclick="saveModulesModal()"
-                            style="flex:2; padding:11px; border-radius:11px; font-size:.88rem; font-weight:700;
-                                   background:linear-gradient(135deg,#7c3aed,#a78bfa); border:none; color:#fff; cursor:pointer;">
-                        ✓ Salvar Add-ons
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- ── /Add-on Modules Modal ──────────────────────────────────────── -->
+        <!-- ── /Workspace Editor Modal ──────────────────────────────────────── -->
 
 
     <!-- Lead Drawer Overlay + Panel -->
