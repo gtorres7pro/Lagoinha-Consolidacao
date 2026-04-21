@@ -2667,10 +2667,15 @@
 
                     card.innerHTML = `
                         <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
-                        <div class="card-header">
+                        <div class="card-header" style="align-items:flex-start;">
                             <div class="person-info">
-                                <h3>${lead.name || 'Sem Nome'}</h3>
-                                <p style="margin-top:2px;">📱 ${lead.phone || 'Sem número'}</p>
+                                <h3 style="font-size:1.05rem; margin-bottom:2px;">${lead.name || 'Sem Nome'}</h3>
+                                <p style="margin-top:2px; font-size:0.85rem;">📱 ${lead.phone || 'Sem número'}</p>
+                                <div style="margin-top:6px; font-size:0.7rem; color:rgba(255,255,255,0.6); display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+                                    ${lead.idade ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">🎂 ${lead.idade} anos</span>` : ''}
+                                    ${(lead.cidade || lead.estado) ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">📍 ${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</span>` : ''}
+                                    ${lead.estado_civil ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">💍 ${lead.estado_civil}</span>` : ''}
+                                </div>
                             </div>
                             <div class="hub-action-bundle">
                                 <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
@@ -2702,6 +2707,7 @@
                                 const startTag = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : '';
                                 return startTag;
                             })()}
+                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span class="tag" style="background:rgba(255,255,255,.05);color:#FFF;border:1px solid rgba(255,255,255,.1);">💧 Batizado: ${cap(lead.batizado)}</span>` : ''}
                             ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
                             ${lead.melhor_horario ? `<span style="background:rgba(255,255,255,.04);color:#a1a1aa;border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:0.65rem;display:inline-flex;align-items:center;gap:4px;">🕐 ${lead.melhor_horario}</span>` : ''}
                         </div>
