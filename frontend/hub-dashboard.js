@@ -2668,61 +2668,54 @@
                     card.innerHTML = `
                         <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
 
-                        <!-- Card Header: Name left, WA+phone+menu right -->
-                        <div class="card-header" style="align-items:center;margin-bottom:6px;">
-                            <div class="person-info" style="flex:1;min-width:0;">
-                                <h3 style="font-size:1rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lead.name || 'Sem Nome'}</h3>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                                ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;" title="WhatsApp"><svg style="width:12px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>
-                                <span style="font-size:0.78rem;color:rgba(255,255,255,.5);">${lead.phone}</span>` : `<span style="font-size:0.78rem;color:rgba(255,255,255,.35);">Sem número</span>`}
-                                <div class="hub-action-bundle">
-                                    <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
-                                    <div class="hub-action-menu" id="action-menu-${lead.id}">
-                                        ${cleanPhone ? `
-                                        <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
-                                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item"><svg style="width:13px;fill:currentColor;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg> WhatsApp</a>` : ''}
-                                        <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4;pointer-events:none;'}">💬 Histórico IA</button>
-                                        <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">🗑️ Excluir</button>
-                                    </div>
+                        <!-- Header row: name | WA + phone + crossTag + ⋮ -->
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <h3 style="font-size:0.95rem;font-weight:700;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lead.name || 'Sem Nome'}</h3>
+                            ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;flex-shrink:0;" title="WhatsApp"><svg style="width:10px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>
+                            <span style="font-size:0.72rem;color:rgba(255,255,255,.45);flex-shrink:0;">${lead.phone}</span>` : `<span style="font-size:0.72rem;color:rgba(255,255,255,.3);flex-shrink:0;">Sem número</span>`}
+                            ${crossTagHtml ? `<span style="font-size:0.55rem;padding:1px 5px;border-radius:4px;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);white-space:nowrap;flex-shrink:0;">${crossTagHtml.replace(/<[^>]+>/g,'').trim()}</span>` : ''}
+                            <div class="hub-action-bundle" style="flex-shrink:0;">
+                                <button class="hub-action-trigger" style="width:20px;height:20px;font-size:0.85rem;padding:0;" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
+                                <div class="hub-action-menu" id="action-menu-${lead.id}">
+                                    ${cleanPhone ? `
+                                    <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
+                                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item"><svg style="width:13px;fill:currentColor;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg> WhatsApp</a>` : ''}
+                                    <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4;pointer-events:none;'}">💬 Histórico IA</button>
+                                    <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">🗑️ Excluir</button>
                                 </div>
                             </div>
                         </div>
 
-                        ${crossTagHtml}
-
-                        <!-- Rich info grid -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:6px 0;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;">
-                            ${lead.email ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.55);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.email}</a></div>` : ''}
-                            ${lead.idade ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🎂</span><span>${lead.idade} anos</span></div>` : ''}
-                            ${lead.sexo ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👤</span><span>${lead.sexo}</span></div>` : ''}
-                            ${(() => {
-                                const parts = [lead.cidade, lead.estado, (lead.pais && lead.pais !== 'Não Informado' ? lead.pais : null)].filter(Boolean);
-                                return parts.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>📍</span><span>${parts.join(' · ')}</span></div>` : '';
-                            })()}
-                            ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cap(lead.culto)}</span></div>` : ''}
-                            ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.decisao}</span></div>` : ''}
-                            ${lead.type !== 'visitor' && lead.gc_status && lead.gc_status !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👥</span><span>${cap(lead.gc_status)}</span></div>` : ''}
-                            ${lead.melhor_horario ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🕐</span><span>${lead.melhor_horario}</span></div>` : ''}
-                        </div>
-
-                        <!-- Status badges + Tags row -->
-                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;align-items:center;">
-                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:0.62rem;">💧 ${cap(lead.batizado)}</span>` : ''}
-                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 7px;border-radius:6px;font-size:0.62rem;font-weight:700;">🌊 ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
-                            ${(() => { const st = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : ''; return st; })()}
-                            <!-- Custom tags inline here -->
-                            <div id="lead-tags-${lead.id}" style="display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;">
-                                ${(lead.tags||[]).map(tag => {
-                                    const wt = (window._wsTags||[]).find(t=>t.name===tag);
-                                    const color = wt?.color||'#FFD700';
-                                    return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 7px;border-radius:6px;font-size:0.62rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover">${tag} ×</span>`;
-                                }).join('')}
-                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:0.62rem;color:#666;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
+                        <!-- Info grid: always 4 rows x 2 cols, dash if missing -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin:3px 0 3px;padding:6px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;font-size:0.67rem;color:rgba(255,255,255,.5);">
+                            <!-- Row 1: email full width -->
+                            <div style="display:flex;align-items:center;gap:3px;grid-column:1/-1;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">✉️</span>
+                                ${lead.email ? `<a href="mailto:${lead.email}" style="color:rgba(255,255,255,.5);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.email}</a>` : `<span style="color:rgba(255,255,255,.2);">—</span>`}
+                            </div>
+                            <!-- Row 2: age | gender -->
+                            <div style="display:flex;align-items:center;gap:3px;"><span>🎂</span><span>${lead.idade ? lead.idade+' anos' : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <div style="display:flex;align-items:center;gap:3px;"><span>👤</span><span>${lead.sexo || '<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <!-- Row 3: city·state·country full width -->
+                            <div style="display:flex;align-items:center;gap:3px;grid-column:1/-1;">
+                                <span style="flex-shrink:0;">📍</span>
+                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(() => { const p=[lead.cidade,lead.estado,(lead.pais&&lead.pais!=='Não Informado'?lead.pais:null)].filter(Boolean); return p.length?p.join(' · '):'<span style="color:rgba(255,255,255,.2);">—</span>'; })()}</span>
+                            </div>
+                            <!-- Row 4: service | decision -->
+                            <div style="display:flex;align-items:center;gap:3px;overflow:hidden;"><span style="flex-shrink:0;">⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(lead.culto&&lead.culto!=='Não Informado')?cap(lead.culto):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <div style="display:flex;align-items:center;gap:3px;overflow:hidden;"><span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.decisao||''}">${(lead.decisao&&lead.decisao!=='Não Informado')?lead.decisao:'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <!-- Row 5: gc | batismo -->
+                            <div style="display:flex;align-items:center;gap:3px;"><span>👥</span><span>${(lead.gc_status&&lead.gc_status!=='Não Informado')?cap(lead.gc_status):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <div style="display:flex;align-items:center;gap:3px;"><span>💧</span><span>${(lead.batizado&&lead.batizado!=='Não Informado')?cap(lead.batizado):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <!-- Row 6: best time | tags -->
+                            <div style="display:flex;align-items:center;gap:3px;"><span>🕐</span><span>${lead.melhor_horario||'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
+                            <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;" id="lead-tags-${lead.id}">
+                                ${(lead.tags||[]).map(tag => { const wt=(window._wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 5px;border-radius:4px;font-size:0.6rem;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')">${tag} ×</span>`; }).join('')}
+                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:0.6rem;color:#555;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
                             </div>
                         </div>
 
-                        <!-- Progress bar = expand toggle -->
+                        <!-- Progress bar = expand toggle (tight) -->
                         ${(() => {
                             const isVisitor = targetContainerId === 'visitors-container';
                             const total = isVisitor ? 3 : 5;
@@ -2732,16 +2725,16 @@
                             const pct = Math.round((done / total) * 100);
                             const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
                             return `
-                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:4px 0 0;cursor:pointer;text-align:left;display:block;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                                    <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);">Tarefas</span>
-                                    <div style="display:flex;align-items:center;gap:5px;">
-                                        <span style="font-size:0.62rem;font-weight:800;color:${barClr};">${done}/${total}</span>
-                                        <svg id="chevron-${lead.id}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${barClr}" stroke-width="2.5" style="transition:transform .3s;opacity:.8;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:3px 0 0;cursor:pointer;text-align:left;display:block;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                                    <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);">Tarefas</span>
+                                    <div style="display:flex;align-items:center;gap:4px;">
+                                        <span style="font-size:0.6rem;font-weight:800;color:${barClr};">${done}/${total}</span>
+                                        <svg id="chevron-${lead.id}" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${barClr}" stroke-width="2.5" style="transition:transform .3s;opacity:.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </div>
                                 </div>
-                                <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;">
-                                    <div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;box-shadow:0 0 5px ${barClr}55;transition:width .4s ease;"></div>
+                                <div style="height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden;">
+                                    <div style="height:100%;width:${pct}%;background:${barClr};border-radius:2px;box-shadow:0 0 4px ${barClr}55;transition:width .4s ease;"></div>
                                 </div>
                             </button>`;
                         })()}
@@ -2749,7 +2742,7 @@
                         <!-- Expandable Tasks -->
                         <div class="hub-card-expandable" id="expand-${lead.id}">
                             ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
-                            <div style="font-size:0.65rem;color:var(--text-dim);text-align:center;margin-top:10px;padding-bottom:2px;">Registrado em ${dateStr}</div>
+                            <div style="font-size:0.6rem;color:var(--text-dim);text-align:center;margin-top:8px;padding-bottom:2px;">Registrado em ${dateStr}</div>
                         </div>
                     `;
                     // Open lead drawer on card click (skip checkbox / link clicks)
