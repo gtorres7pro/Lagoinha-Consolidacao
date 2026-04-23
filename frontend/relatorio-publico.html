@@ -642,37 +642,69 @@ function renderLeads(leads) {
          </a>`
       : '';
 
+    // Cross tag
+    const isCross = (l.tags||[]).includes('Visitou & Consolidado');
+    const crossTagHtml = isCross ? 'Visitou & Consolidado' : '';
+
     const card = document.createElement('div');
     card.className = 'lead-card';
     card.style.animationDelay = `${Math.min(idx * 0.025, 0.4)}s`;
     card.innerHTML = `
-      <div class="lead-top">
-        <div class="lead-avatar ${typeClass}">${initial}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="lead-name">${e(l.name || 'Sem nome')}</div>
+      <!-- Header row: name | WA + phone + crossTag       [spacer] badge -->
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+          <h3 style="font-size:0.95rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;">${e(l.name || 'Sem Nome')}</h3>
+          ${waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;flex-shrink:0;" title="WhatsApp"><svg style="width:10px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>
+          <span style="font-size:0.72rem;color:rgba(255,255,255,.45);flex-shrink:0;">${e(formatPhone(phoneRaw))}</span>` : `<span style="font-size:0.72rem;color:rgba(255,255,255,.3);flex-shrink:0;">Sem número</span>`}
+          ${crossTagHtml ? `<span style="font-size:0.55rem;padding:1px 4px;border-radius:4px;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);white-space:nowrap;flex-shrink:0;">${crossTagHtml}</span>` : ''}
+          <div style="flex:1;"></div>
+          <span class="type-badge ${typeClass}" style="flex-shrink:0;padding:2px 6px;font-size:0.55rem;">${typeLabel}</span>
+      </div>
+
+      <!-- Info grid: strictly 5 rows x 2 cols, dash if missing -->
+      <div style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);gap:2px 8px;margin:2px 0;padding:4px 6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;font-size:0.65rem;color:rgba(255,255,255,.5);">
+          <!-- Row 1: email | age -->
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">✉️</span>
+              ${l.email ? `<a href="mailto:${e(l.email)}" style="color:rgba(255,255,255,.5);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e(l.email)}</a>` : `<span style="color:rgba(255,255,255,.2);">—</span>`}
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">🎂</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.idade ? e(l.idade)+' anos' : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <!-- Row 2: city·state·country | gender -->
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">📍</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(() => { const p=[l.cidade,l.estado,(l.pais&&l.pais!=='Não Informado'?l.pais:null)].filter(Boolean); return p.length?e(p.join(' · ')):'<span style="color:rgba(255,255,255,.2);">—</span>'; })()}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">👤</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.sexo ? e(l.sexo) : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <!-- Row 3: service | decision -->
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(l.culto&&l.culto!=='Não Informado')?e(l.culto):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e(l.decisao||'')}">${(l.decisao&&l.decisao!=='Não Informado')?e(l.decisao):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <!-- Row 4: gc | batismo -->
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">👥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(l.gc_status&&l.gc_status!=='Não Informado')?e(l.gc_status):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">💧</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(l.batizado&&l.batizado!=='Não Informado')?e(l.batizado):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <!-- Row 5: best time | tags -->
+          <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+              <span style="flex-shrink:0;">🕐</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.melhor_horario ? e(l.melhor_horario) : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;min-width:0;overflow:hidden;">
+              ${(l.tags||[]).map(tag => { const wt=(_wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 4px;border-radius:4px;font-size:0.55rem;white-space:nowrap;">${e(tag)}</span>`; }).join('')}
+          </div>
+      </div>
+      
+      <!-- Footer: date -->
+      <div style="display:flex;justify-content:flex-end;margin-top:4px;">
           <div class="lead-date">📅 ${dateStr}</div>
-        </div>
-        <span class="type-badge ${typeClass}">${typeLabel}</span>
       </div>
-
-      <!-- Rich info grid (matches dashboard) -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin:8px 0;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;">
-        ${l.phone ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;flex-shrink:0;">📱</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e(formatPhone((l.phone||'').replace(/\D/g,'')))}</span></div>` : ''}
-        ${l.email ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="font-size:.8rem;flex-shrink:0;">✉️</span><a href="mailto:${e(l.email)}" style="color:rgba(255,255,255,.6);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e(l.email)}</a></div>` : ''}
-        ${l.sexo ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👤</span><span>${e(l.sexo)}</span></div>` : ''}
-        ${l.idade ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🎂</span><span>${e(l.idade)} anos</span></div>` : ''}
-        ${locationFull ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🌎</span><span class="meta-val location-val">${locationFull}</span></div>` : ''}
-        ${(l.culto && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">⛪</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e(l.culto)}</span></div>` : ''}
-        ${(dec && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🔥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e(dec)}</span></div>` : ''}
-        ${(l.gc_status && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👥</span><span class="gc-chip ${gcClass}" style="margin:0;padding:2px 7px;font-size:.65rem;">${gcLabel}</span></div>` : ''}
-        ${l.melhor_horario ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🕐</span><span>${e(l.melhor_horario)}</span></div>` : ''}
-      </div>
-
-      ${tagsHtml}
-
-      ${waHtml ? `
-      <div class="lead-divider"></div>
-      <div class="lead-actions">${waHtml}</div>` : ''}
     `;
     grid.appendChild(card);
   });

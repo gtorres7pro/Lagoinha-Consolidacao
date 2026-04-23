@@ -2668,14 +2668,15 @@
                     card.innerHTML = `
                         <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
 
-                        <!-- Header row: name | WA + phone + crossTag + ⋮ -->
-                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                            <h3 style="font-size:0.95rem;font-weight:700;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lead.name || 'Sem Nome'}</h3>
+                        <!-- Header row: name | WA + phone + crossTag       [spacer] ⋮ -->
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+                            <h3 style="font-size:0.95rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;">${lead.name || 'Sem Nome'}</h3>
                             ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;flex-shrink:0;" title="WhatsApp"><svg style="width:10px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>
                             <span style="font-size:0.72rem;color:rgba(255,255,255,.45);flex-shrink:0;">${lead.phone}</span>` : `<span style="font-size:0.72rem;color:rgba(255,255,255,.3);flex-shrink:0;">Sem número</span>`}
-                            ${crossTagHtml ? `<span style="font-size:0.55rem;padding:1px 5px;border-radius:4px;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);white-space:nowrap;flex-shrink:0;">${crossTagHtml.replace(/<[^>]+>/g,'').trim()}</span>` : ''}
+                            ${crossTagHtml ? `<span style="font-size:0.55rem;padding:1px 4px;border-radius:4px;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);white-space:nowrap;flex-shrink:0;">${crossTagHtml.replace(/<[^>]+>/g,'').trim()}</span>` : ''}
+                            <div style="flex:1;"></div>
                             <div class="hub-action-bundle" style="flex-shrink:0;">
-                                <button class="hub-action-trigger" style="width:20px;height:20px;font-size:0.85rem;padding:0;" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
+                                <button class="hub-action-trigger" style="width:18px;height:18px;font-size:0.8rem;padding:0;line-height:1;" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
                                 <div class="hub-action-menu" id="action-menu-${lead.id}">
                                     ${cleanPhone ? `
                                     <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
@@ -2686,32 +2687,45 @@
                             </div>
                         </div>
 
-                        <!-- Info grid: always 4 rows x 2 cols, dash if missing -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin:3px 0 3px;padding:6px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;font-size:0.67rem;color:rgba(255,255,255,.5);">
-                            <!-- Row 1: email full width -->
-                            <div style="display:flex;align-items:center;gap:3px;grid-column:1/-1;min-width:0;overflow:hidden;">
+                        <!-- Info grid: strictly 5 rows x 2 cols, dash if missing -->
+                        <div style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);gap:2px 8px;margin:2px 0;padding:4px 6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;font-size:0.65rem;color:rgba(255,255,255,.5);">
+                            <!-- Row 1: email | age -->
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
                                 <span style="flex-shrink:0;">✉️</span>
                                 ${lead.email ? `<a href="mailto:${lead.email}" style="color:rgba(255,255,255,.5);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.email}</a>` : `<span style="color:rgba(255,255,255,.2);">—</span>`}
                             </div>
-                            <!-- Row 2: age | gender -->
-                            <div style="display:flex;align-items:center;gap:3px;"><span>🎂</span><span>${lead.idade ? lead.idade+' anos' : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <div style="display:flex;align-items:center;gap:3px;"><span>👤</span><span>${lead.sexo || '<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <!-- Row 3: city·state·country full width -->
-                            <div style="display:flex;align-items:center;gap:3px;grid-column:1/-1;">
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">🎂</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.idade ? lead.idade+' anos' : '<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <!-- Row 2: city·state·country | gender -->
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
                                 <span style="flex-shrink:0;">📍</span>
                                 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(() => { const p=[lead.cidade,lead.estado,(lead.pais&&lead.pais!=='Não Informado'?lead.pais:null)].filter(Boolean); return p.length?p.join(' · '):'<span style="color:rgba(255,255,255,.2);">—</span>'; })()}</span>
                             </div>
-                            <!-- Row 4: service | decision -->
-                            <div style="display:flex;align-items:center;gap:3px;overflow:hidden;"><span style="flex-shrink:0;">⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(lead.culto&&lead.culto!=='Não Informado')?cap(lead.culto):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <div style="display:flex;align-items:center;gap:3px;overflow:hidden;"><span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.decisao||''}">${(lead.decisao&&lead.decisao!=='Não Informado')?lead.decisao:'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <!-- Row 5: gc | batismo -->
-                            <div style="display:flex;align-items:center;gap:3px;"><span>👥</span><span>${(lead.gc_status&&lead.gc_status!=='Não Informado')?cap(lead.gc_status):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <div style="display:flex;align-items:center;gap:3px;"><span>💧</span><span>${(lead.batizado&&lead.batizado!=='Não Informado')?cap(lead.batizado):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <!-- Row 6: best time | tags -->
-                            <div style="display:flex;align-items:center;gap:3px;"><span>🕐</span><span>${lead.melhor_horario||'<span style="color:rgba(255,255,255,.2);">—</span>'}</span></div>
-                            <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;" id="lead-tags-${lead.id}">
-                                ${(lead.tags||[]).map(tag => { const wt=(window._wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 5px;border-radius:4px;font-size:0.6rem;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')">${tag} ×</span>`; }).join('')}
-                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:0.6rem;color:#555;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">👤</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.sexo || '<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <!-- Row 3: service | decision -->
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(lead.culto&&lead.culto!=='Não Informado')?cap(lead.culto):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.decisao||''}">${(lead.decisao&&lead.decisao!=='Não Informado')?lead.decisao:'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <!-- Row 4: gc | batismo -->
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">👥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(lead.gc_status&&lead.gc_status!=='Não Informado')?cap(lead.gc_status):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">💧</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(lead.batizado&&lead.batizado!=='Não Informado')?cap(lead.batizado):'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <!-- Row 5: best time | tags -->
+                            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                                <span style="flex-shrink:0;">🕐</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.melhor_horario||'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;min-width:0;overflow:hidden;" id="lead-tags-${lead.id}">
+                                ${(lead.tags||[]).map(tag => { const wt=(window._wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 4px;border-radius:4px;font-size:0.55rem;cursor:pointer;white-space:nowrap;" onclick="removeTagFromLead('${lead.id}','${tag}')">${tag} ×</span>`; }).join('')}
+                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 4px;border-radius:4px;font-size:0.55rem;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
                             </div>
                         </div>
 
@@ -2725,8 +2739,8 @@
                             const pct = Math.round((done / total) * 100);
                             const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
                             return `
-                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:3px 0 0;cursor:pointer;text-align:left;display:block;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:2px 0 0;cursor:pointer;text-align:left;display:block;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
                                     <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);">Tarefas</span>
                                     <div style="display:flex;align-items:center;gap:4px;">
                                         <span style="font-size:0.6rem;font-weight:800;color:${barClr};">${done}/${total}</span>
