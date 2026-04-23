@@ -1237,14 +1237,14 @@
             <!-- CRIE Mulheres -->
             <li class="nav-group" id="nav-group-cm">
                 <div class="nav-item-row" onclick="toggleSubmenu(this)">
-                    <span class="nav-icon" style="color:#d6336c;">C*</span>
+                    <span class="nav-icon" style="color:#d6336c;font-weight:900;font-size:.85rem;">C*</span>
                     <span class="nav-label">CRIE Mulheres</span>
-                    <span id="nav-cm-membros-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#d6336c,#a61e4d);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
+                    <span id="nav-cm-membros-badge" style="display:none;margin-left:auto;font-size:.58rem;font-weight:800;background:linear-gradient(135deg,#d6336c,#a61e4d);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
                     <span class="nav-item-arrow">&#9654;</span>
                 </div>
                 <div class="nav-submenu-wrap">
                     <div class="nav-submenu-line"></div>
-                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                    <ul style="padding:0;margin:0;list-style:none;flex:1;">
                         <li id="nav-cm-inscritos" onclick="switchTab('cm-inscritos')">
                             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
                             <span class="nav-label">Inscritas</span>
@@ -1304,26 +1304,6 @@
                 </div>
             </li>
 
-
-                        <li id="nav-cm-membros" onclick="switchTab('cm-membros')" style="position:relative;">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
-                            <span class="nav-label">Membras</span>
-                        </li>
-                        <li id="nav-cm-eventos" onclick="switchTab('cm-eventos')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-                            <span class="nav-label">Eventos</span>
-                        </li>
-                        <li id="nav-cm-checkin" onclick="switchTab('cm-checkin')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-                            <span class="nav-label">Check-in</span>
-                        </li>
-                        <li id="nav-cm-relatorios" onclick="switchTab('cm-relatorios')">
-                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-                            <span class="nav-label">Financeiro</span>
-                        </li>
-                    </ul>
-                </div>
-            </li>
             <!-- 9. Voluntários -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
                 <span class="nav-icon">
@@ -5177,8 +5157,7 @@ graph TD
         <div id="view-global" class="view-section" style="display:none;"></div>
 
 
-
-        <!-- ═══ CRIE Mulheres — Inscritas ═══ -->
+<!-- ═══ CRIE Mulheres — Inscritas ═══ -->
         <div id="view-cm-inscritos" class="view-section">
             <header class="top-bar">
                 <div class="page-title">
@@ -8298,7 +8277,6 @@ graph TD
     </div>
 
 
-
         <!-- CM — Modal: Novo Evento -->
         <div id="modal-cm-evento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeCmEventoModal()">
             <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:480px;margin:16px;">
@@ -8383,6 +8361,7 @@ graph TD
             });
         }
         </script>
+
 
     <script src="/hub-dashboard.js?v=20260420v2"></script>
     <script src="/hub-whatsapp.js?v=20260414v1"></script>
