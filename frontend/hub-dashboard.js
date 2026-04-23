@@ -2667,30 +2667,24 @@
 
                     card.innerHTML = `
                         <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
-                        <div class="card-header" style="align-items:flex-start;">
-                            <div class="person-info">
-                                <h3 style="font-size:1rem; margin-bottom:4px; font-weight:700;">${lead.name || 'Sem Nome'}</h3>
-                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;flex-shrink:0;" title="WhatsApp"><svg style="width:12px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>` : ''}
-                                    <span style="font-size:0.8rem;color:rgba(255,255,255,.55);">${lead.phone || 'Sem número'}</span>
-                                    <div id="lead-tags-${lead.id}" style="display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;">
-                                        ${(lead.tags||[]).map(tag => {
-                                            const wt = (window._wsTags||[]).find(t=>t.name===tag);
-                                            const color = wt?.color||'#FFD700';
-                                            return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 6px;border-radius:20px;font-size:0.58rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover">${tag} ×</span>`;
-                                        }).join('')}
-                                        <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 6px;border-radius:20px;font-size:0.58rem;color:#666;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
-                                    </div>
-                                </div>
+
+                        <!-- Card Header: Name left, WA+phone+menu right -->
+                        <div class="card-header" style="align-items:center;margin-bottom:6px;">
+                            <div class="person-info" style="flex:1;min-width:0;">
+                                <h3 style="font-size:1rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lead.name || 'Sem Nome'}</h3>
                             </div>
-                            <div class="hub-action-bundle">
-                                <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
-                                <div class="hub-action-menu" id="action-menu-${lead.id}">
-                                    ${cleanPhone ? `
-                                    <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
-                                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item"><svg style="width:13px;fill:currentColor;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg> WhatsApp</a>` : ''}
-                                    <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4;pointer-events:none;'}">💬 Histórico IA</button>
-                                    <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">🗑️ Excluir</button>
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;" title="WhatsApp"><svg style="width:12px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>
+                                <span style="font-size:0.78rem;color:rgba(255,255,255,.5);">${lead.phone}</span>` : `<span style="font-size:0.78rem;color:rgba(255,255,255,.35);">Sem número</span>`}
+                                <div class="hub-action-bundle">
+                                    <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
+                                    <div class="hub-action-menu" id="action-menu-${lead.id}">
+                                        ${cleanPhone ? `
+                                        <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
+                                        <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item"><svg style="width:13px;fill:currentColor;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg> WhatsApp</a>` : ''}
+                                        <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4;pointer-events:none;}">💬 Histórico IA</button>
+                                        <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">🗑️ Excluir</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2698,23 +2692,34 @@
                         ${crossTagHtml}
 
                         <!-- Rich info grid -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:8px 0 6px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:6px 0;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;">
                             ${lead.email ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.55);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.email}</a></div>` : ''}
                             ${lead.idade ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🎂</span><span>${lead.idade} anos</span></div>` : ''}
                             ${lead.sexo ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👤</span><span>${lead.sexo}</span></div>` : ''}
-                            ${(lead.cidade || lead.estado) ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>📍</span><span>${[lead.cidade,lead.estado].filter(Boolean).join(', ')}</span></div>` : ''}
-                            ${lead.pais && lead.pais !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🌍</span><span>${lead.pais}</span></div>` : ''}
+                            ${(() => {
+                                const parts = [lead.cidade, lead.estado, (lead.pais && lead.pais !== 'Não Informado' ? lead.pais : null)].filter(Boolean);
+                                return parts.length ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>📍</span><span>${parts.join(' · ')}</span></div>` : '';
+                            })()}
                             ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cap(lead.culto)}</span></div>` : ''}
                             ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.decisao}</span></div>` : ''}
                             ${lead.type !== 'visitor' && lead.gc_status && lead.gc_status !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👥</span><span>${cap(lead.gc_status)}</span></div>` : ''}
                             ${lead.melhor_horario ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🕐</span><span>${lead.melhor_horario}</span></div>` : ''}
                         </div>
 
-                        <!-- Status badges row -->
-                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+                        <!-- Status badges + Tags row -->
+                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;align-items:center;">
                             ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:0.62rem;">💧 ${cap(lead.batizado)}</span>` : ''}
                             ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 7px;border-radius:6px;font-size:0.62rem;font-weight:700;">🌊 ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
                             ${(() => { const st = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : ''; return st; })()}
+                            <!-- Custom tags inline here -->
+                            <div id="lead-tags-${lead.id}" style="display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;">
+                                ${(lead.tags||[]).map(tag => {
+                                    const wt = (window._wsTags||[]).find(t=>t.name===tag);
+                                    const color = wt?.color||'#FFD700';
+                                    return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 7px;border-radius:6px;font-size:0.62rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover">${tag} ×</span>`;
+                                }).join('')}
+                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:0.62rem;color:#666;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
+                            </div>
                         </div>
 
                         <!-- Progress bar = expand toggle -->
@@ -2727,7 +2732,7 @@
                             const pct = Math.round((done / total) * 100);
                             const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
                             return `
-                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:6px 0 0;cursor:pointer;text-align:left;display:block;">
+                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:4px 0 0;cursor:pointer;text-align:left;display:block;">
                                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                                     <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);">Tarefas</span>
                                     <div style="display:flex;align-items:center;gap:5px;">
