@@ -2671,6 +2671,7 @@
                             <div class="person-info">
                                 <h3 style="font-size:1.05rem; margin-bottom:2px;">${lead.name || 'Sem Nome'}</h3>
                                 <p style="margin-top:2px; font-size:0.85rem;">📱 ${lead.phone || 'Sem número'}</p>
+                                ${(lead.cidade || lead.estado) ? `<p style="margin-top:2px; font-size:0.78rem; color:rgba(255,255,255,.5);">📍 ${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</p>` : ''}
                             </div>
                             <div class="hub-action-bundle">
                                 <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
@@ -2696,7 +2697,9 @@
                         <!-- Rich info grid -->
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px 10px; margin:10px 0 8px; padding:10px 12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px;">
                             ${lead.email ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="font-size:.8rem;flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.6);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.email}">${lead.email}</a></div>` : ''}
+                            ${lead.idade ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🎂</span><span>${lead.idade} anos</span></div>` : ''}
                             ${lead.sexo ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👤</span><span>${lead.sexo}</span></div>` : ''}
+                            ${(lead.cidade || lead.estado) ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">📍</span><span>${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</span></div>` : ''}
                             ${lead.pais && lead.pais !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🌍</span><span>${lead.pais}</span></div>` : ''}
                             ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">⛪</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap(lead.culto)}</span></div>` : ''}
                             ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🔥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${lead.decisao}">${lead.decisao}</span></div>` : ''}
