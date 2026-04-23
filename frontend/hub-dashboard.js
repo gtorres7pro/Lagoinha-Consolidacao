@@ -2697,6 +2697,55 @@
 
                         ${crossTagHtml}
 
+                        <!-- Rich info grid -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:8px 0 6px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;">
+                            ${lead.email ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.55);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.email}</a></div>` : ''}
+                            ${lead.idade ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🎂</span><span>${lead.idade} anos</span></div>` : ''}
+                            ${lead.sexo ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👤</span><span>${lead.sexo}</span></div>` : ''}
+                            ${(lead.cidade || lead.estado) ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>📍</span><span>${[lead.cidade,lead.estado].filter(Boolean).join(', ')}</span></div>` : ''}
+                            ${lead.pais && lead.pais !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🌍</span><span>${lead.pais}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>⛪</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cap(lead.culto)}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);grid-column:1/-1;"><span>🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.decisao}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.gc_status && lead.gc_status !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>👥</span><span>${cap(lead.gc_status)}</span></div>` : ''}
+                            ${lead.melhor_horario ? `<div style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:rgba(255,255,255,.55);"><span>🕐</span><span>${lead.melhor_horario}</span></div>` : ''}
+                        </div>
+
+                        <!-- Status badges row -->
+                        <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);padding:2px 7px;border-radius:6px;font-size:0.62rem;">💧 ${cap(lead.batizado)}</span>` : ''}
+                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 7px;border-radius:6px;font-size:0.62rem;font-weight:700;">🌊 ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
+                            ${(() => { const st = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : ''; return st; })()}
+                        </div>
+
+                        <!-- Progress bar = expand toggle -->
+                        ${(() => {
+                            const isVisitor = targetContainerId === 'visitors-container';
+                            const total = isVisitor ? 3 : 5;
+                            const done = isVisitor
+                                ? 1 + (lead.task_gc ? 1 : 0) + (lead.task_followup ? 1 : 0)
+                                : 1 + (lead.task_start ? 1 : 0) + (lead.task_gc ? 1 : 0) + (lead.task_batismo ? 1 : 0) + (lead.task_cafe ? 1 : 0);
+                            const pct = Math.round((done / total) * 100);
+                            const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
+                            return `
+                            <button class="hub-expand-btn" onclick="toggleExpandCard(event,'${lead.id}')" style="width:100%;background:none;border:none;padding:6px 0 0;cursor:pointer;text-align:left;display:block;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                    <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);">Tarefas</span>
+                                    <div style="display:flex;align-items:center;gap:5px;">
+                                        <span style="font-size:0.62rem;font-weight:800;color:${barClr};">${done}/${total}</span>
+                                        <svg id="chevron-${lead.id}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${barClr}" stroke-width="2.5" style="transition:transform .3s;opacity:.8;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                </div>
+                                <div style="height:4px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;">
+                                    <div style="height:100%;width:${pct}%;background:${barClr};border-radius:3px;box-shadow:0 0 5px ${barClr}55;transition:width .4s ease;"></div>
+                                </div>
+                            </button>`;
+                        })()}
+
+                        <!-- Expandable Tasks -->
+                        <div class="hub-card-expandable" id="expand-${lead.id}">
+                            ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
+                            <div style="font-size:0.65rem;color:var(--text-dim);text-align:center;margin-top:10px;padding-bottom:2px;">Registrado em ${dateStr}</div>
+                        </div>
                     `;
                     // Open lead drawer on card click (skip checkbox / link clicks)
                     card.addEventListener('click', function(e) {
