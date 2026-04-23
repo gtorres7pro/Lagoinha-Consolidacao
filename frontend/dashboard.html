@@ -719,6 +719,9 @@
 
         /* ===== LEAD CARDS ===== */
         .grid-container { flex-grow: 1; padding: 20px 32px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; align-content: flex-start; }
+        @media (max-width: 640px) {
+            .grid-container { grid-template-columns: 1fr; padding: 15px 15px 40px; }
+        }
         
         .person-card {
             background: var(--bg-card);

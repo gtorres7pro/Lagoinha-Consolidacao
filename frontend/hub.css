@@ -2337,6 +2337,14 @@ html, body {
 [data-theme="light"] [style*="color:rgba(255,255,255,.25)"],
 [data-theme="light"] [style*="color:rgba(255,255,255,0.25)"] { color: rgba(0,0,0,0.25) !important; }
 
+[data-theme="light"] [style*="color: rgba(255,255,255,0.2)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,.2)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,0.2)"] { color: rgba(0,0,0,0.2) !important; }
+
+[data-theme="light"] [style*="color: rgba(255,255,255,0.45)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,.45)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,0.45)"] { color: rgba(0,0,0,0.45) !important; }
+
 /* ── Inputs & Selects ── */
 [data-theme="light"] .hub-input { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.10); color: #111; }
 [data-theme="light"] .hub-input:focus { background: rgba(0,0,0,0.07); }
@@ -2590,6 +2598,25 @@ html, body {
 }
 [data-theme="light"] .person-info h3 { color: #111 !important; }
 [data-theme="light"] .person-info p { color: #555 !important; }
+
+/* Dashboard / Module KPIs */
+[data-theme="light"] .kpi-box { background: #fff !important; border-color: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] .kpi-title, [data-theme="light"] .kpi-label { color: #555 !important; }
+[data-theme="light"] .kpi-number, [data-theme="light"] .kpi-value { color: #111 !important; }
+[data-theme="light"] .kpi-total { color: #888 !important; }
+[data-theme="light"] .hub-expand-btn { color: #333 !important; }
+[data-theme="light"] .crie-kpi-card { background: #fff !important; border-color: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] .crie-kpi-card h3 { color: #555 !important; }
+[data-theme="light"] .chart-box { background: #fff !important; border-color: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] .chart-box:hover { border-color: rgba(251,191,36,0.3) !important; }
+[data-theme="light"] .chart-title { color: #555 !important; border-bottom-color: rgba(0,0,0,0.08) !important; }
+
+/* Action Menu */
+[data-theme="light"] .hub-action-trigger { background: rgba(0,0,0,0.05) !important; color: #111 !important; border-color: rgba(0,0,0,0.1) !important; }
+[data-theme="light"] .hub-action-trigger:hover { background: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] .hub-action-menu { background: #fff !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
+[data-theme="light"] .hub-action-item { color: #333 !important; }
+[data-theme="light"] .hub-action-item:hover { background: rgba(0,0,0,0.05) !important; color: #000 !important; }
 
 /* Icon buttons inside cards */
 [data-theme="light"] .icon-btn {
