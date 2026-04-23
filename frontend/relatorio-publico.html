@@ -655,22 +655,24 @@ function renderLeads(leads) {
         <span class="type-badge ${typeClass}">${typeLabel}</span>
       </div>
 
-      ${(decHtml || cultoHtml || paisHtml || compactRowHtml) ? `
-      <div class="lead-meta">
-        ${decHtml ? `<div class="meta-row" style="flex-wrap:wrap;gap:5px;">${decHtml}</div>` : ''}
-        ${cultoHtml}${paisHtml}${compactRowHtml}
-      </div>` : ''}
-
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;">
-        <span class="gc-chip ${gcClass}">${gcLabel}</span>
+      <!-- Rich info grid (matches dashboard) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin:8px 0;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;">
+        ${l.phone ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;flex-shrink:0;">📱</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e(formatPhone((l.phone||'').replace(/\D/g,'')))}</span></div>` : ''}
+        ${l.email ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="font-size:.8rem;flex-shrink:0;">✉️</span><a href="mailto:${e(l.email)}" style="color:rgba(255,255,255,.6);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e(l.email)}</a></div>` : ''}
+        ${l.sexo ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👤</span><span>${e(l.sexo)}</span></div>` : ''}
+        ${l.idade ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🎂</span><span>${e(l.idade)} anos</span></div>` : ''}
+        ${locationFull ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🌎</span><span class="meta-val location-val">${locationFull}</span></div>` : ''}
+        ${(l.culto && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">⛪</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e(l.culto)}</span></div>` : ''}
+        ${(dec && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🔥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e(dec)}</span></div>` : ''}
+        ${(l.gc_status && l.type !== 'visitor') ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👥</span><span class="gc-chip ${gcClass}" style="margin:0;padding:2px 7px;font-size:.65rem;">${gcLabel}</span></div>` : ''}
+        ${l.melhor_horario ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🕐</span><span>${e(l.melhor_horario)}</span></div>` : ''}
       </div>
 
-      ${horHtml}
       ${tagsHtml}
 
-      ${(waHtml || emailHtml) ? `
+      ${waHtml ? `
       <div class="lead-divider"></div>
-      <div class="lead-actions">${waHtml}${emailHtml}</div>` : ''}
+      <div class="lead-actions">${waHtml}</div>` : ''}
     `;
     grid.appendChild(card);
   });

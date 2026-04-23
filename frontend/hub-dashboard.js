@@ -2671,11 +2671,6 @@
                             <div class="person-info">
                                 <h3 style="font-size:1.05rem; margin-bottom:2px;">${lead.name || 'Sem Nome'}</h3>
                                 <p style="margin-top:2px; font-size:0.85rem;">📱 ${lead.phone || 'Sem número'}</p>
-                                <div style="margin-top:6px; font-size:0.7rem; color:rgba(255,255,255,0.6); display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
-                                    ${lead.idade ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">🎂 ${lead.idade} anos</span>` : ''}
-                                    ${(lead.cidade || lead.estado) ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">📍 ${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</span>` : ''}
-                                    ${lead.estado_civil ? `<span style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); padding:2px 6px; border-radius:4px;">💍 ${lead.estado_civil}</span>` : ''}
-                                </div>
                             </div>
                             <div class="hub-action-bundle">
                                 <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
@@ -2695,24 +2690,30 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         ${crossTagHtml}
 
-                        <div class="tags-area">
-                            ${lead.type !== 'visitor' ? `<span class="tag decision">🔥 Decisão: ${cap(lead.decisao)}</span>` : ''}
-                            ${lead.type !== 'visitor' ? `<span class="tag service">🏛 Culto: ${cap(lead.culto)}</span>` : ''}
-                            <span class="tag baptism" style="background: rgba(255, 255, 255, 0.05); color: #FFF; border-color: rgba(255, 255, 255, 0.1);">🌍 País: ${cap(lead.pais)}</span>
-                            ${lead.type !== 'visitor' ? `<span class="tag gc">👥 GC: ${cap(lead.gc_status)}</span>` : ''}
+                        <!-- Rich info grid -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px 10px; margin:10px 0 8px; padding:10px 12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px;">
+                            ${lead.email ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="font-size:.8rem;flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.6);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.email}">${lead.email}</a></div>` : ''}
+                            ${lead.sexo ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👤</span><span>${lead.sexo}</span></div>` : ''}
+                            ${lead.pais && lead.pais !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🌍</span><span>${lead.pais}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">⛪</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap(lead.culto)}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🔥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${lead.decisao}">${lead.decisao}</span></div>` : ''}
+                            ${lead.type !== 'visitor' && lead.gc_status && lead.gc_status !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap(lead.gc_status)}</span></div>` : ''}
+                            ${lead.melhor_horario ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🕐</span><span>${lead.melhor_horario}</span></div>` : ''}
+                        </div>
+
+                        <div class="tags-area" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
+                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span class="tag" style="background:rgba(255,255,255,.05);color:#FFF;border:1px solid rgba(255,255,255,.1);">💧 Batizado: ${cap(lead.batizado)}</span>` : ''}
+                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
                             ${(() => {
                                 const startTag = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : '';
                                 return startTag;
                             })()}
-                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span class="tag" style="background:rgba(255,255,255,.05);color:#FFF;border:1px solid rgba(255,255,255,.1);">💧 Batizado: ${cap(lead.batizado)}</span>` : ''}
-                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
-                            ${lead.melhor_horario ? `<span style="background:rgba(255,255,255,.04);color:#a1a1aa;border:1px solid rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:0.65rem;display:inline-flex;align-items:center;gap:4px;">🕐 ${lead.melhor_horario}</span>` : ''}
                         </div>
 
-                        <!-- Tags -->
+                        <!-- Custom Tags -->
                         <div id="lead-tags-${lead.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(lead.tags||[]).length?'8':'0'}px;">
                             ${(lead.tags||[]).map(tag => {
                                 const wt = (window._wsTags||[]).find(t=>t.name===tag);
@@ -2721,6 +2722,27 @@
                             }).join('')}
                             <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;font-size:0.6rem;color:#777;cursor:pointer;" onclick="openTagPicker('${lead.id}')" title="Adicionar tag">+ Tag</span>
                         </div>
+
+                        <!-- Task progress bar -->
+                        ${(() => {
+                            const isVisitor = targetContainerId === 'visitors-container';
+                            const total = isVisitor ? 3 : 5;
+                            const done = isVisitor
+                                ? 1 + (lead.task_gc ? 1 : 0) + (lead.task_followup ? 1 : 0)
+                                : 1 + (lead.task_start ? 1 : 0) + (lead.task_gc ? 1 : 0) + (lead.task_batismo ? 1 : 0) + (lead.task_cafe ? 1 : 0);
+                            const pct = Math.round((done / total) * 100);
+                            const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
+                            return `
+                            <div style="margin:8px 0 4px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                                    <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);">Tarefas</span>
+                                    <span style="font-size:0.65rem;font-weight:800;color:${barClr};">${done}/${total}</span>
+                                </div>
+                                <div style="height:5px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;">
+                                    <div id="prog-bar-${lead.id}" style="height:100%;width:${pct}%;background:${barClr};border-radius:4px;transition:width .4s ease;box-shadow:0 0 6px ${barClr}55;"></div>
+                                </div>
+                            </div>`;
+                        })()}
 
                         <!-- Expandable Tasks Accordion -->
                         <div class="hub-card-expandable" id="expand-${lead.id}">
