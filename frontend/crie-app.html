@@ -21,6 +21,9 @@
   --border:   rgba(255,255,255,0.07);
   --border2:  rgba(255,255,255,0.04);
   --gold:     #F59E0B;
+  --accent:   #F59E0B; /* overridden to rose for CM */
+  --rose:     #f472b6;
+  --rose2:    #ec4899;
   --gold2:    #FFD700;
   --gold-glow: rgba(245,158,11,0.15);
   --purple:   #8B5CF6;
@@ -1738,7 +1741,87 @@ async function openMfaSetup() {
                 <p style="margin-bottom:20px;font-size:14px;">Escaneia com Google Authenticator ou Authy:</p>
                 <img src="${data.totp.qr_code}" style="width:220px;height:220px;">
                 <p style="margin-top:16px;font-size:12px;color:#888;">Código manual: ${data.totp.secret}</p>
-            </body></html>`);
+            
+<script>
+// ── CRIE Mulheres module auto-detection ─────────────────────
+(function injectCmDetection() {
+  const _origCheckMembership = window.checkMembership;
+  async function detectAndApplyModule(wsId, userEmail) {
+    if (!wsId || !userEmail) return;
+    const sb = window._crieSb || window.supabase;
+    if (!sb) return;
+
+    const [crieRes, cmRes] = await Promise.all([
+      sb.from('crie_members').select('id,status').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle(),
+      sb.from('cm_members').select('id,status').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle()
+    ]);
+
+    const isCm   = !!cmRes.data;
+    const isCrie = !!crieRes.data;
+
+    if (isCm) {
+      applyRoseTheme();
+      window._activeModule = 'crie_mulheres';
+      // Update module label
+      const lbl = document.getElementById('app-module-label');
+      if (lbl) lbl.textContent = 'CRIE Mulheres';
+      const logoTxt = document.querySelector('.app-logo-text');
+      if (logoTxt) logoTxt.textContent = 'CRIE Mulheres';
+    } else {
+      window._activeModule = 'crie';
+    }
+
+    // Show module switcher in profile if dual member
+    if (isCm && isCrie) {
+      const switcher = document.getElementById('module-switcher');
+      if (switcher) switcher.style.display = 'flex';
+    }
+  }
+
+  function applyRoseTheme() {
+    document.documentElement.style.setProperty('--accent', '#f472b6');
+    document.documentElement.style.setProperty('--gold', '#f472b6');
+    // Replace gradient elements
+    document.querySelectorAll('[data-theme-gradient]').forEach(el => {
+      el.style.background = 'linear-gradient(135deg,#f472b6,#ec4899)';
+    });
+  }
+
+  // Hook into existing auth flow
+  const _origInit = window.initApp || window.initCrieApp;
+  if (typeof _origInit === 'function') {
+    window.initApp = window.initCrieApp = async function(...args) {
+      const result = await _origInit.apply(this, args);
+      const sb = window._crieSb || window.supabase;
+      if (sb) {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session?.user) {
+          const wsId = window._currentWsId || localStorage.getItem('crie_ws_id');
+          await detectAndApplyModule(wsId, session.user.email);
+        }
+      }
+      return result;
+    };
+  } else {
+    // Fallback: run after DOM is loaded
+    window.addEventListener('load', async () => {
+      setTimeout(async () => {
+        const sb = window._crieSb || window.supabase;
+        if (!sb) return;
+        const { data: { session } } = await sb.auth.getSession();
+        if (session?.user) {
+          const wsId = window._currentWsId || localStorage.getItem('crie_ws_id');
+          await detectAndApplyModule(wsId, session.user.email);
+        }
+      }, 1500);
+    });
+  }
+
+  window._detectCmModule = detectAndApplyModule;
+  window._applyRoseTheme = applyRoseTheme;
+})();
+</script>
+</body></html>`);
         }
     } catch(e) {
         showToast('❌ MFA não disponível.', 'error');

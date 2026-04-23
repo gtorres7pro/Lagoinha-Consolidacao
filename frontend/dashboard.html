@@ -1269,6 +1269,41 @@
                 </div>
             </li>
 
+
+            <!-- CRIE Mulheres -->
+            <li class="nav-group" id="nav-group-cm">
+                <div class="nav-item-row" onclick="toggleSubmenu(this)">
+                    <span class="nav-icon" style="color:#f472b6;">&#9829;</span>
+                    <span class="nav-label">CRIE Mulheres</span>
+                    <span id="nav-cm-membros-badge" style="display:none;margin-left:auto;font-size:0.58rem;font-weight:800;background:linear-gradient(135deg,#f472b6,#ec4899);color:#fff;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center;line-height:1;">0</span>
+                    <span class="nav-item-arrow">&#9654;</span>
+                </div>
+                <div class="nav-submenu-wrap">
+                    <div class="nav-submenu-line"></div>
+                    <ul style="padding:0; margin:0; list-style:none; flex:1;">
+                        <li id="nav-cm-inscritos" onclick="switchTab('cm-inscritos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+                            <span class="nav-label">Inscritas</span>
+                        </li>
+                        <li id="nav-cm-membros" onclick="switchTab('cm-membros')" style="position:relative;">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                            <span class="nav-label">Membras</span>
+                        </li>
+                        <li id="nav-cm-eventos" onclick="switchTab('cm-eventos')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                            <span class="nav-label">Eventos</span>
+                        </li>
+                        <li id="nav-cm-checkin" onclick="switchTab('cm-checkin')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                            <span class="nav-label">Check-in</span>
+                        </li>
+                        <li id="nav-cm-relatorios" onclick="switchTab('cm-relatorios')">
+                            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+                            <span class="nav-label">Financeiro</span>
+                        </li>
+                    </ul>
+                </div>
+            </li>
             <!-- 9. Voluntários -->
             <li id="nav-voluntarios" style="opacity:0.4; cursor:default;" title="Em desenvolvimento">
                 <span class="nav-icon">
@@ -5122,6 +5157,174 @@ graph TD
         <div id="view-global" class="view-section" style="display:none;"></div>
 
 
+
+        <!-- ═══ CRIE Mulheres — Inscritas ═══ -->
+        <div id="view-cm-inscritos" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#f472b6;">&#9829;</span> Inscritas</h1>
+                    <p>Base de dados de inscritas por evento CRIE Mulheres</p>
+                </div>
+                <div class="actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <button class="hub-btn" style="background:linear-gradient(135deg,#f472b6,#ec4899);border:none;" onclick="openAddCmInscritoModal()">+ Nova Inscrita</button>
+                </div>
+            </header>
+            <div style="padding:16px 24px 0;display:flex;gap:14px;flex-wrap:wrap;">
+                <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="cm-inscritos-kpi-total">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Check-in</p><p class="kpi-value" id="cm-inscritos-kpi-checkin" style="color:#34d399;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(244,114,182,.25);"><p class="kpi-label">Pagas</p><p class="kpi-value" id="cm-inscritos-kpi-pagos" style="color:#f472b6;">–</p></div>
+            </div>
+            <div style="padding:16px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <input id="cm-inscritos-search" type="text" placeholder="Buscar inscrita…" oninput="filterCmInscritos()" style="flex:1;min-width:200px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.84rem;outline:none;">
+                <select id="cm-inscritos-event-filter" onchange="filterCmInscritos()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.8rem;outline:none;">
+                    <option value="all">Todos os Eventos</option>
+                </select>
+            </div>
+            <div style="padding:0 24px 24px;">
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr><th>Nome</th><th>Contactos</th><th>Evento</th><th>Pag.</th><th>Presença</th><th></th></tr></thead>
+                        <tbody id="cm-inscritos-body"><tr><td colspan="6" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar inscritas…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ CRIE Mulheres — Membras ═══ -->
+        <div id="view-cm-membros" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#f472b6;">&#9829;</span> Membras</h1>
+                    <p>Membros permanentes do CRIE Mulheres neste workspace</p>
+                </div>
+                <div class="actions">
+                    <button class="hub-btn" style="background:linear-gradient(135deg,#f472b6,#ec4899);border:none;" onclick="openAddCmMembroModal()">+ Nova Membra</button>
+                </div>
+            </header>
+            <div id="cm-pending-apps-banner" style="display:none;margin:0 24px 18px;padding:16px 20px;background:rgba(244,114,182,.06);border:1px solid rgba(244,114,182,.2);border-radius:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#f472b6;animation:pulse 1.5s ease infinite;"></div>
+                        <span style="font-size:.82rem;font-weight:800;color:#f472b6;" id="cm-pending-apps-label">0 candidaturas pendentes</span>
+                    </div>
+                    <button onclick="toggleCmPendingApps()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.78rem;">Ver todas &#8595;</button>
+                </div>
+                <div id="cm-pending-apps-list" style="display:none;flex-direction:column;gap:10px;"></div>
+            </div>
+            <div style="padding:0 24px 24px;margin-top:20px;">
+                <input id="cm-membro-search" type="text" placeholder="Buscar membra…" oninput="filterCmMembros()" style="width:100%;max-width:400px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.84rem;outline:none;margin-bottom:20px;">
+                <div id="cm-membros-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+                    <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);grid-column:1/-1;">A carregar membras…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ CRIE Mulheres — Eventos ═══ -->
+        <div id="view-cm-eventos" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#f472b6;">&#9829;</span> Eventos</h1>
+                    <p>Gestão de eventos CRIE Mulheres</p>
+                </div>
+                <div class="actions">
+                    <button class="hub-btn" style="background:linear-gradient(135deg,#f472b6,#ec4899);border:none;" onclick="openCmEventoModal()">+ Novo Evento</button>
+                </div>
+            </header>
+            <div style="padding:24px;">
+                <div id="cm-eventos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
+                    <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">A carregar eventos…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ CRIE Mulheres — Check-in ═══ -->
+        <div id="view-cm-checkin" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#f472b6;">&#9829;</span> Check-in</h1>
+                    <p>Presença em eventos CRIE Mulheres</p>
+                </div>
+            </header>
+            <div style="padding:20px 24px;">
+                <select id="cm-checkin-event-sel" onchange="loadCmCheckinForEvent()" style="width:100%;max-width:400px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;color:#fff;font-size:.88rem;outline:none;margin-bottom:20px;">
+                    <option value="">— Selecionar Evento —</option>
+                </select>
+                <div id="cm-checkin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+                    <div style="color:rgba(255,255,255,.3);padding:40px;text-align:center;">Selecione um evento para ver as inscritas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ CRIE Mulheres — Financeiro / Configurações ═══ -->
+        <div id="view-cm-relatorios" class="view-section">
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1><span style="color:#f472b6;">&#9829;</span> Financeiro</h1>
+                    <p>Controlo financeiro e configurações CRIE Mulheres</p>
+                </div>
+            </header>
+            <!-- Tabs -->
+            <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.06);padding:0 24px;margin-bottom:0;" id="cm-rel-tabs">
+                <button class="cm-tab-btn active" data-tab="financeiro" onclick="switchCmRelTab('financeiro',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid #f472b6;color:#f472b6;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Financeiro</button>
+                <button class="cm-tab-btn" data-tab="config" onclick="switchCmRelTab('config',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Configurações</button>
+            </div>
+            <!-- Financeiro tab -->
+            <div id="cm-rel-tab-financeiro" style="padding:20px 24px;">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">
+                    <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Receitas</p><p class="kpi-value" id="cm-kpi-receitas" style="color:#34d399;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="cm-kpi-despesas" style="color:#f87171;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(244,114,182,.25);"><p class="kpi-label">Saldo</p><p class="kpi-value" id="cm-kpi-saldo" style="color:#f472b6;">–</p></div>
+                </div>
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;margin-bottom:20px;">
+                    <h4 style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);margin:0 0 12px;">Nova Transação</h4>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                        <select id="cm-fin-type" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                            <option value="income">Receita</option><option value="expense">Despesa</option><option value="donation">Doação</option>
+                        </select>
+                        <input id="cm-fin-desc" type="text" placeholder="Descrição" style="flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                        <input id="cm-fin-amount" type="number" placeholder="Valor" style="width:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                        <select id="cm-fin-method" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                            <option value="cash">Dinheiro</option><option value="pix">Pix</option><option value="card">Cartão</option>
+                        </select>
+                        <button onclick="addCmTransaction()" style="background:linear-gradient(135deg,#f472b6,#ec4899);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;">+ Adicionar</button>
+                    </div>
+                </div>
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Método</th><th>Valor</th></tr></thead>
+                        <tbody id="cm-finances-body"><tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Config tab -->
+            <div id="cm-rel-tab-config" style="display:none;padding:20px 24px;">
+                <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Taxa de Mensalidade</label>
+                        <input id="cm-cfg-fee" type="number" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
+                    </div>
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Moeda</label>
+                        <select id="cm-cfg-currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
+                            <option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">DDI Padrão</label>
+                        <input id="cm-cfg-country" type="text" placeholder="+55" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
+                    </div>
+                    <button onclick="saveCmConfig()" style="background:linear-gradient(135deg,#f472b6,#ec4899);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">Salvar Configurações</button>
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,.06);">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.5);">Stripe:</span>
+                        <span id="cm-stripe-status">—</span>
+                        <button id="btn-cm-stripe-connect" onclick="alert('Em breve: Stripe Connect para CRIE Mulheres')" style="display:none;background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);color:#f472b6;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;">Conectar Stripe</button>
+                        <button id="btn-cm-stripe-disconnect" onclick="alert('Em breve: Desconectar Stripe')" style="display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;">Desconectar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
 
@@ -8075,11 +8278,98 @@ graph TD
     </div>
 
 
+
+        <!-- CM — Modal: Novo Evento -->
+        <div id="modal-cm-evento" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeCmEventoModal()">
+            <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:480px;margin:16px;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+                    <div style="font-size:1.5rem;">&#9829;</div>
+                    <div>
+                        <h3 id="cm-evento-modal-title" style="font-size:1.05rem;font-weight:800;color:#fff;margin:0;">Novo Evento CM</h3>
+                        <p style="font-size:.78rem;color:rgba(255,255,255,.4);margin:3px 0 0;">CRIE Mulheres</p>
+                    </div>
+                    <button onclick="closeCmEventoModal()" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;">&#10005;</button>
+                </div>
+                <input type="hidden" id="cm-evento-id">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input id="cm-evento-title" type="text" placeholder="Nome do Evento *" class="hub-field-input">
+                    <input id="cm-evento-date" type="datetime-local" class="hub-field-input">
+                    <input id="cm-evento-location" type="text" placeholder="Localização" class="hub-field-input">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <input id="cm-evento-price" type="number" step="0.01" placeholder="Valor (0 = grátis)" class="hub-field-input">
+                        <input id="cm-evento-capacity" type="number" placeholder="Capacidade" class="hub-field-input">
+                    </div>
+                    <textarea id="cm-evento-desc" rows="3" placeholder="Descrição" class="hub-field-input"></textarea>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:rgba(255,255,255,.6);">
+                        <input type="checkbox" id="cm-evento-members-only"> Apenas para Membras
+                    </label>
+                    <div>
+                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);display:block;margin-bottom:6px;">Banner</label>
+                        <input type="file" accept="image/*" onchange="handleCmBannerUpload(event)" style="color:rgba(255,255,255,.5);font-size:.8rem;">
+                        <div id="cm-evento-banner-preview"></div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:8px;">
+                        <button onclick="saveCmEvento()" style="flex:1;background:linear-gradient(135deg,#f472b6,#ec4899);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;">Guardar</button>
+                        <button onclick="closeCmEventoModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CM — Modal: Nova Inscrita -->
+        <div id="modal-cm-inscrito" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddCmInscritoModal()">
+            <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:420px;margin:16px;">
+                <h3 style="font-size:1rem;font-weight:800;color:#fff;margin:0 0 20px;">&#9829; Nova Inscrita</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input id="cm-inscrito-name" type="text" placeholder="Nome *" class="hub-field-input">
+                    <input id="cm-inscrito-email" type="email" placeholder="Email" class="hub-field-input">
+                    <input id="cm-inscrito-phone" type="tel" placeholder="Telefone" class="hub-field-input">
+                    <select id="cm-inscrito-event" class="hub-field-input"><option value="">— Selecionar Evento —</option></select>
+                    <div style="display:flex;gap:10px;margin-top:8px;">
+                        <button onclick="saveCmInscrito()" style="flex:1;background:linear-gradient(135deg,#f472b6,#ec4899);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;">Guardar</button>
+                        <button onclick="closeAddCmInscritoModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CM — Modal: Nova Membra -->
+        <div id="modal-cm-membro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddCmMembroModal()">
+            <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:420px;margin:16px;">
+                <h3 style="font-size:1rem;font-weight:800;color:#fff;margin:0 0 20px;">&#9829; Nova Membra</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <input id="cm-membro-name" type="text" placeholder="Nome *" class="hub-field-input">
+                    <input id="cm-membro-email" type="email" placeholder="Email" class="hub-field-input">
+                    <input id="cm-membro-phone" type="tel" placeholder="Telefone" class="hub-field-input">
+                    <div style="display:flex;gap:10px;margin-top:8px;">
+                        <button onclick="saveCmMembro()" style="flex:1;background:linear-gradient(135deg,#f472b6,#ec4899);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;">Guardar</button>
+                        <button onclick="closeAddCmMembroModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function switchCmRelTab(tab, btn) {
+            document.querySelectorAll('#cm-rel-tabs .cm-tab-btn').forEach(b => {
+                b.style.borderBottomColor = 'transparent';
+                b.style.color = 'rgba(255,255,255,.4)';
+            });
+            btn.style.borderBottomColor = '#f472b6';
+            btn.style.color = '#f472b6';
+            ['financeiro','config'].forEach(t => {
+                const el = document.getElementById('cm-rel-tab-'+t);
+                if (el) el.style.display = t===tab ? 'block' : 'none';
+            });
+        }
+        </script>
+
     <script src="/hub-dashboard.js?v=20260420v2"></script>
     <script src="/hub-whatsapp.js?v=20260414v1"></script>
 
     <script src="/hub-start.js?v=1"></script>
     <script src="/hub-cantina.js?v=20260411v5"></script>
+    <script src="/hub-cm.js?v=20260423v1"></script>
     <script src="/hub-logs.js?v=20260413v1"></script>
     <script src="/hub-retencao.js?v=20260413v2"></script>
     <script src="/hub-regionais.js?v=20260413v1"></script>

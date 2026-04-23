@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRIE Mulheres — Inscrição</title>
+<meta name="description" content="Inscreva-se no próximo evento CRIE Mulheres da sua igreja.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#16141a;
+  --card:rgba(255,255,255,.03);
+  --border:rgba(244,114,182,.12);
+  --accent:#f472b6;
+  --accent2:#ec4899;
+  --text:#f0ecff;
+  --dim:rgba(255,255,255,.35);
+  --font:"Outfit",sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100dvh;overflow-x:hidden;}
+/* BG blobs */
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(90px);opacity:.18;pointer-events:none;}
+body::before{width:500px;height:500px;background:radial-gradient(circle,#ec4899,transparent);top:-100px;right:-80px;}
+body::after{width:400px;height:400px;background:radial-gradient(circle,#a855f7,transparent);bottom:-80px;left:-60px;}
+.page{max-width:520px;margin:0 auto;padding:32px 20px 60px;position:relative;z-index:1;}
+.header{text-align:center;margin-bottom:40px;}
+.cm-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:20px;padding:10px 18px;background:rgba(244,114,182,.08);border:1px solid rgba(244,114,182,.2);border-radius:40px;}
+.cm-logo span{font-size:1.1rem;font-weight:900;color:var(--accent);letter-spacing:-.02em;}
+h1{font-size:2rem;font-weight:900;letter-spacing:-.03em;color:#fff;margin-bottom:10px;}
+.sub{color:var(--dim);font-size:.95rem;line-height:1.6;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:24px;}
+.event-banner{width:100%;height:200px;object-fit:cover;display:block;}
+.event-banner-placeholder{width:100%;height:200px;background:linear-gradient(135deg,rgba(244,114,182,.12),rgba(168,85,247,.1));display:flex;align-items:center;justify-content:center;font-size:4rem;}
+.event-body{padding:22px;}
+.event-title{font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:8px;}
+.event-meta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 12px;font-size:.8rem;color:var(--dim);}
+.price-tag{font-size:1.2rem;font-weight:900;color:var(--accent);}
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;}
+.form-title{font-size:1rem;font-weight:800;color:#fff;margin-bottom:4px;}
+.form-sub{font-size:.8rem;color:var(--dim);margin-bottom:22px;}
+.field{margin-bottom:16px;}
+label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);display:block;margin-bottom:7px;}
+input,select,textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;color:#fff;font-size:.9rem;font-family:var(--font);outline:none;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:rgba(244,114,182,.55);}
+select option{background:#1e1a2e;color:#fff;}
+.btn{display:block;width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-weight:800;font-size:1rem;font-family:var(--font);cursor:pointer;letter-spacing:-.01em;transition:opacity .2s,transform .15s;}
+.btn:hover{opacity:.9;transform:translateY(-1px);}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.success-screen{display:none;text-align:center;padding:40px 20px;}
+.success-icon{font-size:4rem;margin-bottom:16px;}
+.success-title{font-size:1.5rem;font-weight:800;color:#fff;margin-bottom:8px;}
+.success-sub{color:var(--dim);font-size:.92rem;line-height:1.7;}
+.msg{margin-top:12px;font-size:.82rem;min-height:18px;text-align:center;}
+.msg.error{color:#f87171;}
+.msg.success{color:#4ade80;}
+.loading{text-align:center;padding:80px;color:var(--dim);}
+.spinner{display:inline-block;width:30px;height:30px;border:3px solid rgba(244,114,182,.3);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="cm-logo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span>CRIE Mulheres</span>
+    </div>
+    <h1 id="pg-title">Inscrição</h1>
+    <p class="sub" id="pg-sub">Preencha os dados abaixo para garantir a sua vaga.</p>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div><br>Carregando evento…
+  </div>
+
+  <div id="main-content" style="display:none;">
+    <div class="card" id="event-card">
+      <div id="event-banner-wrap"></div>
+      <div class="event-body">
+        <div class="event-title" id="ev-title"></div>
+        <div class="event-meta" id="ev-meta"></div>
+        <p class="sub" id="ev-desc" style="margin-bottom:12px;"></p>
+        <span class="price-tag" id="ev-price"></span>
+      </div>
+    </div>
+
+    <div class="form-card" id="form-section">
+      <div class="form-title">Dados Pessoais</div>
+      <div class="form-sub">Todos os campos marcados com * são obrigatórios</div>
+      <div class="field"><label>Nome Completo *</label><input id="f-name" type="text" placeholder="Seu nome completo" required></div>
+      <div class="field"><label>Email *</label><input id="f-email" type="email" placeholder="seu@email.com" required></div>
+      <div class="field"><label>WhatsApp *</label>
+        <div style="display:flex;gap:8px;">
+          <select id="f-ddi" style="width:90px;flex-shrink:0;">
+            <option value="+55">🇧🇷 +55</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+351">🇵🇹 +351</option>
+          </select>
+          <input id="f-phone" type="tel" placeholder="(00) 00000-0000" style="flex:1;">
+        </div>
+      </div>
+      <div id="msg" class="msg"></div>
+      <button id="btn-submit" class="btn" style="margin-top:8px;">💜 Confirmar Inscrição</button>
+    </div>
+
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">💜</div>
+      <div class="success-title">Inscrição Confirmada!</div>
+      <p class="success-sub">Sua inscrição foi registrada com sucesso.<br>Você receberá mais informações em breve.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0NDI1NjMsImV4cCI6MjA1OTAxODU2M30.EzxMkUfPSfJm-FkiK7iBFWXHzxr91GIiEfyMfEitJUI';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const params = new URLSearchParams(location.search);
+const wsId    = params.get('ws');
+const eventId = params.get('event');
+
+let currentEvent = null;
+
+async function init() {
+  if (!wsId || !eventId) {
+    document.getElementById('loading').innerHTML = '<p style="color:#f87171;">Link inválido. Verifique a URL.</p>';
+    return;
+  }
+  const { data: ev, error } = await sb.from('cm_events')
+    .select('*').eq('id', eventId).eq('workspace_id', wsId)
+    .single();
+  if (error || !ev) {
+    document.getElementById('loading').innerHTML = '<p style="color:#f87171;">Evento não encontrado.</p>';
+    return;
+  }
+  currentEvent = ev;
+
+  // Populate UI
+  document.getElementById('pg-title').textContent = ev.title;
+  document.getElementById('ev-title').textContent = ev.title;
+  if (ev.description) document.getElementById('ev-desc').textContent = ev.description;
+  
+  const bannerWrap = document.getElementById('event-banner-wrap');
+  if (ev.banner_url) {
+    bannerWrap.innerHTML = `<img src="${ev.banner_url}" class="event-banner" alt="Banner ${ev.title}">`;
+  } else {
+    bannerWrap.innerHTML = '<div class="event-banner-placeholder">💜</div>';
+  }
+
+  const metaEl = document.getElementById('ev-meta');
+  let metaHtml = '';
+  if (ev.event_date) {
+    const d = new Date(ev.event_date);
+    metaHtml += `<div class="meta-chip">📅 ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`;
+  }
+  if (ev.location) metaHtml += `<div class="meta-chip">📍 ${ev.location}</div>`;
+  metaEl.innerHTML = metaHtml;
+
+  const price = parseFloat(ev.price || 0);
+  document.getElementById('ev-price').textContent = price > 0 ? 'R$ ' + price.toFixed(2).replace('.',',') : 'Gratuito';
+
+  // Set DDI from ws config
+  const { data: ws } = await sb.from('workspaces').select('cm_settings').eq('id', wsId).single();
+  const ddi = ws?.cm_settings?.default_country_code || '+55';
+  const ddiSel = document.getElementById('f-ddi');
+  Array.from(ddiSel.options).forEach(o => { if (o.value === ddi) o.selected = true; });
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main-content').style.display = 'block';
+  document.getElementById('btn-submit').addEventListener('click', submit);
+}
+
+async function submit() {
+  const name  = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const ddi   = document.getElementById('f-ddi').value;
+  const phone = document.getElementById('f-phone').value.trim();
+  const msg   = document.getElementById('msg');
+  msg.className = 'msg';
+
+  if (!name || !email || !phone) { msg.className='msg error'; msg.textContent='Preencha todos os campos obrigatórios.'; return; }
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { msg.className='msg error'; msg.textContent='Email inválido.'; return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = 'Aguarde…';
+  msg.textContent = '';
+
+  const fullPhone = ddi + phone.replace(/\D/g,'');
+  const { error } = await sb.from('cm_attendees').insert({
+    workspace_id: wsId,
+    event_id: eventId,
+    name, email,
+    phone: fullPhone,
+    payment_status: parseFloat(currentEvent.price||0) > 0 ? 'unpaid' : 'free',
+  });
+
+  if (error) {
+    if (error.code === '23505') { msg.className='msg error'; msg.textContent='Este email já está inscrito neste evento.'; }
+    else { msg.className='msg error'; msg.textContent='Erro: ' + error.message; }
+    btn.disabled = false; btn.textContent = '💜 Confirmar Inscrição';
+    return;
+  }
+
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('event-card').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'block';
+}
+
+init();
+</script>
+</body>
+</html>

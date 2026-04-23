@@ -1193,21 +1193,21 @@
 
         const PLAN_CONFIG = {
             free:     { label:'Gratuito',  modules:['consolidation','visitors','start','batismo','novos_membros'], color:'rgba(255,255,255,.1)', text:'#aaa' },
-            trial:    { label:'Trial Pro', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            trial:    { label:'Trial Pro', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','crie_mulheres','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             starter:  { label:'Starter',   modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks'], color:'rgba(100,180,255,.2)', text:'#64b4ff' },
             // Planos documentados no GEMINI.md (slugs canônicos do banco)
             essencial:{ label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            founders: { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            founders: { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','crie_mulheres','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
             // Aliases mantidos para compatibilidade com planos legados
             medium:   { label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
             advanced: { label:'Essencial', modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','cafe_pastor'], color:'rgba(100,220,150,.2)', text:'#64dc96' },
-            premium:  { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
+            premium:  { label:'Founders',  modules:['consolidation','visitors','start','batismo','novos_membros','aniversariantes','broadcast','tasks','financeiro','relatorios','logs','voluntarios','ia_whatsapp','wecare','crie','crie_mulheres','cantina','cafe_pastor'], color:'rgba(255,215,0,.2)', text:'var(--accent)' },
         };
 
         const ALL_MODULES_LIST = [
             'consolidation','visitors','start','batismo','novos_membros',
             'ia_whatsapp','financeiro','aniversariantes',
-            'crie','voluntarios','tasks','broadcast',
+            'crie','crie_mulheres','voluntarios','tasks','broadcast',
             'wecare','cantina','relatorios','logs','cafe_pastor'
         ];
 
@@ -1221,6 +1221,7 @@
             novos_membros:   { nav:'nav-membros',          view:'view-membros' },
             ia_whatsapp:     { nav:'nav-chat-ao-vivo',     view:'view-chat-ao-vivo' },
             crie:            { nav:'nav-group-crie',       view:'view-null' },
+            crie_mulheres:   { nav:'nav-group-cm',         view:'view-null' },
             cantina:         { nav:'nav-group-cantina',    view:'view-null' },
             cafe_pastor:     { nav:'nav-cafe-pastor',      view:'view-cafe-pastor' },
             financeiro:      { nav:'nav-group-financeiro', view:'view-null' },
