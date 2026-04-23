@@ -33,8 +33,8 @@ function cmDateStr(ts) {
   if (!ts) return '—';
   return new Date(ts).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
 }
-const CM_ROSE = '#f472b6';
-const CM_ROSE2 = '#ec4899';
+const CM_ROSE = '#d6336c';
+const CM_ROSE2 = '#a61e4d';
 const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
 
 // ── Lazy-load patch (Rule #8) ─────────────────────────────────
