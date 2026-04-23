@@ -2669,96 +2669,34 @@
                         <input type="checkbox" class="bulk-select-checkbox" onchange="onBulkCardSelect(this, '${lead.id}')">
                         <div class="card-header" style="align-items:flex-start;">
                             <div class="person-info">
-                                <h3 style="font-size:1.05rem; margin-bottom:2px;">${lead.name || 'Sem Nome'}</h3>
-                                <p style="margin-top:2px; font-size:0.85rem;">📱 ${lead.phone || 'Sem número'}</p>
-                                ${(lead.cidade || lead.estado) ? `<p style="margin-top:2px; font-size:0.78rem; color:rgba(255,255,255,.5);">📍 ${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</p>` : ''}
+                                <h3 style="font-size:1rem; margin-bottom:4px; font-weight:700;">${lead.name || 'Sem Nome'}</h3>
+                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(37,211,102,.15);color:#25d366;flex-shrink:0;" title="WhatsApp"><svg style="width:12px;fill:currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg></a>` : ''}
+                                    <span style="font-size:0.8rem;color:rgba(255,255,255,.55);">${lead.phone || 'Sem número'}</span>
+                                    <div id="lead-tags-${lead.id}" style="display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;">
+                                        ${(lead.tags||[]).map(tag => {
+                                            const wt = (window._wsTags||[]).find(t=>t.name===tag);
+                                            const color = wt?.color||'#FFD700';
+                                            return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 6px;border-radius:20px;font-size:0.58rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover">${tag} ×</span>`;
+                                        }).join('')}
+                                        <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 6px;border-radius:20px;font-size:0.58rem;color:#666;cursor:pointer;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="hub-action-bundle">
                                 <button class="hub-action-trigger" onclick="toggleActionMenu(event, '${lead.id}')">⋮</button>
                                 <div class="hub-action-menu" id="action-menu-${lead.id}">
                                     ${cleanPhone ? `
-                                    <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar Normal</a>
-                                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item">
-                                        <svg style="width: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm0 22.02c-1.815 0-3.593-.463-5.187-1.336l-.372-.211-3.66.853.864-3.551-.23-.38A10.024 10.024 0 0 1 1.954 12.03c0-5.556 4.516-10.071 10.077-10.071 5.56 0 10.076 4.515 10.076 10.076 0 5.557-4.516 10.072-10.076 10.072zm5.541-7.551c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg>
-                                        WhatsApp Web
-                                    </a>` : ''}
-                                    <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4; pointer-events:none;'}">
-                                        💬 Histórico IA
-                                    </button>
-                                    <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">
-                                        🗑️ Excluir Ficha
-                                    </button>
+                                    <a href="tel:+${cleanPhone}" class="hub-action-item">📞 Ligar</a>
+                                    <a href="https://wa.me/${cleanPhone}" target="_blank" class="hub-action-item"><svg style="width:13px;fill:currentColor;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.12.552 4.197 1.6 6.012L.15 24l6.103-1.424A11.966 11.966 0 0 0 12.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm5.541 16.469c-.305-.152-1.8-.888-2.079-.99-.279-.101-.482-.152-.686.152-.204.305-.788.99-.965 1.194-.178.203-.356.228-.66.076-1.745-.88-2.909-1.543-4.045-3.32-.152-.254.041-.36.17-.5.127-.139.305-.355.457-.533.152-.177.203-.304.305-.507.102-.202.05-.38-.026-.532-.076-.152-.685-1.648-.94-2.257-.246-.593-.497-.513-.685-.522h-.585c-.203 0-.533.076-.813.381-.28.305-1.066 1.041-1.066 2.54s1.092 2.946 1.244 3.15c.152.203 2.15 3.282 5.205 4.6l.721.282c.762.247 1.455.212 2.004.129.615-.094 1.8-.736 2.054-1.447.254-.711.254-1.32.178-1.448-.076-.127-.28-.203-.585-.356z"/></svg> WhatsApp</a>` : ''}
+                                    <button onclick="showWAChatModal('${lead.id}'); return false;" class="hub-action-item" style="${window.hasWhatsappConfig ? '' : 'opacity:0.4;pointer-events:none;'}">💬 Histórico IA</button>
+                                    <button onclick="deleteLead('${lead.id}')" class="hub-action-item danger">🗑️ Excluir</button>
                                 </div>
                             </div>
                         </div>
 
                         ${crossTagHtml}
 
-                        <!-- Rich info grid -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px 10px; margin:10px 0 8px; padding:10px 12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:12px;">
-                            ${lead.email ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;min-width:0;overflow:hidden;"><span style="font-size:.8rem;flex-shrink:0;">✉️</span><a href="mailto:${lead.email}" style="color:rgba(255,255,255,.6);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${lead.email}">${lead.email}</a></div>` : ''}
-                            ${lead.idade ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🎂</span><span>${lead.idade} anos</span></div>` : ''}
-                            ${lead.sexo ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👤</span><span>${lead.sexo}</span></div>` : ''}
-                            ${(lead.cidade || lead.estado) ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">📍</span><span>${[lead.cidade, lead.estado].filter(Boolean).join(', ')}</span></div>` : ''}
-                            ${lead.pais && lead.pais !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🌍</span><span>${lead.pais}</span></div>` : ''}
-                            ${lead.type !== 'visitor' && lead.culto && lead.culto !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">⛪</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap(lead.culto)}</span></div>` : ''}
-                            ${lead.type !== 'visitor' && lead.decisao && lead.decisao !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);grid-column:1/-1;"><span style="font-size:.8rem;">🔥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${lead.decisao}">${lead.decisao}</span></div>` : ''}
-                            ${lead.type !== 'visitor' && lead.gc_status && lead.gc_status !== 'Não Informado' ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">👥</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cap(lead.gc_status)}</span></div>` : ''}
-                            ${lead.melhor_horario ? `<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:rgba(255,255,255,.6);"><span style="font-size:.8rem;">🕐</span><span>${lead.melhor_horario}</span></div>` : ''}
-                        </div>
-
-                        <div class="tags-area" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
-                            ${lead.batizado && lead.batizado !== 'Não Informado' ? `<span class="tag" style="background:rgba(255,255,255,.05);color:#FFF;border:1px solid rgba(255,255,255,.1);">💧 Batizado: ${cap(lead.batizado)}</span>` : ''}
-                            ${lead.batismo_at ? `<span style="background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:700;display:inline-block;white-space:nowrap;">🌊 Batizado em ${new Date(lead.batismo_at).toLocaleDateString('pt-PT')}</span>` : ''}
-                            ${(() => {
-                                const startTag = typeof window.getStartStatusTag === 'function' ? window.getStartStatusTag(lead) : '';
-                                return startTag;
-                            })()}
-                        </div>
-
-                        <!-- Custom Tags -->
-                        <div id="lead-tags-${lead.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(lead.tags||[]).length?'8':'0'}px;">
-                            ${(lead.tags||[]).map(tag => {
-                                const wt = (window._wsTags||[]).find(t=>t.name===tag);
-                                const color = wt?.color||'#FFD700';
-                                return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${lead.id}','${tag}')" title="Remover tag">${tag} ×</span>`;
-                            }).join('')}
-                            <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;font-size:0.6rem;color:#777;cursor:pointer;" onclick="openTagPicker('${lead.id}')" title="Adicionar tag">+ Tag</span>
-                        </div>
-
-                        <!-- Task progress bar -->
-                        ${(() => {
-                            const isVisitor = targetContainerId === 'visitors-container';
-                            const total = isVisitor ? 3 : 5;
-                            const done = isVisitor
-                                ? 1 + (lead.task_gc ? 1 : 0) + (lead.task_followup ? 1 : 0)
-                                : 1 + (lead.task_start ? 1 : 0) + (lead.task_gc ? 1 : 0) + (lead.task_batismo ? 1 : 0) + (lead.task_cafe ? 1 : 0);
-                            const pct = Math.round((done / total) * 100);
-                            const barClr = pct === 100 ? '#4ade80' : pct >= 40 ? '#FFD700' : '#f87171';
-                            return `
-                            <div style="margin:8px 0 4px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-                                    <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);">Tarefas</span>
-                                    <span style="font-size:0.65rem;font-weight:800;color:${barClr};">${done}/${total}</span>
-                                </div>
-                                <div style="height:5px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;">
-                                    <div id="prog-bar-${lead.id}" style="height:100%;width:${pct}%;background:${barClr};border-radius:4px;transition:width .4s ease;box-shadow:0 0 6px ${barClr}55;"></div>
-                                </div>
-                            </div>`;
-                        })()}
-
-                        <!-- Expandable Tasks Accordion -->
-                        <div class="hub-card-expandable" id="expand-${lead.id}">
-                            ${targetContainerId === 'visitors-container' ? visitorTasksHtml : consoliTasksHtml}
-                            <div style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 12px; padding-bottom: 4px;">
-                                Registrado em ${dateStr}
-                            </div>
-                        </div>
-                        
-                        <button class="hub-expand-btn" onclick="toggleExpandCard(event, '${lead.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="chevron-${lead.id}" style="transition: transform 0.3s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                            <span id="expand-label-${lead.id}">Ver Tarefas & Detalhes</span>
-                        </button>
                     `;
                     // Open lead drawer on card click (skip checkbox / link clicks)
                     card.addEventListener('click', function(e) {
