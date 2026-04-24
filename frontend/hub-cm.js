@@ -131,7 +131,7 @@ function renderCmFinances(rows) {
 
 // switchCmRelTab — handles financeiro / por-evento / config
 window.switchCmRelTab = function(tab, btn) {
-  ['financeiro','por-evento','config'].forEach(t => {
+  ['financeiro','por-evento','cupons','config'].forEach(t => {
     const panel = document.getElementById(`cm-rel-tab-${t}`);
     if (panel) panel.style.display = t===tab ? 'block' : 'none';
   });
@@ -141,6 +141,7 @@ window.switchCmRelTab = function(tab, btn) {
     b.style.borderBottom = isActive ? '2px solid #d6336c' : '2px solid transparent';
   });
   if (tab === 'por-evento') populateCmEventFilter();
+  if (tab === 'cupons') loadCmCoupons();
 };
 
 async function populateCmEventFilter() {
@@ -388,6 +389,17 @@ window.openCmEventoDrawer = function(eventId) {
     if (rw) rw.style.display='none';
     if (fb) fb.style.display='block';
   }
+
+  // ── #27: Inscription link + QR ──────────────────────────────
+  const inscLink = window.location.origin + '/cm-inscricao.html?id=' + eventId;
+  const linkEl   = document.getElementById('cm-drawer-link-url');
+  const qrEl     = document.getElementById('cm-drawer-link-qr');
+  if (linkEl) linkEl.textContent = inscLink;
+  if (qrEl) {
+    qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(inscLink)}`;
+    qrEl.style.display = 'block';
+  }
+  window._cmDrawerInscricaoLink = inscLink;
 
   // Show drawer on Info tab
   switchCmDrawerTab('info');
@@ -1401,6 +1413,116 @@ window.openCmQuickAddAttendee = function() {
 // ═══════════════════════════════════════════════════════════
 // SECTION 6 — BADGE POLLER (pending applications)
 // ═══════════════════════════════════════════════════════════
+
+// #24 — Coupons
+async function loadCmCoupons() {
+  const sb = cmSb(); const wsId = await cmWsId(); if (!wsId) return;
+  const tbody = document.getElementById('cm-coupons-body');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,.3);">A carregar…</td></tr>';
+  const { data, error } = await sb.from('cm_coupons')
+    .select('*').eq('workspace_id', wsId)
+    .order('created_at', { ascending: false });
+  renderCmCoupons(data || []);
+}
+
+function renderCmCoupons(rows) {
+  const tbody = document.getElementById('cm-coupons-body');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Sem cupons criados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(c => {
+    const type = c.percent_off != null ? `${c.percent_off}%` : `${c.currency?.toUpperCase()||''} ${parseFloat(c.amount_off||0).toFixed(2)}`;
+    const uses = `${c.times_redeemed||0}${c.max_redemptions ? ' / '+c.max_redemptions : ''}`;
+    const active = c.active;
+    return `<tr>
+      <td><span style="font-family:monospace;font-weight:800;color:#fff;">${c.code}</span></td>
+      <td><span style="font-size:.72rem;color:rgba(255,255,255,.4);">${c.percent_off!=null?'Percentual':'Valor fixo'}</span></td>
+      <td style="color:${CM_ROSE};font-weight:700;">${type}</td>
+      <td style="color:rgba(255,255,255,.5);font-size:.82rem;">${uses}</td>
+      <td style="font-size:.68rem;color:rgba(255,255,255,.25);font-family:monospace;">${c.stripe_coupon_id||'—'}</td>
+      <td><span style="font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;background:${active?'rgba(52,211,153,.1)':'rgba(255,255,255,.04)'};color:${active?'#34d399':'rgba(255,255,255,.3)'};border:1px solid ${active?'rgba(52,211,153,.3)':'rgba(255,255,255,.08)'}">${active?'Ativo':'Inativo'}</span></td>
+      <td><button onclick="toggleCmCouponActive('${c.id}',${!active})" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:.75rem;cursor:pointer;text-decoration:underline;">${active?'Desativar':'Ativar'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+window.toggleCmCouponFields = function() {
+  const type = document.getElementById('cm-coup-type')?.value;
+  const wrap = document.getElementById('cm-coup-currency-wrap');
+  if (wrap) wrap.style.display = type === 'fixed' ? 'block' : 'none';
+};
+
+window.createCmCoupon = async function() {
+  const msg  = document.getElementById('cm-coup-msg');
+  const code = document.getElementById('cm-coup-code')?.value?.trim().toUpperCase();
+  const type = document.getElementById('cm-coup-type')?.value;
+  const disc = parseFloat(document.getElementById('cm-coup-discount')?.value) || 0;
+  const cur  = document.getElementById('cm-coup-currency')?.value || 'eur';
+  const maxR = parseInt(document.getElementById('cm-coup-max')?.value) || null;
+  const exp  = document.getElementById('cm-coup-expires')?.value || null;
+  if (!code) { msg.textContent = 'Código obrigatório.'; return; }
+  if (!disc) { msg.textContent = 'Desconto obrigatório.'; return; }
+  const wsId = await cmWsId();
+  const { data: { session } } = await cmSb().auth.getSession();
+  msg.textContent = 'A criar no Stripe…';
+  const resp = await fetch(`${EDGE}/cm-create-coupon`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+(session?.access_token||'') },
+    body: JSON.stringify({ workspace_id:wsId, code, type, discount:disc, currency:cur, max_redemptions:maxR, expires_at:exp })
+  });
+  const json = await resp.json();
+  if (!json.success) {
+    msg.textContent = '❌ ' + (json.error || 'Erro desconhecido');
+    msg.style.color = '#f87171';
+    // If Stripe not connected, still save locally
+    if (!json.error?.includes('Stripe')) return;
+  } else {
+    msg.style.color = '#34d399';
+    msg.textContent = '✅ Cupom criado no Stripe!';
+  }
+  // Persist to cm_coupons regardless (Stripe may already have it)
+  const sb = cmSb();
+  await sb.from('cm_coupons').insert({
+    workspace_id: wsId,
+    stripe_coupon_id: json.coupon_id || null,
+    code,
+    percent_off: type === 'percent' ? disc : null,
+    amount_off:  type === 'fixed'   ? disc : null,
+    currency:    type === 'fixed'   ? cur  : null,
+    max_redemptions: maxR,
+    active: true
+  });
+  // Clear form
+  ['cm-coup-code','cm-coup-discount','cm-coup-max','cm-coup-expires'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+  loadCmCoupons();
+};
+
+window.toggleCmCouponActive = async function(id, val) {
+  const sb = cmSb(); const wsId = await cmWsId();
+  await sb.from('cm_coupons').update({ active: val }).eq('id', id).eq('workspace_id', wsId);
+  loadCmCoupons();
+};
+
+// #27 — Copy inscription link
+window.copyCmInscricaoLink = function() {
+  const link = window._cmDrawerInscricaoLink;
+  if (!link) return;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('📋 Link copiado!', 'success');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = link; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('📋 Link copiado!', 'success');
+  });
+};
+
 
 (function initCmBadgePoller() {
   async function pollCmBadge() {

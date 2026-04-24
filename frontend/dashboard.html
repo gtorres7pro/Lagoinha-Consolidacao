@@ -5457,10 +5457,26 @@ graph TD
                     <input type="file" id="cm-dedit-banner-input" accept="image/*" style="display:none;" onchange="previewCmDrawerBanner(this)">
                 </div>
 
+                <!-- ── Link de Inscrição (#27) ── -->
+                <div style="background:rgba(214,51,108,.05);border:1px solid rgba(214,51,108,.15);border-radius:14px;padding:16px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:rgba(214,51,108,.7);margin-bottom:10px;">🔗 Link de Inscrição</div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:0;">
+                            <div id="cm-drawer-link-url" style="font-size:.78rem;color:rgba(255,255,255,.5);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;cursor:pointer;" onclick="copyCmInscricaoLink()" title="Clique para copiar">—</div>
+                        </div>
+                        <button onclick="copyCmInscricaoLink()" style="background:rgba(214,51,108,.1);border:1px solid rgba(214,51,108,.3);color:#d6336c;border-radius:8px;padding:7px 13px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">📋 Copiar</button>
+                    </div>
+                    <div style="margin-top:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+                        <img id="cm-drawer-link-qr" src="" alt="QR Code" style="width:100px;height:100px;border-radius:8px;border:1px solid rgba(255,255,255,.08);display:none;">
+                        <div style="font-size:.72rem;color:rgba(255,255,255,.3);line-height:1.5;">Partilhe este link ou QR code<br>para inscrições públicas no evento.</div>
+                    </div>
+                </div>
+
                 <div style="display:flex;gap:10px;margin-top:4px;">
                     <button onclick="saveCmEventoDrawer()" class="hub-btn" style="flex:1;padding:12px;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;">Guardar Alterações</button>
                     <button onclick="deleteCmEvento(window._cmDrawerEventoId)" style="padding:12px 16px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);border-radius:12px;color:#f87171;cursor:pointer;font-size:.82rem;">🗑️</button>
                 </div>
+
 
                 <!-- Fechar Evento -->
                 <div id="cm-drawer-fechar-wrap" style="margin-top:8px;padding:16px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);border-radius:14px;">
@@ -5567,6 +5583,7 @@ graph TD
             <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.06);padding:0 24px;margin-bottom:0;" id="cm-rel-tabs">
                 <button class="cm-tab-btn active" data-tab="financeiro" onclick="switchCmRelTab('financeiro',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid #d6336c;color:#d6336c;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Controle</button>
                 <button class="cm-tab-btn" data-tab="por-evento" onclick="switchCmRelTab('por-evento',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Por Evento</button>
+                <button class="cm-tab-btn" data-tab="cupons" onclick="switchCmRelTab('cupons',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Cupons</button>
                 <button class="cm-tab-btn" data-tab="config" onclick="switchCmRelTab('config',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Configurações</button>
             </div>
             <!-- Financeiro tab -->
@@ -5613,7 +5630,58 @@ graph TD
                     </table>
                 </div>
             </div>
+            <!-- ── Cupons tab ── -->
+            <div id="cm-rel-tab-cupons" style="display:none;padding:20px 24px;">
+                <!-- Create coupon form -->
+                <div style="background:rgba(255,255,255,.02);border:1px solid rgba(214,51,108,.15);border-radius:16px;padding:20px;margin-bottom:24px;">
+                    <h4 style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin:0 0 14px;">Novo Cupom de Desconto</h4>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
+                        <div>
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Código</label>
+                            <input id="cm-coup-code" type="text" placeholder="ex: CRIE20" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Tipo</label>
+                            <select id="cm-coup-type" class="hub-field-input" onchange="toggleCmCouponFields()" style="width:100%;box-sizing:border-box;">
+                                <option value="percent">% Percentual</option>
+                                <option value="fixed">R$ Valor fixo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Desconto</label>
+                            <input id="cm-coup-discount" type="number" min="0" step="0.01" placeholder="20" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                        </div>
+                        <div id="cm-coup-currency-wrap" style="display:none;">
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Moeda</label>
+                            <select id="cm-coup-currency" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                                <option value="brl">BRL</option><option value="eur">EUR</option>
+                                <option value="usd">USD</option><option value="gbp">GBP</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Usos máx.</label>
+                            <input id="cm-coup-max" type="number" min="1" placeholder="∞" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:.7rem;color:rgba(255,255,255,.35);display:block;margin-bottom:4px;">Expira em</label>
+                            <input id="cm-coup-expires" type="date" class="hub-field-input" style="width:100%;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <button onclick="createCmCoupon()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:10px;padding:10px 20px;color:#fff;font-weight:700;font-size:.84rem;cursor:pointer;font-family:inherit;">+ Criar Cupom</button>
+                        <span id="cm-coup-msg" style="font-size:.78rem;color:rgba(255,255,255,.4);"></span>
+                    </div>
+                </div>
+                <!-- Coupon list -->
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr><th>Código</th><th>Tipo</th><th>Desconto</th><th>Usos</th><th>Stripe ID</th><th>Status</th><th></th></tr></thead>
+                        <tbody id="cm-coupons-body"><tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar cupons…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
             <!-- Config tab -->
+
             <div id="cm-rel-tab-config" style="display:none;padding:20px 24px;">
                 <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
                     <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Taxa de Mensalidade</label><input id="cm-cfg-fee" type="number" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
