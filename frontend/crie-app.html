@@ -1735,93 +1735,13 @@ async function openMfaSetup() {
         const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'CRIE App' });
         if (error) { showToast('❌ ' + error.message, 'error'); return; }
         if (data?.totp?.qr_code) {
-            // Show QR in a simple alert for now (full UI in next phase)
+            // Show QR in a simple popup window (no embedded scripts)
             const qrWin = window.open('', '_blank', 'width=400,height=500');
             qrWin.document.write(`<html><body style="background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#fff;">
                 <p style="margin-bottom:20px;font-size:14px;">Escaneia com Google Authenticator ou Authy:</p>
                 <img src="${data.totp.qr_code}" style="width:220px;height:220px;">
                 <p style="margin-top:16px;font-size:12px;color:#888;">Código manual: ${data.totp.secret}</p>
-            
-<script>
-// ── CRIE Mulheres module auto-detection ─────────────────────
-(function injectCmDetection() {
-  const _origCheckMembership = window.checkMembership;
-  async function detectAndApplyModule(wsId, userEmail) {
-    if (!wsId || !userEmail) return;
-    const sb = window._crieSb || window.supabase;
-    if (!sb) return;
-
-    const [crieRes, cmRes] = await Promise.all([
-      sb.from('crie_members').select('id,status').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle(),
-      sb.from('cm_members').select('id,status').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle()
-    ]);
-
-    const isCm   = !!cmRes.data;
-    const isCrie = !!crieRes.data;
-
-    if (isCm) {
-      applyRoseTheme();
-      window._activeModule = 'crie_mulheres';
-      // Update module label
-      const lbl = document.getElementById('app-module-label');
-      if (lbl) lbl.textContent = 'CRIE Mulheres';
-      const logoTxt = document.querySelector('.app-logo-text');
-      if (logoTxt) logoTxt.textContent = 'CRIE Mulheres';
-    } else {
-      window._activeModule = 'crie';
-    }
-
-    // Show module switcher in profile if dual member
-    if (isCm && isCrie) {
-      const switcher = document.getElementById('module-switcher');
-      if (switcher) switcher.style.display = 'flex';
-    }
-  }
-
-  function applyRoseTheme() {
-    document.documentElement.style.setProperty('--accent', '#f472b6');
-    document.documentElement.style.setProperty('--gold', '#f472b6');
-    // Replace gradient elements
-    document.querySelectorAll('[data-theme-gradient]').forEach(el => {
-      el.style.background = 'linear-gradient(135deg,#f472b6,#ec4899)';
-    });
-  }
-
-  // Hook into existing auth flow
-  const _origInit = window.initApp || window.initCrieApp;
-  if (typeof _origInit === 'function') {
-    window.initApp = window.initCrieApp = async function(...args) {
-      const result = await _origInit.apply(this, args);
-      const sb = window._crieSb || window.supabase;
-      if (sb) {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session?.user) {
-          const wsId = window._currentWsId || localStorage.getItem('crie_ws_id');
-          await detectAndApplyModule(wsId, session.user.email);
-        }
-      }
-      return result;
-    };
-  } else {
-    // Fallback: run after DOM is loaded
-    window.addEventListener('load', async () => {
-      setTimeout(async () => {
-        const sb = window._crieSb || window.supabase;
-        if (!sb) return;
-        const { data: { session } } = await sb.auth.getSession();
-        if (session?.user) {
-          const wsId = window._currentWsId || localStorage.getItem('crie_ws_id');
-          await detectAndApplyModule(wsId, session.user.email);
-        }
-      }, 1500);
-    });
-  }
-
-  window._detectCmModule = detectAndApplyModule;
-  window._applyRoseTheme = applyRoseTheme;
-})();
-</script>
-</body></html>`);
+            </body></html>`);
         }
     } catch(e) {
         showToast('❌ MFA não disponível.', 'error');
@@ -1851,6 +1771,184 @@ function currency(ev) {
     const m = { EUR:'€', BRL:'R$', USD:'$', GBP:'£' };
     return m[ev.currency] || ev.currency || '€';
 }
+
+// ══ CM MODULE DETECTION (moved out of QR template — Bug #28 fix) ══
+// Sets window._activeModule = 'crie' | 'crie_mulheres'
+async function detectAndApplyModule(wsId, userEmail) {
+    if (!wsId || !userEmail) return;
+    const [crieRes, cmRes] = await Promise.all([
+        sb.from('crie_members').select('id').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle(),
+        sb.from('cm_members').select('id').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle()
+    ]);
+    const isCm   = !!cmRes.data;
+    const isCrie = !!crieRes.data;
+    window._activeModule = isCm ? 'crie_mulheres' : 'crie';
+    if (isCm) {
+        document.documentElement.style.setProperty('--accent','#f472b6');
+        document.documentElement.style.setProperty('--gold','#f472b6');
+        document.querySelectorAll('[data-theme-gradient]').forEach(el => {
+            el.style.background = 'linear-gradient(135deg,#f472b6,#ec4899)';
+        });
+        const logoTxt = document.querySelector('.app-logo-text');
+        if (logoTxt) logoTxt.textContent = 'CRIE Mulheres';
+    }
+    if (isCm && isCrie) {
+        const switcher = document.getElementById('module-switcher');
+        if (switcher) switcher.style.display = 'flex';
+    }
+}
+// Run detection after auth
+sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+        const wsId = _activeWorkspaces[0]?.id || localStorage.getItem('crie_ws_id');
+        if (wsId) await detectAndApplyModule(wsId, session.user.email);
+    }
+});
+window._detectCmModule = detectAndApplyModule;
+
+// ══ #29 — Load CM events alongside CRIE events ════════════════════
+async function loadCmEventsForApp(wsIds, today) {
+    if (!wsIds.length) return [];
+    const { data } = await sb.from('cm_events')
+        .select('id, title, event_date, location, price, currency, is_free, open_to_guests, online_payment_enabled, banner_url, workspace_id, status')
+        .eq('status','active').in('workspace_id', wsIds)
+        .gte('event_date', today).order('event_date').limit(10);
+    return (data || []).map(e => ({ ...e, _source:'cm', date: e.event_date }));
+}
+
+// Patch loadEventos to merge CM events — #29 + #30
+const _origLoadEventos = loadEventos;
+loadEventos = async function() {
+    const el = document.getElementById('eventos-list');
+    if (!el) return;
+    const wsIds = _activeWorkspaces.map(w => w.id);
+    const today = new Date().toISOString();
+    let q = sb.from('crie_events')
+        .select('id, title, date, location, price, currency, is_free, open_to_guests, online_payment_enabled, banner_url, workspace_id, status')
+        .eq('status','ACTIVE').gte('date', today).order('date').limit(20);
+    if (wsIds.length) q = q.in('workspace_id', wsIds);
+    const [crieRes, cmEvents] = await Promise.all([q, loadCmEventsForApp(wsIds, today)]);
+    _allEvents = [...(crieRes.data||[]), ...cmEvents];
+    _allEvents.sort((a,b)=> new Date(a.date||a.event_date) - new Date(b.date||b.event_date));
+    renderEventsList(_allEvents);
+};
+
+// Patch loadHomeEvents similarly
+const _origLoadHomeEvents = loadHomeEvents;
+loadHomeEvents = async function() {
+    const el = document.getElementById('home-events-list');
+    if (!el) return;
+    const wsIds = _activeWorkspaces.map(w => w.id);
+    const today = new Date().toISOString();
+    const [crieRes, cmEvents] = await Promise.all([
+        wsIds.length ? sb.from('crie_events').select('id,title,date,location,price,currency,is_free,open_to_guests,banner_url,workspace_id,status')
+            .eq('status','ACTIVE').eq('open_to_guests',true).gte('date',today)
+            .in('workspace_id',wsIds.slice(0,5)).order('date').limit(3) : { data:[] },
+        loadCmEventsForApp(wsIds, today)
+    ]);
+    _allEvents = [...(crieRes.data||[]), ...cmEvents.slice(0,3)];
+    _allEvents.sort((a,b)=> new Date(a.date||a.event_date) - new Date(b.date||b.event_date));
+    el.innerHTML = _allEvents.length ? _allEvents.slice(0,3).map(ev => renderEventCard(ev)).join('') :
+        '<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Sem eventos próximos</div></div>';
+};
+
+// #30 — Route to /cm-inscricao.html for CM events
+const _origOpenEventDetail = openEventDetail;
+function openEventDetail(id) {
+    const ev = _allEvents.find(e => e.id === id);
+    if (!ev) return;
+    const isMembersOnly = ev.open_to_guests === false;
+    const wsId = ev.workspace_id;
+    const msStatus = _memberStatus[wsId]?.status;
+    if (isMembersOnly && msStatus !== 'approved') {
+        showToast('🔒 Este evento é exclusivo para membros ativos.', 'error');
+        goToTab('perfil'); return;
+    }
+    // Route CM events to cm-inscricao.html
+    const isCmEvent = !!(ev._source === 'cm');
+    const base = isCmEvent ? '/cm-inscricao.html' : '/crie-inscricao.html';
+    if (ev.online_payment_enabled && !ev.is_free) {
+        showToast('💳 A redirecionar para pagamento…', 'info');
+    }
+    window.open(window.location.origin + base + '?id=' + id, '_blank');
+}
+
+// #31 — loadPerfil payment section reads cm_membership_payments for CM members
+async function loadPaymentInfoCmAware(wsId) {
+    const ws = _activeWorkspaces.find(w => w.id === wsId);
+    // Determine if user is a CM member
+    const { data: cmMember } = await sb.from('cm_members').select('id')
+        .eq('app_user_id', _appUser?.id).eq('workspace_id', wsId).maybeSingle();
+    if (cmMember) {
+        // CM membership fee from cm_settings
+        const { data: wsData } = await sb.from('workspaces').select('cm_settings').eq('id', wsId).single();
+        const cfg = wsData?.cm_settings || {};
+        const fee = cfg.membership_fee || null;
+        const currency = cfg.membership_currency || 'BRL';
+        const amtEl = document.getElementById('pay-amount-value');
+        if (amtEl) amtEl.textContent = fee ? `${currency} ${Number(fee).toFixed(2)}/mês` : '—';
+        // Payment history from cm_membership_payments
+        const { data: payments } = await sb.from('cm_membership_payments')
+            .select('amount, currency, status, paid_at').eq('member_id', cmMember.id)
+            .order('created_at', { ascending:false }).limit(6);
+        const phEl = document.getElementById('payment-history');
+        if (!phEl) return;
+        if (!payments?.length) { phEl.innerHTML='<div style="color:var(--text3);font-size:.82rem;padding:8px 0;">Nenhum pagamento registado.</div>'; return; }
+        phEl.innerHTML = payments.map(p => `<div class="payment-row">
+            <div><div class="payment-month">${p.paid_at ? new Date(p.paid_at).toLocaleDateString('pt-PT',{month:'short',year:'numeric'}) : '—'}</div>
+            <div style="font-size:.72rem;color:var(--text3);">${p.currency} ${Number(p.amount).toFixed(2)}</div></div>
+            <div class="payment-status ${p.status==='paid'?'paid':p.status==='failed'?'failed':'pending'}">
+                ${p.status==='paid'?'✓ Pago':p.status==='failed'?'✗ Falhado':'⏳ Pendente'}</div>
+        </div>`).join('');
+        document.getElementById('payment-section').style.display = 'block';
+        return;
+    }
+    // Fallback to original CRIE payment info
+    return loadPaymentInfo(wsId);
+}
+
+// Override renderMemberStatusSection to use CM-aware payment loader
+const _origRenderStatus = renderMemberStatusSection;
+function renderMemberStatusSection() {
+    _origRenderStatus();
+    // After render, patch payment loader for approved members
+    _activeWorkspaces.slice(0,3).forEach(ws => {
+        const ms = _memberStatus[ws.id];
+        if (ms?.status === 'approved') loadPaymentInfoCmAware(ws.id);
+    });
+}
+
+// #32 — submitMemberApplication routes to cm_member_applications for CM workspaces
+const _origSubmitApp = submitMemberApplication;
+submitMemberApplication = async function() {
+    const wsId = document.getElementById('apply-workspace').value;
+    const motivation = document.getElementById('apply-motivation').value.trim();
+    const msg = document.getElementById('apply-msg');
+    if (!wsId) { msg.textContent = 'Seleciona o teu CRIE.'; return; }
+    if (!_appUser) { msg.textContent = 'Precisas de estar autenticado.'; return; }
+    // Check if the selected workspace uses CM
+    const { data: wsData } = await sb.from('workspaces').select('cm_settings, modules').eq('id', wsId).single();
+    const isCmWorkspace = !!(wsData?.cm_settings && Object.keys(wsData.cm_settings).length) ||
+        (wsData?.modules || []).includes('crie_mulheres');
+    const table = isCmWorkspace ? 'cm_member_applications' : 'crie_member_applications';
+    const { error } = await sb.from(table).insert({
+        app_user_id: _appUser.id,
+        workspace_id: wsId,
+        motivation: motivation || null,
+        status: 'pending'
+    });
+    if (error) {
+        if (error.code === '23505') msg.textContent = 'Já tens uma candidatura para este CRIE.';
+        else msg.textContent = '❌ ' + error.message;
+        return;
+    }
+    _memberStatus[wsId] = { status: 'pending' };
+    closeModal('modal-apply');
+    await loadWorkspaces();
+    renderMemberBanner();
+    renderMemberStatusSection();
+    showToast('🎉 Candidatura enviada! Aguarda aprovação.', 'success');
+};
 </script>
 </body>
 </html>

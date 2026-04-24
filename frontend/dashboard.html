@@ -5164,30 +5164,41 @@ graph TD
                     <h1><span style="color:#d6336c;">C*</span> Inscritas</h1>
                     <p>Base de dados de inscritas por evento CRIE Mulheres</p>
                 </div>
-                <div class="actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <div class="actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button onclick="downloadCmInscritasCSV()" style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:#4ade80;border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;">⬇️ CSV</button>
+                    <button onclick="sendCmInscritasReport()" style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.2);color:#60a5fa;border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;">📧 Relatório</button>
+                    <button onclick="openCmWhatsAppModal()" style="background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.2);color:#25d366;border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;">💬 Convidar</button>
                     <button class="hub-btn" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;" onclick="openAddCmInscritoModal()">+ Nova Inscrita</button>
                 </div>
             </header>
             <div style="padding:16px 24px 0;display:flex;gap:14px;flex-wrap:wrap;">
                 <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="cm-inscritos-kpi-total">–</p></div>
                 <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Check-in</p><p class="kpi-value" id="cm-inscritos-kpi-checkin" style="color:#34d399;">–</p></div>
-                <div class="kpi-box" style="border-color:rgba(244,114,182,.25);"><p class="kpi-label">Pagas</p><p class="kpi-value" id="cm-inscritos-kpi-pagos" style="color:#d6336c;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Pagas</p><p class="kpi-value" id="cm-inscritos-kpi-pagos" style="color:#4ade80;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(251,191,36,.25);"><p class="kpi-label">Pendentes</p><p class="kpi-value" id="cm-inscritos-kpi-pendentes" style="color:#fbbf24;">–</p></div>
             </div>
-            <div style="padding:16px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                <input id="cm-inscritos-search" type="text" placeholder="Buscar inscrita…" oninput="filterCmInscritos()" style="flex:1;min-width:200px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.84rem;outline:none;">
-                <select id="cm-inscritos-event-filter" onchange="filterCmInscritos()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.8rem;outline:none;">
+            <div style="padding:14px 24px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <input id="cm-inscritos-search" type="text" placeholder="Buscar inscrita…" oninput="filterCmInscritos()" style="flex:1;min-width:180px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.84rem;outline:none;">
+                <select id="cm-inscritos-event-filter" onchange="filterCmInscritos()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;color:#fff;font-size:.8rem;outline:none;">
                     <option value="all">Todos os Eventos</option>
+                </select>
+                <select id="cm-inscritos-pay-filter" onchange="filterCmInscritos()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;color:#fff;font-size:.8rem;outline:none;">
+                    <option value="all">Todos Pagamentos</option>
+                    <option value="paid">Pago</option>
+                    <option value="unpaid">Pendente</option>
+                    <option value="free">Gratuito</option>
                 </select>
             </div>
             <div style="padding:0 24px 24px;">
                 <div class="hub-table-wrap">
                     <table class="hub-dev-table">
-                        <thead><tr><th>Nome</th><th>Contactos</th><th>Evento</th><th>Pag.</th><th>Presença</th><th></th></tr></thead>
-                        <tbody id="cm-inscritos-body"><tr><td colspan="6" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar inscritas…</td></tr></tbody>
+                        <thead><tr><th>Nome</th><th>Contactos</th><th>Evento</th><th>Pagamento</th><th>Presença</th><th>Ações</th></tr></thead>
+                        <tbody id="cm-inscritos-body"><tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar inscritas…</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
+
 
         <!-- ═══ CRIE Mulheres — Membras ═══ -->
         <div id="view-cm-membros" class="view-section">
@@ -5200,7 +5211,13 @@ graph TD
                     <button class="hub-btn" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;" onclick="openAddCmMembroModal()">+ Nova Membra</button>
                 </div>
             </header>
-            <div id="cm-pending-apps-banner" style="display:none;margin:0 24px 18px;padding:16px 20px;background:rgba(244,114,182,.06);border:1px solid rgba(244,114,182,.2);border-radius:14px;">
+            <!-- KPIs -->
+            <div style="padding:16px 24px 0;display:flex;gap:14px;flex-wrap:wrap;">
+                <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="cm-membros-kpi-total">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Ativas</p><p class="kpi-value" id="cm-membros-kpi-ativas" style="color:#34d399;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(214,51,108,.25);"><p class="kpi-label">Receita Est.</p><p class="kpi-value" id="cm-membros-kpi-mensalidade" style="color:#d6336c;">–</p></div>
+            </div>
+            <div id="cm-pending-apps-banner" style="display:none;margin:16px 24px 0;padding:16px 20px;background:rgba(214,51,108,.06);border:1px solid rgba(214,51,108,.2);border-radius:14px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <div style="width:8px;height:8px;border-radius:50%;background:#d6336c;animation:pulse 1.5s ease infinite;"></div>
@@ -5210,13 +5227,62 @@ graph TD
                 </div>
                 <div id="cm-pending-apps-list" style="display:none;flex-direction:column;gap:10px;"></div>
             </div>
-            <div style="padding:0 24px 24px;margin-top:20px;">
+            <div style="padding:16px 24px 24px;">
                 <input id="cm-membro-search" type="text" placeholder="Buscar membra…" oninput="filterCmMembros()" style="width:100%;max-width:400px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 16px;color:#fff;font-size:.84rem;outline:none;margin-bottom:20px;">
                 <div id="cm-membros-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
                     <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);grid-column:1/-1;">A carregar membras…</div>
                 </div>
             </div>
         </div>
+
+        <!-- ═══ CM MEMBER DRAWER ═══ -->
+        <div id="cm-mdrawer-overlay" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);" onclick="closeCmMemberDrawer()"></div>
+        <div id="cm-mdrawer" style="display:none;position:fixed;top:0;right:0;height:100vh;width:min(640px,95vw);background:#0d0f15;border-left:1px solid rgba(214,51,108,.15);z-index:801;overflow-y:auto;flex-direction:column;">
+            <div style="padding:24px 24px 0;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                    <button onclick="closeCmMemberDrawer()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;color:rgba(255,255,255,.5);cursor:pointer;font-size:.85rem;">&#8592;</button>
+                    <div style="flex:1;">
+                        <div id="cm-mdrawer-title" style="font-weight:900;font-size:1.05rem;color:#fff;"></div>
+                        <div id="cm-mdrawer-sub" style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px;"></div>
+                    </div>
+                    <button onclick="deleteCmMembro(window._cmMemberDrawerId)" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:6px 12px;color:#f87171;cursor:pointer;font-size:.78rem;font-weight:700;">🗑️ Remover</button>
+                </div>
+                <!-- Tabs -->
+                <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);">
+                    <button id="cm-mtab-notas" onclick="switchCmMemberTab('notas')" style="padding:10px 18px;background:none;border:none;color:#d6336c;font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid #d6336c;margin-bottom:-1px;font-family:inherit;">Detalhes</button>
+                    <button id="cm-mtab-mensalidades" onclick="switchCmMemberTab('mensalidades')" style="padding:10px 18px;background:none;border:none;color:rgba(255,255,255,.4);font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;">Mensalidades</button>
+                    <button id="cm-mtab-presencas" onclick="switchCmMemberTab('presencas')" style="padding:10px 18px;background:none;border:none;color:rgba(255,255,255,.4);font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;">Presenças</button>
+                </div>
+            </div>
+            <!-- Panel: Detalhes/Notas -->
+            <div id="cm-mpanel-notas" style="padding:24px;display:flex;flex-direction:column;gap:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div><label class="hub-field-label">Nome</label><input id="cm-mdet-name" class="hub-field-input" type="text" placeholder="Nome completo"></div>
+                    <div><label class="hub-field-label">Email</label><input id="cm-mdet-email" class="hub-field-input" type="email" placeholder="email@exemplo.com"></div>
+                    <div><label class="hub-field-label">Telefone</label><input id="cm-mdet-phone" class="hub-field-input" type="tel" placeholder="+55 11 99999-9999"></div>
+                    <div><label class="hub-field-label">Status</label><select id="cm-mdet-status" class="hub-field-input"><option value="ativo">Ativa</option><option value="inativo">Inativa</option></select></div>
+                    <div><label class="hub-field-label">Empresa / Igreja</label><input id="cm-mdet-company" class="hub-field-input" type="text" placeholder="Opcional"></div>
+                    <div><label class="hub-field-label">Área / Ministério</label><input id="cm-mdet-industry" class="hub-field-input" type="text" placeholder="Opcional"></div>
+                    <div><label class="hub-field-label">Mensalidade (override)</label><input id="cm-mdet-fee" class="hub-field-input" type="number" step="0.01" placeholder="Deixe vazio para usar padrão"></div>
+                </div>
+                <div><label class="hub-field-label">Notas internas</label><textarea id="cm-mdet-notes" class="hub-field-input" rows="4" placeholder="Observações, histórico, próximos passos…" style="resize:vertical;"></textarea></div>
+                <button onclick="saveCmMemberDetails()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;font-family:inherit;">💾 Guardar Alterações</button>
+            </div>
+            <!-- Panel: Mensalidades -->
+            <div id="cm-mpanel-mensalidades" style="display:none;padding:24px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                    <input id="cm-mpay-amount" type="number" step="0.01" placeholder="Valor (deixe vazio para taxa padrão)" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;color:#fff;font-size:.88rem;outline:none;">
+                    <button onclick="addCmMemberPayment()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-weight:800;cursor:pointer;font-size:.82rem;font-family:inherit;">+ Registrar</button>
+                </div>
+                <div id="cm-mpayments-list"><div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar pagamentos…</div></div>
+            </div>
+            <!-- Panel: Presenças -->
+            <div id="cm-mpanel-presencas" style="display:none;padding:24px;">
+                <div id="cm-mpresenças-list"><div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">A carregar presenças…</div></div>
+            </div>
+        </div>
+
+
 
         <!-- ═══ CRIE Mulheres — Eventos ═══ -->
         <div id="view-cm-eventos" class="view-section">
@@ -5229,12 +5295,231 @@ graph TD
                     <button class="hub-btn" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;" onclick="openCmEventoModal()">+ Novo Evento</button>
                 </div>
             </header>
-            <div style="padding:24px;">
-                <div id="cm-eventos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
-                    <div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);">A carregar eventos…</div>
+            <div style="padding:24px 40px;display:flex;flex-direction:column;gap:28px;">
+
+                <!-- GRUPO: ATIVOS -->
+                <div>
+                    <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4ade80;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;box-shadow:0 0 6px #4ade8088;"></span>
+                        Ativos
+                    </div>
+                    <div id="cm-grupo-ativos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
+                        <div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);grid-column:1/-1;">A carregar…</div>
+                    </div>
+                </div>
+
+                <!-- GRUPO: RASCUNHOS -->
+                <div>
+                    <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#d6336c;margin-bottom:12px;display:flex;align-items:center;gap:8px;opacity:.8;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#d6336c;display:inline-block;"></span>
+                        Rascunhos
+                    </div>
+                    <div id="cm-grupo-rascunhos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
+                        <div style="text-align:center;padding:20px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhum rascunho</div>
+                    </div>
+                </div>
+
+                <!-- GRUPO: FINALIZADOS -->
+                <div>
+                    <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="toggleCmFinalizadosGroup()">
+                        <span style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);display:inline-block;"></span>
+                        Finalizados
+                        <span id="cm-finalizados-chevron" style="margin-left:auto;transition:transform .2s;display:inline-block;">⌄</span>
+                    </div>
+                    <div id="cm-grupo-finalizados" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">
+                        <div style="text-align:center;padding:20px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhum evento finalizado</div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- ═══ CM EVENTO DRAWER ═══ -->
+        <div id="cm-evento-drawer-overlay" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);" onclick="closeCmEventoDrawer()"></div>
+        <div id="cm-evento-drawer" style="display:none;position:fixed;top:0;right:0;height:100vh;width:min(780px,95vw);background:#0d0f15;border-left:1px solid rgba(214,51,108,.15);z-index:801;overflow-y:auto;flex-direction:column;">
+            <div style="padding:24px 24px 0;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                    <button onclick="closeCmEventoDrawer()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px 10px;color:rgba(255,255,255,.5);cursor:pointer;font-size:.85rem;">&#8592;</button>
+                    <div>
+                        <div id="cm-drawer-ev-title" style="font-weight:900;font-size:1.05rem;color:#fff;"></div>
+                        <div id="cm-drawer-ev-date" style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px;"></div>
+                    </div>
+                    <div id="cm-drawer-ev-status-badge" style="margin-left:auto;"></div>
+                </div>
+                <!-- Tabs -->
+                <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;">
+                    <button class="cm-drawer-tab active" id="cm-dtab-info" onclick="switchCmDrawerTab('info')" style="padding:10px 18px;background:none;border:none;color:#d6336c;font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid #d6336c;margin-bottom:-1px;font-family:inherit;">Info &amp; Editar</button>
+                    <button class="cm-drawer-tab" id="cm-dtab-inscritas" onclick="switchCmDrawerTab('inscritas')" style="padding:10px 18px;background:none;border:none;color:rgba(255,255,255,.4);font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;">Inscritas</button>
+                    <button class="cm-drawer-tab" id="cm-dtab-financeiro" onclick="switchCmDrawerTab('financeiro')" style="padding:10px 18px;background:none;border:none;color:rgba(255,255,255,.4);font-size:.82rem;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;">Financeiro</button>
+                </div>
+            </div>
+
+            <!-- Tab: Info & Edit -->
+            <div id="cm-drawer-panel-info" style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+                <input type="hidden" id="cm-dedit-id">
+                <div><label class="hub-field-label">Título</label><input id="cm-dedit-title" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                <div><label class="hub-field-label">Descrição</label><textarea id="cm-dedit-desc" rows="3" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.88rem;outline:none;resize:none;box-sizing:border-box;font-family:inherit;"></textarea></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="hub-field-label">Data &amp; Hora</label>
+                        <input id="cm-dedit-date" type="datetime-local" style="width:100%;color-scheme:dark;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;font-family:inherit;">
+                    </div>
+                    <div><label class="hub-field-label">Capacidade</label><input id="cm-dedit-capacity" type="number" min="0" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                </div>
+                <div><label class="hub-field-label">Local</label><input id="cm-dedit-location" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+
+                <!-- Payment & Visibility toggles -->
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+                    <p style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.3);margin:0;">Pagamentos &amp; Visibilidade</p>
+
+                    <!-- Gratuito toggle -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:.85rem;font-weight:600;color:#fff;">Evento Gratuito</div>
+                            <div style="font-size:.72rem;color:rgba(255,255,255,.35);">Não regista pagamento</div>
+                        </div>
+                        <div onclick="toggleCmEventoGratuito(this)" id="cm-toggle-is-free" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+
+                    <!-- Price + Currency -->
+                    <div id="cm-dedit-price-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div><label class="hub-field-label">Preço</label><input id="cm-dedit-price" type="number" min="0" step="0.01" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                        <div>
+                            <label class="hub-field-label">Moeda</label>
+                            <div style="position:relative;">
+                                <select id="cm-dedit-currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;cursor:pointer;appearance:none;-webkit-appearance:none;">
+                                    <option value="BRL" style="background:#1a1c23;">BRL (R$)</option>
+                                    <option value="EUR" style="background:#1a1c23;">EUR (€)</option>
+                                    <option value="USD" style="background:#1a1c23;">USD ($)</option>
+                                    <option value="GBP" style="background:#1a1c23;">GBP (£)</option>
+                                    <option value="CHF" style="background:#1a1c23;">CHF (Fr)</option>
+                                    <option value="ARS" style="background:#1a1c23;">ARS ($)</option>
+                                    <option value="COP" style="background:#1a1c23;">COP ($)</option>
+                                </select>
+                                <svg style="position:absolute;right:14px;top:13px;pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Online Payment toggle -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:.85rem;font-weight:600;color:#fff;">Pagamento Online</div>
+                            <div id="cm-dedit-online-pay-hint" style="font-size:.72rem;color:rgba(255,255,255,.35);">Requer Stripe conectado</div>
+                        </div>
+                        <div onclick="toggleCmEventoOnlinePayment(this)" id="cm-toggle-online-payment" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+
+                    <!-- Open to guests toggle -->
+                    <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                        <div>
+                            <div style="font-size:.85rem;font-weight:600;color:#fff;">Aberto a Convidadas</div>
+                            <div style="font-size:.72rem;color:rgba(255,255,255,.35);">Visível na página pública de inscrição</div>
+                        </div>
+                        <div onclick="toggleCmEventoOpenToGuests(this)" id="cm-toggle-open-to-guests" style="width:42px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+                            <div style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label class="hub-field-label">Status</label>
+                    <div style="position:relative;">
+                        <select id="cm-dedit-status" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;cursor:pointer;appearance:none;-webkit-appearance:none;">
+                            <option value="draft" style="background:#1a1c23;">Rascunho</option>
+                            <option value="active" style="background:#1a1c23;">Ativo</option>
+                            <option value="concluido" style="background:#1a1c23;">Concluído</option>
+                        </select>
+                        <svg style="position:absolute;right:14px;top:13px;pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+
+                <!-- Banner Upload -->
+                <div>
+                    <label class="hub-field-label">Imagem de Divulgação</label>
+                    <div id="cm-dedit-banner-area" onclick="document.getElementById('cm-dedit-banner-input').click()"
+                         style="border:2px dashed rgba(214,51,108,.2);border-radius:14px;padding:18px;text-align:center;cursor:pointer;transition:border .2s,background .2s;background:rgba(255,255,255,.02);margin-top:6px;"
+                         onmouseover="this.style.borderColor='rgba(214,51,108,.5)';this.style.background='rgba(214,51,108,.03)'"
+                         onmouseout="this.style.borderColor='rgba(214,51,108,.2)';this.style.background='rgba(255,255,255,.02)'">
+                        <div id="cm-dedit-banner-placeholder">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(214,51,108,.4)" stroke-width="1.5" style="margin-bottom:6px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <div style="font-size:.75rem;color:rgba(255,255,255,.3);">Clique para carregar ou trocar imagem</div>
+                        </div>
+                        <div id="cm-dedit-banner-preview-wrap" style="display:none;">
+                            <img id="cm-dedit-banner-preview-img" src="" alt="banner" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;display:block;">
+                            <button type="button" onclick="event.stopPropagation();clearCmDrawerBanner()" style="margin-top:8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.2);color:#f87171;padding:4px 12px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;">✕ Remover</button>
+                        </div>
+                    </div>
+                    <input type="file" id="cm-dedit-banner-input" accept="image/*" style="display:none;" onchange="previewCmDrawerBanner(this)">
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:4px;">
+                    <button onclick="saveCmEventoDrawer()" class="hub-btn" style="flex:1;padding:12px;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;">Guardar Alterações</button>
+                    <button onclick="deleteCmEvento(window._cmDrawerEventoId)" style="padding:12px 16px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);border-radius:12px;color:#f87171;cursor:pointer;font-size:.82rem;">🗑️</button>
+                </div>
+
+                <!-- Fechar Evento -->
+                <div id="cm-drawer-fechar-wrap" style="margin-top:8px;padding:16px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);border-radius:14px;">
+                    <div style="font-size:.78rem;font-weight:700;color:#f87171;margin-bottom:6px;">🔒 Fechar Evento</div>
+                    <div style="font-size:.74rem;color:rgba(255,255,255,.4);margin-bottom:12px;">Gera um relatório completo deste evento e bloqueia alterações. O evento ficará marcado como Finalizado.</div>
+                    <div style="margin-bottom:10px;">
+                        <label class="hub-field-label">E-mail para envio do relatório</label>
+                        <input id="cm-dedit-report-email" type="email" placeholder="email@exemplo.com" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:9px 14px;color:#fff;font-size:.85rem;outline:none;box-sizing:border-box;">
+                    </div>
+                    <button onclick="fecharCmEvento()" id="btn-fechar-cm-evento" style="width:100%;padding:11px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:10px;color:#f87171;font-weight:800;cursor:pointer;font-size:.82rem;letter-spacing:.03em;">🔒 GERAR RELATÓRIO &amp; FECHAR EVENTO</button>
+                    <div id="cm-drawer-reopen-wrap" style="display:none;margin-top:10px;">
+                        <button onclick="reabrirCmEvento()" style="width:100%;padding:9px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:10px;color:#60a5fa;font-weight:700;cursor:pointer;font-size:.78rem;">🔓 Reabrir Evento</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Inscritas -->
+            <div id="cm-drawer-panel-inscritas" style="padding:24px;display:none;">
+                <div id="cm-drawer-inscritas-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);">A carregar…</div>
+                </div>
+            </div>
+
+            <!-- Tab: Financeiro (per-event) -->
+            <div id="cm-drawer-panel-financeiro" style="padding:24px;display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <div style="background:linear-gradient(135deg,rgba(74,222,128,.12),rgba(74,222,128,.04));border:1px solid rgba(74,222,128,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#4ade80;" id="cm-fin-receita">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">💰 Receita</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,rgba(248,113,113,.12),rgba(248,113,113,.04));border:1px solid rgba(248,113,113,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#f87171;" id="cm-fin-despesas">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">📉 Despesas</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(96,165,250,.04));border:1px solid rgba(96,165,250,.25);border-radius:16px;padding:18px;text-align:center;">
+                        <div style="font-size:1.5rem;font-weight:900;color:#60a5fa;" id="cm-fin-saldo">0</div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">⚖️ Saldo</div>
+                    </div>
+                </div>
+                <!-- Quick add transaction -->
+                <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:16px;">
+                    <div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Lançar Transação</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                        <select id="cm-fin-ev-type" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                            <option value="income">Receita</option><option value="expense">Despesa</option><option value="donation">Doação</option>
+                        </select>
+                        <input id="cm-fin-ev-amount" type="number" placeholder="Valor" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
+                    </div>
+                    <input id="cm-fin-ev-desc" type="text" placeholder="Descrição" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;box-sizing:border-box;margin-bottom:8px;">
+                    <button onclick="addCmEventTransaction()" style="width:100%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);border-radius:10px;padding:9px;color:#d6336c;font-weight:700;font-size:.82rem;cursor:pointer;">+ Adicionar</button>
+                </div>
+                <div id="cm-fin-ev-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);">Nenhuma transação</div>
+                </div>
+            </div>
+        </div>
+        <style>
+        .cm-drawer-tab { font-family:inherit; }
+        </style>
 
         <!-- ═══ CRIE Mulheres — Check-in ═══ -->
         <div id="view-cm-checkin" class="view-section">
@@ -5243,16 +5528,32 @@ graph TD
                     <h1><span style="color:#d6336c;">C*</span> Check-in</h1>
                     <p>Presença em eventos CRIE Mulheres</p>
                 </div>
+                <div class="actions">
+                    <button class="hub-btn" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;" onclick="openCmQuickAddAttendee()">+ Adicionar</button>
+                </div>
             </header>
-            <div style="padding:20px 24px;">
-                <select id="cm-checkin-event-sel" onchange="loadCmCheckinForEvent()" style="width:100%;max-width:400px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px;color:#fff;font-size:.88rem;outline:none;margin-bottom:20px;">
+            <!-- Event selector + search -->
+            <div style="padding:16px 24px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <select id="cm-checkin-event-sel" onchange="loadCmCheckinForEvent()" style="flex:1;min-width:220px;max-width:360px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:11px 16px;color:#fff;font-size:.88rem;outline:none;">
                     <option value="">— Selecionar Evento —</option>
                 </select>
+                <input id="cm-checkin-search" type="text" placeholder="Buscar inscrita…" oninput="filterCmCheckin()" style="flex:1;min-width:180px;max-width:280px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:11px 16px;color:#fff;font-size:.85rem;outline:none;">
+            </div>
+            <!-- KPIs -->
+            <div style="padding:14px 24px 0;display:flex;gap:12px;flex-wrap:wrap;">
+                <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Presentes</p><p class="kpi-value" id="cm-checkin-kpi-present" style="color:#34d399;">0</p></div>
+                <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="cm-checkin-kpi-total">0</p></div>
+                <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Pagos</p><p class="kpi-value" id="cm-checkin-kpi-paid" style="color:#34d399;">0</p></div>
+                <div class="kpi-box" style="border-color:rgba(251,191,36,.25);"><p class="kpi-label">Pendentes</p><p class="kpi-value" id="cm-checkin-kpi-pending" style="color:#fbbf24;">0</p></div>
+                <div class="kpi-box" style="border-color:rgba(167,139,250,.25);"><p class="kpi-label">Gratuitos</p><p class="kpi-value" id="cm-checkin-kpi-free" style="color:#a78bfa;">0</p></div>
+            </div>
+            <div style="padding:16px 24px 24px;">
                 <div id="cm-checkin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
-                    <div style="color:rgba(255,255,255,.3);padding:40px;text-align:center;">Selecione um evento para ver as inscritas</div>
+                    <div style="color:rgba(255,255,255,.3);padding:40px;text-align:center;grid-column:1/-1;">Selecione um evento para ver as inscritas</div>
                 </div>
             </div>
         </div>
+
 
         <!-- ═══ CRIE Mulheres — Financeiro / Configurações ═══ -->
         <div id="view-cm-relatorios" class="view-section">
@@ -5265,6 +5566,7 @@ graph TD
             <!-- Tabs -->
             <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.06);padding:0 24px;margin-bottom:0;" id="cm-rel-tabs">
                 <button class="cm-tab-btn active" data-tab="financeiro" onclick="switchCmRelTab('financeiro',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid #d6336c;color:#d6336c;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Controle</button>
+                <button class="cm-tab-btn" data-tab="por-evento" onclick="switchCmRelTab('por-evento',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Por Evento</button>
                 <button class="cm-tab-btn" data-tab="config" onclick="switchCmRelTab('config',this)" style="padding:12px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit;">Configurações</button>
             </div>
             <!-- Financeiro tab -->
@@ -5272,7 +5574,8 @@ graph TD
                 <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">
                     <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Receitas</p><p class="kpi-value" id="cm-kpi-receitas" style="color:#34d399;">–</p></div>
                     <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Despesas</p><p class="kpi-value" id="cm-kpi-despesas" style="color:#f87171;">–</p></div>
-                    <div class="kpi-box" style="border-color:rgba(244,114,182,.25);"><p class="kpi-label">Saldo</p><p class="kpi-value" id="cm-kpi-saldo" style="color:#d6336c;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(214,51,108,.25);"><p class="kpi-label">Saldo</p><p class="kpi-value" id="cm-kpi-saldo" style="color:#d6336c;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(167,139,250,.25);"><p class="kpi-label">Mensalidades</p><p class="kpi-value" id="cm-kpi-mensalidades" style="color:#a78bfa;">–</p></div>
                 </div>
                 <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;margin-bottom:20px;">
                     <h4 style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);margin:0 0 12px;">Nova Transação</h4>
@@ -5283,9 +5586,9 @@ graph TD
                         <input id="cm-fin-desc" type="text" placeholder="Descrição" style="flex:1;min-width:140px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
                         <input id="cm-fin-amount" type="number" placeholder="Valor" style="width:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
                         <select id="cm-fin-method" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.82rem;outline:none;">
-                            <option value="cash">Dinheiro</option><option value="pix">Pix</option><option value="card">Cartão</option>
+                            <option value="cash">Dinheiro</option><option value="pix">Pix</option><option value="card">Cartão</option><option value="stripe">Stripe</option>
                         </select>
-                        <button onclick="addCmTransaction()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;">+ Adicionar</button>
+                        <button onclick="addCmTransaction()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit;">+ Adicionar</button>
                     </div>
                 </div>
                 <div class="hub-table-wrap">
@@ -5295,34 +5598,88 @@ graph TD
                     </table>
                 </div>
             </div>
+            <!-- Por Evento tab -->
+            <div id="cm-rel-tab-por-evento" style="display:none;padding:20px 24px;">
+                <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+                    <select id="cm-fin-event-filter" onchange="loadCmFinancesByEvent()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 14px;color:#fff;font-size:.82rem;outline:none;min-width:200px;">
+                        <option value="">— Selecionar Evento —</option>
+                    </select>
+                    <span id="cm-evento-fin-kpis" style="display:flex;gap:10px;flex-wrap:wrap;"></span>
+                </div>
+                <div class="hub-table-wrap">
+                    <table class="hub-dev-table">
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Método</th><th>Valor</th></tr></thead>
+                        <tbody id="cm-fin-event-body"><tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Selecione um evento</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
             <!-- Config tab -->
             <div id="cm-rel-tab-config" style="display:none;padding:20px 24px;">
                 <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
-                    <div>
-                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Taxa de Mensalidade</label>
-                        <input id="cm-cfg-fee" type="number" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
-                    </div>
-                    <div>
-                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Moeda</label>
-                        <select id="cm-cfg-currency" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
-                            <option value="BRL">BRL (R$)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option>
+                    <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Taxa de Mensalidade</label><input id="cm-cfg-fee" type="number" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
+                    <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Moeda</label>
+                        <select id="cm-cfg-currency" class="hub-field-input">
+                            <option value="BRL">BRL — Real Brasileiro (R$)</option>
+                            <option value="USD">USD — Dólar Americano ($)</option>
+                            <option value="EUR">EUR — Euro (€)</option>
+                            <option value="GBP">GBP — Libra Esterlina (£)</option>
+                            <option value="CAD">CAD — Dólar Canadense (CA$)</option>
+                            <option value="AUD">AUD — Dólar Australiano (A$)</option>
+                            <option value="AOA">AOA — Kwanza Angolano (Kz)</option>
                         </select>
                     </div>
-                    <div>
-                        <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">DDI Padrão</label>
-                        <input id="cm-cfg-country" type="text" placeholder="+55" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;">
+                    <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">DDI Padrão (País)</label>
+                        <select id="cm-cfg-country" class="hub-field-input">
+                            <option value="+55">🇧🇷 Brasil (+55)</option>
+                            <option value="+1">🇺🇸 EUA / Canadá (+1)</option>
+                            <option value="+351">🇵🇹 Portugal (+351)</option>
+                            <option value="+244">🇦🇴 Angola (+244)</option>
+                            <option value="+258">🇲🇿 Moçambique (+258)</option>
+                            <option value="+34">🇪🇸 Espanha (+34)</option>
+                            <option value="+44">🇬🇧 Reino Unido (+44)</option>
+                            <option value="+61">🇦🇺 Austrália (+61)</option>
+                            <option value="+49">🇩🇪 Alemanha (+49)</option>
+                            <option value="+33">🇫🇷 França (+33)</option>
+                            <option value="+39">🇮🇹 Itália (+39)</option>
+                        </select>
                     </div>
-                    <button onclick="saveCmConfig()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;">Salvar Configurações</button>
+                    <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Fuso Horário</label>
+                        <select id="cm-cfg-timezone" class="hub-field-input">
+                            <option value="America/Sao_Paulo">América/São Paulo (UTC-3)</option>
+                            <option value="America/New_York">América/Nova Iorque (UTC-5)</option>
+                            <option value="America/Los_Angeles">América/Los Angeles (UTC-8)</option>
+                            <option value="America/Chicago">América/Chicago (UTC-6)</option>
+                            <option value="America/Toronto">América/Toronto (UTC-5)</option>
+                            <option value="Europe/Lisbon">Europa/Lisboa (UTC+0/+1)</option>
+                            <option value="Europe/London">Europa/Londres (UTC+0/+1)</option>
+                            <option value="Europe/Madrid">Europa/Madrid (UTC+1/+2)</option>
+                            <option value="Africa/Luanda">África/Luanda (UTC+1)</option>
+                            <option value="Africa/Maputo">África/Maputo (UTC+2)</option>
+                            <option value="Australia/Sydney">Austrália/Sydney (UTC+10/+11)</option>
+                        </select>
+                    </div>
+                    <button onclick="saveCmConfig()" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;">Salvar Configurações</button>
                     <hr style="border:none;border-top:1px solid rgba(255,255,255,.06);">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <span style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.5);">Stripe:</span>
-                        <span id="cm-stripe-status">—</span>
-                        <button id="btn-cm-stripe-connect" onclick="alert('Em breve: Stripe Connect para CRIE Mulheres')" style="display:none;background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);color:#d6336c;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;">Conectar Stripe</button>
-                        <button id="btn-cm-stripe-disconnect" onclick="alert('Em breve: Desconectar Stripe')" style="display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;">Desconectar</button>
+                    <div>
+                        <div style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;margin-bottom:10px;">Stripe</div>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <span id="cm-stripe-status">—</span>
+                            <button id="btn-cm-stripe-connect" onclick="connectCmStripe()" style="display:none;background:rgba(214,51,108,.1);border:1px solid rgba(214,51,108,.3);color:#d6336c;border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">🔗 Conectar Stripe</button>
+                            <button id="btn-cm-stripe-disconnect" onclick="disconnectCmStripe()" style="display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">Desconectar</button>
+                        </div>
+                        <div id="cm-stripe-account-info" style="font-size:.75rem;color:rgba(255,255,255,.3);margin-top:8px;"></div>
+                        <!-- Stripe key inputs (shown when not connected) -->
+                        <div id="cm-stripe-key-fields" style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+                            <input id="cm-stripe-sk" type="password" placeholder="Stripe Secret Key (sk_live_…)" class="hub-field-input">
+                            <input id="cm-stripe-pk" type="text" placeholder="Stripe Publishable Key (pk_live_…)" class="hub-field-input">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+
+
 
     </main>
 
@@ -8316,51 +8673,52 @@ graph TD
 
         <!-- CM — Modal: Nova Inscrita -->
         <div id="modal-cm-inscrito" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddCmInscritoModal()">
-            <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:420px;margin:16px;">
+            <div style="background:#111827;border:1px solid rgba(214,51,108,.25);border-radius:22px;padding:32px;width:100%;max-width:440px;margin:16px;">
                 <h3 style="font-size:1rem;font-weight:800;color:#fff;margin:0 0 20px;"><span style="color:#d6336c;">C*</span> Nova Inscrita</h3>
                 <div style="display:flex;flex-direction:column;gap:12px;">
                     <input id="cm-inscrito-name" type="text" placeholder="Nome *" class="hub-field-input">
-                    <input id="cm-inscrito-email" type="email" placeholder="Email" class="hub-field-input">
+                    <div>
+                        <input id="cm-inscrito-email" type="email" placeholder="Email" class="hub-field-input" onblur="cmLookupMember()">
+                        <div id="cm-inscrito-member-info" style="display:none;font-size:.75rem;margin-top:6px;padding:6px 10px;border-radius:8px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);"></div>
+                    </div>
                     <input id="cm-inscrito-phone" type="tel" placeholder="Telefone" class="hub-field-input">
-                    <select id="cm-inscrito-event" class="hub-field-input"><option value="">— Selecionar Evento —</option></select>
+                    <select id="cm-inscrito-event" class="hub-field-input"><option value="">— Selecionar Evento Ativo —</option></select>
+                    <select id="cm-inscrito-payment" class="hub-field-input">
+                        <option value="unpaid">Pendente (sem pagamento)</option>
+                        <option value="paid">Pago</option>
+                        <option value="free">Gratuito</option>
+                    </select>
                     <div style="display:flex;gap:10px;margin-top:8px;">
-                        <button onclick="saveCmInscrito()" style="flex:1;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;">Guardar</button>
-                        <button onclick="closeAddCmInscritoModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;">Cancelar</button>
+                        <button onclick="saveCmInscrito()" style="flex:1;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;font-family:inherit;">Guardar</button>
+                        <button onclick="closeAddCmInscritoModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Cancelar</button>
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!-- CM — Modal: Nova Membra -->
         <div id="modal-cm-membro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAddCmMembroModal()">
-            <div style="background:#111827;border:1px solid rgba(244,114,182,.25);border-radius:22px;padding:32px;width:100%;max-width:420px;margin:16px;">
+            <div style="background:#111827;border:1px solid rgba(214,51,108,.25);border-radius:22px;padding:32px;width:100%;max-width:480px;margin:16px;max-height:90vh;overflow-y:auto;">
                 <h3 style="font-size:1rem;font-weight:800;color:#fff;margin:0 0 20px;"><span style="color:#d6336c;">C*</span> Nova Membra</h3>
                 <div style="display:flex;flex-direction:column;gap:12px;">
-                    <input id="cm-membro-name" type="text" placeholder="Nome *" class="hub-field-input">
+                    <input id="cm-membro-name" type="text" placeholder="Nome completo *" class="hub-field-input">
                     <input id="cm-membro-email" type="email" placeholder="Email" class="hub-field-input">
-                    <input id="cm-membro-phone" type="tel" placeholder="Telefone" class="hub-field-input">
+                    <input id="cm-membro-phone" type="tel" placeholder="Telefone / WhatsApp" class="hub-field-input">
+                    <input id="cm-membro-company" type="text" placeholder="Empresa / Igreja (opcional)" class="hub-field-input">
+                    <input id="cm-membro-industry" type="text" placeholder="Área / Ministério (opcional)" class="hub-field-input">
+                    <input id="cm-membro-fee" type="number" step="0.01" placeholder="Mensalidade override (opcional)" class="hub-field-input">
+                    <textarea id="cm-membro-notes" placeholder="Notas internas (opcional)" rows="3" class="hub-field-input" style="resize:none;"></textarea>
                     <div style="display:flex;gap:10px;margin-top:8px;">
-                        <button onclick="saveCmMembro()" style="flex:1;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;">Guardar</button>
-                        <button onclick="closeAddCmMembroModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;">Cancelar</button>
+                        <button onclick="saveCmMembro()" style="flex:1;background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;border-radius:12px;padding:12px;color:#fff;font-weight:800;cursor:pointer;font-family:inherit;">Guardar</button>
+                        <button onclick="closeAddCmMembroModal()" style="padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;">Cancelar</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <script>
-        function switchCmRelTab(tab, btn) {
-            document.querySelectorAll('#cm-rel-tabs .cm-tab-btn').forEach(b => {
-                b.style.borderBottomColor = 'transparent';
-                b.style.color = 'rgba(255,255,255,.4)';
-            });
-            btn.style.borderBottomColor = '#d6336c';
-            btn.style.color = '#d6336c';
-            ['financeiro','config'].forEach(t => {
-                const el = document.getElementById('cm-rel-tab-'+t);
-                if (el) el.style.display = t===tab ? 'block' : 'none';
-            });
-        }
-        </script>
+
+
 
 
     <script src="/hub-dashboard.js?v=20260420v2"></script>
@@ -8368,7 +8726,7 @@ graph TD
 
     <script src="/hub-start.js?v=1"></script>
     <script src="/hub-cantina.js?v=20260411v5"></script>
-    <script src="/hub-cm.js?v=20260423v1"></script>
+    <script src="/hub-cm.js?v=20260424v1"></script>
     <script src="/hub-logs.js?v=20260413v1"></script>
     <script src="/hub-retencao.js?v=20260413v2"></script>
     <script src="/hub-regionais.js?v=20260413v1"></script>
