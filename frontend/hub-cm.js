@@ -1031,9 +1031,6 @@ function renderCmMembros(members) {
     var initials    = (m.name||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
     var overdueIds  = window._cmOverdueIds || new Set();
     var hasOverdue  = overdueIds.has(m.id);
-    var payDot      = hasOverdue
-      ? '<span title="Faturas em atraso" style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block;flex-shrink:0;"></span>'
-      : '<span title="Pagamentos em dia" style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;flex-shrink:0;"></span>';
     var fee         = m.monthly_fee || ((window._cmSettings && window._cmSettings.membership_fee) || 0);
     var sym         = window._crieDefaultCurrencySymbol || '$';
     var feeStr      = fee > 0 ? sym + Number(fee).toFixed(2) + '/mês' : '';
@@ -1045,32 +1042,36 @@ function renderCmMembros(members) {
     var phoneClean = (m.phone||'').replace(/\D/g,'');
     var waLink = phoneClean ? 'https://wa.me/' + phoneClean : null;
     var statusColor = m.status === 'ativo' ? '#34d399' : '#f87171';
-    return '<div class="hub-announcement-card" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onclick="openCmMemberDrawer('' + m.id + '')"'
-      + ' onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(214,51,108,.12)'"'
-      + ' onmouseout="this.style.transform='';this.style.boxShadow=''">'
-      + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">'
-      +   '<div style="position:relative;flex-shrink:0;">'
-      +     '<div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:' + CM_ROSE + ';font-size:1rem;">' + initials + '</div>'
-      +     '<div style="position:absolute;bottom:0;right:0;">' + payDot + '</div>'
-      +   '</div>'
-      +   '<div style="flex:1;min-width:0;">'
-      +     '<div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (m.name||'—') + '</div>'
-      +     '<div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">' + (sinceStr || m.company || m.industry || feeStr || 'Membra') + '</div>'
-      +   '</div>'
-      +   '<span style="background:' + (m.status==='ativo'?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)') + ';color:' + statusColor + ';border:1px solid ' + statusColor + '44;padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">' + (m.status||'').toUpperCase() + '</span>'
-      + '</div>'
-      + '<div style="font-size:.75rem;color:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:4px;">'
-      +   '<span>📧 ' + (m.email||'—') + '</span>'
-      +   '<span style="display:flex;align-items:center;gap:6px;">📞 ' + (m.phone||'—') + (waLink ? '<a href="' + waLink + '" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>' : '') + '</span>'
-      +   (feeStr ? '<span>💳 ' + feeStr + '</span>' : '')
-      + '</div>'
-      + '<div style="margin-top:14px;display:flex;gap:8px;">'
-      +   '<button onclick="event.stopPropagation();openCmMemberDrawer('' + m.id + '')" style="flex:1;padding:8px;background:rgba(214,51,108,.08);border:1px solid rgba(214,51,108,.2);border-radius:10px;color:' + CM_ROSE + ';font-size:.72rem;font-weight:700;cursor:pointer;">✏️ Editar</button>'
-      +   '<button onclick="event.stopPropagation();toggleCmMemberStatus('' + m.id + '','' + (m.status==='ativo'?'inativo':'ativo') + '')" style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:.72rem;cursor:pointer;" title="' + (m.status==='ativo'?'Desativar':'Reativar') + '">' + (m.status==='ativo'?'⏸':'▶') + '</button>'
-      +   '<button onclick="event.stopPropagation();deleteCmMembro('' + m.id + '')" style="padding:8px 12px;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.15);border-radius:10px;color:#f87171;font-size:.72rem;cursor:pointer;">✕</button>'
-      + '</div>'
-      + '</div>';
+    var isActive = m.status === 'ativo';
+    var payDot = `<span title="${hasOverdue ? 'Faturas em atraso' : 'Pagamentos em dia'}" style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${hasOverdue ? '#f87171' : '#4ade80'};border:2px solid #0d0f15;"></span>`;
+    return `
+        <div class="hub-announcement-card" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onclick="openCmMemberDrawer('${m.id}')"
+             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(214,51,108,.12)'"
+             onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                <div style="position:relative;flex-shrink:0;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;">${initials}</div>
+                    ${payDot}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name||'—'}</div>
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">${sinceStr || m.company || m.industry || feeStr || 'Membra'}</div>
+                </div>
+                <span style="background:${isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)'};color:${statusColor};border:1px solid ${statusColor}44;padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">${(m.status||'').toUpperCase()}</span>
+            </div>
+            <div style="font-size:.75rem;color:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:4px;">
+                <span>📧 ${m.email||'—'}</span>
+                <span style="display:flex;align-items:center;gap:6px;">📞 ${m.phone||'—'}${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}</span>
+                ${feeStr ? `<span>💳 ${feeStr}</span>` : ''}
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px;">
+                <button onclick="event.stopPropagation();openCmMemberDrawer('${m.id}')" style="flex:1;padding:8px;background:rgba(214,51,108,.08);border:1px solid rgba(214,51,108,.2);border-radius:10px;color:${CM_ROSE};font-size:.72rem;font-weight:700;cursor:pointer;">✏️ Editar</button>
+                <button onclick="event.stopPropagation();toggleCmMemberStatus('${m.id}','${isActive?'inativo':'ativo'}')" style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:.72rem;cursor:pointer;" title="${isActive?'Desativar':'Reativar'}">${isActive?'⏸':'▶'}</button>
+                <button onclick="event.stopPropagation();deleteCmMembro('${m.id}')" style="padding:8px 12px;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.15);border-radius:10px;color:#f87171;font-size:.72rem;cursor:pointer;">✕</button>
+            </div>
+        </div>`;
   }
+
 
   if (!members.length) {
     grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhuma membra cadastrada</div>';
@@ -1223,7 +1224,7 @@ async function loadCmMemberPayments(memberId) {
       var paidDate  = b.paid_at  ? new Date(b.paid_at).toLocaleDateString('pt-BR')  : null;
       var dueDate   = b.due_date ? new Date(b.due_date).toLocaleDateString('pt-BR') : null;
       var markBtn   = b.status !== 'paid'
-        ? '<button onclick="markCmBillPaid('' + b.id + '')" style="font-size:.68rem;padding:4px 10px;background:rgba(209,53,108,.1);border:1px solid rgba(209,53,108,.3);color:#fb7185;border-radius:8px;cursor:pointer;font-weight:700;">Pagar</button>'
+        ? `<button onclick="markCmBillPaid('${b.id}')" style="font-size:.68rem;padding:4px 10px;background:rgba(209,53,108,.1);border:1px solid rgba(209,53,108,.3);color:#fb7185;border-radius:8px;cursor:pointer;font-weight:700;">Pagar</button>`
         : '';
       var sub = (dueDate ? 'Vence: ' + dueDate : '') + (paidDate ? ' - Pago: ' + paidDate : '') + (b.description ? ' - ' + b.description : '');
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;margin-bottom:6px;">'
