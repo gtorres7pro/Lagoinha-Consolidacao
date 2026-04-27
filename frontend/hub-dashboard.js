@@ -609,7 +609,7 @@
                         <div class="ws-option-name">${ws.name}</div>
                         <div class="ws-option-badge">${ws.slug || ws.status || 'active'}</div>
                     </div>`;
-                div.onclick = (e) => { e.stopPropagation(); switchWorkspace(ws); };
+                div.onclick = (e) => { e.stopPropagation(); console.log('[WS-CLICK] clicked ws:', ws?.name, 'slug:', ws?.slug, 'id:', ws?.id); switchWorkspace(ws); };
                 list.appendChild(div);
             });
         }
@@ -632,6 +632,7 @@
         };
 
         window.switchWorkspace = function(ws) {
+            console.log('[WS-SWITCH] called with:', typeof ws, ws?.name || ws, 'slug:', ws?.slug, 'currentSlug:', window.location.pathname.split('/').filter(Boolean)[0]);
             // If the workspace has a slug, navigate to its URL for a clean full reload
             if (ws.slug) {
                 const currentSlug = window.location.pathname.split('/').filter(Boolean)[0];
@@ -5383,12 +5384,17 @@ async function _initCrieStripeState() {
         window._crieStripeConnected      = !!s.stripe_connected;
         window._crieStripePublishableKey = s.stripe_publishable_key || '';
         // Regional defaults — used by event drawers and public forms
-        window._crieDefaultCurrency      = s.crie_default_currency    || 'BRL';
-        window._crieDefaultCountryCode   = s.crie_default_country_code || '+55';
+        window._crieDefaultCurrency      = s.membership_currency || s.default_currency || s.crie_default_currency || 'USD';
+        window._crieDefaultCurrencySymbol = ({ USD:'$', BRL:'R$', EUR:'€', GBP:'£' })[window._crieDefaultCurrency] || '$';
+        window._crieDefaultCountryCode   = s.default_country_code || s.crie_default_country_code || '+1';
+        window._crieBillDueDay           = s.bill_due_day || 1;
+        window._crieAutoBillEnabled      = !!s.auto_bill_enabled;
+        window._crieMembershipFee        = s.membership_fee || 0;
     } catch(e) {
         window._crieStripeConnected      = false;
-        window._crieDefaultCurrency      = 'BRL';
-        window._crieDefaultCountryCode   = '+55';
+        window._crieDefaultCurrency      = 'USD';
+        window._crieDefaultCurrencySymbol = '$';
+        window._crieDefaultCountryCode   = '+1';
     } finally {
         _crieStripeStateLoading = false;
     }
@@ -5972,7 +5978,8 @@ function renderCrieMembros(list) {
         const statusColor = m.status === 'Ativo' ? '#4ade80' : '#f87171';
         const phoneClean = (m.phone || '').replace(/\D/g, '');
         const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
-        const feeStr = m.monthly_fee > 0 ? `€${Number(m.monthly_fee).toFixed(2)}/mês` : '';
+        const currSym = window._crieDefaultCurrencySymbol || '$';
+        const feeStr = m.monthly_fee > 0 ? `${currSym}${Number(m.monthly_fee).toFixed(2)}/mês` : '';
         return `
         <div class="hub-announcement-card" style="cursor:pointer; transition:transform .15s,box-shadow .15s;" onclick="openMembroDrawer('${m.id}')"
              onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(245,158,11,.12)'"
@@ -6107,77 +6114,174 @@ async function saveMembroNotes() {
     if (window.hubToast) hubToast('Notas guardadas!', 'success');
 }
 
-// ─── Mensalidades (Transactions) ─────────────────────────────
+// ─── Mensalidades (Bills) ─────────────────────────────────────
 async function loadMembroTransactions(memberId) {
     const sb = window.supabaseClient;
-    const { data, error } = await sb
-        .from('crie_member_transactions')
+    const { data } = await sb
+        .from('crie_member_bills')
         .select('*')
         .eq('member_id', memberId)
-        .order('created_at', { ascending: false });
+        .order('due_date', { ascending: false });
     renderMembroTransactions(data || []);
 }
 
-function renderMembroTransactions(txns) {
+function renderMembroTransactions(bills) {
     const listEl = document.getElementById('mdr-txn-list');
     if (!listEl) return;
-    const totalPaid = txns.filter(t => t.type === 'payment').reduce((s, t) => s + (t.amount || 0), 0);
-    const totalExp  = txns.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-    const balance   = totalPaid - totalExp;
-    const fmt = n => `€${Number(n).toFixed(2)}`;
-    document.getElementById('mdr-total-paid').textContent = fmt(totalPaid);
-    document.getElementById('mdr-total-expenses').textContent = fmt(totalExp);
-    const balEl = document.getElementById('mdr-balance');
-    balEl.textContent = fmt(balance);
-    balEl.style.color = balance >= 0 ? '#FFD700' : '#f87171';
 
-    if (!txns.length) {
-        listEl.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem transações registadas.</div>';
+    const currSym = window._crieDefaultCurrencySymbol || '$';
+    const fmt = n => `${currSym}${Number(n).toFixed(2)}`;
+
+    const totalCobrado = bills.reduce((s, b) => s + Number(b.amount || 0), 0);
+    const totalPago    = bills.filter(b => b.status === 'paid').reduce((s, b) => s + Number(b.amount || 0), 0);
+    const saldo        = totalCobrado - totalPago;
+
+    // Update KPI labels in drawer header
+    const paidEl = document.getElementById('mdr-total-paid');
+    const expEl  = document.getElementById('mdr-total-expenses');
+    const balEl  = document.getElementById('mdr-balance');
+    // Update KPI section labels if elements exist
+    const paidLabel = paidEl?.previousElementSibling;
+    const expLabel  = expEl?.previousElementSibling;
+    const balLabel  = balEl?.previousElementSibling;
+    if (paidLabel && paidLabel.tagName !== 'DIV') {}  // skip
+    if (paidEl) paidEl.textContent = fmt(totalCobrado);
+    if (expEl)  expEl.textContent  = fmt(totalPago);
+    if (balEl) {
+        balEl.textContent = fmt(saldo);
+        balEl.style.color = saldo <= 0 ? '#4ade80' : '#f87171';
+    }
+
+    if (!bills.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Nenhuma cobrança registada.</div>';
         return;
     }
-    listEl.innerHTML = txns.map(t => {
-        const isPayment = t.type === 'payment';
-        const color = isPayment ? '#4ade80' : '#f87171';
-        const icon  = isPayment ? '💰' : '↩️';
-        const dt = new Date(t.created_at).toLocaleDateString('pt-PT');
-        const refMonth = t.reference_month ? ` · Ref: ${t.reference_month}` : '';
+
+    // Group by year
+    const byYear = {};
+    bills.forEach(b => {
+        const yr = (b.reference_month || (b.created_at || '').substring(0, 4) || '—').substring(0, 4);
+        if (!byYear[yr]) byYear[yr] = [];
+        byYear[yr].push(b);
+    });
+
+    const statusBadge = (status) => {
+        const map = {
+            paid:      { icon:'✅', label:'PAGO',      color:'#4ade80', bg:'rgba(74,222,128,.1)' },
+            pending:   { icon:'⏳', label:'PENDENTE',  color:'#F59E0B', bg:'rgba(245,158,11,.1)' },
+            overdue:   { icon:'🔴', label:'ATRASADO',  color:'#f87171', bg:'rgba(248,113,113,.1)' },
+            cancelled: { icon:'✕',  label:'CANCELADO', color:'rgba(255,255,255,.3)', bg:'rgba(255,255,255,.05)' },
+        };
+        const s = map[status] || map.pending;
+        return `<span style="background:${s.bg};color:${s.color};border:1px solid ${s.color}44;padding:2px 8px;border-radius:6px;font-size:.65rem;font-weight:700;">${s.icon} ${s.label}</span>`;
+    };
+
+    const formatMonth = (ref) => {
+        if (!ref) return '—';
+        const [y, m] = ref.split('-');
+        if (!m) return y;
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        return `${months[parseInt(m)-1]} ${y}`;
+    };
+
+    listEl.innerHTML = Object.keys(byYear).sort((a,b) => b-a).map(yr => {
+        const yearBills = byYear[yr];
+        const yearTotal = yearBills.reduce((s,b) => s + Number(b.amount||0), 0);
+        const yearPaid  = yearBills.filter(b => b.status==='paid').reduce((s,b) => s + Number(b.amount||0), 0);
+        const yearRows  = yearBills.map(b => {
+            const paidDate = b.paid_at ? new Date(b.paid_at).toLocaleDateString('pt-BR') : null;
+            const dueDate  = b.due_date ? new Date(b.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : null;
+            return `
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.84rem;color:#fff;font-weight:600;">${formatMonth(b.reference_month)}${b.description ? ' · ' + b.description : ''}</div>
+                    <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:2px;">
+                        ${dueDate ? `Venc: ${dueDate}` : ''}${paidDate ? ` · Pago em: ${paidDate}` : ''}
+                    </div>
+                </div>
+                <div style="font-size:.95rem;font-weight:800;color:${b.status==='paid'?'#4ade80':b.status==='overdue'?'#f87171':'#F59E0B'};">${fmt(b.amount)}</div>
+                ${statusBadge(b.status)}
+                ${b.status !== 'paid' ? `<button onclick="markMembroBillPaid('${b.id}')" style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:7px;padding:4px 9px;font-size:.7rem;font-weight:700;cursor:pointer;">✓ Pagar</button>` : ''}
+                <button onclick="deleteMembroBill('${b.id}')" style="background:none;border:none;color:rgba(255,80,80,.4);cursor:pointer;font-size:.8rem;padding:4px;" title="Remover">✕</button>
+            </div>`;
+        }).join('');
+
         return `
-        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-            <div style="width:34px;height:34px;border-radius:50%;background:${isPayment ? 'rgba(74,222,128,.1)' : 'rgba(248,113,113,.1)'};display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${icon}</div>
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:.84rem;color:#fff;font-weight:600;">${t.description || (isPayment ? 'Mensalidade' : 'Estorno/Despesa')}</div>
-                <div style="font-size:.7rem;color:rgba(255,255,255,.35);margin-top:2px;">${dt}${refMonth}</div>
+        <div style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px;">
+                <span style="font-size:.75rem;font-weight:900;color:rgba(255,255,255,.5);letter-spacing:.08em;">📅 ${yr}</span>
+                <span style="font-size:.75rem;color:rgba(255,255,255,.35);">${fmt(yearPaid)} / ${fmt(yearTotal)}</span>
             </div>
-            <div style="font-size:1rem;font-weight:800;color:${color};">${isPayment ? '+' : '-'}${fmt(t.amount)}</div>
-            <button onclick="deleteMembroTransaction('${t.id}')" style="background:none;border:none;color:rgba(255,80,80,.4);cursor:pointer;font-size:.8rem;padding:4px;" title="Remover">✕</button>
+            <div style="display:flex;flex-direction:column;gap:8px;">${yearRows}</div>
         </div>`;
     }).join('');
 }
 
+async function markMembroBillPaid(billId) {
+    const sb = window.supabaseClient;
+    const now = new Date().toISOString();
+    const { error } = await sb.from('crie_member_bills')
+        .update({ status: 'paid', paid_at: now })
+        .eq('id', billId);
+    if (error) { if (window.hubToast) hubToast('Erro: ' + error.message, 'error'); return; }
+    await loadMembroTransactions(_membroDrawerId);
+    if (window.hubToast) hubToast('✅ Pagamento registado!', 'success');
+}
+
+async function deleteMembroBill(billId) {
+    if (!confirm('Remover esta cobrança?')) return;
+    const sb = window.supabaseClient;
+    await sb.from('crie_member_bills').delete().eq('id', billId);
+    await loadMembroTransactions(_membroDrawerId);
+}
+
 async function addMembroTransaction() {
     if (!_membroDrawerId) return;
-    const type   = document.getElementById('mdr-txn-type').value;
+    const type   = document.getElementById('mdr-txn-type')?.value || 'bill';
     const amount = parseFloat(document.getElementById('mdr-txn-amount').value);
-    const month  = document.getElementById('mdr-txn-month').value || null;
-    const desc   = document.getElementById('mdr-txn-desc').value.trim() || null;
+    const month  = document.getElementById('mdr-txn-month')?.value || null;
+    const desc   = document.getElementById('mdr-txn-desc')?.value?.trim() || null;
     if (!amount || amount <= 0) { if (window.hubToast) hubToast('Insira um valor válido', 'error'); return; }
-    const sb = window.supabaseClient;
+    const sb   = window.supabaseClient;
     const wsId = getCrieWorkspaceId();
-    const { error } = await sb.from('crie_member_transactions').insert({
-        workspace_id: wsId, member_id: _membroDrawerId,
-        type, amount, reference_month: month, description: desc
-    });
-    if (error) { if (window.hubToast) hubToast('Erro: ' + error.message, 'error'); return; }
+    const currSym = window._crieDefaultCurrency || 'USD';
+
+    if (type === 'payment') {
+        // Mark existing pending bills as paid (oldest first)
+        const { data: pending } = await sb.from('crie_member_bills')
+            .select('id,amount').eq('member_id', _membroDrawerId).eq('status','pending')
+            .order('due_date', { ascending: true }).limit(1);
+        if (pending?.length) {
+            await sb.from('crie_member_bills').update({ status:'paid', paid_at: new Date().toISOString() }).eq('id', pending[0].id);
+        } else {
+            // No pending bill — create a paid bill as a receipt
+            await sb.from('crie_member_bills').insert({
+                workspace_id: wsId, member_id: _membroDrawerId,
+                amount, currency: currSym, description: desc || 'Pagamento avulso',
+                reference_month: month, status: 'paid', paid_at: new Date().toISOString()
+            });
+        }
+        if (window.hubToast) hubToast('💰 Pagamento registado!', 'success');
+    } else {
+        // Create a new pending bill
+        await sb.from('crie_member_bills').insert({
+            workspace_id: wsId, member_id: _membroDrawerId,
+            amount, currency: currSym, description: desc,
+            reference_month: month, due_date: null, status: 'pending'
+        });
+        if (window.hubToast) hubToast('🧾 Cobrança criada!', 'success');
+    }
+
     document.getElementById('mdr-txn-amount').value = '';
-    document.getElementById('mdr-txn-desc').value = '';
+    if (document.getElementById('mdr-txn-desc')) document.getElementById('mdr-txn-desc').value = '';
     await loadMembroTransactions(_membroDrawerId);
-    if (window.hubToast) hubToast(type === 'payment' ? '💰 Pagamento registado!' : '↩️ Despesa registada!', 'success');
 }
 
 async function deleteMembroTransaction(txnId) {
-    if (!confirm('Remover esta transação?')) return;
+    // Legacy: try bills table first
+    if (!confirm('Remover?')) return;
     const sb = window.supabaseClient;
-    await sb.from('crie_member_transactions').delete().eq('id', txnId);
+    await sb.from('crie_member_bills').delete().eq('id', txnId);
     await loadMembroTransactions(_membroDrawerId);
 }
 
@@ -7518,8 +7622,14 @@ async function loadCrieSettings() {
     const currSel  = document.getElementById('membership-currency-select');
     if (feeInput && s.membership_fee != null) feeInput.value = s.membership_fee;
     // Use membership_currency or fall back to the workspace's default currency
-    const effectiveCurr = s.membership_currency || s.crie_default_currency || 'BRL';
+    const effectiveCurr = s.membership_currency || s.default_currency || s.crie_default_currency || 'USD';
     if (currSel) currSel.value = effectiveCurr;
+
+    // ── Billing automation settings ───────────────────────────
+    const dueDayInput = document.getElementById('bill-due-day-input');
+    const autoBillToggle = document.getElementById('auto-bill-toggle');
+    if (dueDayInput) dueDayInput.value = s.bill_due_day || 1;
+    if (autoBillToggle) autoBillToggle.checked = !!s.auto_bill_enabled;
 
     // ── Regional settings ──────────────────────────────────────
     // Cache globally so event drawers & public pages can use these
@@ -7605,7 +7715,7 @@ window.disconnectStripe = async function() {
 window.saveMembershipSettings = async function() {
     const wsId = getCrieWorkspaceId();
     const fee  = parseFloat(document.getElementById('membership-fee-input')?.value || '0') || 0;
-    const curr = document.getElementById('membership-currency-select')?.value || 'EUR';
+    const curr = document.getElementById('membership-currency-select')?.value || 'USD';
     const msg  = document.getElementById('membership-save-msg');
     if (msg) { msg.textContent = 'A guardar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
 
@@ -7617,8 +7727,38 @@ window.saveMembershipSettings = async function() {
     if (error) {
         if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
     } else {
-        if (msg) { msg.textContent = `✓ Mensalidade de ${curr} ${fee.toFixed(2)}/mês guardada.`; msg.style.color = '#4ade80'; }
+        // Update global currency symbol immediately
+        window._crieDefaultCurrency = curr;
+        window._crieDefaultCurrencySymbol = ({ USD:'$', BRL:'R$', EUR:'€', GBP:'£' })[curr] || '$';
+        window._crieMembershipFee = fee;
+        _crieStripeStateLoading = false; // force re-read on next tab switch
+        const sym = window._crieDefaultCurrencySymbol;
+        if (msg) { msg.textContent = `✓ Mensalidade de ${sym}${fee.toFixed(2)}/mês guardada.`; msg.style.color = '#4ade80'; }
         setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    }
+};
+
+/** Save billing automation settings (due day + auto-bill toggle) */
+window.saveBillingSettings = async function() {
+    const wsId = getCrieWorkspaceId();
+    const dueDay = parseInt(document.getElementById('bill-due-day-input')?.value || '1', 10) || 1;
+    const autoEnabled = document.getElementById('auto-bill-toggle')?.checked || false;
+    const msg = document.getElementById('billing-settings-msg');
+    if (msg) { msg.textContent = 'A guardar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const updated = { ...(ws?.crie_settings || {}), bill_due_day: dueDay, auto_bill_enabled: autoEnabled };
+    const { error } = await sb.from('workspaces').update({ crie_settings: updated }).eq('id', wsId);
+
+    if (error) {
+        if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
+    } else {
+        window._crieBillDueDay = dueDay;
+        window._crieAutoBillEnabled = autoEnabled;
+        _crieStripeStateLoading = false;
+        if (msg) { msg.textContent = `✓ Vencimento dia ${dueDay}, faturas automáticas: ${autoEnabled ? 'ativas' : 'desligadas'}.`; msg.style.color = '#4ade80'; }
+        setTimeout(() => { if (msg) msg.textContent = ''; }, 4000);
     }
 };
 
