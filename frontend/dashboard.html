@@ -5964,7 +5964,7 @@ graph TD
                             <input id="mdr-phone" type="text" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
                         </div>
                         <div>
-                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Mensalidade (€)</label>
+                            <label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Mensalidade</label>
                             <input id="mdr-fee" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;margin-top:6px;box-sizing:border-box;">
                         </div>
                     </div>
@@ -5989,27 +5989,27 @@ graph TD
                 <!-- Summary KPIs -->
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                     <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:14px;text-align:center;">
-                        <div id="mdr-total-paid" style="font-size:1.4rem;font-weight:800;color:#4ade80;">€0</div>
+                        <div id="mdr-total-paid" style="font-size:1.4rem;font-weight:800;color:#4ade80;">$0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Total Cobrado</div>
+                    </div>
+                    <div style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:14px;text-align:center;">
+                        <div id="mdr-total-expenses" style="font-size:1.4rem;font-weight:800;color:#60a5fa;">$0</div>
                         <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Total Pago</div>
                     </div>
-                    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:12px;padding:14px;text-align:center;">
-                        <div id="mdr-total-expenses" style="font-size:1.4rem;font-weight:800;color:#f87171;">€0</div>
-                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Despesas</div>
-                    </div>
                     <div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:14px;text-align:center;">
-                        <div id="mdr-balance" style="font-size:1.4rem;font-weight:800;color:#FFD700;">€0</div>
-                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Saldo</div>
+                        <div id="mdr-balance" style="font-size:1.4rem;font-weight:800;color:#4ade80;">$0</div>
+                        <div style="font-size:.68rem;color:rgba(255,255,255,.4);margin-top:4px;">Saldo em Aberto</div>
                     </div>
                 </div>
                 <!-- Add transaction form -->
                 <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:20px;">
-                    <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;">Lançar Transação</div>
+                    <div style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;">Lançar</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                         <select id="mdr-txn-type" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
-                            <option value="payment">💰 Pagamento</option>
-                            <option value="expense">↩️ Estorno / Despesa</option>
+                            <option value="bill">🧾 Nova Cobrança</option>
+                            <option value="payment">💰 Registar Pagamento</option>
                         </select>
-                        <input id="mdr-txn-amount" type="number" step="0.01" min="0" placeholder="Valor (€)" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
+                        <input id="mdr-txn-amount" type="number" step="0.01" min="0" placeholder="Valor" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;">
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                         <input id="mdr-txn-month" type="month" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;color:#fff;font-size:.84rem;outline:none;" title="Mês de referência">
@@ -6018,9 +6018,9 @@ graph TD
                     <button onclick="addMembroTransaction()" style="width:100%;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:.84rem;">+ Lançar</button>
                 </div>
                 <!-- History -->
-                <div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Histórico</div>
+                <div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Histórico de Mensalidades</div>
                 <div id="mdr-txn-list" style="display:flex;flex-direction:column;gap:8px;">
-                    <div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Sem transações registadas.</div>
+                    <div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Nenhuma cobrança registada.</div>
                 </div>
             </div>
             <!-- Tab: Presenças -->
@@ -6721,6 +6721,29 @@ graph TD
                             </div>
                         </div>
                         <div id="membership-save-msg" style="font-size:0.78rem;min-height:16px;"></div>
+                        <!-- Billing Automation -->
+                        <hr style="border:none;border-top:1px solid rgba(255,255,255,.06);margin:4px 0;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;">
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Dia de Vencimento</label>
+                                <input id="bill-due-day-input" type="number" min="1" max="28" placeholder="1"
+                                    style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#fff;font-family:inherit;font-size:0.88rem;outline:none;box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='rgba(245,158,11,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                                    title="Dia do mês em que as mensalidades vencem (1–28)">
+                            </div>
+                            <div>
+                                <label style="font-size:0.68rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Gerar Faturas Automaticamente</label>
+                                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">
+                                    <input type="checkbox" id="auto-bill-toggle" style="width:16px;height:16px;accent-color:#F59E0B;cursor:pointer;">
+                                    <span style="font-size:0.82rem;color:rgba(255,255,255,.6);">Ativo</span>
+                                </label>
+                            </div>
+                            <div>
+                                <button onclick="saveBillingSettings()" style="width:100%;background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:10px;padding:10px 14px;font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(74,222,128,0.2)'" onmouseout="this.style.background='rgba(74,222,128,0.1)'">Salvar Faturação</button>
+                            </div>
+                        </div>
+                        <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);padding:0 2px;">💡 Faturas geradas 5 dias antes do dia de vencimento para cada membro ativo.</div>
+                        <div id="billing-settings-msg" style="font-size:0.78rem;min-height:16px;"></div>
                     </div>
                 </div>
 
