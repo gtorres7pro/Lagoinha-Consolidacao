@@ -951,23 +951,35 @@ window.saveCmInscrito = async function() {
 window._cmMemberDrawerId = null;
 
 async function loadCmMembros() {
-  const sb = cmSb(); const wsId = await cmWsId();
-  if (!wsId) return;
+  const sb = cmSb();
+  let wsId;
+  try { wsId = await cmWsId(); } catch(e) { wsId = null; }
+  if (!wsId) { console.warn('[CM] wsId not ready'); return; }
 
-  const [membrosRes, appsRes] = await Promise.all([
-    sb.from('cm_members').select('*').eq('workspace_id',wsId).order('created_at',{ascending:false}),
-    sb.from('cm_member_applications').select('*, crie_app_users(name,email)').eq('workspace_id',wsId).eq('status','pending').order('created_at',{ascending:false})
+  const [membrosRes, appsRes, billsRes] = await Promise.all([
+    sb.from('cm_members').select('*').eq('workspace_id',wsId).order('name',{ascending:true}),
+    sb.from('cm_member_applications').select('*, crie_app_users(name,email)').eq('workspace_id',wsId).eq('status','pending').order('created_at',{ascending:false}),
+    sb.from('cm_member_bills').select('member_id, status').eq('workspace_id',wsId).in('status',['pending','overdue'])
   ]);
   window._cmMembers = membrosRes.data || [];
   const apps = appsRes.data || [];
+
+  // Build overdue set: member IDs with any unpaid bill
+  const overdueIds = new Set((billsRes.data || []).map(b => b.member_id));
+  window._cmOverdueIds = overdueIds;
 
   // KPIs
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   const ativos = window._cmMembers.filter(m=>m.status==='ativo');
   setEl('cm-membros-kpi-total', window._cmMembers.length);
   setEl('cm-membros-kpi-ativas', ativos.length);
-  const feeMod = window._cmSettings?.membership_fee || 0;
+  const feeMod = (window._cmSettings && window._cmSettings.membership_fee) || 0;
   setEl('cm-membros-kpi-mensalidade', feeMod > 0 ? cmFmt(feeMod * ativos.length) : '—');
+  // Overdue KPI
+  const overdueCount = ativos.filter(m => overdueIds.has(m.id)).length;
+  setEl('cm-membros-kpi-overdue', overdueCount > 0 ? overdueCount : '0');
+  const overdueKpiEl = document.getElementById('cm-membros-kpi-overdue');
+  if (overdueKpiEl) overdueKpiEl.style.color = overdueCount > 0 ? '#f87171' : '#4ade80';
 
   updateCmMembersBadge(apps.length);
   renderCmPendingApps(apps);
@@ -1011,26 +1023,68 @@ function renderCmPendingApps(apps) {
 function renderCmMembros(members) {
   const grid = document.getElementById('cm-membros-grid');
   if (!grid) return;
+
+  const ativos  = members.filter(function(m){ return m.status === 'ativo'; });
+  const inativos = members.filter(function(m){ return m.status !== 'ativo'; });
+
+  function buildCard(m) {
+    var initials    = (m.name||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+    var overdueIds  = window._cmOverdueIds || new Set();
+    var hasOverdue  = overdueIds.has(m.id);
+    var payDot      = hasOverdue
+      ? '<span title="Faturas em atraso" style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block;flex-shrink:0;"></span>'
+      : '<span title="Pagamentos em dia" style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;flex-shrink:0;"></span>';
+    var fee         = m.monthly_fee || ((window._cmSettings && window._cmSettings.membership_fee) || 0);
+    var sym         = window._crieDefaultCurrencySymbol || '$';
+    var feeStr      = fee > 0 ? sym + Number(fee).toFixed(2) + '/mês' : '';
+    var sinceStr    = '';
+    if (m.member_since) {
+      var sd = new Date(m.member_since + 'T12:00:00');
+      sinceStr = 'Membro desde ' + sd.toLocaleDateString('pt-BR', {month:'short', year:'numeric'});
+    }
+    var phoneClean = (m.phone||'').replace(/\D/g,'');
+    var waLink = phoneClean ? 'https://wa.me/' + phoneClean : null;
+    var statusColor = m.status === 'ativo' ? '#34d399' : '#f87171';
+    return '<div class="hub-announcement-card" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onclick="openCmMemberDrawer('' + m.id + '')"'
+      + ' onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(214,51,108,.12)'"'
+      + ' onmouseout="this.style.transform='';this.style.boxShadow=''">'
+      + '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">'
+      +   '<div style="position:relative;flex-shrink:0;">'
+      +     '<div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:' + CM_ROSE + ';font-size:1rem;">' + initials + '</div>'
+      +     '<div style="position:absolute;bottom:0;right:0;">' + payDot + '</div>'
+      +   '</div>'
+      +   '<div style="flex:1;min-width:0;">'
+      +     '<div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (m.name||'—') + '</div>'
+      +     '<div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">' + (sinceStr || m.company || m.industry || feeStr || 'Membra') + '</div>'
+      +   '</div>'
+      +   '<span style="background:' + (m.status==='ativo'?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)') + ';color:' + statusColor + ';border:1px solid ' + statusColor + '44;padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">' + (m.status||'').toUpperCase() + '</span>'
+      + '</div>'
+      + '<div style="font-size:.75rem;color:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:4px;">'
+      +   '<span>📧 ' + (m.email||'—') + '</span>'
+      +   '<span style="display:flex;align-items:center;gap:6px;">📞 ' + (m.phone||'—') + (waLink ? '<a href="' + waLink + '" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>' : '') + '</span>'
+      +   (feeStr ? '<span>💳 ' + feeStr + '</span>' : '')
+      + '</div>'
+      + '<div style="margin-top:14px;display:flex;gap:8px;">'
+      +   '<button onclick="event.stopPropagation();openCmMemberDrawer('' + m.id + '')" style="flex:1;padding:8px;background:rgba(214,51,108,.08);border:1px solid rgba(214,51,108,.2);border-radius:10px;color:' + CM_ROSE + ';font-size:.72rem;font-weight:700;cursor:pointer;">✏️ Editar</button>'
+      +   '<button onclick="event.stopPropagation();toggleCmMemberStatus('' + m.id + '','' + (m.status==='ativo'?'inativo':'ativo') + '')" style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:.72rem;cursor:pointer;" title="' + (m.status==='ativo'?'Desativar':'Reativar') + '">' + (m.status==='ativo'?'⏸':'▶') + '</button>'
+      +   '<button onclick="event.stopPropagation();deleteCmMembro('' + m.id + '')" style="padding:8px 12px;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.15);border-radius:10px;color:#f87171;font-size:.72rem;cursor:pointer;">✕</button>'
+      + '</div>'
+      + '</div>';
+  }
+
   if (!members.length) {
     grid.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhuma membra cadastrada</div>';
     return;
   }
-  grid.innerHTML = members.map(m => {
-    const statusColor = m.status==='ativo'?'#34d399':'#f87171';
-    const fee = m.monthly_fee || window._cmSettings?.membership_fee || 0;
-    return `<div style="background:rgba(255,255,255,.02);border:1px solid rgba(214,51,108,.1);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;cursor:pointer;" onclick="openCmMemberDrawer('${m.id}')">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:42px;height:42px;border-radius:50%;background:rgba(214,51,108,.12);border:2px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;">${(m.name||'?').charAt(0).toUpperCase()}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
-          <div style="font-size:.72rem;color:rgba(255,255,255,.35);">${m.email||m.phone||'—'}</div>
-          ${m.company?`<div style="font-size:.7rem;color:rgba(255,255,255,.25);">${m.company}</div>`:''}
-        </div>
-        <span style="font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:20px;background:${m.status==='ativo'?'rgba(52,211,153,.12)':'rgba(248,113,113,.1)'};color:${statusColor};">${m.status}</span>
-      </div>
-      ${fee>0?`<div style="font-size:.75rem;color:rgba(255,255,255,.35);">Mensalidade: <span style="color:${CM_ROSE};font-weight:700;">${cmFmt(fee)}</span></div>`:''}
-    </div>`;
-  }).join('');
+
+  var html = ativos.length ? ativos.map(buildCard).join('') : '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhuma membra ativa</div>';
+
+  if (inativos.length) {
+    html += '<div style="grid-column:1/-1;margin-top:24px;font-size:.68rem;font-weight:800;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;">Membras Inativas (' + inativos.length + ')</div>';
+    html += inativos.map(buildCard).join('');
+  }
+
+  grid.innerHTML = html;
 }
 
 // ── Member Drawer (#17) ───────────────────────────────────

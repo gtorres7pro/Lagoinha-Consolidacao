@@ -5956,12 +5956,26 @@ async function loadCrieMembros() {
     const wsId = getCrieWorkspaceId();
     if (!wsId) return;
     const sb = window.supabaseClient;
-    const { data } = await sb
-        .from('crie_members')
-        .select('*')
-        .eq('workspace_id', wsId)
-        .order('name');
-    crieMembros = data || [];
+
+    const [membrosRes, billsRes] = await Promise.all([
+        sb.from('crie_members').select('*').eq('workspace_id', wsId).order('name'),
+        sb.from('crie_member_bills').select('member_id,status').eq('workspace_id', wsId).in('status', ['pending','overdue'])
+    ]);
+    crieMembros = membrosRes.data || [];
+
+    // Build overdue set
+    window._crieOverdueIds = new Set((billsRes.data || []).map(b => b.member_id));
+
+    // KPIs
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const ativos = crieMembros.filter(m => m.status === 'Ativo');
+    const overdueCount = ativos.filter(m => window._crieOverdueIds.has(m.id)).length;
+    setEl('crie-membros-kpi-total',  crieMembros.length);
+    setEl('crie-membros-kpi-ativos', ativos.length);
+    setEl('crie-membros-kpi-overdue', overdueCount);
+    const overdueEl = document.getElementById('crie-membros-kpi-overdue');
+    if (overdueEl) overdueEl.style.color = overdueCount > 0 ? '#f87171' : '#4ade80';
+
     renderCrieMembros(crieMembros);
 }
 
@@ -5977,45 +5991,67 @@ function filterCrieMembros() {
 function renderCrieMembros(list) {
     const grid = document.getElementById('crie-membros-grid');
     if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = '<div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">Nenhum membro encontrado.</div>';
-        return;
-    }
-    grid.innerHTML = list.map(m => {
-        const initials = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+
+    const ativos   = list.filter(m => m.status === 'Ativo');
+    const inativos = list.filter(m => m.status !== 'Ativo');
+    const overdueIds = window._crieOverdueIds || new Set();
+
+    function buildCard(m) {
+        const initials    = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
         const statusColor = m.status === 'Ativo' ? '#4ade80' : '#f87171';
-        const phoneClean = (m.phone || '').replace(/\D/g, '');
-        const waLink = phoneClean ? `https://wa.me/${phoneClean}` : null;
-        const currSym = window._crieDefaultCurrencySymbol || '$';
-        const feeStr = m.monthly_fee > 0 ? `${currSym}${Number(m.monthly_fee).toFixed(2)}/mês` : '';
+        const phoneClean  = (m.phone || '').replace(/\D/g, '');
+        const waLink      = phoneClean ? `https://wa.me/${phoneClean}` : null;
+        const currSym     = window._crieDefaultCurrencySymbol || '$';
+        const feeStr      = m.monthly_fee > 0 ? `${currSym}${Number(m.monthly_fee).toFixed(2)}/mês` : '';
+        const hasOverdue  = overdueIds.has(m.id);
+        const payDot      = `<span title="${hasOverdue ? 'Faturas em atraso' : 'Pagamentos em dia'}" style="position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:${hasOverdue ? '#f87171' : '#4ade80'};border:2px solid #0d0f15;"></span>`;
+        const sinceStr    = m.member_since
+            ? 'Membro desde ' + new Date(m.member_since + 'T12:00:00').toLocaleDateString('pt-BR', {month:'short',year:'numeric'})
+            : '';
+        const isActive    = m.status === 'Ativo';
         return `
-        <div class="hub-announcement-card" style="cursor:pointer; transition:transform .15s,box-shadow .15s;" onclick="openMembroDrawer('${m.id}')"
+        <div class="hub-announcement-card" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onclick="openMembroDrawer('${m.id}')"
              onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 30px rgba(245,158,11,.12)'"
              onmouseout="this.style.transform='';this.style.boxShadow=''">
-            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
-                <div style="width:44px; height:44px; border-radius:50%; background:rgba(245,158,11,.15); border:1px solid rgba(245,158,11,.3); display:flex; align-items:center; justify-content:center; font-weight:900; color:#F59E0B; font-size:1rem; flex-shrink:0;">${initials}</div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:800; color:#fff; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}</div>
-                    <div style="font-size:.72rem; color:rgba(255,255,255,.4); margin-top:2px;">${m.company || m.industry || (feeStr ? feeStr : 'Membro')}</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+                <div style="position:relative;flex-shrink:0;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:#F59E0B;font-size:1rem;">${initials}</div>
+                    ${payDot}
                 </div>
-                <span style="background:${m.status==='Ativo'?'rgba(74,222,128,.12)':'rgba(248,113,113,.12)'}; color:${statusColor}; border:1px solid ${statusColor}44; padding:3px 8px; border-radius:6px; font-size:.68rem; font-weight:700;">${m.status.toUpperCase()}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">${sinceStr || m.company || m.industry || feeStr || 'Membro'}</div>
+                </div>
+                <span style="background:${isActive?'rgba(74,222,128,.12)':'rgba(248,113,113,.12)'};color:${statusColor};border:1px solid ${statusColor}44;padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">${m.status.toUpperCase()}</span>
             </div>
-            <div style="font-size:.75rem; color:rgba(255,255,255,.4); display:flex; flex-direction:column; gap:4px;">
+            <div style="font-size:.75rem;color:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:4px;">
                 <span>📧 ${m.email || '—'}</span>
-                <span style="display:flex;align-items:center;gap:6px;">
-                    📞 ${m.phone || '—'}
-                    ${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}
-                </span>
+                <span style="display:flex;align-items:center;gap:6px;">📞 ${m.phone || '—'}${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}</span>
                 ${feeStr ? `<span>💳 ${feeStr}</span>` : ''}
             </div>
-            <div style="margin-top:14px; display:flex; gap:8px;">
-                <button onclick="event.stopPropagation();openMembroDrawer('${m.id}')" style="flex:1; padding:8px; background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.2); border-radius:10px; color:#FFD700; font-size:.72rem; font-weight:700; cursor:pointer;">
-                    ✏️ Editar
-                </button>
-                <button onclick="event.stopPropagation();deleteCrieMembro('${m.id}')" style="padding:8px 12px; background:rgba(255,100,100,.08); border:1px solid rgba(255,100,100,.15); border-radius:10px; color:#f87171; font-size:.72rem; cursor:pointer;">✕</button>
+            <div style="margin-top:14px;display:flex;gap:8px;">
+                <button onclick="event.stopPropagation();openMembroDrawer('${m.id}')" style="flex:1;padding:8px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:10px;color:#FFD700;font-size:.72rem;font-weight:700;cursor:pointer;">✏️ Editar</button>
+                <button onclick="event.stopPropagation();toggleCrieMembroStatus('${m.id}','${isActive?'Inativo':'Ativo'}')" style="padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.5);font-size:.72rem;cursor:pointer;" title="${isActive?'Desativar':'Reativar'}">${isActive?'⏸':'▶'}</button>
+                <button onclick="event.stopPropagation();deleteCrieMembro('${m.id}')" style="padding:8px 12px;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.15);border-radius:10px;color:#f87171;font-size:.72rem;cursor:pointer;">✕</button>
             </div>
         </div>`;
-    }).join('');
+    }
+
+    if (!list.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);grid-column:1/-1;">Nenhum membro encontrado.</div>';
+        return;
+    }
+
+    let html = ativos.length
+        ? ativos.map(buildCard).join('')
+        : '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.2);grid-column:1/-1;font-size:.82rem;">Nenhum membro ativo.</div>';
+
+    if (inativos.length) {
+        html += `<div style="grid-column:1/-1;margin-top:24px;font-size:.68rem;font-weight:800;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.1em;">Membros Inativos (${inativos.length})</div>`;
+        html += inativos.map(buildCard).join('');
+    }
+
+    grid.innerHTML = html;
 }
 
 // ─── Member Drawer State ──────────────────────────────────────
@@ -6393,13 +6429,13 @@ async function saveCrieMembro(e) {
 }
 
 
-async function toggleCrieMembroStatus(id, current) {
-    const next = current === 'Ativo' ? 'Inativo' : 'Ativo';
+async function toggleCrieMembroStatus(id, targetStatus) {
     const sb = window.supabaseClient;
-    await sb.from('crie_members').update({ status: next }).eq('id', id);
+    await sb.from('crie_members').update({ status: targetStatus }).eq('id', id);
     const idx = crieMembros.findIndex(m => m.id === id);
-    if (idx !== -1) crieMembros[idx].status = next;
+    if (idx !== -1) crieMembros[idx].status = targetStatus;
     renderCrieMembros(crieMembros);
+    if (window.hubToast) hubToast(targetStatus === 'Ativo' ? 'Membro reativado ✅' : 'Membro desativado ⏸', 'info');
 }
 
 async function deleteCrieMembro(id) {

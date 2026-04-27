@@ -5214,6 +5214,7 @@ graph TD
                 <div class="kpi-box"><p class="kpi-label">Total</p><p class="kpi-value" id="cm-membros-kpi-total">–</p></div>
                 <div class="kpi-box" style="border-color:rgba(52,211,153,.25);"><p class="kpi-label">Ativas</p><p class="kpi-value" id="cm-membros-kpi-ativas" style="color:#34d399;">–</p></div>
                 <div class="kpi-box" style="border-color:rgba(214,51,108,.25);"><p class="kpi-label">Receita Est.</p><p class="kpi-value" id="cm-membros-kpi-mensalidade" style="color:#d6336c;">–</p></div>
+                <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Em Atraso</p><p class="kpi-value" id="cm-membros-kpi-overdue" style="color:#4ade80;">0</p></div>
             </div>
             <div id="cm-pending-apps-banner" style="display:none;margin:16px 24px 0;padding:16px 20px;background:rgba(214,51,108,.06);border:1px solid rgba(214,51,108,.2);border-radius:14px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -5946,7 +5947,13 @@ graph TD
                 </div>
                 <div id="pending-apps-list" style="display:none;flex-direction:column;gap:10px;"></div>
             </div>
-            <div style="padding:0 24px 24px; margin-top:20px;">
+            <div style="padding:0 24px 24px;margin-top:20px;">
+                <!-- CRIE Membros KPIs -->
+                <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">
+                    <div class="kpi-box"><p class="kpi-label">Total Membros</p><p class="kpi-value" id="crie-membros-kpi-total" style="color:#FFD700;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(74,222,128,.25);"><p class="kpi-label">Ativos</p><p class="kpi-value" id="crie-membros-kpi-ativos" style="color:#4ade80;">–</p></div>
+                    <div class="kpi-box" style="border-color:rgba(248,113,113,.25);"><p class="kpi-label">Em Atraso</p><p class="kpi-value" id="crie-membros-kpi-overdue" style="color:#4ade80;">0</p></div>
+                </div>
                 <input id="crie-membro-search" type="text" placeholder="Buscar membro…" oninput="filterCrieMembros()" style="width:100%; max-width:400px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 16px; color:#fff; font-size:.84rem; outline:none; margin-bottom:20px;">
                 <div id="crie-membros-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
                     <div style="text-align:center; padding:40px; color:rgba(255,255,255,.3); grid-column:1/-1;">A carregar membros…</div>
