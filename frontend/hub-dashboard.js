@@ -588,14 +588,16 @@
             list.innerHTML = '';
             // Always read from global (not stale closure copy)
             const allWs = window._allWorkspaces || [];
-            if (allWs.length === 0) {
+            // Filter out inactive workspaces
+            const activeWs = allWs.filter(w => w.status !== 'inactive');
+            if (activeWs.length === 0) {
                 list.innerHTML = '<div style="padding:12px 14px;color:#555;font-size:0.8rem;">Nenhum workspace disponível</div>';
                 return;
             }
             // Pin Demo Beta first, then sort the rest alphabetically
             const DEMO_BETA_ID = 'dddddddd-0001-0001-0001-000000000001';
-            const demoBeta = allWs.find(w => w.id === DEMO_BETA_ID);
-            const others = allWs
+            const demoBeta = activeWs.find(w => w.id === DEMO_BETA_ID);
+            const others = activeWs
                 .filter(w => w.id !== DEMO_BETA_ID)
                 .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
             const sorted = demoBeta ? [demoBeta, ...others] : others;
@@ -603,13 +605,21 @@
                 const isActive = ws.id === window.currentWorkspaceId;
                 const div = document.createElement('div');
                 div.className = 'ws-option' + (isActive ? ' active' : '');
+                div.setAttribute('data-ws-id', ws.id);
+                div.style.cursor = 'pointer';
                 div.innerHTML = `
                     <div class="ws-option-dot"></div>
                     <div>
                         <div class="ws-option-name">${ws.name}</div>
                         <div class="ws-option-badge">${ws.slug || ws.status || 'active'}</div>
                     </div>`;
-                div.onclick = (e) => { e.stopPropagation(); console.log('[WS-CLICK] clicked ws:', ws?.name, 'slug:', ws?.slug, 'id:', ws?.id); switchWorkspace(ws); };
+                // Use a simple onclick attribute-style handler referencing a global
+                div.onclick = function(e) {
+                    e.stopPropagation();
+                    const wsId = this.getAttribute('data-ws-id');
+                    console.log('[WS-CLICK] id:', wsId, 'name:', this.querySelector('.ws-option-name')?.textContent);
+                    window._switchWsById(wsId);
+                };
                 list.appendChild(div);
             });
         }
@@ -679,9 +689,11 @@
 
         // Helper: switch workspace by ID only (for onclick buttons in templates)
         window._switchWsById = function(wsId) {
+            console.log('[WS-BY-ID] called with:', wsId, '_allWorkspaces count:', (window._allWorkspaces||[]).length);
             // Always use global array (not stale closure)
             const allWs = window._allWorkspaces || [];
             const ws = allWs.find(w => w.id === wsId);
+            console.log('[WS-BY-ID] found ws:', ws?.name, ws?.slug);
             if (ws) {
                 window.switchWorkspace(ws);
             } else {
