@@ -14412,32 +14412,41 @@ async function reviewApplication(newStatus) {
             source:       'app',
         }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
 
-        // Fire-and-forget PDF generation (non-blocking)
-        showHubToast('📄 Gerando PDF da aplicação…', 'info');
+        // Fire-and-forget: PDF generation → welcome email chain
+        showHubToast('📄 Gerando PDF e enviando boas-vindas…', 'info');
         (async function() {
             try {
                 const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
                 const { data: { session } } = await supabase.auth.getSession();
-                const res = await fetch(EDGE + '/crie-generate-application-pdf', {
+                const token = session?.access_token || '';
+
+                // Step 1: Generate PDF
+                const pdfRes = await fetch(EDGE + '/crie-generate-application-pdf', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + (session?.access_token || ''),
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify({ application_id: appId }),
                 });
-                const json = await res.json();
-                if (json.pdf_url) {
-                    // Cache URL in local app object
-                    app.pdf_url = json.pdf_url;
-                    showHubToast('📄 PDF gerado! <a href="' + json.pdf_url + '" target="_blank" style="color:#FFD700;font-weight:700;margin-left:6px;">Abrir →</a>', 'success');
-                    // Update any open card
+                const pdfJson = await pdfRes.json();
+                const generatedPdfUrl = pdfJson.pdf_url || null;
+
+                if (generatedPdfUrl) {
+                    app.pdf_url = generatedPdfUrl;
+                    showHubToast('📄 PDF gerado com sucesso!', 'success');
                     renderCrieAppsList(window._crieApps);
-                } else {
-                    console.warn('PDF generation error:', json.error);
+                }
+
+                // Step 2: Send welcome email (with or without PDF)
+                const emailRes = await fetch(EDGE + '/crie-member-welcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ application_id: appId, pdf_url: generatedPdfUrl }),
+                });
+                const emailJson = await emailRes.json();
+                if (emailJson.ok) {
+                    showHubToast('✉️ Email de boas-vindas enviado para ' + (emailJson.email || app.email), 'success');
                 }
             } catch(e) {
-                console.warn('PDF generation failed:', e.message);
+                console.warn('PDF/email chain error:', e.message);
             }
         })();
     }
