@@ -14150,3 +14150,268 @@ function initCustomizacoes() {
         if (_prev) _prev(tab);
     };
 })();
+
+// ════════════════════════════════════════════════════════════════════
+// CRIE Applications Review Queue
+// ════════════════════════════════════════════════════════════════════
+window._crieApps       = [];
+window._crieAppsAll    = [];
+window._activeAppId    = null;
+
+// ── Tab switcher (Membros / Aplicações) ──────────────────────────
+function switchCrieMembrosTab(tab, btn) {
+    document.getElementById('crie-pane-members').style.display = tab === 'members' ? '' : 'none';
+    document.getElementById('crie-pane-apps').style.display    = tab === 'apps'    ? '' : 'none';
+    document.querySelectorAll('#view-crie-membros [id^="crie-membros-tab-"]').forEach(b => {
+        b.style.borderBottomColor = 'transparent';
+        b.style.color = 'rgba(255,255,255,.4)';
+    });
+    if (btn) { btn.style.borderBottomColor = '#F59E0B'; btn.style.color = '#F59E0B'; }
+    if (tab === 'apps' && !window._crieAppsAll.length) loadCrieApplications();
+}
+
+// ── Load all applications ─────────────────────────────────────────
+async function loadCrieApplications() {
+    const wsId = window._currentWorkspaceId;
+    if (!wsId) return;
+    const { data, error } = await supabase
+        .from('crie_member_applications_v2')
+        .select('id, full_name, email, phone_mobile, status, module, owns_company, companies, is_lagoinha_member, is_baptized, attended_crie, sponsor_name, signature_url, signed_at, created_at, reviewed_at, reviewed_by, rejection_reason')
+        .eq('workspace_id', wsId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+    if (error) { console.error('loadCrieApplications:', error.message); return; }
+    window._crieAppsAll = data || [];
+    window._crieApps    = [...window._crieAppsAll];
+    renderCrieAppsKpis();
+    renderCrieAppsList(window._crieApps);
+    updateCrieAppsTabBadge();
+}
+
+function updateCrieAppsTabBadge() {
+    const pending = window._crieAppsAll.filter(a => a.status === 'pending').length;
+    const badge = document.getElementById('crie-apps-tab-badge');
+    if (!badge) return;
+    badge.style.display = pending > 0 ? '' : 'none';
+    badge.textContent   = pending;
+}
+
+function renderCrieAppsKpis() {
+    const all      = window._crieAppsAll;
+    const pending  = all.filter(a => a.status === 'pending').length;
+    const approved = all.filter(a => a.status === 'approved').length;
+    const rejected = all.filter(a => a.status === 'rejected').length;
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    set('crie-apps-kpi-total',    all.length);
+    set('crie-apps-kpi-pending',  pending);
+    set('crie-apps-kpi-approved', approved);
+    set('crie-apps-kpi-rejected', rejected);
+}
+
+function filterCrieApps() {
+    const q      = (document.getElementById('crie-apps-search')?.value || '').toLowerCase();
+    const status = document.getElementById('crie-apps-filter-status')?.value || 'all';
+    window._crieApps = window._crieAppsAll.filter(a => {
+        const matchQ = !q || (a.full_name||'').toLowerCase().includes(q) || (a.email||'').toLowerCase().includes(q);
+        const matchS = status === 'all' || a.status === status;
+        return matchQ && matchS;
+    });
+    renderCrieAppsList(window._crieApps);
+}
+
+function renderCrieAppsList(list) {
+    const el = document.getElementById('crie-apps-list');
+    if (!el) return;
+    if (!list.length) {
+        el.innerHTML = '<div style="text-align:center;padding:50px;color:rgba(255,255,255,.25);">Nenhuma aplicação encontrada.</div>';
+        return;
+    }
+    const statusCfg = {
+        pending:  { label:'Pendente',  bg:'rgba(251,191,36,.1)',  border:'rgba(251,191,36,.25)',  color:'#FBBF24' },
+        approved: { label:'Aprovada',  bg:'rgba(74,222,128,.07)', border:'rgba(74,222,128,.2)',   color:'#4ade80' },
+        rejected: { label:'Rejeitada', bg:'rgba(248,113,113,.07)',border:'rgba(248,113,113,.2)',  color:'#F87171' },
+    };
+    el.innerHTML = list.map(app => {
+        const s   = statusCfg[app.status] || statusCfg.pending;
+        const dt  = app.created_at ? new Date(app.created_at).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+        const init = (app.full_name||'?').charAt(0).toUpperCase();
+        const co1  = app.companies?.[0]?.name || null;
+        const moduleLabel = app.module === 'cm' ? '👑 C* Mulheres' : '⭐ CRIE';
+        return `<div onclick="openAppDrawer('${app.id}')" style="display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:18px 20px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='rgba(255,255,255,.03)'">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,.1);border:2px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:#F59E0B;font-size:1rem;flex-shrink:0;">${init}</div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:.92rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app.full_name || '—'}</div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">${app.email||''} ${co1 ? '· '+co1 : ''}</div>
+                <div style="font-size:.68rem;color:rgba(255,255,255,.3);margin-top:3px;">${moduleLabel} · ${dt}</div>
+            </div>
+            <div style="background:${s.bg};border:1px solid ${s.border};color:${s.color};font-size:.65rem;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">${s.label}</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        </div>`;
+    }).join('');
+}
+
+// ── Drawer open / close ───────────────────────────────────────────
+function openAppDrawer(appId) {
+    const app = window._crieAppsAll.find(a => a.id === appId);
+    if (!app) return;
+    window._activeAppId = appId;
+
+    // Header
+    const init = (app.full_name||'?').charAt(0).toUpperCase();
+    document.getElementById('app-drawer-avatar').textContent  = init;
+    document.getElementById('app-drawer-name').textContent    = app.full_name || '—';
+    const dt = app.created_at ? new Date(app.created_at).toLocaleDateString('pt-PT', { day:'2-digit', month:'long', year:'numeric' }) : '—';
+    document.getElementById('app-drawer-meta').textContent    = `Aplicado em ${dt}`;
+
+    const statusCfg = {
+        pending:  { label:'Pendente',  bg:'rgba(251,191,36,.15)',  color:'#FBBF24' },
+        approved: { label:'Aprovada',  bg:'rgba(74,222,128,.15)',  color:'#4ade80' },
+        rejected: { label:'Rejeitada', bg:'rgba(248,113,113,.15)', color:'#F87171' },
+    };
+    const s = statusCfg[app.status] || statusCfg.pending;
+    const pill = document.getElementById('app-drawer-status-pill');
+    pill.textContent        = s.label;
+    pill.style.background   = s.bg;
+    pill.style.color        = s.color;
+
+    // Body
+    const bool = v => v ? '✅ Sim' : '❌ Não';
+    const companies = (app.companies || []).map((co, i) => `
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:10px;">
+            <div style="font-size:.72rem;font-weight:800;color:#F59E0B;margin-bottom:10px;">Empresa ${i+1}</div>
+            ${co.name ? `<div style="font-size:.82rem;font-weight:700;color:#fff;margin-bottom:4px;">${co.name}${co.trade ? ' · '+co.trade : ''}</div>` : ''}
+            ${co.role ? `<div style="font-size:.75rem;color:rgba(255,255,255,.5);">Cargo: ${co.role}</div>` : ''}
+            ${co.industry ? `<div style="font-size:.75rem;color:rgba(255,255,255,.5);">Ramo: ${co.industry}</div>` : ''}
+            ${co.website ? `<div style="font-size:.75rem;color:rgba(255,255,255,.5);"><a href="${co.website}" target="_blank" style="color:#60a5fa;">${co.website}</a></div>` : ''}
+            ${co.instagram ? `<div style="font-size:.75rem;color:rgba(255,255,255,.5);">Instagram: ${co.instagram}</div>` : ''}
+            ${co.city ? `<div style="font-size:.75rem;color:rgba(255,255,255,.5);">${co.city}${co.state ? ', '+co.state : ''}</div>` : ''}
+            ${co.description ? `<div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px;line-height:1.5;">${co.description}</div>` : ''}
+        </div>`).join('');
+
+    const sigBlock = app.signature_url
+        ? `<div style="margin-top:18px;"><div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Assinatura Digital</div>
+            <div style="background:rgba(255,255,255,.97);border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:center;">
+                <img src="https://uyseheucqikgcorrygzc.supabase.co/storage/v1/object/sign/crie-member-signatures/${app.signature_url}?token=placeholder" style="max-width:100%;max-height:120px;object-fit:contain;border-radius:8px;" onerror="this.parentElement.innerHTML='<span style=color:#999;font-size:.78rem;>Assinatura capturada</span>'">
+            </div>
+           </div>`
+        : '';
+
+    const reviewedBlock = app.status !== 'pending'
+        ? `<div style="margin-top:18px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;font-size:.78rem;color:rgba(255,255,255,.5);">
+            Revisada em ${app.reviewed_at ? new Date(app.reviewed_at).toLocaleDateString('pt-PT') : '—'}
+            ${app.rejection_reason ? `<div style="margin-top:8px;color:#F87171;">Motivo: ${app.rejection_reason}</div>` : ''}
+           </div>` : '';
+
+    document.getElementById('app-drawer-body').innerHTML = `
+        <!-- Contact -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+            ${field('Email', app.email)}
+            ${field('Celular', app.phone_mobile)}
+            ${field('Membro Lagoinha?', bool(app.is_lagoinha_member))}
+            ${field('Batizado?', bool(app.is_baptized))}
+            ${field('Participou do CRIE?', bool(app.attended_crie))}
+            ${app.sponsor_name ? field('Sponsor', app.sponsor_name) : ''}
+        </div>
+        <!-- Companies -->
+        ${companies ? `<div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Empresa(s)</div>${companies}` : ''}
+        <!-- Signature -->
+        ${sigBlock}
+        <!-- Review info -->
+        ${reviewedBlock}
+    `;
+
+    // Show/hide action buttons
+    const actionsEl = document.getElementById('app-drawer-actions');
+    if (actionsEl) actionsEl.style.display = app.status === 'pending' ? 'flex' : 'none';
+
+    // Open drawer
+    document.getElementById('app-drawer-overlay').style.display = '';
+    const drawer = document.getElementById('app-drawer');
+    drawer.style.display = 'flex';
+    drawer.scrollTop = 0;
+}
+
+function field(label, value) {
+    return `<div><div style="font-size:.68rem;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${label}</div><div style="font-size:.85rem;color:#fff;font-weight:600;">${value||'—'}</div></div>`;
+}
+
+function closeAppDrawer() {
+    document.getElementById('app-drawer-overlay').style.display = 'none';
+    document.getElementById('app-drawer').style.display = 'none';
+    window._activeAppId = null;
+}
+
+// ── Approve / Reject ──────────────────────────────────────────────
+async function reviewApplication(newStatus) {
+    const appId = window._activeAppId;
+    if (!appId) return;
+    const app = window._crieAppsAll.find(a => a.id === appId);
+    if (!app) return;
+
+    let rejection_reason = null;
+    if (newStatus === 'rejected') {
+        rejection_reason = prompt('Motivo da rejeição (opcional):');
+    }
+
+    const { error } = await supabase
+        .from('crie_member_applications_v2')
+        .update({
+            status:           newStatus,
+            reviewed_at:      new Date().toISOString(),
+            rejection_reason: rejection_reason || null,
+        })
+        .eq('id', appId);
+
+    if (error) { showHubToast('❌ ' + error.message, 'error'); return; }
+
+    // If approved → auto-create crie_members row
+    if (newStatus === 'approved') {
+        const wsId = window._currentWorkspaceId;
+        const table = app.module === 'cm' ? 'cm_members' : 'crie_members';
+        await supabase.from(table).upsert({
+            workspace_id: wsId,
+            name:         app.full_name,
+            email:        app.email,
+            phone:        app.phone_mobile,
+            app_user_id:  app.app_user_id || null,
+            status:       'ativo',
+            source:       'app',
+        }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
+    }
+
+    // Update local cache
+    app.status = newStatus;
+    app.reviewed_at = new Date().toISOString();
+    if (rejection_reason) app.rejection_reason = rejection_reason;
+
+    closeAppDrawer();
+    renderCrieAppsKpis();
+    renderCrieAppsList(window._crieApps);
+    filterCrieApps();
+    updateCrieAppsTabBadge();
+    updateNavBadge();
+
+    const label = newStatus === 'approved' ? '✅ Aplicação aprovada!' : '❌ Aplicação rejeitada.';
+    showHubToast(label, newStatus === 'approved' ? 'success' : 'error');
+}
+
+function updateNavBadge() {
+    const pending = window._crieAppsAll.filter(a => a.status === 'pending').length;
+    const badge   = document.getElementById('nav-membros-badge');
+    if (!badge) return;
+    badge.style.display = pending > 0 ? '' : 'none';
+    badge.textContent   = pending;
+}
+
+// ── Patch switchTab for crie-membros to also load apps count ─────
+(function() {
+    const _prevST = window.switchTab;
+    window.switchTab = function(tab) {
+        if (tab === 'crie-membros') {
+            if (typeof loadCrieApplications === 'function') {
+                setTimeout(function() { loadCrieApplications(); }, 300);
+            }
+        }
+        if (_prevST) _prevST(tab);
+    };
+})();
