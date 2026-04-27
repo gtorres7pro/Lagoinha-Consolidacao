@@ -1113,24 +1113,75 @@ window.saveCmMemberDetails = async function() {
 
 async function loadCmMemberPayments(memberId) {
   const sb = cmSb(); const wsId = await cmWsId();
-  const { data } = await sb.from('cm_membership_payments')
+  const sym = window._crieDefaultCurrencySymbol || '$';
+
+  const { data } = await sb.from('cm_member_bills')
     .select('*').eq('workspace_id', wsId).eq('member_id', memberId)
-    .order('created_at', { ascending: false });
-  const rows = data || [];
-  const container = document.getElementById('cm-mpanel-mensalidades');
-  if (!container) return;
-  const payColor = { paid:'#34d399', pending:'#fbbf24', failed:'#f87171' };
-  const html = rows.length ? rows.map(p => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;margin-bottom:8px;">
-      <div>
-        <div style="font-size:.84rem;color:#fff;font-weight:700;">${cmFmt(p.amount)} <span style="font-size:.72rem;color:rgba(255,255,255,.35);">${p.currency||'BRL'}</span></div>
-        <div style="font-size:.72rem;color:rgba(255,255,255,.35);">${cmDateStr(p.paid_at||p.created_at)}</div>
-      </div>
-      <span style="font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;background:${payColor[p.status]||'#999'}18;color:${payColor[p.status]||'#999'};">${p.status}</span>
-    </div>`).join('') : '<div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);">Nenhum pagamento registrado</div>';
-  // Only replace the list part, keep the header
+    .order('reference_month', { ascending: false });
+  const bills = data || [];
+
+  const totalBilled = bills.reduce((s, b) => s + (b.amount || 0), 0);
+  const totalPaid   = bills.filter(b => b.status === 'paid').reduce((s, b) => s + (b.amount || 0), 0);
+  const balance     = totalBilled - totalPaid;
+
+  const billedEl  = document.getElementById('cm-mdr-total-billed');
+  const paidEl    = document.getElementById('cm-mdr-total-paid');
+  const balanceEl = document.getElementById('cm-mdr-balance');
+  if (billedEl)  billedEl.textContent  = sym + totalBilled.toFixed(2);
+  if (paidEl)    paidEl.textContent    = sym + totalPaid.toFixed(2);
+  if (balanceEl) {
+    balanceEl.textContent = sym + balance.toFixed(2);
+    balanceEl.style.color = balance <= 0 ? '#4ade80' : '#fbbf24';
+  }
+
   const listEl = document.getElementById('cm-mpayments-list');
-  if (listEl) listEl.innerHTML = html;
+  if (!listEl) return;
+
+  if (!bills.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.2);padding:20px;font-size:.82rem;">Nenhuma cobranca registada.</div>';
+    return;
+  }
+
+  const byYear = {};
+  bills.forEach(function(b) {
+    const yr = b.reference_month ? b.reference_month.substring(0, 4) : '-';
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(b);
+  });
+
+  function statusBadge(s) {
+    var map = {
+      paid:    { label: 'PAGO',     color: '#4ade80', bg: 'rgba(74,222,128,.1)' },
+      pending: { label: 'PENDENTE', color: '#fbbf24', bg: 'rgba(251,191,36,.1)' },
+      overdue: { label: 'ATRASADO', color: '#f87171', bg: 'rgba(248,113,113,.1)' },
+    };
+    var m = map[s] || { label: s, color: '#aaa', bg: 'rgba(255,255,255,.05)' };
+    return '<span style="font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;background:' + m.bg + ';color:' + m.color + ';">' + m.label + '</span>';
+  }
+
+  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var html = '';
+  Object.keys(byYear).sort(function(a, b) { return b - a; }).forEach(function(yr) {
+    html += '<div style="font-size:.68rem;font-weight:800;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 6px;">' + yr + '</div>';
+    byYear[yr].forEach(function(b) {
+      var refDate   = b.reference_month ? new Date(b.reference_month + '-02') : null;
+      var monthName = refDate ? MONTHS[refDate.getMonth()] : '-';
+      var paidDate  = b.paid_at  ? new Date(b.paid_at).toLocaleDateString('pt-BR')  : null;
+      var dueDate   = b.due_date ? new Date(b.due_date).toLocaleDateString('pt-BR') : null;
+      var markBtn   = b.status !== 'paid'
+        ? '<button onclick="markCmBillPaid('' + b.id + '')" style="font-size:.68rem;padding:4px 10px;background:rgba(209,53,108,.1);border:1px solid rgba(209,53,108,.3);color:#fb7185;border-radius:8px;cursor:pointer;font-weight:700;">Pagar</button>'
+        : '';
+      var sub = (dueDate ? 'Vence: ' + dueDate : '') + (paidDate ? ' - Pago: ' + paidDate : '') + (b.description ? ' - ' + b.description : '');
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;margin-bottom:6px;">'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:.84rem;color:#fff;font-weight:700;">' + monthName + ' ' + yr + ' - ' + sym + (b.amount||0).toFixed(2) + '</div>'
+        + '<div style="font-size:.7rem;color:rgba(255,255,255,.3);margin-top:2px;">' + sub + '</div>'
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;">' + statusBadge(b.status) + markBtn + '</div>'
+        + '</div>';
+    });
+  });
+  listEl.innerHTML = html;
 }
 
 async function loadCmMemberPresences(memberId) {
@@ -1154,18 +1205,57 @@ async function loadCmMemberPresences(memberId) {
     </div>`).join('');
 }
 
-window.addCmMemberPayment = async function() {
+window.markCmBillPaid = async function(billId) {
   const sb = cmSb(); const wsId = await cmWsId();
-  const id = window._cmMemberDrawerId;
-  const m  = window._cmMembers.find(x=>x.id===id);
-  const amount = parseFloat(document.getElementById('cm-mpay-amount')?.value) || (m?.monthly_fee || window._cmSettings?.membership_fee || 0);
-  if (!amount || !m) { showToast('Valor inválido','error'); return; }
-  const { error } = await sb.from('cm_membership_payments').insert({
-    workspace_id: wsId, member_id: id, amount, currency: window._cmSettings?.membership_currency||'BRL', status:'paid', paid_at: new Date().toISOString()
+  const { error } = await sb.from('cm_member_bills')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', billId).eq('workspace_id', wsId);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Mensalidade marcada como paga!', 'success');
+  loadCmMemberPayments(window._cmMemberDrawerId);
+};
+
+window.addCmMemberBillEntry = async function() {
+  const sb = cmSb(); const wsId = await cmWsId();
+  const memberId = window._cmMemberDrawerId;
+  const m = (window._cmMembers || []).find(function(x) { return x.id === memberId; });
+  const type   = (document.getElementById('cm-mdr-txn-type') || {}).value || 'bill';
+  const rawAmt = parseFloat((document.getElementById('cm-mdr-txn-amount') || {}).value);
+  const amount = isNaN(rawAmt) ? ((m && m.monthly_fee) || (window._cmSettings && window._cmSettings.membership_fee) || 0) : rawAmt;
+  const refMonth = (document.getElementById('cm-mdr-txn-month') || {}).value || null;
+  const desc   = ((document.getElementById('cm-mdr-txn-desc') || {}).value || '').trim() || null;
+  const curr   = window._crieDefaultCurrency || 'USD';
+
+  if (!memberId || !amount) { showToast('Valor invalido', 'error'); return; }
+
+  if (type === 'bill') {
+    var dueDay    = window._crieBillDueDay || 1;
+    var billMonth = refMonth || new Date().toISOString().substring(0, 7);
+    var dueDate   = billMonth + '-' + String(dueDay).padStart(2,'0');
+    var ins = await sb.from('cm_member_bills').insert({
+      workspace_id: wsId, member_id: memberId, amount: amount, currency: curr,
+      status: 'pending', reference_month: billMonth, due_date: dueDate, description: desc
+    });
+    if (ins.error) { showToast('Erro: ' + ins.error.message, 'error'); return; }
+    showToast('Cobranca criada!', 'success');
+  } else {
+    var pend = await sb.from('cm_member_bills').select('id').eq('workspace_id', wsId).eq('member_id', memberId)
+      .in('status', ['pending','overdue']).order('reference_month', { ascending: true }).limit(1);
+    if (pend.data && pend.data.length) {
+      await sb.from('cm_member_bills').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', pend.data[0].id);
+    } else {
+      var bm2 = refMonth || new Date().toISOString().substring(0, 7);
+      await sb.from('cm_member_bills').insert({
+        workspace_id: wsId, member_id: memberId, amount: amount, currency: curr,
+        status: 'paid', reference_month: bm2, paid_at: new Date().toISOString(), description: desc
+      });
+    }
+    showToast('Pagamento registado!', 'success');
+  }
+  ['cm-mdr-txn-amount','cm-mdr-txn-month','cm-mdr-txn-desc'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
   });
-  if (error) { showToast('Erro: '+error.message,'error'); return; }
-  showToast('✅ Pagamento registrado!','success');
-  loadCmMemberPayments(id);
+  loadCmMemberPayments(memberId);
 };
 
 window.toggleCmMemberStatus = async function(id, status) {
