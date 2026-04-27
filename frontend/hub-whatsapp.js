@@ -77,6 +77,9 @@
             return;
         }
 
+        // Reset any cached session info from a previous attempt
+        window._waSessionInfo = null;
+
         FB.login(function (response) {
             if (response.authResponse) {
                 _handleFBLoginSuccess(response.authResponse);
@@ -122,54 +125,85 @@
         if (signupBtn) signupBtn.disabled = true;
 
         try {
-            // Get WABA accounts linked to this login
             const token = authResponse.accessToken;
+            let wabaId = null, phoneId = null, phoneDisplay = null;
 
-            // Try to get WABA + phone_number_id via Graph API
-            const wabaRes = await fetch(
-                `https://graph.facebook.com/v21.0/me/businesses?fields=whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}&access_token=${token}`
-            );
-            const wabaData = await wabaRes.json();
-
-            const businesses = wabaData.data || [];
-            let waba = null, phoneEntry = null;
-
-            for (const biz of businesses) {
-                const accounts = biz.whatsapp_business_accounts?.data || [];
-                for (const acc of accounts) {
-                    const phones = acc.phone_numbers?.data || [];
-                    if (phones.length > 0) {
-                        waba = acc;
-                        phoneEntry = phones[0];
-                        break;
-                    }
-                }
-                if (waba) break;
+            // ── Strategy 1: sessionInfo from Meta postMessage (most reliable for Embedded Signup)
+            // Wait briefly for the postMessage to arrive before querying the API
+            await new Promise(res => setTimeout(res, 800));
+            if (window._waSessionInfo) {
+                wabaId  = window._waSessionInfo.waba_id;
+                phoneId = window._waSessionInfo.phone_number_id;
+                console.log('[WA] Using sessionInfo from postMessage:', window._waSessionInfo);
             }
 
-            if (!waba || !phoneEntry) {
-                // Show account picker for manual selection
+            // ── Strategy 2: /me/whatsapp_business_accounts (simpler & more direct than me/businesses)
+            if (!wabaId) {
+                const r1 = await fetch(
+                    `https://graph.facebook.com/v21.0/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number}&access_token=${token}`
+                ).then(r => r.json()).catch(() => ({}));
+                for (const acc of (r1.data || [])) {
+                    const phones = acc.phone_numbers?.data || [];
+                    if (phones.length > 0) {
+                        wabaId = acc.id; phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number;
+                        break;
+                    } else if (!wabaId) { wabaId = acc.id; }
+                }
+                if (r1.data?.length) console.log('[WA] /me/whatsapp_business_accounts:', r1.data);
+            }
+
+            // ── Strategy 3: Traverse me/businesses (original path)
+            if (!wabaId) {
+                const r2 = await fetch(
+                    `https://graph.facebook.com/v21.0/me/businesses?fields=whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}&access_token=${token}`
+                ).then(r => r.json()).catch(() => ({}));
+                for (const biz of (r2.data || [])) {
+                    for (const acc of (biz.whatsapp_business_accounts?.data || [])) {
+                        const phones = acc.phone_numbers?.data || [];
+                        if (phones.length > 0) {
+                            wabaId = acc.id; phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number;
+                            break;
+                        } else if (!wabaId) { wabaId = acc.id; }
+                    }
+                    if (wabaId) break;
+                }
+            }
+
+            // ── Strategy 4: We have a WABA ID but no phone yet — query phones directly
+            if (wabaId && !phoneId) {
+                const r3 = await fetch(
+                    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number&access_token=${token}`
+                ).then(r => r.json()).catch(() => ({}));
+                const phones = r3.data || [];
+                if (phones.length > 0) { phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number; }
+                console.log('[WA] Phones via WABA direct:', r3);
+            }
+
+            // ── No WABA found at all
+            if (!wabaId) {
                 _setStatus('⚠️ Não encontramos um número WhatsApp Business vinculado. Verifique se seu WABA está aprovado e use a configuração manual abaixo.', '#fbbf24', 'rgba(251,191,36,0.08)');
                 if (signupBtn) signupBtn.disabled = false;
                 return;
             }
 
-            // Save credentials
+            // Save credentials (even if phoneId is null — manual entry can complete it later)
             await _saveMetaCredentials({
                 whatsapp_token: token,
-                phone_id: phoneEntry.id,
-                phone_display: phoneEntry.display_phone_number,
-                waba_id: waba.id,
-                app_secret: null, // Will be filled via manual field if needed
+                phone_id: phoneId || null,
+                phone_display: phoneDisplay || phoneId || wabaId,
+                waba_id: wabaId,
+                app_secret: null,
                 meta_connected_at: new Date().toISOString(),
             });
 
-            _setStatus(`✅ Conectado: ${phoneEntry.display_phone_number}`, '#4ade80', 'rgba(74,222,128,0.08)');
-            _showConnected({
-                phone_display: phoneEntry.display_phone_number,
-                waba_id: waba.id,
-                connected_at: new Date().toISOString(),
-            });
+            window._waSessionInfo = null; // Clear after use
+
+            if (phoneId) {
+                _setStatus(`✅ Conectado: ${phoneDisplay || phoneId}`, '#4ade80', 'rgba(74,222,128,0.08)');
+                _showConnected({ phone_display: phoneDisplay || phoneId, waba_id: wabaId, connected_at: new Date().toISOString() });
+            } else {
+                _setStatus(`⚠️ WABA conectada (ID: ${wabaId}), mas sem número de telefone ainda. Preencha o Phone ID manualmente abaixo.`, '#fbbf24', 'rgba(251,191,36,0.08)');
+            }
 
         } catch (e) {
             console.error('[WA] FB login error:', e);
@@ -286,6 +320,24 @@
         if (statusDot)  { statusDot.style.background = '#555'; statusDot.style.boxShadow = 'none'; }
         if (statusText) { statusText.textContent = 'Desconectado'; statusText.style.color = 'rgba(255,255,255,0.4)'; }
     }
+
+    // ── Capture Meta Embedded Signup sessionInfo via postMessage ─
+    // Meta sends waba_id + phone_number_id in a 'FINISH' event during Embedded Signup.
+    // This is the most reliable channel — the Graph API traversal below serves as fallback.
+    window.addEventListener('message', function (event) {
+        if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
+        try {
+            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            if (data && data.type === 'WA_EMBEDDED_SIGNUP' && data.event === 'FINISH') {
+                const info = data.data || {};
+                window._waSessionInfo = {
+                    waba_id: info.waba_id || null,
+                    phone_number_id: info.phone_number_id || null,
+                };
+                console.log('[WA] sessionInfo received via postMessage:', window._waSessionInfo);
+            }
+        } catch (_) { /* ignore non-JSON messages */ }
+    });
 
     // ── Backwards compat ─────────────────────────────────────
     window.checkWAStatus = window.initWhatsappSettings;
