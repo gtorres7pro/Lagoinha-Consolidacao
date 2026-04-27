@@ -14341,59 +14341,7 @@ function closeAppDrawer() {
     window._activeAppId = null;
 }
 
-// ── Approve / Reject ──────────────────────────────────────────────
-async function reviewApplication(newStatus) {
-    const appId = window._activeAppId;
-    if (!appId) return;
-    const app = window._crieAppsAll.find(a => a.id === appId);
-    if (!app) return;
 
-    let rejection_reason = null;
-    if (newStatus === 'rejected') {
-        rejection_reason = prompt('Motivo da rejeição (opcional):');
-    }
-
-    const { error } = await supabase
-        .from('crie_member_applications_v2')
-        .update({
-            status:           newStatus,
-            reviewed_at:      new Date().toISOString(),
-            rejection_reason: rejection_reason || null,
-        })
-        .eq('id', appId);
-
-    if (error) { showHubToast('❌ ' + error.message, 'error'); return; }
-
-    // If approved → auto-create crie_members row
-    if (newStatus === 'approved') {
-        const wsId = window._currentWorkspaceId;
-        const table = app.module === 'cm' ? 'cm_members' : 'crie_members';
-        await supabase.from(table).upsert({
-            workspace_id: wsId,
-            name:         app.full_name,
-            email:        app.email,
-            phone:        app.phone_mobile,
-            app_user_id:  app.app_user_id || null,
-            status:       'ativo',
-            source:       'app',
-        }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
-    }
-
-    // Update local cache
-    app.status = newStatus;
-    app.reviewed_at = new Date().toISOString();
-    if (rejection_reason) app.rejection_reason = rejection_reason;
-
-    closeAppDrawer();
-    renderCrieAppsKpis();
-    renderCrieAppsList(window._crieApps);
-    filterCrieApps();
-    updateCrieAppsTabBadge();
-    updateNavBadge();
-
-    const label = newStatus === 'approved' ? '✅ Aplicação aprovada!' : '❌ Aplicação rejeitada.';
-    showHubToast(label, newStatus === 'approved' ? 'success' : 'error');
-}
 
 function updateNavBadge() {
     const pending = window._crieAppsAll.filter(a => a.status === 'pending').length;
@@ -14415,3 +14363,97 @@ function updateNavBadge() {
         if (_prevST) _prevST(tab);
     };
 })();
+
+// ── Approve / Reject (with PDF generation on approve) ─────────────
+async function reviewApplication(newStatus) {
+    const appId = window._activeAppId;
+    if (!appId) return;
+    const app = window._crieAppsAll.find(function(a) { return a.id === appId; });
+    if (!app) return;
+
+    let rejection_reason = null;
+    if (newStatus === 'rejected') {
+        rejection_reason = prompt('Motivo da rejeição (opcional):') || null;
+    }
+
+    // Disable buttons during processing
+    const btnApprove = document.getElementById('app-btn-approve');
+    const btnReject  = document.getElementById('app-btn-reject');
+    if (btnApprove) { btnApprove.disabled = true; btnApprove.textContent = '⏳'; }
+    if (btnReject)  { btnReject.disabled  = true; }
+
+    const { error } = await supabase
+        .from('crie_member_applications_v2')
+        .update({
+            status:           newStatus,
+            reviewed_at:      new Date().toISOString(),
+            rejection_reason: rejection_reason || null,
+        })
+        .eq('id', appId);
+
+    if (error) {
+        if (btnApprove) { btnApprove.disabled = false; btnApprove.textContent = '✓ Aprovar'; }
+        if (btnReject)  { btnReject.disabled  = false; }
+        showHubToast('❌ ' + error.message, 'error');
+        return;
+    }
+
+    // If approved → auto-create crie_members row + generate PDF
+    if (newStatus === 'approved') {
+        const wsId = window._currentWorkspaceId;
+        const table = app.module === 'cm' ? 'cm_members' : 'crie_members';
+        await supabase.from(table).upsert({
+            workspace_id: wsId,
+            name:         app.full_name,
+            email:        app.email,
+            phone:        app.phone_mobile,
+            app_user_id:  app.app_user_id || null,
+            status:       'ativo',
+            source:       'app',
+        }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
+
+        // Fire-and-forget PDF generation (non-blocking)
+        showHubToast('📄 Gerando PDF da aplicação…', 'info');
+        (async function() {
+            try {
+                const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(EDGE + '/crie-generate-application-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + (session?.access_token || ''),
+                    },
+                    body: JSON.stringify({ application_id: appId }),
+                });
+                const json = await res.json();
+                if (json.pdf_url) {
+                    // Cache URL in local app object
+                    app.pdf_url = json.pdf_url;
+                    showHubToast('📄 PDF gerado! <a href="' + json.pdf_url + '" target="_blank" style="color:#FFD700;font-weight:700;margin-left:6px;">Abrir →</a>', 'success');
+                    // Update any open card
+                    renderCrieAppsList(window._crieApps);
+                } else {
+                    console.warn('PDF generation error:', json.error);
+                }
+            } catch(e) {
+                console.warn('PDF generation failed:', e.message);
+            }
+        })();
+    }
+
+    // Update local cache
+    app.status = newStatus;
+    app.reviewed_at = new Date().toISOString();
+    if (rejection_reason) app.rejection_reason = rejection_reason;
+
+    closeAppDrawer();
+    renderCrieAppsKpis();
+    renderCrieAppsList(window._crieApps);
+    filterCrieApps();
+    updateCrieAppsTabBadge();
+    updateNavBadge();
+
+    const label = newStatus === 'approved' ? '✅ Aplicação aprovada! PDF a ser gerado…' : '❌ Aplicação rejeitada.';
+    showHubToast(label, newStatus === 'approved' ? 'success' : 'error');
+}
