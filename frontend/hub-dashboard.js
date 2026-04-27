@@ -592,7 +592,14 @@
                 list.innerHTML = '<div style="padding:12px 14px;color:#555;font-size:0.8rem;">Nenhum workspace disponível</div>';
                 return;
             }
-            allWs.forEach(ws => {
+            // Pin Demo Beta first, then sort the rest alphabetically
+            const DEMO_BETA_ID = 'dddddddd-0001-0001-0001-000000000001';
+            const demoBeta = allWs.find(w => w.id === DEMO_BETA_ID);
+            const others = allWs
+                .filter(w => w.id !== DEMO_BETA_ID)
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR', { sensitivity: 'base' }));
+            const sorted = demoBeta ? [demoBeta, ...others] : others;
+            sorted.forEach(ws => {
                 const isActive = ws.id === window.currentWorkspaceId;
                 const div = document.createElement('div');
                 div.className = 'ws-option' + (isActive ? ' active' : '');
@@ -1657,20 +1664,11 @@
 
         // ─── WIRE applyPlanGating into loadWorkspaces flow ───────────────
         // (called from loadWorkspaces when workspace is resolved)
-        // We patch renderWsDropdown to also apply gating when workspace switches
+        // switchWorkspace already calls applyPlanGating internally;
+        // this patch is intentionally left as a no-op to avoid double-wrapping
+        // and the bug where the object `ws` was passed as an ID to `.eq('id', wsId)`.
         (function(){
-            const _origSwitchWs = window.switchWorkspace;
-            if (_origSwitchWs) {
-                window.switchWorkspace = async function(wsId) {
-                    await _origSwitchWs(wsId);
-                    // After switch, reload workspace modules + plan
-                    if (window.supabaseClient && wsId) {
-                        const {data:ws} = await window.supabaseClient.from('workspaces')
-                            .select('plan,modules').eq('id',wsId).single();
-                        if (ws) window.applyPlanGating(ws.plan||'free', ws.modules||[]);
-                    }
-                };
-            }
+            // No-op: plan gating is applied inside the original switchWorkspace.
         })();
 
         //  FASE E — TEAM MANAGEMENT
