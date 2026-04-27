@@ -613,11 +613,9 @@
                         <div class="ws-option-name">${ws.name}</div>
                         <div class="ws-option-badge">${ws.slug || ws.status || 'active'}</div>
                     </div>`;
-                // Use a simple onclick attribute-style handler referencing a global
                 div.onclick = function(e) {
                     e.stopPropagation();
                     const wsId = this.getAttribute('data-ws-id');
-                    console.log('[WS-CLICK] id:', wsId, 'name:', this.querySelector('.ws-option-name')?.textContent);
                     window._switchWsById(wsId);
                 };
                 list.appendChild(div);
@@ -642,13 +640,13 @@
         };
 
         window.switchWorkspace = function(ws) {
-            console.log('[WS-SWITCH] called with:', typeof ws, ws?.name || ws, 'slug:', ws?.slug, 'currentSlug:', window.location.pathname.split('/').filter(Boolean)[0]);
             // If the workspace has a slug, navigate to its URL for a clean full reload
             if (ws.slug) {
                 const currentSlug = window.location.pathname.split('/').filter(Boolean)[0];
                 if (ws.slug !== currentSlug) {
-                    if (window.showToast) showToast('🏛 ' + ws.name, 800);
-                    setTimeout(() => { window.location.href = `/${ws.slug}/dashboard.html`; }, 300);
+                    // Do NOT call showToast before navigation — hub-cm.js overrides
+                    // showToast to call showHubToast which calls showToast → infinite loop.
+                    window.location.href = `/${ws.slug}/dashboard.html`;
                     return;
                 }
             }
@@ -689,11 +687,9 @@
 
         // Helper: switch workspace by ID only (for onclick buttons in templates)
         window._switchWsById = function(wsId) {
-            console.log('[WS-BY-ID] called with:', wsId, '_allWorkspaces count:', (window._allWorkspaces||[]).length);
             // Always use global array (not stale closure)
             const allWs = window._allWorkspaces || [];
             const ws = allWs.find(w => w.id === wsId);
-            console.log('[WS-BY-ID] found ws:', ws?.name, ws?.slug);
             if (ws) {
                 window.switchWorkspace(ws);
             } else {
@@ -14034,7 +14030,8 @@ if (typeof _origLoadCrieMembros === 'function') {
 
 // ── Toast fallback if not in scope ───────────────────────────────
 function showHubToast(msg, type = 'info') {
-    if (typeof showToast === 'function') { showToast(msg, type); return; }
+    // NOTE: Do NOT delegate to window.showToast here — hub-cm.js overrides
+    // window.showToast to call showHubToast, creating infinite recursion.
     const colors = { success:'#34D399', error:'#F87171', info:'#F59E0B' };
     const toast  = document.createElement('div');
     toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111318;border:1px solid rgba(255,255,255,.1);color:${colors[type]||colors.info};padding:12px 20px;border-radius:12px;font-size:0.85rem;font-weight:700;z-index:9999;animation:fadeIn .3s;`;
