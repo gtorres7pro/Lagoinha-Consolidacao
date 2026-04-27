@@ -616,7 +616,19 @@
 
         window.toggleWsDropdown = function() {
             const dd = document.getElementById('ws-dropdown');
-            if (dd) dd.classList.toggle('open');
+            const pill = document.querySelector('.ws-pill');
+            if (!dd) return;
+            const isOpen = dd.classList.contains('open');
+            if (!isOpen && pill) {
+                // Position fixed dropdown just above the pill
+                const rect = pill.getBoundingClientRect();
+                const dropWidth = Math.max(rect.width + 16, 220);
+                dd.style.left   = Math.max(4, rect.left - 8) + 'px';
+                dd.style.width  = dropWidth + 'px';
+                dd.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+                dd.style.top    = 'auto';
+            }
+            dd.classList.toggle('open');
         };
 
         window.switchWorkspace = function(ws) {
