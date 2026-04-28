@@ -21,6 +21,9 @@
   --border:   rgba(255,255,255,0.07);
   --border2:  rgba(255,255,255,0.04);
   --gold:     #F59E0B;
+  --accent:   #F59E0B; /* overridden to rose for CM */
+  --rose:     #f472b6;
+  --rose2:    #ec4899;
   --gold2:    #FFD700;
   --gold-glow: rgba(245,158,11,0.15);
   --purple:   #8B5CF6;
@@ -252,6 +255,21 @@ body {
 .auth-top { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px 0; }
 .auth-logo { font-size:3.8rem; font-weight:900; text-align:center; margin-bottom:8px; letter-spacing:-2px; }
 .auth-logo span { color:var(--gold2); }
+/* New Z pill logo for auth screen */
+.auth-logo-pill {
+  display:flex; align-items:center; gap:10px;
+}
+.auth-logo-z {
+  width:48px; height:48px; border-radius:14px;
+  background:linear-gradient(135deg,#FBBF24,#F59E0B);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.55rem; font-weight:900; color:#000; line-height:1;
+  box-shadow:0 4px 18px rgba(251,191,36,0.3);
+  letter-spacing:-1px;
+}
+.auth-logo-text {
+  font-size:1.35rem; font-weight:900; letter-spacing:-.03em; color:#fff;
+}
 .auth-card {
   background:var(--bg2);
   border:1px solid var(--border);
@@ -568,8 +586,11 @@ body {
   <!-- ══ AUTH ════════════════════════════════════════════════ -->
   <div id="screen-auth" class="screen">
     <div class="auth-top">
-      <div class="auth-logo">C<span>*</span></div>
-      <p style="color:var(--text2);font-size:.875rem;margin-top:6px;margin-bottom:36px;">Comunidade de Membros</p>
+      <div class="auth-logo-pill">
+        <div class="auth-logo-z">Z</div>
+        <div class="auth-logo-text">CRIE</div>
+      </div>
+      <p style="color:var(--text3);font-size:.82rem;margin-top:8px;margin-bottom:36px;letter-spacing:.02em;">Comunidade de Membros</p>
     </div>
     <div class="auth-card">
       <div class="auth-tabs">
@@ -663,11 +684,11 @@ body {
 
   <!-- ══ VIDEO PLAYER ════════════════════════════════════════ -->
   <div id="screen-player" class="screen">
-    <div style="padding:calc(var(--safe-top)+12px) 16px 12px;display:flex;align-items:center;gap:12px;background:var(--bg);border-bottom:1px solid var(--border);">
-      <button onclick="goBack()" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);cursor:pointer;">
+    <div style="padding:calc(var(--safe-top)+14px) 16px 14px;display:flex;align-items:center;gap:12px;background:rgba(12,12,16,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;">
+      <button onclick="goBack()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:8px 12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;transition:background .15s;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       </button>
-      <span style="font-size:0.9rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="player-title">Vídeo</span>
+      <span style="font-size:0.92rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em;" id="player-title">Vídeo</span>
     </div>
     <div class="video-wrap"><iframe id="player-iframe" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>
     <div class="scroll-area" style="padding:20px;">
@@ -700,20 +721,20 @@ body {
   <!-- ══ PERFIL ══════════════════════════════════════════════ -->
   <div id="screen-perfil" class="screen">
     <div class="top-bar">
-      <h1>👤 Perfil</h1>
-      <button onclick="doLogout()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:var(--red);border-radius:10px;padding:6px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">Sair</button>
+      <h1>Perfil</h1>
+      <button onclick="doLogout()" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.18);color:var(--red);border-radius:10px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:.02em;">Sair</button>
     </div>
-    <div class="scroll-area" style="padding:24px 20px 0;">
+    <div class="scroll-area" style="padding:20px 20px 0;">
 
-      <!-- Avatar + info -->
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+      <!-- Avatar + info card -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
         <div class="avatar-ring" id="profile-avatar">?</div>
-        <div>
-          <div style="font-size:1.15rem;font-weight:800;" id="profile-name">—</div>
-          <div style="font-size:0.82rem;color:var(--text2);" id="profile-email">—</div>
-          <div style="font-size:0.78rem;color:var(--text3);margin-top:3px;" id="profile-city"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:1.1rem;font-weight:800;letter-spacing:-.02em;" id="profile-name">—</div>
+          <div style="font-size:0.79rem;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="profile-email">—</div>
+          <div style="font-size:0.74rem;color:var(--text3);margin-top:2px;" id="profile-city"></div>
         </div>
-        <button onclick="openEditProfile()" style="margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text2);font-size:0.78rem;cursor:pointer;">Editar</button>
+        <button onclick="openEditProfile()" style="flex-shrink:0;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text2);font-size:0.74rem;font-weight:600;cursor:pointer;">Editar</button>
       </div>
 
       <!-- Membresía Section -->
@@ -772,23 +793,218 @@ body {
 
   <!-- ══ MODALS ══════════════════════════════════════════════ -->
 
-  <!-- Apply for membership -->
-  <div class="modal-overlay" id="modal-apply" onclick="closeModal('modal-apply')">
-    <div class="modal-sheet" onclick="e=>e.stopPropagation()">
-      <div class="modal-handle"></div>
-      <div class="modal-title">🏅 Aplicar para Membro</div>
-      <div style="margin-bottom:16px;">
-        <div class="field-label">Workspace / CRIE</div>
-        <select id="apply-workspace" class="field-input">
-          <option value="">Seleciona o teu CRIE…</option>
-        </select>
+  <!-- ══ APPLICATION WIZARD SCREEN ══════════════════════════════ -->
+  <div id="screen-aplicacao" class="screen" style="background:var(--bg);overflow-y:auto;">
+    <!-- Header -->
+    <div style="padding:calc(var(--safe-top)+14px) 20px 14px;display:flex;align-items:center;gap:12px;background:rgba(12,12,16,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:10;">
+      <button onclick="goBack()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;color:var(--text2);cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:.95rem;font-weight:800;letter-spacing:-.02em;">Aplicação de Membresia</div>
+        <div id="app-step-label" style="font-size:.7rem;color:var(--gold);font-weight:700;">Passo 1 de 4</div>
       </div>
-      <div style="margin-bottom:16px;">
-        <div class="field-label">Motivação (opcional)</div>
-        <textarea id="apply-motivation" class="field-input" rows="3" placeholder="Por que queres tornar-te membro?" style="resize:none;"></textarea>
+    </div>
+    <!-- Step progress bar -->
+    <div style="display:flex;gap:4px;padding:14px 20px 0;">
+      <div id="app-bar-1" style="flex:1;height:3px;border-radius:2px;background:var(--gold);transition:background .3s;"></div>
+      <div id="app-bar-2" style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s;"></div>
+      <div id="app-bar-3" style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s;"></div>
+      <div id="app-bar-4" style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s;"></div>
+    </div>
+    <!-- Steps container -->
+    <div style="padding:20px 20px 100px;">
+
+      <!-- ── STEP 1: Informações Pessoais ── -->
+      <div id="app-step-1">
+        <div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;">Informações Pessoais</div>
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:20px;">Dados de identificação do aplicante</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div><div class="field-label">Nome completo *</div><input id="ap-name" class="field-input" type="text" placeholder="Seu nome completo"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div><div class="field-label">Data de nascimento</div><input id="ap-birth" class="field-input" type="date"></div>
+            <div><div class="field-label">Camiseta</div>
+              <select id="ap-shirt" class="field-input"><option value="">Tamanho…</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select>
+            </div>
+          </div>
+          <div><div class="field-label">Celular *</div><input id="ap-phone" class="field-input" type="tel" placeholder="+1 (407) 000-0000"></div>
+          <div><div class="field-label">Telefone residencial</div><input id="ap-phone2" class="field-input" type="tel" placeholder="Opcional"></div>
+          <div><div class="field-label">Email *</div><input id="ap-email" class="field-input" type="email" placeholder="seu@email.com"></div>
+          <div><div class="field-label">Nome do cônjuge</div><input id="ap-spouse" class="field-input" type="text" placeholder="Opcional"></div>
+          <div><div class="field-label">Endereço</div><input id="ap-addr" class="field-input" type="text" placeholder="Rua, número"></div>
+          <div><div class="field-label">Complemento</div><input id="ap-addr2" class="field-input" type="text" placeholder="Apto, suite…"></div>
+          <div style="display:grid;grid-template-columns:1fr 80px 100px;gap:10px;">
+            <div><div class="field-label">Cidade</div><input id="ap-city" class="field-input" type="text" placeholder="Orlando"></div>
+            <div><div class="field-label">Estado</div><input id="ap-state" class="field-input" type="text" placeholder="FL"></div>
+            <div><div class="field-label">Zip Code</div><input id="ap-zip" class="field-input" type="text" placeholder="32801"></div>
+          </div>
+        </div>
       </div>
-      <div class="auth-msg" id="apply-msg" style="color:var(--red);margin-bottom:12px;"></div>
-      <button class="btn-primary" onclick="submitMemberApplication()">Enviar Candidatura</button>
+
+      <!-- ── STEP 2: Qualificações ── -->
+      <div id="app-step-2" style="display:none;">
+        <div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;">Qualificações</div>
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:20px;">Requisitos de membresia do CRIE</div>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <div>
+            <div class="field-label">É membro da Lagoinha Orlando? *</div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-lagoinha" value="sim" id="ap-lagoinha-sim"> Sim
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-lagoinha" value="nao"> Não
+              </label>
+            </div>
+            <div id="ap-lagoinha-since-wrap" style="display:none;margin-top:10px;"><input id="ap-lagoinha-since" class="field-input" placeholder="Há quanto tempo?"></div>
+          </div>
+          <div>
+            <div class="field-label">É batizado nas águas? *</div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-baptized" value="sim"> Sim
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-baptized" value="nao"> Não
+              </label>
+            </div>
+            <div id="ap-baptism-detail-wrap" style="display:none;margin-top:10px;"><input id="ap-baptism-detail" class="field-input" placeholder="Há quanto tempo? / Deseja ser batizado?"></div>
+          </div>
+          <div>
+            <div class="field-label">Já participou de alguma reunião do CRIE?</div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-attended" value="sim"> Sim
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-attended" value="nao"> Não
+              </label>
+            </div>
+            <div id="ap-attended-wrap" style="display:none;margin-top:10px;display:none;flex-direction:column;gap:10px;">
+              <input id="ap-sponsor" class="field-input" placeholder="Nome do seu sponsor">
+              <div class="field-label" style="margin-top:4px;">Datas de reuniões que participou (até 3)</div>
+              <input id="ap-date1" class="field-input" type="date">
+              <input id="ap-date2" class="field-input" type="date">
+              <input id="ap-date3" class="field-input" type="date">
+            </div>
+          </div>
+          <div>
+            <div class="field-label">É proprietário de alguma empresa? *</div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-owns-co" value="sim"> Sim
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+                <input type="radio" name="ap-owns-co" value="nao"> Não
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 3: Empresa(s) ── -->
+      <div id="app-step-3" style="display:none;">
+        <div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;">Dados da Empresa</div>
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:20px;">Preencha dados de até 2 empresas</div>
+        <div id="app-co-blocks">
+          <!-- Empresa 1 -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:.82rem;font-weight:800;color:var(--gold);margin-bottom:14px;">Empresa 1</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><div class="field-label">Nome da empresa</div><input id="co1-name" class="field-input" placeholder="Razão social"></div>
+                <div><div class="field-label">Nome fantasia</div><input id="co1-trade" class="field-input" placeholder="DBA"></div>
+              </div>
+              <div><div class="field-label">Cargo</div><input id="co1-role" class="field-input" placeholder="CEO, Fundador…"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><div class="field-label">Website</div><input id="co1-web" class="field-input" placeholder="https://"></div>
+                <div><div class="field-label">Instagram</div><input id="co1-ig" class="field-input" placeholder="@handle"></div>
+              </div>
+              <div><div class="field-label">Endereço</div><input id="co1-addr" class="field-input" placeholder="Rua, número"></div>
+              <div style="display:grid;grid-template-columns:1fr 80px;gap:10px;">
+                <div><div class="field-label">Cidade</div><input id="co1-city" class="field-input" placeholder="Orlando"></div>
+                <div><div class="field-label">Estado</div><input id="co1-state" class="field-input" placeholder="FL"></div>
+              </div>
+              <div><div class="field-label">Ramo de atividade</div><input id="co1-industry" class="field-input" placeholder="Ex: Tecnologia, Construção…"></div>
+              <div><div class="field-label">Descrição de atividades / produtos / serviços</div><textarea id="co1-desc" class="field-input" rows="3" style="resize:none;" placeholder="O que sua empresa oferece?"></textarea></div>
+              <div><div class="field-label">Missão da empresa</div><textarea id="co1-mission" class="field-input" rows="2" style="resize:none;" placeholder="Missão e valores…"></textarea></div>
+            </div>
+          </div>
+          <!-- Empresa 2 (optional) -->
+          <div id="co2-block" style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:.82rem;font-weight:800;color:var(--text3);margin-bottom:14px;">Empresa 2 <span style="font-weight:400;font-size:.72rem;">(opcional)</span></div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><div class="field-label">Nome da empresa</div><input id="co2-name" class="field-input" placeholder="Razão social"></div>
+                <div><div class="field-label">Nome fantasia</div><input id="co2-trade" class="field-input" placeholder="DBA"></div>
+              </div>
+              <div><div class="field-label">Cargo</div><input id="co2-role" class="field-input" placeholder="CEO, Fundador…"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><div class="field-label">Website</div><input id="co2-web" class="field-input" placeholder="https://"></div>
+                <div><div class="field-label">Instagram</div><input id="co2-ig" class="field-input" placeholder="@handle"></div>
+              </div>
+              <div><div class="field-label">Endereço</div><input id="co2-addr" class="field-input" placeholder="Rua, número"></div>
+              <div style="display:grid;grid-template-columns:1fr 80px;gap:10px;">
+                <div><div class="field-label">Cidade</div><input id="co2-city" class="field-input" placeholder="Orlando"></div>
+                <div><div class="field-label">Estado</div><input id="co2-state" class="field-input" placeholder="FL"></div>
+              </div>
+              <div><div class="field-label">Ramo de atividade</div><input id="co2-industry" class="field-input" placeholder="Ex: Tecnologia, Construção…"></div>
+              <div><div class="field-label">Descrição</div><textarea id="co2-desc" class="field-input" rows="3" style="resize:none;" placeholder="O que sua empresa oferece?"></textarea></div>
+              <div><div class="field-label">Missão</div><textarea id="co2-mission" class="field-input" rows="2" style="resize:none;" placeholder="Missão e valores…"></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 4: Diretrizes & Assinatura ── -->
+      <div id="app-step-4" style="display:none;">
+        <div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;">Diretrizes & Assinatura</div>
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:16px;">Leia com atenção e assine digitalmente</div>
+        <!-- Directives scroll box -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;max-height:300px;overflow-y:auto;font-size:.78rem;line-height:1.65;color:var(--text2);margin-bottom:18px;">
+          <div style="font-weight:800;color:var(--gold);margin-bottom:10px;">QUALIFICAÇÃO PARA MEMBRESIA</div>
+          <p><strong>SOMOS CRISTÃOS</strong> – Nossos membros pertencem ao ministério da Igreja Batista da Lagoinha. Membros que creem que Jesus Cristo é o Senhor e Salvador, cremos na Trindade, cremos que toda a Bíblia é verdadeira e inspirada por Deus.</p>
+          <p><strong>SOMOS EMPREENDEDORES</strong> – É necessário que o empresário tenha pelo menos um funcionário ativo na empresa.</p>
+          <p><strong>SOMOS COMPROMETIDOS EM CRESCER</strong> – A participação como membro do CRIE é focada em crescimento constante em todos os pilares de nossas vidas. CRIE não é um ambiente para espectadores, complacência, ou uma presença sem comprometimento.</p>
+          <p><strong>SOMOS ATIVOS NA PARTICIPAÇÃO</strong> – Cada membro do CRIE é intimado a participar semanalmente das reuniões.</p>
+          <p><strong>TEMOS COMPROMISSO E RESPEITO</strong> – Nosso foco é o encorajamento, empoderamento, crescimento individual/profissional, discernimento e colaboração.</p>
+          <div style="font-weight:800;color:var(--gold);margin:12px 0 8px;">DIRETRIZES DE MEMBRESIA</div>
+          <p><strong>DEPÓSITO</strong> – Um depósito de $600 será exigido após a aprovação. Este depósito cobrirá a taxa do primeiro mês e reservará um mês como garantia.</p>
+          <p><strong>COMPARECIMENTO</strong> – Membros devem chegar no horário. Membro inativo depois de 60 dias deixa de ser membro. Retorno requer depósito de $600 e nova aplicação.</p>
+          <p><strong>SEM SOLICITAÇÕES</strong> – Membros do CRIE não devem fazer negócios entre si sem antes deixar isso claro para o grupo.</p>
+          <p><strong>ELETRÔNICOS</strong> – Durante a reunião é importante que aparelhos eletrônicos fiquem guardados.</p>
+          <p><strong>CANCELAMENTO</strong> – Pedimos que cada membro nos avise com um mês de antecedência e participe de uma última reunião para expressar o motivo da saída.</p>
+          <p><strong>VALOR DA MEMBRESIA</strong> – $300 mensais. Após 2 meses consecutivos sem pagamento, será desmembrado. Retorno requer pagamento do atrasado, $600 de depósito e nova aplicação.</p>
+          <div style="font-weight:800;color:var(--gold);margin:12px 0 8px;">COMPROMISSO E CONVÊNIO</div>
+          <p>Eu me comprometo a seguir as diretrizes e certifico-me que qualifico para participar do grupo CRIE. Me comprometo a manter todas informações compartilhadas em sigilo, a não oferecer meus negócios sem o aval do grupo. Também prometo seguir os valores cristãos e viver de maneira que meu caráter reflita o caráter de Cristo. A quebra destas regras resultará no cancelamento de minha membresia. É do meu entendimento que a minha membresia é de mês a mês. Toda mensalidade deverá ser paga até a primeira reunião do mês. Antes do cancelamento me comprometo a me reunir uma última vez com o grupo.</p>
+        </div>
+        <!-- Agreement checkbox -->
+        <label style="display:flex;align-items:flex-start;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:18px;cursor:pointer;">
+          <input type="checkbox" id="ap-agreed" style="width:18px;height:18px;accent-color:var(--gold);margin-top:2px;flex-shrink:0;">
+          <span style="font-size:.8rem;color:var(--text1);line-height:1.5;">Confirmo que li, compreendi e concordo com todas as diretrizes e o convênio de membresia do CRIE.</span>
+        </label>
+        <!-- Digital Signature -->
+        <div style="margin-bottom:18px;">
+          <div class="field-label" style="margin-bottom:8px;">Assinatura Digital *</div>
+          <div style="background:rgba(255,255,255,.97);border-radius:14px;padding:4px;position:relative;">
+            <canvas id="sig-canvas" style="width:100%;height:140px;touch-action:none;border-radius:10px;display:block;"></canvas>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;">
+            <div style="font-size:.7rem;color:var(--text3);">Assine com o dedo ou mouse</div>
+            <button onclick="clearSignature()" style="background:none;border:none;color:var(--text3);font-size:.72rem;cursor:pointer;text-decoration:underline;">Limpar</button>
+          </div>
+        </div>
+        <!-- Submit -->
+        <div class="auth-msg" id="ap-submit-msg" style="color:var(--red);margin-bottom:12px;"></div>
+        <button class="btn-primary" id="btn-submit-app" onclick="submitFullApplication()">🏅 Enviar Aplicação</button>
+        <div style="font-size:.72rem;color:var(--text3);text-align:center;margin-top:10px;">Após submeter, aguarde a avaliação da diretoria do CRIE.</div>
+      </div>
+
+      <!-- Nav buttons -->
+      <div style="display:flex;gap:10px;margin-top:24px;">
+        <button id="app-btn-back" onclick="appWizardBack()" style="flex:1;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-weight:700;cursor:pointer;display:none;">← Voltar</button>
+        <button id="app-btn-next" onclick="appWizardNext()" style="flex:1;padding:14px;background:linear-gradient(135deg,var(--gold2),var(--gold));border:none;border-radius:14px;color:#000;font-weight:800;cursor:pointer;">Próximo →</button>
+      </div>
     </div>
   </div>
 
@@ -838,8 +1054,11 @@ body {
   <!-- ══ RESET PASSWORD ══════════════════════════════════════════ -->
   <div id="screen-reset" class="screen">
     <div class="auth-top" style="padding-top:calc(var(--safe-top)+40px);">
-      <div class="auth-logo">C<span>*</span></div>
-      <p style="color:var(--text2);font-size:.875rem;margin-top:6px;margin-bottom:36px;">Define uma nova password</p>
+      <div class="auth-logo-pill">
+        <div class="auth-logo-z">Z</div>
+        <div class="auth-logo-text">CRIE</div>
+      </div>
+      <p style="color:var(--text3);font-size:.82rem;margin-top:8px;margin-bottom:36px;">Define uma nova password</p>
     </div>
     <div class="auth-card">
       <div style="font-size:1rem;font-weight:800;margin-bottom:18px;">🔐 Nova Password</div>
@@ -883,6 +1102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hashParams = new URLSearchParams(window.location.hash.replace('#', '?').slice(1));
     const urlParams  = new URLSearchParams(window.location.search);
     if (hashParams.get('type') === 'recovery' || urlParams.get('reset') === 'true') {
+        // Supabase already loaded the session from the URL hash automatically
         goToScreen('reset');
         return;
     }
@@ -907,6 +1127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
+        // User clicked reset link in email — show reset screen
         goToScreen('reset');
         return;
     }
@@ -1062,6 +1283,7 @@ async function doResetPassword() {
         return;
     }
     showToast('✅ Password alterada com sucesso!', 'success');
+    // Clean URL and redirect to main app
     window.history.replaceState({}, document.title, window.location.pathname);
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user) {
@@ -1088,7 +1310,8 @@ async function loadAppUser() {
 async function createAppUserProfile(user) {
     const name = user.user_metadata?.name || user.email.split('@')[0];
 
-    // Check if a profile already exists with this email (e.g. a Zelo Pro leader)
+    // Check if a profile already exists with this email (e.g. a Zelo Pro leader
+    // who was previously added manually as a CRIE member without a linked auth account)
     const { data: existing } = await sb
         .from('crie_app_users')
         .select('id, auth_user_id')
@@ -1097,6 +1320,7 @@ async function createAppUserProfile(user) {
 
     if (existing) {
         if (!existing.auth_user_id) {
+            // Bind the real auth account to this pre-existing profile
             const { data, error } = await sb
                 .from('crie_app_users')
                 .update({ auth_user_id: user.id })
@@ -1105,6 +1329,7 @@ async function createAppUserProfile(user) {
                 .single();
             if (!error) _appUser = data;
         } else {
+            // Profile already fully linked (shouldn't normally reach here, but be safe)
             _appUser = existing;
         }
         return;
@@ -1705,7 +1930,7 @@ async function openMfaSetup() {
         const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'CRIE App' });
         if (error) { showToast('❌ ' + error.message, 'error'); return; }
         if (data?.totp?.qr_code) {
-            // Show QR in a simple alert for now (full UI in next phase)
+            // Show QR in a simple popup window (no embedded scripts)
             const qrWin = window.open('', '_blank', 'width=400,height=500');
             qrWin.document.write(`<html><body style="background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#fff;">
                 <p style="margin-bottom:20px;font-size:14px;">Escaneia com Google Authenticator ou Authy:</p>
@@ -1741,6 +1966,295 @@ function currency(ev) {
     const m = { EUR:'€', BRL:'R$', USD:'$', GBP:'£' };
     return m[ev.currency] || ev.currency || '€';
 }
+
+// ══ CM MODULE DETECTION (moved out of QR template — Bug #28 fix) ══
+// Sets window._activeModule = 'crie' | 'crie_mulheres'
+async function detectAndApplyModule(wsId, userEmail) {
+    if (!wsId || !userEmail) return;
+    const [crieRes, cmRes] = await Promise.all([
+        sb.from('crie_members').select('id').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle(),
+        sb.from('cm_members').select('id').eq('workspace_id', wsId).eq('email', userEmail).eq('status','ativo').maybeSingle()
+    ]);
+    const isCm   = !!cmRes.data;
+    const isCrie = !!crieRes.data;
+    window._activeModule = isCm ? 'crie_mulheres' : 'crie';
+    if (isCm) {
+        document.documentElement.style.setProperty('--accent','#f472b6');
+        document.documentElement.style.setProperty('--gold','#f472b6');
+        document.querySelectorAll('[data-theme-gradient]').forEach(el => {
+            el.style.background = 'linear-gradient(135deg,#f472b6,#ec4899)';
+        });
+        const logoTxt = document.querySelector('.app-logo-text');
+        if (logoTxt) logoTxt.textContent = 'CRIE Mulheres';
+    }
+    if (isCm && isCrie) {
+        const switcher = document.getElementById('module-switcher');
+        if (switcher) switcher.style.display = 'flex';
+    }
+}
+// Run detection after auth
+sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+        const wsId = _activeWorkspaces[0]?.id || localStorage.getItem('crie_ws_id');
+        if (wsId) await detectAndApplyModule(wsId, session.user.email);
+    }
+});
+window._detectCmModule = detectAndApplyModule;
+
+// ══ #29 — Load CM events alongside CRIE events ════════════════════
+async function loadCmEventsForApp(wsIds, today) {
+    if (!wsIds.length) return [];
+    const { data } = await sb.from('cm_events')
+        .select('id, title, event_date, location, price, currency, is_free, open_to_guests, online_payment_enabled, banner_url, workspace_id, status')
+        .eq('status','active').in('workspace_id', wsIds)
+        .gte('event_date', today).order('event_date').limit(10);
+    return (data || []).map(e => ({ ...e, _source:'cm', date: e.event_date }));
+}
+
+// Patch loadEventos to merge CM events — #29 + #30
+const _origLoadEventos = loadEventos;
+loadEventos = async function() {
+    const el = document.getElementById('eventos-list');
+    if (!el) return;
+    const wsIds = _activeWorkspaces.map(w => w.id);
+    const today = new Date().toISOString();
+    let q = sb.from('crie_events')
+        .select('id, title, date, location, price, currency, is_free, open_to_guests, online_payment_enabled, banner_url, workspace_id, status')
+        .eq('status','ACTIVE').gte('date', today).order('date').limit(20);
+    if (wsIds.length) q = q.in('workspace_id', wsIds);
+    const [crieRes, cmEvents] = await Promise.all([q, loadCmEventsForApp(wsIds, today)]);
+    _allEvents = [...(crieRes.data||[]), ...cmEvents];
+    _allEvents.sort((a,b)=> new Date(a.date||a.event_date) - new Date(b.date||b.event_date));
+    renderEventsList(_allEvents);
+};
+
+// Patch loadHomeEvents similarly
+const _origLoadHomeEvents = loadHomeEvents;
+loadHomeEvents = async function() {
+    const el = document.getElementById('home-events-list');
+    if (!el) return;
+    const wsIds = _activeWorkspaces.map(w => w.id);
+    const today = new Date().toISOString();
+    const [crieRes, cmEvents] = await Promise.all([
+        wsIds.length ? sb.from('crie_events').select('id,title,date,location,price,currency,is_free,open_to_guests,banner_url,workspace_id,status')
+            .eq('status','ACTIVE').eq('open_to_guests',true).gte('date',today)
+            .in('workspace_id',wsIds.slice(0,5)).order('date').limit(3) : { data:[] },
+        loadCmEventsForApp(wsIds, today)
+    ]);
+    _allEvents = [...(crieRes.data||[]), ...cmEvents.slice(0,3)];
+    _allEvents.sort((a,b)=> new Date(a.date||a.event_date) - new Date(b.date||b.event_date));
+    el.innerHTML = _allEvents.length ? _allEvents.slice(0,3).map(ev => renderEventCard(ev)).join('') :
+        '<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Sem eventos próximos</div></div>';
+};
+
+// #30 — Route to /cm-inscricao.html for CM events
+const _origOpenEventDetail = openEventDetail;
+function openEventDetail(id) {
+    const ev = _allEvents.find(e => e.id === id);
+    if (!ev) return;
+    const isMembersOnly = ev.open_to_guests === false;
+    const wsId = ev.workspace_id;
+    const msStatus = _memberStatus[wsId]?.status;
+    if (isMembersOnly && msStatus !== 'approved') {
+        showToast('🔒 Este evento é exclusivo para membros ativos.', 'error');
+        goToTab('perfil'); return;
+    }
+    // Route CM events to cm-inscricao.html
+    const isCmEvent = !!(ev._source === 'cm');
+    const base = isCmEvent ? '/cm-inscricao.html' : '/crie-inscricao.html';
+    if (ev.online_payment_enabled && !ev.is_free) {
+        showToast('💳 A redirecionar para pagamento…', 'info');
+    }
+    window.open(window.location.origin + base + '?id=' + id, '_blank');
+}
+
+// #31 — loadPerfil payment section reads cm_membership_payments for CM members
+async function loadPaymentInfoCmAware(wsId) {
+    const ws = _activeWorkspaces.find(w => w.id === wsId);
+    // Determine if user is a CM member
+    const { data: cmMember } = await sb.from('cm_members').select('id')
+        .eq('app_user_id', _appUser?.id).eq('workspace_id', wsId).maybeSingle();
+    if (cmMember) {
+        // CM membership fee from cm_settings
+        const { data: wsData } = await sb.from('workspaces').select('cm_settings').eq('id', wsId).single();
+        const cfg = wsData?.cm_settings || {};
+        const fee = cfg.membership_fee || null;
+        const currency = cfg.membership_currency || 'BRL';
+        const amtEl = document.getElementById('pay-amount-value');
+        if (amtEl) amtEl.textContent = fee ? `${currency} ${Number(fee).toFixed(2)}/mês` : '—';
+        // Payment history from cm_membership_payments
+        const { data: payments } = await sb.from('cm_membership_payments')
+            .select('amount, currency, status, paid_at').eq('member_id', cmMember.id)
+            .order('created_at', { ascending:false }).limit(6);
+        const phEl = document.getElementById('payment-history');
+        if (!phEl) return;
+        if (!payments?.length) { phEl.innerHTML='<div style="color:var(--text3);font-size:.82rem;padding:8px 0;">Nenhum pagamento registado.</div>'; return; }
+        phEl.innerHTML = payments.map(p => `<div class="payment-row">
+            <div><div class="payment-month">${p.paid_at ? new Date(p.paid_at).toLocaleDateString('pt-PT',{month:'short',year:'numeric'}) : '—'}</div>
+            <div style="font-size:.72rem;color:var(--text3);">${p.currency} ${Number(p.amount).toFixed(2)}</div></div>
+            <div class="payment-status ${p.status==='paid'?'paid':p.status==='failed'?'failed':'pending'}">
+                ${p.status==='paid'?'✓ Pago':p.status==='failed'?'✗ Falhado':'⏳ Pendente'}</div>
+        </div>`).join('');
+        document.getElementById('payment-section').style.display = 'block';
+        return;
+    }
+    // Fallback to original CRIE payment info
+    return loadPaymentInfo(wsId);
+}
+
+// Override renderMemberStatusSection to use CM-aware payment loader
+const _origRenderStatus = renderMemberStatusSection;
+function renderMemberStatusSection() {
+    _origRenderStatus();
+    // After render, patch payment loader for approved members
+    _activeWorkspaces.slice(0,3).forEach(ws => {
+        const ms = _memberStatus[ws.id];
+        if (ms?.status === 'approved') loadPaymentInfoCmAware(ws.id);
+    });
+}
+
+// #32 — submitMemberApplication routes to cm_member_applications for CM workspaces
+const _origSubmitApp = submitMemberApplication;
+submitMemberApplication = async function() {
+    const wsId = document.getElementById('apply-workspace').value;
+    const motivation = document.getElementById('apply-motivation').value.trim();
+    const msg = document.getElementById('apply-msg');
+    if (!wsId) { msg.textContent = 'Seleciona o teu CRIE.'; return; }
+    if (!_appUser) { msg.textContent = 'Precisas de estar autenticado.'; return; }
+    // Check if the selected workspace uses CM
+    const { data: wsData } = await sb.from('workspaces').select('cm_settings, modules').eq('id', wsId).single();
+    const isCmWorkspace = !!(wsData?.cm_settings && Object.keys(wsData.cm_settings).length) ||
+        (wsData?.modules || []).includes('crie_mulheres');
+    const table = isCmWorkspace ? 'cm_member_applications' : 'crie_member_applications';
+    const { error } = await sb.from(table).insert({
+        app_user_id: _appUser.id,
+        workspace_id: wsId,
+        motivation: motivation || null,
+        status: 'pending'
+    });
+    if (error) {
+        if (error.code === '23505') msg.textContent = 'Já tens uma candidatura para este CRIE.';
+        else msg.textContent = '❌ ' + error.message;
+        return;
+    }
+    _memberStatus[wsId] = { status: 'pending' };
+    closeModal('modal-apply');
+    await loadWorkspaces();
+    renderMemberBanner();
+    renderMemberStatusSection();
+    showToast('🎉 Candidatura enviada! Aguarda aprovação.', 'success');
+};
+
+// ══ APPLICATION WIZARD ════════════════════════════════════════════
+let _appWizardStep = 1;
+let _sigCanvas, _sigCtx, _sigDrawing = false, _sigHasData = false;
+
+function openApplyWizard() {
+    _appWizardStep = 1;
+    appWizardShowStep(1);
+    _prevScreen = _currentTab;
+    if (_appUser) {
+        const nameEl = document.getElementById('ap-name');
+        const emailEl = document.getElementById('ap-email');
+        if (nameEl && !nameEl.value) nameEl.value = _appUser.name || '';
+        if (emailEl && !emailEl.value) emailEl.value = _appUser.email || '';
+    }
+    goToScreen('aplicacao');
+}
+
+document.addEventListener('click', function(e) {
+    const t = e.target.closest('[onclick*="modal-apply"]');
+    if (t) { e.preventDefault(); e.stopPropagation(); openApplyWizard(); }
+});
+
+function appWizardShowStep(step) {
+    [1,2,3,4].forEach(function(i) {
+        const el = document.getElementById('app-step-' + i);
+        if (el) el.style.display = (i === step) ? '' : 'none';
+        const bar = document.getElementById('app-bar-' + i);
+        if (bar) bar.style.background = i <= step ? 'var(--gold)' : 'rgba(255,255,255,.1)';
+    });
+    const labels = ['','Informacoes Pessoais','Qualificacoes','Dados da Empresa','Diretrizes e Assinatura'];
+    const label = document.getElementById('app-step-label');
+    if (label) label.textContent = 'Passo ' + step + ' de 4 - ' + labels[step];
+    const backBtn = document.getElementById('app-btn-back');
+    const nextBtn = document.getElementById('app-btn-next');
+    if (backBtn) backBtn.style.display = step > 1 ? '' : 'none';
+    if (nextBtn) { nextBtn.textContent = step < 4 ? 'Proximo' : ''; nextBtn.style.display = step === 4 ? 'none' : ''; }
+    window.scrollTo(0,0);
+}
+
+function appWizardNext() {
+    if (_appWizardStep === 1) {
+        if (!document.getElementById('ap-name').value.trim() || !document.getElementById('ap-phone').value.trim() || !document.getElementById('ap-email').value.trim()) {
+            showToast('Preenche Nome, Celular e Email.', 'error'); return;
+        }
+    }
+    if (_appWizardStep === 2) {
+        const l = document.querySelector('[name="ap-lagoinha"]:checked');
+        const b = document.querySelector('[name="ap-baptized"]:checked');
+        const o = document.querySelector('[name="ap-owns-co"]:checked');
+        if (!l || !b || !o) { showToast('Responde todas as perguntas obrigatorias.', 'error'); return; }
+    }
+    if (_appWizardStep < 4) { _appWizardStep++; appWizardShowStep(_appWizardStep); if (_appWizardStep === 4) setTimeout(initSignatureCanvas, 300); }
+}
+
+function appWizardBack() { if (_appWizardStep > 1) { _appWizardStep--; appWizardShowStep(_appWizardStep); } }
+
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'ap-lagoinha') { const w=document.getElementById('ap-lagoinha-since-wrap'); if(w) w.style.display=e.target.value==='sim'?'':'none'; }
+    if (e.target.name === 'ap-baptized') { const w=document.getElementById('ap-baptism-detail-wrap'); if(w) w.style.display=''; }
+    if (e.target.name === 'ap-attended') { const w=document.getElementById('ap-attended-wrap'); if(w) w.style.display=e.target.value==='sim'?'flex':'none'; }
+});
+
+function initSignatureCanvas() {
+    _sigCanvas = document.getElementById('sig-canvas');
+    if (!_sigCanvas) return;
+    const rect = _sigCanvas.getBoundingClientRect();
+    _sigCanvas.width  = Math.round(rect.width  * window.devicePixelRatio);
+    _sigCanvas.height = Math.round(rect.height * window.devicePixelRatio);
+    _sigCtx = _sigCanvas.getContext('2d');
+    _sigCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    _sigCtx.strokeStyle = '#111'; _sigCtx.lineWidth = 2.5;
+    _sigCtx.lineCap = 'round'; _sigCtx.lineJoin = 'round'; _sigHasData = false;
+    function getPos(e) { const r=_sigCanvas.getBoundingClientRect(); const src=e.touches?e.touches[0]:e; return {x:src.clientX-r.left,y:src.clientY-r.top}; }
+    _sigCanvas.onmousedown = _sigCanvas.ontouchstart = function(e) { e.preventDefault(); _sigDrawing=true; _sigCtx.beginPath(); const p=getPos(e); _sigCtx.moveTo(p.x,p.y); };
+    _sigCanvas.onmousemove = _sigCanvas.ontouchmove = function(e) { if(!_sigDrawing) return; e.preventDefault(); const p=getPos(e); _sigCtx.lineTo(p.x,p.y); _sigCtx.stroke(); _sigHasData=true; };
+    _sigCanvas.onmouseup = _sigCanvas.ontouchend = function() { _sigDrawing=false; };
+}
+
+function clearSignature() { if(!_sigCtx||!_sigCanvas) return; _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height); _sigHasData=false; }
+
+async function submitFullApplication() {
+    const msg=document.getElementById('ap-submit-msg'); const btn=document.getElementById('btn-submit-app');
+    if (!document.getElementById('ap-agreed').checked) { msg.textContent='Confirma que leste e concordas com as diretrizes.'; return; }
+    if (!_sigHasData) { msg.textContent='Por favor assina digitalmente antes de enviar.'; return; }
+    if (!_appUser) { msg.textContent='Sessao invalida. Faz login novamente.'; return; }
+    btn.disabled=true; btn.textContent='A enviar...'; msg.textContent='';
+    let sigUrl=null;
+    try {
+        const blob=await new Promise(function(r){_sigCanvas.toBlob(r,'image/png');});
+        const path=(_activeWorkspaces[0]&&_activeWorkspaces[0].id||'unknown')+'/'+_appUser.id+'_'+Date.now()+'.png';
+        const {data:ud}=await sb.storage.from('crie-member-signatures').upload(path,blob,{contentType:'image/png',upsert:true});
+        if(ud) sigUrl=ud.path;
+    } catch(e){ console.warn('Sig:',e.message); }
+    function coData(n) {
+        const nameEl=document.getElementById('co'+n+'-name'); const nm=(nameEl&&nameEl.value||'').trim(); if(!nm) return null;
+        return {name:nm, trade:(document.getElementById('co'+n+'-trade')||{}).value||'', role:(document.getElementById('co'+n+'-role')||{}).value||'', website:(document.getElementById('co'+n+'-web')||{}).value||'', instagram:(document.getElementById('co'+n+'-ig')||{}).value||'', address:(document.getElementById('co'+n+'-addr')||{}).value||'', city:(document.getElementById('co'+n+'-city')||{}).value||'', state:(document.getElementById('co'+n+'-state')||{}).value||'', industry:(document.getElementById('co'+n+'-industry')||{}).value||'', description:(document.getElementById('co'+n+'-desc')||{}).value||'', mission:(document.getElementById('co'+n+'-mission')||{}).value||''};
+    }
+    const companies=[coData(1),coData(2)].filter(Boolean);
+    const wsId=_activeWorkspaces[0]&&_activeWorkspaces[0].id;
+    const g=function(id){return (document.getElementById(id)||{}).value||null;};
+    const rg=function(name){const el=document.querySelector('[name="'+name+'"]:checked'); return el?el.value:null;};
+    const payload={workspace_id:wsId,app_user_id:_appUser.id,module:(window._activeModule==='crie_mulheres'?'cm':'crie'),full_name:g('ap-name'),birth_date:g('ap-birth'),phone_mobile:g('ap-phone'),phone_home:g('ap-phone2'),email:g('ap-email'),shirt_size:g('ap-shirt'),spouse_name:g('ap-spouse'),address:g('ap-addr'),address2:g('ap-addr2'),city:g('ap-city'),state:g('ap-state'),zip:g('ap-zip'),is_lagoinha_member:rg('ap-lagoinha')==='sim',lagoinha_member_since:g('ap-lagoinha-since'),is_baptized:rg('ap-baptized')==='sim',baptism_details:g('ap-baptism-detail'),attended_crie:rg('ap-attended')==='sim',sponsor_name:g('ap-sponsor'),attended_dates:[g('ap-date1'),g('ap-date2'),g('ap-date3')].filter(Boolean),owns_company:rg('ap-owns-co')==='sim',companies:companies,agreed_to_terms:true,signature_url:sigUrl,signed_at:new Date().toISOString(),status:'pending'};
+    const {error}=await sb.from('crie_member_applications_v2').insert(payload);
+    btn.disabled=false; btn.textContent='Enviar Aplicacao';
+    if(error){msg.textContent=(error.code==='23505'?'Ja existe uma candidatura sua.':error.message); return;}
+    if(wsId) _memberStatus[wsId]={status:'pending'};
+    showToast('Aplicacao enviada! Aguarda contacto da diretoria.', 'success');
+    goToTab('perfil'); renderMemberStatusSection();
+}
+
 </script>
 </body>
 </html>

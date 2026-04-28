@@ -105,7 +105,7 @@ async function processModule(
   records: BillRecord[],
 ) {
   const membersTable = module === "cm" ? "cm_members" : "crie_members";
-  const paymentsTable = module === "cm" ? "cm_membership_payments" : "crie_membership_payments";
+  const paymentsTable = module === "cm" ? "cm_member_bills" : "crie_member_bills";
   const label = module === "cm" ? "CM" : "CRIE";
 
   const { data: members, error: memErr } = await sb
@@ -141,8 +141,8 @@ async function processModule(
       amount: fee,
       currency,
       reference_month: refMonth,
+      due_date: `${refMonth}-01`,
       status: "pending",
-      payment_method: "manual",
       created_at: new Date().toISOString(),
     });
 

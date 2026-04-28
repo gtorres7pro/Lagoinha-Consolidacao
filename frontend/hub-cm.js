@@ -1353,36 +1353,6 @@ window.reviewCmApplication = async function(appId, appUserId, decision) {
   loadCmMembros();
 };
 
-window.openAddCmMembroModal = function() {
-  const m=document.getElementById('modal-cm-membro'); if(!m) return;
-  ['cm-membro-name','cm-membro-email','cm-membro-phone','cm-membro-company','cm-membro-industry','cm-membro-fee','cm-membro-notes'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  m.style.display='flex';
-};
-window.closeAddCmMembroModal = function() {
-  const m=document.getElementById('modal-cm-membro'); if(m) m.style.display='none';
-};
-window.saveCmMembro = async function() {
-  const sb=cmSb(); const wsId=await cmWsId();
-  const name = document.getElementById('cm-membro-name')?.value?.trim();
-  if (!name) { showToast('Nome obrigatório','error'); return; }
-  const { error } = await sb.from('cm_members').insert({
-    workspace_id: wsId,
-    name,
-    email:    document.getElementById('cm-membro-email')?.value?.trim()||null,
-    phone:    document.getElementById('cm-membro-phone')?.value?.trim()||null,
-    company:  document.getElementById('cm-membro-company')?.value?.trim()||null,
-    industry: document.getElementById('cm-membro-industry')?.value?.trim()||null,
-    notes:    document.getElementById('cm-membro-notes')?.value?.trim()||null,
-    monthly_fee: parseFloat(document.getElementById('cm-membro-fee')?.value)||null,
-    status:'ativo', source:'manual'
-  });
-  if (error) { showToast('Erro: '+error.message,'error'); return; }
-  showToast('✅ Membra adicionada!','success');
-  closeAddCmMembroModal(); loadCmMembros();
-};
-
 window.toggleCmPendingApps = function() {
   const list=document.getElementById('cm-pending-apps-list'); if(!list) return;
   list.style.display = list.style.display==='none'?'flex':'none';
@@ -1556,10 +1526,8 @@ window.openCmQuickAddAttendee = function() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// SECTION 6 — BADGE POLLER (pending applications)
+// SECTION 6 — COUPONS + BADGE POLLER (pending applications)
 // ═══════════════════════════════════════════════════════════
-
-// #24 — Coupons
 async function loadCmCoupons() {
   const sb = cmSb(); const wsId = await cmWsId(); if (!wsId) return;
   const tbody = document.getElementById('cm-coupons-body');
@@ -1670,14 +1638,15 @@ window.copyCmInscricaoLink = function() {
 
 
 (function initCmBadgePoller() {
+  // Source of truth: crie_member_applications_v2 (module='cm')
   async function pollCmBadge() {
     const wsId = window._currentWsId || (typeof currentWsId==='function'?currentWsId():null);
     if (!wsId) return;
     const sb = cmSb();
     if (!(window._wsModules||[]).includes('crie_mulheres')) return;
-    const { count } = await sb.from('cm_member_applications')
+    const { count } = await sb.from('crie_member_applications_v2')
       .select('id',{count:'exact',head:true})
-      .eq('workspace_id',wsId).eq('status','pending');
+      .eq('workspace_id',wsId).eq('status','pending').eq('module','cm');
     updateCmMembersBadge(count||0);
   }
   setTimeout(pollCmBadge, 4000);

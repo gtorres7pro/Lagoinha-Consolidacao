@@ -13489,6 +13489,81 @@ async function loadCrieWorkshop() {
     await loadWsPlaylists(true);
 }
 
+// ── Pending Member Applications ───────────────────────────────────
+// Source of truth: crie_member_applications_v2 (module='crie') — wizard writes here.
+async function loadPendingApplications() {
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    if (!wsId) return;
+
+    const { data } = await sb().from('crie_member_applications_v2')
+        .select('id, status, motivation, created_at, app_user_id, full_name, email, module')
+        .eq('workspace_id', wsId)
+        .eq('status', 'pending')
+        .eq('module', 'crie')
+        .order('created_at', { ascending: false });
+
+    const pending = data || [];
+
+    // ── Update nav sidebar badge ──────────────────────────────────
+    updateNavMembersBadge(pending.length);
+
+    const banner = document.getElementById('pending-apps-banner');
+    const label  = document.getElementById('pending-apps-label');
+    const list   = document.getElementById('pending-apps-list');
+
+    if (!banner || !label || !list) return;
+
+    if (!pending.length) { banner.style.display = 'none'; return; }
+
+    banner.style.display = 'block';
+    label.textContent    = `${pending.length} candidatura${pending.length>1?'s':''} pendente${pending.length>1?'s':''}`;
+
+    list.innerHTML = pending.map(app => {
+        const name    = app.full_name || 'Desconhecido';
+        const email   = app.email    || '—';
+        const dateStr = new Date(app.created_at).toLocaleDateString('pt-PT');
+        return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;flex-shrink:0;">${name.charAt(0).toUpperCase()}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.85rem;font-weight:700;">${name}</div>
+                    <div style="font-size:0.72rem;color:rgba(255,255,255,.3);">${email} · ${dateStr}</div>
+                </div>
+            </div>
+            ${app.motivation ? `<div style="font-size:0.8rem;color:rgba(255,255,255,.5);margin-bottom:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;font-style:italic;">&quot;${app.motivation}&quot;</div>` : ''}
+            <div style="display:flex;gap:8px;">
+                <button onclick="reviewApplicationV1('${app.id}','${app.app_user_id||''}','approved')" style="flex:1;padding:8px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:0.78rem;font-weight:700;cursor:pointer;">✅ Aprovar</button>
+                <button onclick="reviewApplicationV1('${app.id}','${app.app_user_id||''}','rejected')" style="flex:1;padding:8px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.78rem;font-weight:700;cursor:pointer;">❌ Rejeitar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Legacy banner flow uses v2 table but simpler approve/reject (banner context only)
+async function reviewApplicationV1(appId, appUserId, decision) {
+    const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
+    await sb().from('crie_member_applications_v2')
+        .update({ status: decision, reviewed_at: new Date().toISOString() })
+        .eq('id', appId);
+    if (decision === 'approved') {
+        const app = (window._crieAppsAll || []).find(a => a.id === appId);
+        const wsId2 = wsId;
+        if (app) {
+            await supabase.from('crie_members').upsert({
+                workspace_id: wsId2,
+                name: app.full_name, email: app.email, phone: app.phone_mobile,
+                app_user_id: app.app_user_id || null, status: 'ativo', source: 'app',
+            }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
+        }
+        showHubToast('✅ Membro aprovado!', 'success');
+    } else {
+        showHubToast('Candidatura rejeitada.', 'info');
+    }
+    await loadPendingApplications();
+    if (typeof loadCrieApplications === 'function') loadCrieApplications();
+    if (typeof loadCrieMembros === 'function') loadCrieMembros();
+}
+
 // ── Workshop Content ──────────────────────────────────────────────
 async function loadWsContent() {
     const grid = document.getElementById('workshop-content-grid');
@@ -14030,29 +14105,20 @@ async function reviewApplication(appId, appUserId, decision) {
     if (typeof loadCrieMembros === 'function') loadCrieMembros();
 }
 
-// ── Init: Poll pending count every 2 min when CRIE is active ─────
+// ── Init: Poll pending count every 2 min (source: crie_member_applications_v2) ──
 (function initPendingPoller() {
-    // Run once on startup (after a short delay to ensure wsId is set)
-    setTimeout(async () => {
+    async function pollCrieBadge() {
         const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
         if (!wsId) return;
-        const { count } = await sb().from('crie_member_applications')
+        const { count } = await sb().from('crie_member_applications_v2')
             .select('id', { count: 'exact', head: true })
             .eq('workspace_id', wsId)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .eq('module', 'crie');
         updateNavMembersBadge(count || 0);
-    }, 3000);
-
-    // Poll every 2 minutes
-    setInterval(async () => {
-        const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
-        if (!wsId) return;
-        const { count } = await sb().from('crie_member_applications')
-            .select('id', { count: 'exact', head: true })
-            .eq('workspace_id', wsId)
-            .eq('status', 'pending');
-        updateNavMembersBadge(count || 0);
-    }, 2 * 60 * 1000);
+    }
+    setTimeout(pollCrieBadge, 3000);
+    setInterval(pollCrieBadge, 2 * 60 * 1000);
 })();
 
 // ── Patch loadCrieMembros to also load pending apps ───────────────
@@ -14288,13 +14354,24 @@ function openAppDrawer(appId) {
             ${co.description ? `<div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:6px;line-height:1.5;">${co.description}</div>` : ''}
         </div>`).join('');
 
-    const sigBlock = app.signature_url
-        ? `<div style="margin-top:18px;"><div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Assinatura Digital</div>
+    // Build signature block — generate a real signed URL (60-min expiry)
+    let sigBlock = '';
+    if (app.signature_url) {
+        let sigSrc = '';
+        try {
+            const { data: signedData } = await supabase.storage
+                .from('crie-member-signatures')
+                .createSignedUrl(app.signature_url, 3600);
+            sigSrc = signedData?.signedUrl || '';
+        } catch(_) {}
+        sigBlock = `<div style="margin-top:18px;"><div style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Assinatura Digital</div>
             <div style="background:rgba(255,255,255,.97);border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:center;">
-                <img src="https://uyseheucqikgcorrygzc.supabase.co/storage/v1/object/sign/crie-member-signatures/${app.signature_url}?token=placeholder" style="max-width:100%;max-height:120px;object-fit:contain;border-radius:8px;" onerror="this.parentElement.innerHTML='<span style=color:#999;font-size:.78rem;>Assinatura capturada</span>'">
+                ${sigSrc
+                    ? `<img src="${sigSrc}" style="max-width:100%;max-height:120px;object-fit:contain;border-radius:8px;" onerror="this.parentElement.innerHTML='<span style=color:#999;font-size:.78rem;>Assinatura capturada</span>'">`
+                    : `<span style="color:#999;font-size:.78rem;">Assinatura capturada</span>`}
             </div>
-           </div>`
-        : '';
+           </div>`;
+    }
 
     const reviewedBlock = app.status !== 'pending'
         ? `<div style="margin-top:18px;padding:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;font-size:.78rem;color:rgba(255,255,255,.5);">
