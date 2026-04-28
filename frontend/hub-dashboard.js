@@ -640,13 +640,16 @@
         };
 
         window.switchWorkspace = function(ws) {
-            // If the workspace has a slug, navigate to its URL for a clean full reload
+            // If the workspace has a slug, navigate to its URL for a clean full reload.
+            // ALWAYS use the canonical Zelo domain — never window.location.origin —
+            // because the user may be on crie-app.7prolabs.com which would serve the
+            // wrong nginx server block (CRIE fallback instead of dashboard).
             if (ws.slug) {
+                const ZELO_ORIGIN = 'https://zelo.7prolabs.com';
                 const currentSlug = window.location.pathname.split('/').filter(Boolean)[0];
-                if (ws.slug !== currentSlug) {
-                    // Do NOT call showToast before navigation — hub-cm.js overrides
-                    // showToast to call showHubToast which calls showToast → infinite loop.
-                    window.location.href = `/${ws.slug}/dashboard.html`;
+                const onZeloDomain = window.location.hostname === 'zelo.7prolabs.com';
+                if (ws.slug !== currentSlug || !onZeloDomain) {
+                    window.location.href = `${ZELO_ORIGIN}/${ws.slug}/dashboard.html`;
                     return;
                 }
             }

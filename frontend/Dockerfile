@@ -4,7 +4,7 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Force cache-bust on every deploy
-ARG CACHEBUST=20260404v3
+ARG CACHEBUST=20260428v1
 RUN echo "Cache bust: $CACHEBUST"
 
 # Copy all frontend files
