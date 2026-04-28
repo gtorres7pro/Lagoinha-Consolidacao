@@ -532,6 +532,17 @@
                     window.currentWorkspaceId = initial.id;
                     sessionStorage.setItem('ws_id', initial.id);
                     localStorage.setItem('currentWorkspaceId', initial.id);
+
+                    // ── Slug guard: if URL has no slug, redirect to canonical URL ──
+                    // e.g. /dashboard.html → /orlando/dashboard.html
+                    // This prevents the workspace from hanging when bookmarks or
+                    // manual navigation omits the workspace slug.
+                    if (!_urlSlug && initial.slug && window.location.protocol !== 'file:') {
+                        const page = window.location.pathname.split('/').filter(Boolean)[0] || 'dashboard.html';
+                        window.location.replace(`https://zelo.7prolabs.com/${initial.slug}/${page}`);
+                        return;
+                    }
+
                     // Store plan & modules globally
                     window._wsModules = initial.modules || [];
                     window._currentWorkspacePlan = initial.plan || 'free';
