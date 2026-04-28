@@ -14331,7 +14331,7 @@ function renderCrieAppsList(list) {
 }
 
 // ── Drawer open / close ───────────────────────────────────────────
-function openAppDrawer(appId) {
+async function openAppDrawer(appId) {
     const app = window._crieAppsAll.find(a => a.id === appId);
     if (!app) return;
     window._activeAppId = appId;
