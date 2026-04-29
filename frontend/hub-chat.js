@@ -322,7 +322,7 @@ function buildChatLayout() {
 
     /* ═══════════ ROOT ═══════════ */
     .chat-root {
-      display:flex; flex-direction:column; height:calc(100vh - 60px);
+      display:flex; flex-direction:column; height:100%;
       background:#0f0f10; font-family:'Inter',-apple-system,system-ui,sans-serif;
       border-radius:0; overflow:hidden;
     }
@@ -473,7 +473,7 @@ function buildChatLayout() {
     .pin-badge { color:#5a5a72; }
 
     /* ═══════════ CHAT WINDOW ═══════════ */
-    .chat-window { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; background:#0a0a0c; position:relative; }
+    .chat-window { flex:1; display:flex; flex-direction:column; min-width:0; max-width:100%; overflow:hidden; background:#0a0a0c; position:relative; }
 
     .chat-empty-state {
       flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -556,7 +556,7 @@ function buildChatLayout() {
 
     /* ═══════════ MESSAGES ═══════════ */
     .chat-messages {
-      flex:1; overflow-y:auto; padding:12px 60px; display:flex; flex-direction:column; gap:2px;
+      flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:2px;
       scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.04) transparent;
       background-color:#0a0a0c;
       background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FFD700' fill-opacity='0.018'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
