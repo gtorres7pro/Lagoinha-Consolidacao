@@ -258,8 +258,7 @@ Deno.serve(async (req: Request) => {
       }
 
       // Show pastor list
-      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
-");
+      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\\n");
       const outMsg = `Ótimo! Que tipo de sessão prefere: *presencial* ou *online*? Aqui estão os pastores disponíveis:
 
 ${pastorList}
@@ -295,8 +294,7 @@ Responda com o número ou nome do pastor. 👆`;
 
       if (!chosenPastor) {
         // Didn't understand — re-ask
-        const list = storedPastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
-");
+        const list = storedPastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\\n");
         const outMsg = `Não consegui identificar o pastor. Digite o *número* ou *nome*:
 
 ${list}`;
@@ -322,8 +320,7 @@ ${list}`;
         return new Response(JSON.stringify({ ok: true, cp_step: "no_slots" }), { status: 200 });
       }
 
-      const slotList = pastoSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("
-");
+      const slotList = pastoSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("\\n");
       const outMsg = `Ótimo! Aqui estão os horários disponíveis com ${chosenPastor.display_name}:
 
 ${slotList}
@@ -347,8 +344,7 @@ Digite o *número* do horário desejado. 📅`;
       const idx = numMatch ? parseInt(numMatch[1]) - 1 : -1;
 
       if (idx < 0 || idx >= storedSlots.length) {
-        const slotList = storedSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("
-");
+        const slotList = storedSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("\\n");
         const outMsg = `Por favor, escolha o *número* de um dos horários:
 
 ${slotList}`;
@@ -513,17 +509,17 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     console.log(`[FLUSH] using ju_prompt from knowledge_base`);
   } else {
     // Built-in default + KB fields
-    const kb = ws?.knowledge_base ?? {};
     const kbFields = [
-      kb.ia_about     ? `Sobre a Igreja: ${kb.ia_about}` : null,
-      kb.ia_schedule  ? `Programação: ${kb.ia_schedule}` : null,
-      kb.ia_baptism   ? `Batismo: ${kb.ia_baptism}` : null,
-      kb.ia_faq       ? `FAQ: ${kb.ia_faq}` : null,
-      kb.ia_limits    ? `Limites/Regras: ${kb.ia_limits}` : null,
+      ws?.knowledge_base?.nome ? `Igreja: ${ws.knowledge_base.nome}` : "",
+      ws?.knowledge_base?.endereco ? `Endereço: ${ws.knowledge_base.endereco}` : "",
+      ws?.knowledge_base?.cultos ? `Cultos: ${ws.knowledge_base.cultos}` : "",
+      ws?.knowledge_base?.pastores ? `Pastores: ${ws.knowledge_base.pastores}` : "",
+      ws?.knowledge_base?.start ? `Start (Integração): ${ws.knowledge_base.start}` : "",
+      ws?.knowledge_base?.batismo ? `Batismo: ${ws.knowledge_base.batismo}` : ""
     ].filter(Boolean).join("\n\n");
     const kbBlock = kbFields || "Sem base de conhecimento configurada.";
-    systemInstruction = `${dateContext}\n\nVocê é a assistente virtual desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.\nBase de Conhecimento:\n${kbBlock}` + JSON_OUTPUT_FORMAT;
-    console.log(`[FLUSH] using built-in default prompt`);
+    systemInstruction = `${dateContext}\n\nVocê é a **Ju**, a assistente virtual e recepcionista exclusiva desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.\nBase de Conhecimento:\n${kbBlock}` + JSON_OUTPUT_FORMAT;
+    console.log(`[FLUSH] using built-in default prompt (Ju)`);
   }
 
   const payload = {
@@ -547,60 +543,143 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    let retries = 3;
+    let delay = 1000;
+    
+    while (retries > 0) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      const rawBody = await res.text();
-      if (res.ok) {
-        try {
-          const j = JSON.parse(rawBody);
-          const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
-          if (rawText) {
-            try {
-              const parsedJSON = JSON.parse(rawText);
-              if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
-              else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
-              if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
-              if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
-              if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
-            } catch {
-              console.log("LLM non-JSON:", rawText.substring(0, 200));
-              finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+        const rawBody = await res.text();
+        if (res.ok) {
+          try {
+            const j = JSON.parse(rawBody);
+            const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+            const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
+            if (rawText) {
+              try {
+                const parsedJSON = JSON.parse(rawText);
+                if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
+                else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
+                if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
+                if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
+                if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
+              } catch {
+                console.log("LLM non-JSON:", rawText.substring(0, 200));
+                finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+              }
+            } else {
+              finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+            }
+          } catch (e: any) {
+            finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
+            console.error("Gemini parse error:", e.message);
+          }
+          break; // Success, exit retry loop
+        } else {
+          if (res.status === 503 || res.status === 429 || res.status >= 500) {
+            console.error(`Gemini API HTTP ${res.status}. Retrying in ${delay}ms...`);
+            retries--;
+            if (retries === 0) {
+              finalReply = `⚠️ Gemini falhou após retentativas. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+              console.error("Gemini API error:", rawBody.substring(0, 300));
+            } else {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2;
+              continue;
             }
           } else {
-            finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+            finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+            console.error("Gemini API error:", rawBody.substring(0, 300));
+            break;
           }
-        } catch (e: any) {
-          finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
-          console.error("Gemini parse error:", e.message);
         }
-      } else {
-        finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
-        console.error("Gemini API error:", rawBody.substring(0, 300));
-      }
-    } catch (e: any) {
-      clearTimeout(timeoutId);
-      if (e.name === "AbortError") {
-        finalReply = `⚠️ Gemini Timeout após ${GEMINI_TIMEOUT_MS}ms.`;
-        console.error("Gemini AbortError");
-      } else {
-        finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
-        console.error("Gemini fetch error:", e.message);
+      } catch (e: any) {
+        clearTimeout(timeoutId);
+        if (e.name === "AbortError" || e.message.includes("fetch")) {
+          console.error(`Gemini ${e.name}. Retrying in ${delay}ms...`);
+          retries--;
+          if (retries === 0) {
+            finalReply = `⚠️ Gemini Error após retentativas: ${e.message}`;
+          } else {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+            continue;
+          }
+        } else {
+          finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
+          console.error("Gemini fetch error:", e.message);
+          break;
+        }
       }
     }
   } catch (e: any) { console.error("Outer error:", e.message); }
 
+  // Se Gemini falhar após retentativas, tentar OpenAI como fallback
+  if (finalReply.startsWith("⚠️") && Deno.env.get("OPENAI_API_KEY")) {
+    try {
+      console.log(`[FLUSH] Gemini failed. Falling back to OpenAI...`);
+      const openAiMessages = contents.map((c: any) => ({
+        role: c.role === "model" ? "assistant" : "user",
+        content: c.parts[0].text
+      }));
+      const openAiBody = {
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemInstruction },
+          ...openAiMessages
+        ]
+      };
+      const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`
+        },
+        body: JSON.stringify(openAiBody)
+      });
+      if (openAiRes.ok) {
+        const oData = await openAiRes.json();
+        const fallbackText = oData.choices[0]?.message?.content;
+        if (fallbackText) {
+          finalReply = fallbackText;
+          try {
+            const parsed = JSON.parse(finalReply);
+            if (parsed.whatsapp_reply) {
+              finalReply = parsed.whatsapp_reply;
+              detectedIntention = parsed.detected_intention || "none";
+            }
+          } catch(e) {}
+        }
+      }
+    } catch (e) {
+      console.error("[FLUSH] OpenAI fallback also failed", e);
+    }
+  }
+
   // ── Send response ─────────────────────────────────────────────────────────
+  const isError = finalReply.startsWith("⚠️");
+  if (isError) {
+    // Log technical error to DB so admin sees it
+    await sb.from("messages").insert({
+      workspace_id: ws!.id, lead_id,
+      direction: "outbound", type: "text",
+      content: finalReply, automated: true,
+      responded_at: new Date().toISOString(),
+    });
+    // Send friendly fallback to user
+    finalReply = "Opa, minha inteligência artificial teve um pequeno engasgo de conexão agora. Pode me mandar um 'Oi' novamente em um minutinho? 😊";
+  }
+
   let chunks = finalReply.split("|||").map((s: string) => s.trim()).filter((s: string) => s);
 
   const hasAudio = pending.some((m: any) => m.type === "audio");
@@ -659,8 +738,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
         return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors_initial" }), { status: 200 });
       }
       // Start flow: ask type
-      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("
-");
+      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\\n");
       const startMsg = `Olá ${firstName}! Que boa iniciativa — adoramos o Café com Pastor! ☕
 
 Temos os seguintes pastores disponíveis:

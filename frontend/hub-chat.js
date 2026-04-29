@@ -376,8 +376,9 @@ function buildChatLayout() {
     .chat-sidebar-expand-fab[style*="flex"] { animation:fabIn .18s ease; }
 
     /* Search */
-    .chat-search-wrap { padding:8px 12px; flex-shrink:0; background:#0f0f10; }
+    .chat-search-wrap { padding:8px 12px; flex-shrink:0; background:#0f0f10; display:flex; align-items:center; }
     .chat-search-inner {
+      flex: 1;
       display:flex; align-items:center; gap:10px;
       background:#141418; border-radius:8px; padding:6px 12px;
       border:1px solid #1e1e28; transition:border-color .15s;
