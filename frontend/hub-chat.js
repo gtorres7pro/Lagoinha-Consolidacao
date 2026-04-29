@@ -322,13 +322,13 @@ function buildChatLayout() {
 
     /* ═══════════ ROOT ═══════════ */
     .chat-root {
-      display:flex; flex-direction:column; height:100%;
+      display:flex; flex-direction:column; height:100%; width:100%; min-width:0;
       background:#0f0f10; font-family:'Inter',-apple-system,system-ui,sans-serif;
       border-radius:0; overflow:hidden;
     }
 
     /* ═══════════ MAIN PANEL ═══════════ */
-    .chat-panel { display:flex; flex:1; overflow:hidden; }
+    .chat-panel { display:flex; flex:1; overflow:hidden; min-width:0; }
 
     /* ═══════════ LEFT SIDEBAR ═══════════ */
     .chat-list-panel {
@@ -842,12 +842,12 @@ async function loadLeads() {
 
 // ── Avatar color palette (deterministic per lead) ──
 const AVATAR_COLORS = [
-  '#25D366','#00a884','#53bdeb','#7c90db','#e67e73',
-  '#e6a050','#d4cf59','#a8d86e','#6ec4d8','#c990db',
+  '#25D366', '#00a884', '#53bdeb', '#7c90db', '#e67e73',
+  '#e6a050', '#d4cf59', '#a8d86e', '#6ec4d8', '#c990db',
 ];
 function getAvatarColor(name) {
   let hash = 0;
-  for (let i = 0; i < (name||'').length; i++) hash = (name||'').charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < (name || '').length; i++) hash = (name || '').charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
@@ -979,7 +979,7 @@ async function selectLead(leadId) {
       // Re-eval lock UI with fresh data
       updateLockUI(lead);
     }
-  } catch(e) { /* non-fatal */ }
+  } catch (e) { /* non-fatal */ }
 
   // Window warning / input toggle
   applyWindowUI(lead);
@@ -1210,8 +1210,8 @@ function buildMessageBubble(msg, isConsecutive) {
 
   const badge = (!isConsecutive) ? (
     isManual ? '👤 Equipe' :
-    (type === 'audio' || type === 'voice') ? '🎵 Áudio' :
-    isOutbound ? '🤖 Mila' : ''
+      (type === 'audio' || type === 'voice') ? '🎵 Áudio' :
+        isOutbound ? '🤖 Mila' : ''
   ) : '';
 
   const doubleCheck = isOutbound ? `<svg viewBox="0 0 16 11" width="16" height="11" fill="none"><path d="M11.07 0L5.43 5.57 2.93 3.06 0 5.97l5.43 5.34L14 2.92z" fill="currentColor" opacity=".5"/><path d="M14.07 0L8.43 5.57 7.5 4.65 4.57 7.56l3.86 3.75L17 2.92z" fill="currentColor" opacity=".5"/></svg>` : '';
@@ -1278,7 +1278,7 @@ async function sendManualMessage() {
 
   try {
     const session = (await window._sb.auth.getSession()).data.session;
-    const token   = session?.access_token;
+    const token = session?.access_token;
 
     const res = await fetch(`${EDGE_URL}/whatsapp-send-message`, {
       method: 'POST',
@@ -1326,7 +1326,7 @@ async function sendManualMessage() {
           llm_lock_until: lockUntil,
           last_message_at: now,
         }).eq('id', chatState.selectedLeadId);
-      } catch(dbErr) {
+      } catch (dbErr) {
         console.warn('[Chat] DB persist failed:', dbErr.message);
       }
     } else {
@@ -1351,7 +1351,7 @@ function handleChatKeydown(e) {
 function autoresizeTextarea(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  
+
   const mic = document.getElementById('chat-mic-icon');
   const send = document.getElementById('chat-send-icon');
   const btn = document.getElementById('chat-send-btn');
@@ -1392,7 +1392,7 @@ function updateLockUI(lead) {
       }
       const mins = Math.floor(diff / 60000);
       const secs = Math.floor((diff % 60000) / 1000);
-      document.getElementById('chat-lock-countdown').textContent = `até ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+      document.getElementById('chat-lock-countdown').textContent = `até ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
     updateCountdown();
     chatState.lockTimers[lead.id] = setInterval(updateCountdown, 1000);
@@ -1515,10 +1515,10 @@ function setupRealtime() {
       // If this lead is open, add message live
       if (msg.lead_id === chatState.selectedLeadId) {
         // Avoid duplicates from optimistic inserts (check by id OR by content+direction within 3s)
-        const isDupe = chatState.messages.find(m => 
-          m.id === msg.id || 
-          (m.direction === msg.direction && m.content === msg.content && 
-           Math.abs(new Date(m.created_at) - new Date(msg.created_at)) < 3000)
+        const isDupe = chatState.messages.find(m =>
+          m.id === msg.id ||
+          (m.direction === msg.direction && m.content === msg.content &&
+            Math.abs(new Date(m.created_at) - new Date(msg.created_at)) < 3000)
         );
         if (!isDupe) {
           chatState.messages.push(msg);
@@ -1594,7 +1594,7 @@ function attachChatEvents() {
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function escapeHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function formatTimeAgo(isoStr) {
@@ -1711,7 +1711,7 @@ async function openTemplateModal() {
         </div>`;
       }).join('');
     }
-  } catch(e) {
+  } catch (e) {
     if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:24px;color:#f87171;font-size:.82rem;">❌ Erro ao carregar templates: ${e.message}</div>`;
   }
 }
@@ -1731,7 +1731,7 @@ function selectTemplate(name, languageCode, varCount) {
   if (varCount > 0 && varsSection && varsInputs) {
     const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
     const firstName = lead?.name?.split(' ')[0] || '';
-    const varNames = cached.varNames || Array.from({length: varCount}, (_, i) => String(i + 1));
+    const varNames = cached.varNames || Array.from({ length: varCount }, (_, i) => String(i + 1));
     varsInputs.innerHTML = varNames.map((vName, i) => `
       <div style="margin-bottom:10px;">
         <label style="font-size:.72rem;color:#8696a0;display:block;margin-bottom:4px;">{{${vName}}}</label>
@@ -1847,7 +1847,7 @@ async function sendSelectedTemplate() {
           automated: false, responded_at: now,
           wa_message_id: result.wa_message_id || null,
         });
-      } catch(dbErr) {
+      } catch (dbErr) {
         console.warn('[Template] DB insert failed (RLS?):', dbErr.message);
       }
     } else {
@@ -1856,7 +1856,7 @@ async function sendSelectedTemplate() {
       console.error('[Template Error]', result);
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
     }
-  } catch(e) {
+  } catch (e) {
     showChatToast(`❌ Erro de conexão: ${e.message}`, 'error');
     console.error('[Template Fetch Error]', e);
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar Template ✓'; }
@@ -1934,7 +1934,7 @@ async function handleChatFileAttach(event) {
     } else {
       throw new Error(result.error || 'Erro no envio');
     }
-  } catch(e) {
+  } catch (e) {
     showChatToast(`❌ Erro no envio: ${e.message}`, 'error');
   }
 }
@@ -2015,7 +2015,7 @@ async function openBroadcastModal() {
     }
     _cachedTemplates = data.templates;
     _renderBroadcastTemplates(listEl, data.templates);
-  } catch(e) {
+  } catch (e) {
     if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#f87171;font-size:.82rem;">❌ ${e.message}</div>`;
   }
 }
@@ -2071,7 +2071,7 @@ async function sendBroadcast() {
     } else {
       showChatToast(`❌ ${result.error || 'Erro no broadcast'}`, 'error');
     }
-  } catch(e) {
+  } catch (e) {
     showChatToast(`❌ ${e.message}`, 'error');
   } finally {
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '📢 Enviar Broadcast'; }
@@ -2128,7 +2128,7 @@ async function openNewConvoModal() {
         </div>`;
       }).join('');
     }
-  } catch(e) {
+  } catch (e) {
     if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:16px;color:#f87171;font-size:.82rem;">❌ ${e.message}</div>`;
   }
 }
@@ -2173,7 +2173,7 @@ function selectNewConvoTemplate(name, languageCode, varCount) {
     const normalized = phone?.replace(/\D/g, '') || '';
     const match = chatState.leads.find(l => (l.phone || '').replace(/\D/g, '').endsWith(normalized.slice(-8)));
     const firstName = match?.name?.split(' ')[0] || '';
-    const varNames = cached.varNames || Array.from({length: varCount}, (_, i) => String(i + 1));
+    const varNames = cached.varNames || Array.from({ length: varCount }, (_, i) => String(i + 1));
     varsInputs.innerHTML = varNames.map((vName, i) => `
       <div style="margin-bottom:10px;">
         <label style="font-size:.72rem;color:#8696a0;display:block;margin-bottom:4px;">{{${vName}}}</label>
@@ -2321,7 +2321,7 @@ async function sendNewConversation() {
       showChatToast(`❌ ${result.error || 'Erro ao enviar'}`, 'error');
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar ✓'; }
     }
-  } catch(e) {
+  } catch (e) {
     showChatToast(`❌ ${e.message}`, 'error');
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Enviar ✓'; }
   }
@@ -2383,7 +2383,7 @@ async function playAudioMessage(msgId, mediaId) {
     } else {
       if (btn) { btn.disabled = false; btn.textContent = '❌ Falha ao carregar'; }
     }
-  } catch(e) {
+  } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = `❌ ${e.message}`; }
   }
 }
