@@ -31,7 +31,12 @@ async function queryAvailableSlots(workspace_id: string) {
     .eq("is_active", true)
     .order("display_name");
 
-  if (pErr || !pastors?.length) return { pastors: [], slots: [] };
+  if (pErr || !pastors?.length) {
+    console.log(`[CPBotQuery] No active pastors for ws=${workspace_id}`);
+    return { pastors: [], slots: [] };
+  }
+
+  console.log(`[CPBotQuery] Found ${pastors.length} active pastors`);
 
   // 2. Get availability rules for all these pastors
   const pastorIds = pastors.map((p: any) => p.id);
@@ -44,6 +49,13 @@ async function queryAvailableSlots(workspace_id: string) {
   // 3. Get blocked slots for next 7 days
   const todayStr = new Date().toISOString().split("T")[0];
   const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+
+  // Fetch config for min_advance_hours
+  const { data: config } = await sb.from("cafe_pastor_config")
+    .select("min_advance_hours")
+    .eq("workspace_id", workspace_id)
+    .maybeSingle();
+  const advanceMs = (config?.min_advance_hours ?? 2) * 3600000;
   const { data: blocked } = await sb
     .from("cafe_pastor_blocked_slots")
     .select("pastor_id, blocked_date, blocked_start, blocked_end")
@@ -112,7 +124,7 @@ async function queryAvailableSlots(workspace_id: string) {
         });
 
         // Skip if in the past (with 2hr buffer)
-        const isPast = new Date(slotISO).getTime() < Date.now() + 2 * 3600000;
+        const isPast = new Date(slotISO).getTime() < Date.now() + advanceMs;
 
         if (!isBlocked && !isBooked && !isPast) {
           slots.push({
@@ -134,6 +146,7 @@ async function queryAvailableSlots(workspace_id: string) {
     }
   }
 
+  console.log(`[CPBotQuery] Computed ${slots.length} slots for ws=${workspace_id}`);
   return { pastors, slots };
 }
 

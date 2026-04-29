@@ -22,6 +22,15 @@ Deno.serve(async (req: Request) => {
   const { workspace_id, session_type, gender } = body ?? {};
   if (!workspace_id) return json({ error: "Missing workspace_id" }, 400);
 
+  console.log(`[CPMatch] ws=${workspace_id} session_type=${session_type} gender=${gender}`);
+
+  // Fetch workspace config for min_advance_hours
+  const { data: config } = await sb.from("cafe_pastor_config")
+    .select("min_advance_hours")
+    .eq("workspace_id", workspace_id)
+    .maybeSingle();
+  const minAdvanceHours = config?.min_advance_hours ?? 2;
+
   // Fetch active pastors
   let query = sb.from("cafe_pastor_pastors")
     .select("id, display_name, gender, bio, photo_url, session_duration_minutes, appointment_type")
@@ -34,8 +43,30 @@ Deno.serve(async (req: Request) => {
   }
 
   const { data: pastors, error: pErr } = await query.order("display_name");
-  if (pErr || !pastors?.length) return json({ ok: true, pastors: [], slots: [] });
+  console.log(`[CPMatch] pastors found: ${pastors?.length ?? 0} error: ${pErr?.message ?? "none"}`);
 
+  if (pErr || !pastors?.length) {
+    // If gender filter returned empty, retry without gender filter as fallback
+    if (gender && gender !== "nao_informado" && !pastors?.length) {
+      console.log(`[CPMatch] No pastors matched gender=${gender}, retrying without gender filter`);
+      const { data: allPastors, error: allErr } = await sb.from("cafe_pastor_pastors")
+        .select("id, display_name, gender, bio, photo_url, session_duration_minutes, appointment_type")
+        .eq("workspace_id", workspace_id)
+        .eq("is_active", true)
+        .order("display_name");
+      if (allErr || !allPastors?.length) {
+        return json({ ok: true, pastors: [], slots: [], _debug: { reason: "no_active_pastors" } });
+      }
+      // Use all pastors as fallback (cross-gender matching)
+      return await computeSlots(allPastors, workspace_id, session_type, minAdvanceHours);
+    }
+    return json({ ok: true, pastors: [], slots: [], _debug: { reason: "no_pastors_match" } });
+  }
+
+  return await computeSlots(pastors, workspace_id, session_type, minAdvanceHours);
+});
+
+async function computeSlots(pastors: any[], workspace_id: string, session_type: string | undefined, minAdvanceHours: number) {
   const pastorIds = pastors.map((p: any) => p.id);
   const todayStr = new Date().toISOString().split("T")[0];
   const in14Days = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
@@ -44,6 +75,8 @@ Deno.serve(async (req: Request) => {
   const { data: avail } = await sb.from("cafe_pastor_availability")
     .select("pastor_id, day_of_week, start_time, end_time, session_type, is_active")
     .in("pastor_id", pastorIds).eq("is_active", true);
+
+  console.log(`[CPMatch] availability rules found: ${avail?.length ?? 0}`);
 
   // Fetch blocked slots
   const { data: blocked } = await sb.from("cafe_pastor_blocked_slots")
@@ -60,6 +93,7 @@ Deno.serve(async (req: Request) => {
 
   const slots: any[] = [];
   const DAY_NAMES = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  const advanceMs = minAdvanceHours * 3600000;
 
   for (let dayOffset = 0; dayOffset <= 13; dayOffset++) {
     const date = new Date();
@@ -101,7 +135,8 @@ Deno.serve(async (req: Request) => {
           return slotStart < exEnd && (slotStart + duration * 60000) > exStart;
         });
 
-        const isPast = new Date(slotISO).getTime() < Date.now() + 2 * 3600000;
+        // Use config min_advance_hours instead of hardcoded 2h
+        const isPast = new Date(slotISO).getTime() < Date.now() + advanceMs;
 
         if (!isBlocked && !isBooked && !isPast) {
           slots.push({
@@ -124,5 +159,6 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  console.log(`[CPMatch] total slots computed: ${slots.length}`);
   return json({ ok: true, pastors, slots });
-});
+}

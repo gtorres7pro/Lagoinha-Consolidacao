@@ -491,7 +491,7 @@ async function renderSlots() {
 
     STATE.selectedSlot = null;
     var items = STATE.slots.map(function(slot, i) {
-        var d = new Date(slot.datetime || slot.slot_datetime || slot);
+        var d = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
         var dateStr = d.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
         var timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
         return '<div class="slot-item" onclick="selectSlot(' + i + ')" id="slot-' + i + '">'
@@ -549,7 +549,7 @@ window.submitSlot = function() {
 ═══════════════════════════════════════════════════════════════ */
 function renderConfirm() {
     var slot = STATE.selectedSlot;
-    var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+    var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
     var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
     var dur = slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60;
@@ -599,7 +599,7 @@ window.submitBooking = async function() {
 
     try {
         var slot = STATE.selectedSlot;
-        var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+        var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
 
         // Try edge function first
         var booked = false;
@@ -625,7 +625,7 @@ window.submitBooking = async function() {
                 })
             });
             var result = await resp.json();
-            if (result && result.appointment_id) { STATE.apptId = result.appointment_id; booked = true; }
+            if (result && result.ok && result.appointment) { STATE.apptId = result.appointment.id; booked = true; }
         } catch(ef) { /* fallback to direct insert */ }
 
         // Fallback: direct Supabase insert
@@ -663,7 +663,7 @@ window.submitBooking = async function() {
 ═══════════════════════════════════════════════════════════════ */
 function renderSuccess() {
     var slot = STATE.selectedSlot;
-    var dt = new Date(slot.datetime || slot.slot_datetime || slot);
+    var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
     var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 
