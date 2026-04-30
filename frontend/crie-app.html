@@ -528,6 +528,63 @@ body {
 }
 .connect-card:hover { border-color:rgba(255,255,255,0.1); }
 .connect-card:active { transform:scale(0.98); }
+.connect-tools {
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:8px;
+  align-items:center;
+  margin-bottom:16px;
+}
+.connect-tools .btn-primary,
+.connect-tools .btn-ghost {
+  margin:0;
+  padding:12px 14px;
+  font-size:.82rem;
+  white-space:nowrap;
+}
+.connect-mode-btn.active {
+  color:var(--accent);
+  border-color:rgba(217,119,6,.24);
+  background:rgba(217,119,6,.10);
+}
+.connect-status-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border-radius:999px;
+  padding:3px 8px;
+  font-size:.66rem;
+  font-weight:850;
+  letter-spacing:.02em;
+  border:1px solid rgba(24,32,47,.09);
+}
+.connect-status-active { color:var(--green); background:rgba(15,138,107,.09); border-color:rgba(15,138,107,.18); }
+.connect-status-pending { color:var(--accent); background:rgba(217,119,6,.10); border-color:rgba(217,119,6,.20); }
+.connect-status-archived { color:var(--text3); background:rgba(24,32,47,.05); }
+.connect-status-rejected { color:var(--red); background:rgba(220,63,74,.08); border-color:rgba(220,63,74,.16); }
+.connect-card-actions {
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+.connect-card-actions button {
+  border:1px solid rgba(24,32,47,.10);
+  background:rgba(255,255,255,.72);
+  color:var(--text2);
+  border-radius:10px;
+  padding:9px 11px;
+  font:800 .75rem 'Inter','Outfit',sans-serif;
+  cursor:pointer;
+}
+.connect-card-actions button.danger {
+  color:var(--red);
+  border-color:rgba(220,63,74,.16);
+  background:rgba(220,63,74,.07);
+}
+@media (max-width:420px) {
+  .connect-tools { grid-template-columns:1fr 1fr; }
+  .connect-tools .btn-primary { grid-column:1 / -1; }
+}
 
 /* ── STAGGER ANIMATIONS ─────────────────────────────────────── */
 @keyframes cardIn {
@@ -1300,6 +1357,11 @@ body {
       <button class="filter-chip" data-cf="doacao" onclick="filterConnect(this,'doacao')">Doação</button>
     </div>
     <div class="scroll-area" style="padding:0 20px;">
+      <div class="connect-tools">
+        <button class="btn-primary" onclick="openConnectOfferModal()">Publicar oferta</button>
+        <button class="btn-ghost connect-mode-btn active" id="connect-mode-all" onclick="setConnectMode('all')">Mural</button>
+        <button class="btn-ghost connect-mode-btn" id="connect-mode-mine" onclick="setConnectMode('mine')">Minhas</button>
+      </div>
       <div id="connect-list"><div class="spinner" style="margin:40px auto;"></div></div>
     </div>
   </div>
@@ -1644,6 +1706,42 @@ body {
       </div>
       <div class="auth-msg" id="ep-msg" style="color:var(--red);margin:12px 0;"></div>
       <button class="btn-primary" style="margin-top:4px;" onclick="saveProfile()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- Connect Offer -->
+  <div class="modal-overlay" id="modal-connect-offer" onclick="closeModal('modal-connect-offer')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Publicar oferta</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <div class="field-label">Título</div>
+          <input id="co-title" class="field-input" placeholder="Ex: Preciso de designer / Ofereço contabilidade">
+        </div>
+        <div>
+          <div class="field-label">Categoria</div>
+          <select id="co-category" class="field-input">
+            <option value="">Seleciona…</option>
+            <option value="emprego">Emprego</option>
+            <option value="servico">Serviço</option>
+            <option value="doacao">Doação</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Descrição</div>
+          <textarea id="co-desc" class="field-input" rows="4" style="resize:none;" placeholder="Explica o que estás a oferecer ou procurar, com detalhes úteis."></textarea>
+        </div>
+        <div><div class="field-label">Nome de contacto</div><input id="co-name" class="field-input" placeholder="Nome"></div>
+        <div><div class="field-label">Email de contacto</div><input id="co-email" class="field-input" type="email" placeholder="email@exemplo.com"></div>
+        <div><div class="field-label">Telefone</div><input id="co-phone" class="field-input" type="tel" placeholder="+351 900 000 000"></div>
+        <label style="display:flex;gap:10px;align-items:flex-start;font-size:.78rem;color:var(--text2);line-height:1.45;">
+          <input id="co-terms" type="checkbox" style="width:17px;height:17px;accent-color:var(--gold);margin-top:2px;flex-shrink:0;">
+          <span>Confirmo que a oferta é real, respeitosa e autorizo o CRIE a rever ou remover a publicação.</span>
+        </label>
+      </div>
+      <div class="auth-msg" id="co-msg" style="color:var(--red);margin:12px 0;"></div>
+      <button class="btn-primary" id="btn-connect-submit" onclick="submitConnectOffer()">Enviar oferta</button>
     </div>
   </div>
 
@@ -2683,43 +2781,244 @@ function openPlaylist(id) {
 }
 
 // ══ CONNECT SCREEN ════════════════════════════════════════════════
+let _myConnect = [];
+let _connectMode = 'all';
+let _connectFilter = 'all';
+
 async function loadConnect() {
     const el = document.getElementById('connect-list');
     if (!el) return;
     const wsIds = _activeWorkspaces.map(w => w.id);
-    let q = sb.from('connect_listings').select('id, title, category, description, workspace_id, workspaces(name)').eq('status', 'approved').order('created_at', { ascending: false }).limit(30);
-    if (wsIds.length) q = q.in('workspace_id', wsIds);
-    const { data } = await q;
-    _allConnect = data || [];
-    renderConnect(_allConnect);
-}
-
-function renderConnect(items) {
-    const el = document.getElementById('connect-list');
-    if (!el) return;
-    const catEmoji = { emprego:'💼', servico:'🛠️', doacao:'🎁', outro:'📌' };
-    if (!items.length) {
-        el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-title">Sem listagens ainda</div></div>`;
+    if (!wsIds.length) {
+        _allConnect = [];
+        _myConnect = loadLocalConnectOffers();
+        renderConnect();
         return;
     }
-    el.innerHTML = items.map(item => `
+
+    const select = 'id, title, category, description, workspace_id, contact_name, contact_email, contact_phone, status, pinned, expires_at, created_at, workspaces(name)';
+    const publicQ = sb.from('connect_listings')
+        .select(select)
+        .in('workspace_id', wsIds)
+        .eq('status', 'active')
+        .order('pinned', { ascending:false })
+        .order('created_at', { ascending:false })
+        .limit(50);
+
+    const email = (_appUser?.email || '').toLowerCase();
+    const ownQ = email
+        ? sb.from('connect_listings')
+            .select(select)
+            .in('workspace_id', wsIds)
+            .ilike('contact_email', email)
+            .order('created_at', { ascending:false })
+            .limit(50)
+        : Promise.resolve({ data:[], error:null });
+
+    const [publicRes, ownRes] = await Promise.all([publicQ, ownQ]);
+    _allConnect = publicRes.data || [];
+    _myConnect = mergeConnectOffers(ownRes.data || [], loadLocalConnectOffers());
+    if (publicRes.error && _connectMode === 'all') {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro ao carregar Connect</div><div class="empty-desc">${escHtml(publicRes.error.message)}</div></div>`;
+        return;
+    }
+    renderConnect();
+}
+
+function renderConnect() {
+    const el = document.getElementById('connect-list');
+    if (!el) return;
+    document.getElementById('connect-mode-all')?.classList.toggle('active', _connectMode === 'all');
+    document.getElementById('connect-mode-mine')?.classList.toggle('active', _connectMode === 'mine');
+
+    const source = _connectMode === 'mine' ? _myConnect : _allConnect;
+    const items = _connectFilter === 'all' ? source : source.filter(c => c.category === _connectFilter);
+    if (!items.length) {
+        el.innerHTML = _connectMode === 'mine'
+            ? `<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-title">Sem ofertas tuas ainda</div><div class="empty-desc">Publica uma oferta e acompanha aqui se está em revisão, live ou retirada.</div></div>`
+            : `<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-title">Sem listagens ainda</div></div>`;
+        return;
+    }
+    el.innerHTML = items.map(item => renderConnectCard(item, _connectMode === 'mine')).join('');
+}
+
+function renderConnectCard(item, mine = false) {
+    const catEmoji = { emprego:'💼', servico:'🛠️', doacao:'🎁', outro:'📌' };
+    const status = String(item.status || 'pending').toLowerCase();
+    const statusMeta = {
+        active:   { label:'Live', cls:'connect-status-active' },
+        pending:  { label:'Em revisão', cls:'connect-status-pending' },
+        archived: { label:'Retirada', cls:'connect-status-archived' },
+        rejected: { label:'Recusada', cls:'connect-status-rejected' },
+    }[status] || { label:status, cls:'connect-status-archived' };
+    const workspace = item.workspaces?.name || _activeWorkspaces.find(w => w.id === item.workspace_id)?.name || '';
+    const canWithdraw = mine && ['active','pending'].includes(status);
+    return `
         <div class="connect-card">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${catEmoji[item.category] || '📌'}</div>
-                <div>
-	                    <div style="font-size:0.9rem;font-weight:700;">${escHtml(item.title)}</div>
-	                    <div style="font-size:0.72rem;color:var(--text3);">${escHtml(item.workspaces?.name || '')} · ${escHtml(item.category || '')}</div>
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                <div style="width:38px;height:38px;border-radius:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:1.12rem;flex-shrink:0;">${catEmoji[item.category] || '📌'}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:3px;">
+                        <div style="font-size:0.92rem;font-weight:800;color:var(--text);">${escHtml(item.title)}</div>
+                        ${mine ? `<span class="connect-status-pill ${statusMeta.cls}">${statusMeta.label}</span>` : ''}
+                    </div>
+                    <div style="font-size:0.72rem;color:var(--text3);">${escHtml(workspace)} · ${escHtml(connectCategoryLabel(item.category))}</div>
                 </div>
             </div>
-            <div style="font-size:0.82rem;color:var(--text2);line-height:1.5;">${escHtml((item.description || '').substring(0,120))}${(item.description||'').length > 120 ? '…' : ''}</div>
-        </div>`).join('');
+            <div style="font-size:0.82rem;color:var(--text2);line-height:1.5;">${escHtml((item.description || '').substring(0,150))}${(item.description||'').length > 150 ? '…' : ''}</div>
+            ${mine ? `<div style="font-size:.72rem;color:var(--text3);margin-top:8px;">Contacto: ${escHtml(item.contact_email || _appUser?.email || '')}${item.contact_phone ? ' · ' + escHtml(item.contact_phone) : ''}</div>` : ''}
+            ${canWithdraw ? `<div class="connect-card-actions"><button class="danger" onclick="withdrawConnectOffer('${item.id}')">Retirar oferta</button></div>` : ''}
+        </div>`;
+}
+
+function connectCategoryLabel(category) {
+    return { emprego:'Emprego', servico:'Serviço', doacao:'Doação', outro:'Outro' }[category] || category || '';
 }
 
 function filterConnect(btn, filter) {
     document.querySelectorAll('[data-cf]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const filtered = filter === 'all' ? _allConnect : _allConnect.filter(c => c.category === filter);
-    renderConnect(filtered);
+    _connectFilter = filter;
+    renderConnect();
+}
+
+function setConnectMode(mode) {
+    _connectMode = mode === 'mine' ? 'mine' : 'all';
+    renderConnect();
+}
+
+function openConnectOfferModal() {
+    if (!_appUser) {
+        showToast('Entra como visitante ou membro para publicar uma oferta.', 'error');
+        goToScreen('auth');
+        return;
+    }
+    const ws = _activeWorkspaces[0];
+    if (!ws) {
+        showToast('Nenhum CRIE ativo encontrado para publicar.', 'error');
+        return;
+    }
+    document.getElementById('co-title').value = '';
+    document.getElementById('co-category').value = '';
+    document.getElementById('co-desc').value = '';
+    document.getElementById('co-name').value = _appUser.name || '';
+    document.getElementById('co-email').value = _appUser.email || '';
+    document.getElementById('co-phone').value = _appUser.phone || '';
+    document.getElementById('co-terms').checked = false;
+    document.getElementById('co-msg').textContent = '';
+    openModal('modal-connect-offer');
+}
+
+async function submitConnectOffer() {
+    const title = document.getElementById('co-title')?.value.trim();
+    const category = document.getElementById('co-category')?.value;
+    const description = document.getElementById('co-desc')?.value.trim();
+    const contact_name = document.getElementById('co-name')?.value.trim();
+    const contact_email = document.getElementById('co-email')?.value.trim().toLowerCase();
+    const contact_phone = document.getElementById('co-phone')?.value.trim() || null;
+    const terms = document.getElementById('co-terms')?.checked;
+    const msg = document.getElementById('co-msg');
+    const btn = document.getElementById('btn-connect-submit');
+    const ws = _activeWorkspaces[0];
+    if (!title || !category || !description || !contact_name || !contact_email) {
+        msg.textContent = 'Preenche título, categoria, descrição, nome e email.';
+        return;
+    }
+    if (!terms) {
+        msg.textContent = 'Confirma os termos para publicar.';
+        return;
+    }
+    if (!ws) {
+        msg.textContent = 'Nenhum workspace CRIE disponível.';
+        return;
+    }
+
+    const id = crypto.randomUUID();
+    const payload = {
+        id,
+        workspace_id: ws.id,
+        title,
+        description,
+        category,
+        contact_name,
+        contact_email,
+        contact_phone,
+        status: 'pending',
+        terms_accepted: true,
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'A enviar...';
+    msg.textContent = '';
+    const { error } = await sb.from('connect_listings').insert(payload);
+    btn.disabled = false;
+    btn.textContent = 'Enviar oferta';
+    if (error) {
+        msg.textContent = 'Erro ao enviar: ' + error.message;
+        return;
+    }
+
+    saveLocalConnectOffer({ ...payload, created_at:new Date().toISOString(), workspaces:{ name:ws.name } });
+    try {
+        await fetch(`${SUPABASE_URL}/functions/v1/connect-notify-reviewers`, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body:JSON.stringify({ listing_id:id }),
+        });
+    } catch(e) {
+        console.warn('[CRIE app] connect notify failed:', e.message);
+    }
+    closeModal('modal-connect-offer');
+    _connectMode = 'mine';
+    await loadConnect();
+    showToast('Oferta enviada para revisão!', 'success');
+}
+
+async function withdrawConnectOffer(id) {
+    const item = _myConnect.find(o => o.id === id);
+    if (!item) return;
+    if (!confirm('Retirar esta oferta do Connect?')) return;
+    const email = (_appUser?.email || '').toLowerCase();
+    const { error } = await sb.from('connect_listings')
+        .update({ status:'archived' })
+        .eq('id', id)
+        .ilike('contact_email', email);
+    if (error && !item._local) {
+        showToast('Não foi possível retirar: ' + error.message, 'error');
+        return;
+    }
+    saveLocalConnectOffer({ ...item, status:'archived', _local:true });
+    await loadConnect();
+    _connectMode = 'mine';
+    renderConnect();
+    showToast('Oferta retirada.', 'success');
+}
+
+function localConnectKey() {
+    return 'crie_connect_offers_' + ((_appUser?.email || 'anon').toLowerCase());
+}
+
+function loadLocalConnectOffers() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(localConnectKey()) || '[]');
+        const wsIds = new Set(_activeWorkspaces.map(w => w.id));
+        return raw.filter(o => !o.workspace_id || wsIds.has(o.workspace_id)).map(o => ({ ...o, _local:true }));
+    } catch(e) {
+        return [];
+    }
+}
+
+function saveLocalConnectOffer(offer) {
+    const offers = loadLocalConnectOffers();
+    const next = [offer, ...offers.filter(o => o.id !== offer.id)].slice(0, 20);
+    localStorage.setItem(localConnectKey(), JSON.stringify(next));
+}
+
+function mergeConnectOffers(remote, local) {
+    const byId = new Map();
+    remote.forEach(o => byId.set(o.id, o));
+    local.forEach(o => byId.set(o.id, { ...(byId.get(o.id) || {}), ...o }));
+    return Array.from(byId.values()).sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
 // ══ PROFILE SCREEN ════════════════════════════════════════════════
