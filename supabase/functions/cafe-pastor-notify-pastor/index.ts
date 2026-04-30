@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ADMIN_ROLES, authorizeInternalOrWorkspaceUser } from "../_shared/auth.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -24,6 +25,16 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!appt || !appt.pastor_id) return new Response("Missing appointment data", { status: 400 });
+
+  const workspaceId = appt.workspace_id ?? body?.workspace_id;
+  if (!workspaceId) return new Response("Missing workspace", { status: 400 });
+  const authz = await authorizeInternalOrWorkspaceUser(req, sb, workspaceId, ADMIN_ROLES);
+  if (!authz.ok) {
+    return new Response(JSON.stringify({ error: authz.error }), {
+      status: authz.status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
 
   // Fetch pastor info
   const { data: pastor } = await sb.from("cafe_pastor_pastors")

@@ -1,16 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { CORS_HEADERS, OPERATOR_ROLES, authorizeInternalOrWorkspaceUser, json } from "../_shared/auth.ts";
 
 const sb = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+const CORS = CORS_HEADERS;
 
 const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.tech";
 const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
@@ -43,6 +40,9 @@ Deno.serve(async (req: Request) => {
   if (!lead_id || !workspace_id) {
     return new Response(JSON.stringify({ error: "Missing lead_id or workspace_id" }), { status: 400, headers: CORS });
   }
+
+  const authz = await authorizeInternalOrWorkspaceUser(req, sb, workspace_id, OPERATOR_ROLES);
+  if (!authz.ok) return json({ ok: false, error: authz.error }, authz.status);
 
   // ── 1. Fetch lead ─────────────────────────────────────────────────────────
   const { data: lead, error: leadErr } = await sb

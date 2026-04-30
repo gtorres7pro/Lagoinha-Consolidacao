@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6";
+import { ADMIN_ROLES, authorizeWorkspaceUser, escapeHtml } from "../_shared/auth.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -22,6 +23,24 @@ serve(async (req) => {
         
         if (!ticketId) {
             return new Response(JSON.stringify({ error: "Missing ticketId" }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        const { data: existingTicket, error: ticketError } = await supabase
+            .from('app_logs')
+            .select('*')
+            .eq('id', ticketId)
+            .single();
+
+        if (ticketError || !existingTicket) {
+            throw new Error("Chamado não encontrado");
+        }
+
+        const authz = await authorizeWorkspaceUser(req, supabase, existingTicket.workspace_id, ADMIN_ROLES);
+        if (!authz.ok) {
+            return new Response(JSON.stringify({ error: authz.error }), {
+                status: authz.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
         }
 
         // 1. Update ticket to published
@@ -89,9 +108,9 @@ serve(async (req) => {
             <!-- TICKET BOX -->
             <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(0,0,0,0.25);border-left:3px solid #FBBF24;border-radius:0 12px 12px 0;margin-bottom:28px;">
               <tr><td style="padding:20px 24px;">
-                <p style="margin:0 0 8px;font-size:16px;font-weight:800;color:#FBBF24;">${updatedTicket.title || 'Chamado Técnico'}</p>
-                <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.5);line-height:1.6;">${updatedTicket.description || 'Sem descrição adicional.'}</p>
-                ${resolutionText ? `<p style="margin:16px 0 0;font-size:13px;color:#4ade80;font-style:italic;"><strong style="color:#4ade80;">📝 Nota Técnica:</strong> ${resolutionText}</p>` : ''}
+	                <p style="margin:0 0 8px;font-size:16px;font-weight:800;color:#FBBF24;">${escapeHtml(updatedTicket.title || 'Chamado Técnico')}</p>
+	                <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.5);line-height:1.6;">${escapeHtml(updatedTicket.description || 'Sem descrição adicional.')}</p>
+	                ${resolutionText ? `<p style="margin:16px 0 0;font-size:13px;color:#4ade80;font-style:italic;"><strong style="color:#4ade80;">📝 Nota Técnica:</strong> ${escapeHtml(resolutionText)}</p>` : ''}
               </td></tr>
             </table>
 

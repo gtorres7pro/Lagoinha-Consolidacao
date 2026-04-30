@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function generateTemporaryPassword() {
+  const bytes = new Uint8Array(18)
+  crypto.getRandomValues(bytes)
+  const token = btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', 'A')
+    .replaceAll('/', 'b')
+    .replaceAll('=', '')
+    .slice(0, 18)
+  return `${token}A1!`
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -24,6 +35,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    const { data: existingProfile } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+    if (existingProfile) {
+      throw new Error('Este email já está em uso na plataforma Zelo Pro.')
+    }
 
     // 1. Generate unique slug for workspace
     const baseSlug = workspace_name.toLowerCase()
@@ -58,16 +78,7 @@ serve(async (req) => {
     const workspaceId = wsData.id;
 
     // 3. Create Auth User
-    const genPassword = Math.random().toString(36).slice(-8).toUpperCase() + 'A1!'; // e.g., ABCD123A1!
-    
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const emailExists = existingUsers?.users.find(u => u.email === email);
-    if (emailExists) {
-        // Technically, a user can be in multiple workspaces, but to keep registration simple,
-        // we might block or we just link them. Let's assume unique emails for registration.
-        throw new Error('Este email já está em uso na plataforma Zelo Pro.');
-    }
+    const genPassword = generateTemporaryPassword();
 
     const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email,

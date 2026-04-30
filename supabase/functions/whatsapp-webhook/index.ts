@@ -127,10 +127,15 @@ async function dispatchToN8N(ws: any, lead: any, messageCreatedAt: string) {
 async function callFlush(lead_id: string, message_created_at: string) {
   const flushUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/whatsapp-flush";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const internalSecret = Deno.env.get("ZELO_INTERNAL_SECRET") ?? Deno.env.get("INTERNAL_FUNCTION_SECRET") ?? "";
   try {
     await fetch(flushUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        ...(internalSecret ? { "x-zelo-internal-secret": internalSecret } : {}),
+      },
       body: JSON.stringify({ lead_id, message_created_at })
     });
   } catch (e: any) {
@@ -195,16 +200,16 @@ Deno.serve(async (req: Request) => {
   }
 
   // Verify X-Hub-Signature-256
-  const appSecret: string = ws.credentials?.app_secret ?? "";
+  const appSecret: string = ws.credentials?.app_secret ?? Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
   const sigHeader = req.headers.get("x-hub-signature-256");
-  if (appSecret) {
-    const valid = await verifyMetaSignature(rawBody, sigHeader, appSecret);
-    if (!valid) {
-      console.error(`[WH-META] invalid signature for workspace=${ws.id}`);
-      return new Response("Forbidden", { status: 403 });
-    }
-  } else {
-    console.warn(`[WH-META] workspace=${ws.id} has no app_secret — accepting unsigned webhook`);
+  if (!appSecret) {
+    console.error(`[WH-META] workspace=${ws.id} has no app_secret — rejecting unsigned webhook`);
+    return new Response("Forbidden", { status: 403 });
+  }
+  const valid = await verifyMetaSignature(rawBody, sigHeader, appSecret);
+  if (!valid) {
+    console.error(`[WH-META] invalid signature for workspace=${ws.id}`);
+    return new Response("Forbidden", { status: 403 });
   }
 
   // Idempotency

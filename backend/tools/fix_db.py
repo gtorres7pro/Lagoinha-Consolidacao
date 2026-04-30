@@ -4,10 +4,9 @@ import re
 import os
 import sys
 
-from dotenv import load_dotenv
-
 sys.path.append(os.path.join(os.getcwd(), "backend", "tools"))
-load_dotenv(".env")
+from env import load_local_env
+load_local_env(".env")
 from db_tool import supabase
 
 def clean_phone(phone_str):

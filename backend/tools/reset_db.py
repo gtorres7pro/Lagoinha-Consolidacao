@@ -4,8 +4,8 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.getcwd(), "backend", "tools"))
-from dotenv import load_dotenv
-load_dotenv(".env")
+from env import load_local_env
+load_local_env(".env")
 from db_tool import supabase
 
 def clean_phone(phone_str):

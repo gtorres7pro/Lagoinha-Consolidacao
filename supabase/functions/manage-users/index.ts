@@ -11,6 +11,26 @@ const ADMIN_ROLES = ['master_admin', 'pastor_senior', 'church_admin', 'admin']
 // Roles that cannot be assigned by non-master callers
 const PROTECTED_ROLES = ['master_admin', 'pastor_senior']
 
+function generateTemporaryPassword() {
+  const bytes = new Uint8Array(18)
+  crypto.getRandomValues(bytes)
+  const token = btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', 'A')
+    .replaceAll('/', 'b')
+    .replaceAll('=', '')
+    .slice(0, 18)
+  return `${token}A1!`
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -71,7 +91,7 @@ serve(async (req) => {
       if (!workspace_id) throw new Error('workspace_id missing')
       const { data, error } = await supabaseAdmin
         .from('users')
-        .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
+        .select('id, name, email, role, phone, status, modules, password_changed')
         .eq('workspace_id', workspace_id)
         .order('role')
       if (error) throw error
@@ -81,7 +101,7 @@ serve(async (req) => {
     if (action === 'create') {
       if (!email || !role || !workspace_id) throw new Error('Dados faltando (email, role, workspace_id)')
       
-      const genPassword = password || Math.random().toString(36).slice(-8) + 'A1!'
+      const genPassword = password || generateTemporaryPassword()
       
       const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -116,10 +136,23 @@ serve(async (req) => {
       const resendKey = Deno.env.get('RESEND_API_KEY');
       if (resendKey) {
         const { data: wsData } = await supabaseAdmin.from('workspaces').select('name, slug').eq('id', workspace_id).single()
+        const workspaceUrl = `https://zelo.7prolabs.com/${encodeURIComponent(wsData?.slug || '')}/dashboard.html`
+        const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email,
+          options: { redirectTo: workspaceUrl },
+        })
+        if (linkErr) console.error('[create] recovery link error:', linkErr.message)
+        const actionLink = linkData?.properties?.action_link || workspaceUrl
         const roleLabel: Record<string,string> = {
           pastor_senior: 'Pastor Sênior', admin: 'Admin', pastor: 'Pastor',
           lider_ministerio: 'Líder de Ministério', user: 'Voluntário'
         }
+        const safeEmail = escapeHtml(email)
+        const safeName = escapeHtml(name || '')
+        const safeWorkspace = escapeHtml(wsData?.name || 'Sua Igreja')
+        const safeRole = escapeHtml(roleLabel[role] || role)
+        const safeActionLink = escapeHtml(actionLink)
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -137,30 +170,27 @@ serve(async (req) => {
                   
                   <!-- Body -->
                   <div style="padding: 40px 30px;">
-                    <h2 style="color: #1a1a1a; margin-top: 0; margin-bottom: 24px; font-size: 22px; font-weight: 700;">Olá${name ? ' ' + name : ''},</h2>
+                    <h2 style="color: #1a1a1a; margin-top: 0; margin-bottom: 24px; font-size: 22px; font-weight: 700;">Olá${safeName ? ' ' + safeName : ''},</h2>
                     
                     <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                      Você foi adicionado à equipe de <strong>${wsData?.name || ''}</strong> como <strong>${roleLabel[role] || role}</strong>.
+                      Você foi adicionado à equipe de <strong>${safeWorkspace}</strong> como <strong>${safeRole}</strong>.
                     </p>
                     
-                    <p style="color: #4a4a4a; font-size: 16px; margin-bottom: 16px;">Suas credenciais de acesso:</p>
+                    <p style="color: #4a4a4a; font-size: 16px; margin-bottom: 16px;">Use este link seguro para definir sua senha e acessar o painel:</p>
                     
                     <!-- Credentials Box -->
                     <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
                       <p style="margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
-                        <span style="color: #6b7280;">E-mail:</span> <a href="mailto:${email}" style="color: #3b82f6; text-decoration: underline;">${email}</a>
-                      </p>
-                      <p style="margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; color: #1a1a1a;">
-                        <span style="color: #6b7280;">Senha:</span> <strong>${genPassword}</strong>
+                        <span style="color: #6b7280;">E-mail:</span> <a href="mailto:${safeEmail}" style="color: #3b82f6; text-decoration: underline;">${safeEmail}</a>
                       </p>
                     </div>
                     
-                    <p style="color: #4a4a4a; font-size: 15px; margin-bottom: 32px;">Altere a senha após o primeiro acesso.</p>
+                    <p style="color: #4a4a4a; font-size: 15px; margin-bottom: 32px;">Por segurança, sua senha não é enviada por email.</p>
                     
                     <!-- Button -->
                     <div style="text-align: center;">
-                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
-                        Acessar o Painel
+                      <a href="${safeActionLink}" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block; box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);">
+                        Definir Senha
                       </a>
                     </div>
                   </div>
@@ -176,7 +206,7 @@ serve(async (req) => {
         })
       }
 
-      return new Response(JSON.stringify({ message: 'User created', user: newUser, tempPassword: genPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ message: 'User created', user: newUser.user }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     if (action === 'update') {
@@ -229,16 +259,32 @@ serve(async (req) => {
     }
 
     if (action === 'resend_invite') {
-      if (!id || !email) throw new Error('ID or Email missing')
-      const genPassword = Math.random().toString(36).slice(-8) + 'A1!'
+      if (!id) throw new Error('ID missing')
+
+      const { data: targetUser, error: targetErr } = await supabaseAdmin
+        .from('users')
+        .select('workspace_id, role, email, name')
+        .eq('id', id)
+        .single()
+      if (targetErr || !targetUser) throw new Error('Usuário não encontrado')
+
+      if (!callerIsMaster) {
+        if (targetUser.workspace_id !== callerProfile.workspace_id || PROTECTED_ROLES.includes(targetUser.role)) {
+          throw new Error('Acesso negado para reenviar convite')
+        }
+      }
+
+      const targetEmail = targetUser.email || email
+      if (!targetEmail) throw new Error('Usuário sem email cadastrado')
+
+      const genPassword = generateTemporaryPassword()
       
       // Update password in auth.users
       const { error: pwdErr } = await supabaseAdmin.auth.admin.updateUserById(id, { password: genPassword })
       if (pwdErr) throw new Error(`Falha ao redefinir senha: ${pwdErr.message}`)
       
-      // Persist temp password in public.users so the admin can see it in the dashboard
       const { error: dbErr } = await supabaseAdmin.from('users').update({ 
-        temp_password: genPassword, 
+        temp_password: null,
         password_changed: false 
       }).eq('id', id)
       if (dbErr) {
@@ -247,44 +293,53 @@ serve(async (req) => {
 
       const resendKey = Deno.env.get('RESEND_API_KEY');
       if (resendKey) {
-        const { data: wsData } = await supabaseAdmin.from('workspaces').select('name, slug').eq('id', workspace_id || callerProfile.workspace_id).single()
+        const { data: wsData } = await supabaseAdmin.from('workspaces').select('name, slug').eq('id', targetUser.workspace_id).single()
+        const workspaceUrl = `https://zelo.7prolabs.com/${encodeURIComponent(wsData?.slug || '')}/dashboard.html`
+        const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: targetEmail,
+          options: { redirectTo: workspaceUrl },
+        })
+        if (linkErr) console.error('[resend_invite] recovery link error:', linkErr.message)
+        const actionLink = linkData?.properties?.action_link || workspaceUrl
+        const safeEmail = escapeHtml(targetEmail)
+        const safeWorkspace = escapeHtml(wsData?.name || '')
+        const safeActionLink = escapeHtml(actionLink)
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: "Zelo Pro <equipe@7pro.tech>",
-            to: email,
+            to: targetEmail,
             subject: `Redefinição de Acesso - Zelo Pro`,
             html: `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; padding: 40px 20px; min-height: 100vh;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
                   <div style="background-color: #FFD700; padding: 32px 20px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800;">Nova Senha</h1>
-                  </div>
-                  <div style="padding: 40px 30px;">
-                    <h2 style="color: #1a1a1a; margin-top: 0;">Acesso redefinido,</h2>
-                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">O administrador solicitou o reenvio do seu acesso para a equipe de <strong>${wsData?.name || ''}</strong>.</p>
-                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
-                      <p style="margin: 0 0 8px 0; font-family: monospace; font-size: 15px;"><span style="color: #6b7280;">E-mail:</span> ${email}</p>
-                      <p style="margin: 0; font-family: monospace; font-size: 15px;"><span style="color: #6b7280;">Nova Senha:</span> <strong>${genPassword}</strong></p>
-                    </div>
-                    <div style="text-align: center;">
-                      <a href="https://zelo.7prolabs.com/${wsData?.slug || ''}/dashboard.html" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block;">Acessar o Painel</a>
-                    </div>
-                  </div>
+	                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800;">Definir Senha</h1>
+	                  </div>
+	                  <div style="padding: 40px 30px;">
+	                    <h2 style="color: #1a1a1a; margin-top: 0;">Acesso redefinido,</h2>
+	                    <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">O administrador solicitou o reenvio do seu acesso para a equipe de <strong>${safeWorkspace}</strong>.</p>
+	                    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
+		                      <p style="margin: 0 0 8px 0; font-family: monospace; font-size: 15px;"><span style="color: #6b7280;">E-mail:</span> ${safeEmail}</p>
+	                      <p style="margin: 0; font-size: 15px; color: #4a4a4a;">Use o botão abaixo para criar uma nova senha. A senha temporária não é enviada por email.</p>
+	                    </div>
+	                    <div style="text-align: center;">
+	                      <a href="${safeActionLink}" style="background-color: #FFD700; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 700; display: inline-block;">Definir Nova Senha</a>
+	                    </div>
+	                  </div>
                 </div>
               </div>
             `
           })
         })
       }
-      return new Response(JSON.stringify({ message: 'Invite resent', tempPassword: genPassword }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ message: 'Invite resent' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     throw new Error('Ação inválida')
   } catch (err: any) {
-    // ALWAYS RETURN 200 so the JS SDK can parse the custom JSON error body
-    // If we return 40x, the JS SDK obfuscates it behind "FunctionsHttpError: Edge Function returned a non-2xx status code"
-    return new Response(JSON.stringify({ error: err.message || JSON.stringify(err) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: err.message || JSON.stringify(err) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })

@@ -1,14 +1,18 @@
 import os
 from supabase import create_client, Client
-from dotenv import load_dotenv
+try:
+    from tools.env import load_local_env
+except ModuleNotFoundError:
+    from env import load_local_env
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
-load_dotenv(env_path)
+load_local_env(env_path)
 
 # --- Initialize Supabase Connection ---
-# Fallback values ensure the VPS works even without env vars set in Coolify
-url: str = os.environ.get("SUPABASE_URL", "https://uyseheucqikgcorrygzc.supabase.co")
-key: str = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI")
+url: str = os.environ.get("SUPABASE_URL", "")
+key: str = os.environ.get("SUPABASE_KEY", "")
+if not url or not key:
+    raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be configured")
 supabase: Client = create_client(url, key)
 
 # --- Database Operations ---

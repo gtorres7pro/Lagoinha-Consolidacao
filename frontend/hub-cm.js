@@ -33,6 +33,14 @@ function cmDateStr(ts) {
   if (!ts) return '—';
   return new Date(ts).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
 }
+function cmEsc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 const CM_ROSE = '#d6336c';
 const CM_ROSE2 = '#a61e4d';
 const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
@@ -107,9 +115,9 @@ function renderCmFinances(rows) {
   tbody.innerHTML = rows.map(r => `
     <tr>
       <td>${cmDateStr(r.created_at)}</td>
-      <td><span style="color:${typeColor[r.type]||'#fff'};font-weight:700;">${typeMap[r.type]||r.type}</span></td>
-      <td>${r.description||'—'}</td>
-      <td>${r.payment_method||'—'}</td>
+      <td><span style="color:${typeColor[r.type]||'#fff'};font-weight:700;">${cmEsc(typeMap[r.type]||r.type)}</span></td>
+      <td>${cmEsc(r.description||'—')}</td>
+      <td>${cmEsc(r.payment_method||'—')}</td>
       <td style="color:${r.type==='expense'?'#f87171':'#34d399'};font-weight:700;">${cmFmt(r.amount)}</td>
     </tr>`).join('');
 
@@ -713,15 +721,15 @@ function renderCmInscritos(attendees) {
     return `<tr id="cm-inscrita-row-${a.id}">
       <td>
         <div contenteditable="true" id="cm-ie-name-${a.id}" onblur="saveCmInscritaField('${a.id}','name',this.textContent)"
-             style="outline:none;min-width:80px;cursor:text;" title="Clique para editar">${a.name||'—'}</div>
+             style="outline:none;min-width:80px;cursor:text;" title="Clique para editar">${cmEsc(a.name||'—')}</div>
       </td>
       <td style="font-size:.8rem;">
         <div contenteditable="true" id="cm-ie-email-${a.id}" onblur="saveCmInscritaField('${a.id}','email',this.textContent)"
-             style="outline:none;color:rgba(255,255,255,.5);cursor:text;" title="Clique para editar">${a.email||''}</div>
+             style="outline:none;color:rgba(255,255,255,.5);cursor:text;" title="Clique para editar">${cmEsc(a.email||'')}</div>
         <div contenteditable="true" id="cm-ie-phone-${a.id}" onblur="saveCmInscritaField('${a.id}','phone',this.textContent)"
-             style="outline:none;color:rgba(255,255,255,.35);font-size:.76rem;cursor:text;" title="Clique para editar">${a.phone||''}</div>
+             style="outline:none;color:rgba(255,255,255,.35);font-size:.76rem;cursor:text;" title="Clique para editar">${cmEsc(a.phone||'')}</div>
       </td>
-      <td style="font-size:.82rem;">${a.cm_events?.title||'—'}</td>
+      <td style="font-size:.82rem;">${cmEsc(a.cm_events?.title||'—')}</td>
       <td>
         <select onchange="saveCmInscritaField('${a.id}','payment_status',this.value)"
                 style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 8px;color:${payColor};font-size:.78rem;font-weight:700;outline:none;cursor:pointer;">
@@ -1007,10 +1015,10 @@ function renderCmPendingApps(apps) {
       const email = app.crie_app_users?.email || '';
       return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 16px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div style="width:32px;height:32px;border-radius:50%;background:rgba(214,51,108,.1);display:flex;align-items:center;justify-content:center;font-weight:800;color:${CM_ROSE};">${name.charAt(0).toUpperCase()}</div>
-          <div><div style="font-size:.85rem;font-weight:700;">${name}</div><div style="font-size:.72rem;color:rgba(255,255,255,.3);">${email}</div></div>
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(214,51,108,.1);display:flex;align-items:center;justify-content:center;font-weight:800;color:${CM_ROSE};">${cmEsc(name.charAt(0).toUpperCase())}</div>
+          <div><div style="font-size:.85rem;font-weight:700;">${cmEsc(name)}</div><div style="font-size:.72rem;color:rgba(255,255,255,.3);">${cmEsc(email)}</div></div>
         </div>
-        ${app.motivation?`<div style="font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:10px;font-style:italic;">"${app.motivation}"</div>`:''}
+        ${app.motivation?`<div style="font-size:.8rem;color:rgba(255,255,255,.4);margin-bottom:10px;font-style:italic;">"${cmEsc(app.motivation)}"</div>`:''}
         <div style="display:flex;gap:8px;">
           <button onclick="reviewCmApplication('${app.id}','${app.app_user_id}','approved')" style="flex:1;padding:8px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:.78rem;font-weight:700;cursor:pointer;">✅ Aprovar</button>
           <button onclick="reviewCmApplication('${app.id}','${app.app_user_id}','rejected')" style="flex:1;padding:8px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:.78rem;font-weight:700;cursor:pointer;">❌ Rejeitar</button>
@@ -1050,18 +1058,18 @@ function renderCmMembros(members) {
              onmouseout="this.style.transform='';this.style.boxShadow=''">
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
                 <div style="position:relative;flex-shrink:0;">
-                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;">${initials}</div>
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;">${cmEsc(initials)}</div>
                     ${payDot}
                 </div>
                 <div style="flex:1;min-width:0;">
-                    <div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name||'—'}</div>
-                    <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">${sinceStr || m.company || m.industry || feeStr || 'Membra'}</div>
+                    <div style="font-weight:800;color:#fff;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cmEsc(m.name||'—')}</div>
+                    <div style="font-size:.72rem;color:rgba(255,255,255,.4);margin-top:2px;">${cmEsc(sinceStr || m.company || m.industry || feeStr || 'Membra')}</div>
                 </div>
                 <span style="background:${isActive?'rgba(52,211,153,.12)':'rgba(248,113,113,.12)'};color:${statusColor};border:1px solid ${statusColor}44;padding:3px 8px;border-radius:6px;font-size:.68rem;font-weight:700;">${(m.status||'').toUpperCase()}</span>
             </div>
             <div style="font-size:.75rem;color:rgba(255,255,255,.4);display:flex;flex-direction:column;gap:4px;">
-                <span>📧 ${m.email||'—'}</span>
-                <span style="display:flex;align-items:center;gap:6px;">📞 ${m.phone||'—'}${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}</span>
+	                <span>📧 ${cmEsc(m.email||'—')}</span>
+	                <span style="display:flex;align-items:center;gap:6px;">📞 ${cmEsc(m.phone||'—')}${waLink ? `<a href="${waLink}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(37,211,102,.15);border-radius:50%;color:#25d366;text-decoration:none;font-size:.65rem;">💬</a>` : ''}</span>
                 ${feeStr ? `<span>💳 ${feeStr}</span>` : ''}
             </div>
             <div style="margin-top:14px;display:flex;gap:8px;">

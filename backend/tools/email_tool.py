@@ -1,11 +1,16 @@
 import os
+from html import escape
+
 import resend
 
 def get_resend_key():
     return os.environ.get("RESEND_API_KEY", "")
 
-def send_credentials_email(user_email: str, user_name: str, temp_password: str):
+def send_credentials_email(user_email: str, user_name: str, access_link: str):
     resend.api_key = get_resend_key()
+    safe_email = escape(user_email or "")
+    safe_name = escape(user_name or "")
+    safe_link = escape(access_link or "")
     
     html_content = f"""
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
@@ -13,13 +18,13 @@ def send_credentials_email(user_email: str, user_name: str, temp_password: str):
             <h2 style="color: #333; margin-bottom: 5px;">Bem-vindo à Lagoinha Orlando! 💛</h2>
         </div>
         <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <p style="font-size: 16px; color: #555;">Olá <b>{user_name}</b>,</p>
+            <p style="font-size: 16px; color: #555;">Olá <b>{safe_name}</b>,</p>
             <p style="font-size: 16px; color: #555;">Sua conta no <b>Zelo Pro</b> foi criada pela nossa equipe de administração.</p>
             <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; margin: 25px 0;">
-                <p style="margin: 0; font-size: 15px; color: #333;"><strong>E-mail: </strong>{user_email}</p>
-                <p style="margin: 10px 0 0; font-size: 15px; color: #333;"><strong>Senha Provisória: </strong>{temp_password}</p>
+                <p style="margin: 0; font-size: 15px; color: #333;"><strong>E-mail: </strong>{safe_email}</p>
             </div>
-            <p style="font-size: 14px; color: #777; margin-top: 30px;">Acesse o painel para começar. Por favor, redefina sua senha no primeiro acesso.</p>
+            <p style="font-size: 14px; color: #777; margin-top: 30px;">Use o link seguro abaixo para definir sua senha. Por segurança, senhas não são enviadas por email.</p>
+            <p style="margin-top: 24px;"><a href="{safe_link}" style="background:#111;color:#FFD700;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Definir senha</a></p>
         </div>
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #aaa;">
             <p>Equipe de Consolidação - Lagoinha Orlando Church</p>
@@ -32,7 +37,7 @@ def send_credentials_email(user_email: str, user_name: str, temp_password: str):
         response = resend.Emails.send({
             "from": "Equipe Lagoinha <onboarding@resend.dev>",
             "to": user_email,
-            "subject": "Suas credenciais de acesso - Zelo Pro",
+            "subject": "Defina sua senha de acesso - Zelo Pro",
             "html": html_content
         })
         return response
@@ -42,6 +47,7 @@ def send_credentials_email(user_email: str, user_name: str, temp_password: str):
 
 def send_reset_password_email(user_email: str, reset_link: str):
     resend.api_key = get_resend_key()
+    safe_link = escape(reset_link or "")
     
     html_content = f"""
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
@@ -49,7 +55,7 @@ def send_reset_password_email(user_email: str, reset_link: str):
         <p>Recebemos um pedido para redefinir a senha da sua conta no Zelo Pro Consolidação.</p>
         <p>Se foi você, clique no link abaixo para criar uma nova senha:</p>
         <div style="margin: 30px 0;">
-            <a href="{reset_link}" style="background-color: #0b0b0b; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Minha Senha</a>
+            <a href="{safe_link}" style="background-color: #0b0b0b; color: #FFD700; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Minha Senha</a>
         </div>
         <p style="font-size: 13px; color: #888;">Se você não solicitou, pode ignorar este email com segurança.</p>
     </div>

@@ -3,4 +3,5 @@ __pycache__/
 .env
 .DS_Store
 node_modules/
-package-lock.json
+supabase/.temp/
+*.local

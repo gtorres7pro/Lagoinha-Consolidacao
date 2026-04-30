@@ -3,9 +3,10 @@ import csv
 import re
 from supabase import create_client, Client
 
-# Environment (Loaded simply for script)
-URL = "https://uyseheucqikgcorrygzc.supabase.co"
-KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI"
+URL = os.environ.get("SUPABASE_URL", "")
+KEY = os.environ.get("SUPABASE_KEY", "")
+if not URL or not KEY:
+    raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be configured")
 supabase: Client = create_client(URL, KEY)
 
 CSV_PATH = "/Users/Gabriel/Documents/Antigravity/Lagoinha Consolidação/lista-visitantes.csv"

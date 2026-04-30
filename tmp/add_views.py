@@ -49,8 +49,8 @@ view_users_block = """
                                 <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
                                     <div style="background: var(--accent); color: #000; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">GT</div>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">gtorreshbl@gmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Gabriel Torres</div>
+                                        <div style="font-weight: 600; color: var(--text-main);">admin@example.com</div>
+                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Admin Example</div>
                                     </div>
                                 </td>
                                 <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Active</span></td>
@@ -61,8 +61,8 @@ view_users_block = """
                                 <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
                                     <div style="background: #2E8B57; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">JV</div>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">juveloso@lagoinhaorlando.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Juliana Veloso</div>
+                                        <div style="font-weight: 600; color: var(--text-main);">workspace-admin@example.com</div>
+                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Workspace Admin</div>
                                     </div>
                                 </td>
                                 <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Active</span></td>
@@ -73,8 +73,8 @@ view_users_block = """
                                 <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
                                     <div style="background: #4682B4; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">CR</div>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">criszinharodrigues@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Cris Rodrigues</div>
+                                        <div style="font-weight: 600; color: var(--text-main);">leader-one@example.com</div>
+                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Leader One</div>
                                     </div>
                                 </td>
                                 <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Active</span></td>
@@ -85,8 +85,8 @@ view_users_block = """
                                 <td style="padding: 15px; display: flex; align-items: center; gap: 15px;">
                                     <div style="background: #DA70D6; color: #FFF; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;">RB</div>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--text-main);">rafasbarbosa@hotmail.com</div>
-                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Rafael Barbosa</div>
+                                        <div style="font-weight: 600; color: var(--text-main);">leader-two@example.com</div>
+                                        <div style="color: var(--text-dim); font-size: 0.8rem;">Leader Two</div>
                                     </div>
                                 </td>
                                 <td style="padding: 15px;"><span style="color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">Active</span></td>

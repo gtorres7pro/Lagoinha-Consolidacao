@@ -1,5 +1,7 @@
 import os
 import json
+import hmac
+import hashlib
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,10 +10,23 @@ from typing import Optional, List
 
 app = FastAPI()
 
+DEFAULT_CORS_ORIGINS = [
+    "https://zelo.7prolabs.com",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+def _env_list(name: str, default: list[str]) -> list[str]:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_env_list("CORS_ORIGINS", DEFAULT_CORS_ORIGINS),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -42,6 +57,27 @@ def _rows(res) -> list:
         if isinstance(d, list):
             return d
     return []
+
+def _require_header_secret(request: Request, env_name: str, header_name: str):
+    expected = os.environ.get(env_name, "")
+    if not expected:
+        raise HTTPException(status_code=503, detail=f"{env_name} is not configured")
+    presented = request.headers.get(header_name, "")
+    if not hmac.compare_digest(presented, expected):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+def require_api_secret(request: Request):
+    _require_header_secret(request, "ZELO_API_SECRET", "x-zelo-api-secret")
+
+def require_webhook_secret(request: Request):
+    _require_header_secret(request, "ZELO_WEBHOOK_SECRET", "x-zelo-webhook-secret")
+
+def verify_meta_signature(raw_body: bytes, signature_header: Optional[str], app_secret: str) -> bool:
+    if not app_secret or not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = signature_header.removeprefix("sha256=")
+    digest = hmac.new(app_secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, digest)
 
 
 # ── AI / Response Generation ─────────────────────────────────────────────────
@@ -134,8 +170,13 @@ def fire_welcome_template(
         time.sleep(delay_minutes * 60)
 
     try:
+        headers = {"Content-Type": "application/json"}
+        internal_secret = os.environ.get("ZELO_INTERNAL_SECRET") or os.environ.get("INTERNAL_FUNCTION_SECRET")
+        if internal_secret:
+            headers["x-zelo-internal-secret"] = internal_secret
         resp = httpx.post(
             f"{EDGE_URL}/whatsapp-send-template",
+            headers=headers,
             json={
                 "lead_id": lead_id,
                 "workspace_id": workspace_id,
@@ -157,6 +198,8 @@ async def new_lead_webhook(request: Request, background_tasks: BackgroundTasks):
     WhatsApp welcome template to send, routing by lead.source (form name).
     """
     from tools.db_tool import supabase
+
+    require_webhook_secret(request)
 
     try:
         body = await request.json()
@@ -233,7 +276,12 @@ def verify_webhook(request: Request):
 async def receive_webhook(request: Request):
     from tools.db_tool import supabase
 
-    body = await request.json()
+    raw_body = await request.body()
+    try:
+        body = json.loads(raw_body.decode("utf-8"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
     try:
         entry = body.get("entry", [])[0]
         changes = entry.get("changes", [])[0]
@@ -267,15 +315,21 @@ async def receive_webhook(request: Request):
         # --- Match workspace by phone_id ---
         ws_all = supabase.table("workspaces").select("id, credentials").execute()
         workspace_id = None
+        workspace_creds = {}
         for ws in _rows(ws_all):
             creds = ws.get("credentials") or {}
             if creds.get("phone_id") == wa_business_phone_id:
                 workspace_id = ws["id"]
+                workspace_creds = creds
                 break
 
         if not workspace_id:
             print(f"⚠️ No workspace for phone_id {wa_business_phone_id}")
             return {"status": "workspace_not_found"}
+
+        app_secret = workspace_creds.get("app_secret") or os.environ.get("META_APP_SECRET", "")
+        if not verify_meta_signature(raw_body, request.headers.get("x-hub-signature-256"), app_secret):
+            raise HTTPException(status_code=403, detail="Invalid Meta signature")
 
         phone_digits = phone.lstrip("+")
 
@@ -360,6 +414,8 @@ async def receive_webhook(request: Request):
                 else:
                     print(f"🔒 AI locked until {lock_until}")
 
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         print(f"[webhook ERROR] {traceback.format_exc()}")
@@ -376,16 +432,18 @@ class SendWAMessagePayload(BaseModel):
     workspace_id: str
 
 @app.post("/whatsapp/send")
-def process_send_whatsapp_message(data: SendWAMessagePayload):
+def process_send_whatsapp_message(data: SendWAMessagePayload, request: Request):
     from tools.db_tool import supabase
     from tools.whatsapp_tool import send_whatsapp_message
     from datetime import timezone, timedelta
+
+    require_api_secret(request)
 
     try:
         # Resolve phone
         phone = data.phone
         if not phone and data.lead_id:
-            lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).execute()
+            lead_res = supabase.table("leads").select("phone").eq("id", data.lead_id).eq("workspace_id", data.workspace_id).execute()
             lead_row = _row(lead_res)
             if lead_row:
                 phone = lead_row["phone"]
@@ -443,9 +501,11 @@ def process_send_whatsapp_message(data: SendWAMessagePayload):
 # ── /whatsapp/templates — List Approved Templates ─────────────────────────────
 
 @app.get("/whatsapp/templates")
-def get_whatsapp_templates(workspace_id: str):
+def get_whatsapp_templates(workspace_id: str, request: Request):
     from tools.db_tool import supabase
     from tools.whatsapp_tool import list_whatsapp_templates
+
+    require_api_secret(request)
 
     try:
         ws_res = supabase.table("workspaces").select("credentials").eq("id", workspace_id).execute()
@@ -482,13 +542,15 @@ class SendTemplatePayload(BaseModel):
     variables: List[str] = []
 
 @app.post("/whatsapp/send-template")
-def send_template_message(data: SendTemplatePayload):
+def send_template_message(data: SendTemplatePayload, request: Request):
     from tools.db_tool import supabase
     from tools.whatsapp_tool import send_whatsapp_template
 
+    require_api_secret(request)
+
     try:
         # Get lead phone
-        lead_res = supabase.table("leads").select("phone, name").eq("id", data.lead_id).execute()
+        lead_res = supabase.table("leads").select("phone, name").eq("id", data.lead_id).eq("workspace_id", data.workspace_id).execute()
         lead_row = _row(lead_res)
         if not lead_row:
             return {"error": "Lead não encontrado", "ok": False}
@@ -548,16 +610,16 @@ class WAShortTokenPayload(BaseModel):
     short_lived_token: str
 
 @app.post("/whatsapp/exchange-token")
-async def exchange_whatsapp_token(payload: WAShortTokenPayload):
-    import requests as req
+async def exchange_whatsapp_token(payload: WAShortTokenPayload, request: Request):
+    require_api_secret(request)
     try:
         # Step 1: Exchange short for long lived token
-        r = req.get("https://graph.facebook.com/v22.0/oauth/access_token", params={
+        r = httpx.get("https://graph.facebook.com/v22.0/oauth/access_token", params={
             "grant_type": "fb_exchange_token",
             "client_id": META_APP_ID,
             "client_secret": META_APP_SECRET,
             "fb_exchange_token": payload.short_lived_token,
-        })
+        }, timeout=15)
         data = r.json()
         if "access_token" not in data:
             return {"error": f"Could not exchange token: {data}"}
@@ -565,10 +627,10 @@ async def exchange_whatsapp_token(payload: WAShortTokenPayload):
         long_token = data["access_token"]
 
         # Step 2: Get WABA & Phone details
-        me = req.get(f"https://graph.facebook.com/v22.0/me", params={
+        me = httpx.get(f"https://graph.facebook.com/v22.0/me", params={
             "access_token": long_token,
             "fields": "id,name,businesses"
-        }).json()
+        }, timeout=15).json()
 
         return {"access_token": long_token, "meta_info": me}
     except Exception as e:

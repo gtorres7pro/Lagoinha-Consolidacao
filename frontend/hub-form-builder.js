@@ -4,6 +4,15 @@ let _fbForms = [];
 let _fbCurrentForm = null;
 let _fbCurrentFields = [];
 
+function fbEsc(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function openFormBuilderModal() {
     document.getElementById('modal-form-builder').style.display = 'flex';
     fbLoadForms();
@@ -23,7 +32,7 @@ async function fbLoadForms() {
         fbRenderFormsList();
     } catch (err) {
         console.error("fbLoadForms", err);
-        document.getElementById('fb-forms-list').innerHTML = `<div style="color:var(--danger)">Erro ao carregar: ${err.message}</div>`;
+        document.getElementById('fb-forms-list').innerHTML = `<div style="color:var(--danger)">Erro ao carregar: ${fbEsc(err.message)}</div>`;
     }
 }
 
@@ -39,8 +48,8 @@ function fbRenderFormsList() {
         html += `
             <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);">
                 <div>
-                    <div style="font-weight:600;color:#fff;">${f.name}</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);">/${f.slug} • ${f.is_active ? 'Ativo' : 'Inativo'}</div>
+                    <div style="font-weight:600;color:#fff;">${fbEsc(f.name)}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">/${fbEsc(f.slug)} • ${f.is_active ? 'Ativo' : 'Inativo'}</div>
                 </div>
                 <button class="btn btn-outline" style="padding:6px 12px;font-size:0.75rem;" onclick="fbEditForm('${f.id}')">Editar</button>
             </div>

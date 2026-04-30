@@ -12,5 +12,6 @@ COPY . /usr/share/nginx/html/
 
 # Use custom nginx config with CSP headers and slug routing
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-rate-limit.conf /etc/nginx/conf.d/00-rate_limit.conf
 
 EXPOSE 80

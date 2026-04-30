@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isInternalRequest } from "../_shared/auth.ts";
 
 const SILENCE_MS = 5000;
 const GEMINI_TIMEOUT_MS = 25000;
@@ -141,6 +142,7 @@ function hasValidCreds(mode: string, creds: any): boolean {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  if (!isInternalRequest(req)) return new Response("Unauthorized", { status: 401 });
 
   let lead_id: string, message_created_at: string;
   try {

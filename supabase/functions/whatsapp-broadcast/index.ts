@@ -1,17 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ADMIN_ROLES, CORS_HEADERS, authorizeWorkspaceUser, json, text } from "../_shared/auth.ts";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
-
-  // Auth check
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
-  const token = authHeader.slice(7);
-  const { data: { user }, error: userError } = await sb.auth.getUser(token);
-  if (userError || !user) return new Response("Unauthorized", { status: 401 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
+  if (req.method !== "POST") return text("Method Not Allowed", 405);
 
   let body: any;
   try { body = await req.json(); } catch { return new Response("Bad Request", { status: 400 }); }
@@ -19,18 +14,17 @@ Deno.serve(async (req: Request) => {
   const { workspace_id, lead_ids, template_name, language_code, variables_count } = body ?? {};
 
   if (!workspace_id || !lead_ids?.length || !template_name) {
-    return new Response(JSON.stringify({ ok: false, error: "Missing required fields" }), {
-      status: 400, headers: { "Content-Type": "application/json" }
-    });
+    return json({ ok: false, error: "Missing required fields" }, 400);
   }
+
+  const authz = await authorizeWorkspaceUser(req, sb, workspace_id, ADMIN_ROLES);
+  if (!authz.ok) return json({ ok: false, error: authz.error }, authz.status);
 
   // Load workspace
   const { data: ws, error: wsErr } = await sb.from("workspaces")
     .select("id, credentials").eq("id", workspace_id).single();
   if (wsErr || !ws) {
-    return new Response(JSON.stringify({ ok: false, error: "Workspace not found" }), {
-      status: 404, headers: { "Content-Type": "application/json" }
-    });
+    return json({ ok: false, error: "Workspace not found" }, 404);
   }
 
   const creds = ws.credentials ?? {};
@@ -38,20 +32,17 @@ Deno.serve(async (req: Request) => {
   const phoneId = creds.phone_id;
 
   if (!waToken || !phoneId) {
-    return new Response(JSON.stringify({ ok: false, error: "No Meta credentials configured" }), {
-      status: 400, headers: { "Content-Type": "application/json" }
-    });
+    return json({ ok: false, error: "No Meta credentials configured" }, 400);
   }
 
   // Fetch all leads
   const { data: leads, error: leadsErr } = await sb.from("leads")
-    .select("id, name, phone")
+    .select("id, name, phone, workspace_id")
+    .eq("workspace_id", workspace_id)
     .in("id", lead_ids);
 
   if (leadsErr || !leads?.length) {
-    return new Response(JSON.stringify({ ok: false, error: "No leads found" }), {
-      status: 404, headers: { "Content-Type": "application/json" }
-    });
+    return json({ ok: false, error: "No leads found" }, 404);
   }
 
   let sent = 0;
@@ -131,13 +122,11 @@ Deno.serve(async (req: Request) => {
 
   console.log(`[BROADCAST] complete: sent=${sent} failed=${failed} total=${leads.length}`);
 
-  return new Response(JSON.stringify({
+  return json({
     ok: true,
     sent,
     failed,
     total: leads.length,
     errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
-  }), {
-    status: 200, headers: { "Content-Type": "application/json" }
   });
 });

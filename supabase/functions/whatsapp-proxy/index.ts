@@ -82,8 +82,8 @@ Deno.serve(async (req: Request) => {
   const isWorkspaceMember = profile.workspace_id === workspace_id;
   const isAdmin = ADMIN_ROLES.includes(profile.role) && isWorkspaceMember;
 
-  if (!isMaster && !isAdmin && !isWorkspaceMember) {
-    return json(403, { error: "Not a member of this workspace" });
+  if (!isMaster && !isAdmin) {
+    return json(403, { error: "Admin access required for WhatsApp infrastructure" });
   }
 
   // ── Resolve instance name (from payload or workspace credentials) ─────────

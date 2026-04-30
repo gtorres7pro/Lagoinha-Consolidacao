@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isInternalRequest } from "../_shared/auth.ts"
 
 serve(async (req) => {
-  // Ensure we are called securely. Since this is a cron, it should use the ANON key 
-  // or a secret header. We'll rely on pg_net invoking it with authorization header.
+  if (!isInternalRequest(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
+  }
   
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',

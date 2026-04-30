@@ -487,7 +487,7 @@
 
                 if (role === 'master_admin') {
                     // Master admin can see ALL workspaces
-                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, credentials, knowledge_base').order('name');
+                    const { data, error } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, knowledge_base').order('name');
                     if (error) console.warn('loadWorkspaces: workspaces query error', error);
                     workspaces = data || [];
                     if (window.applyHierarchyNav) window.applyHierarchyNav('master');
@@ -495,7 +495,7 @@
                 } else {
                     // Regular user: only their own workspace
                     if (userRow?.workspace_id) {
-                        const { data } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, credentials, knowledge_base').eq('id', userRow.workspace_id);
+                        const { data } = await sb.from('workspaces').select('id, name, slug, status, plan, modules, knowledge_base').eq('id', userRow.workspace_id);
                         workspaces = data || [];
                     }
                     if (window.applyHierarchyNav) window.applyHierarchyNav(userRow?.level || 'workspace');
@@ -530,6 +530,11 @@
 
                 if (initial) {
                     window.currentWorkspaceId = initial.id;
+                    window._currentWorkspace = initial;
+                    window._currentWorkspaceId = initial.id;
+                    window._currentWorkspaceName = initial.name || '';
+                    window._currentWorkspaceSlug = initial.slug || '';
+                    window._currentWorkspaceData = initial;
                     sessionStorage.setItem('ws_id', initial.id);
                     localStorage.setItem('currentWorkspaceId', initial.id);
 
@@ -621,8 +626,8 @@
                 div.innerHTML = `
                     <div class="ws-option-dot"></div>
                     <div>
-                        <div class="ws-option-name">${ws.name}</div>
-                        <div class="ws-option-badge">${ws.slug || ws.status || 'active'}</div>
+                        <div class="ws-option-name">${escHtml(ws.name || '')}</div>
+                        <div class="ws-option-badge">${escHtml(ws.slug || ws.status || 'active')}</div>
                     </div>`;
                 div.onclick = function(e) {
                     e.stopPropagation();
@@ -666,6 +671,11 @@
             }
             // Same workspace or no slug — update in place
             window.currentWorkspaceId = ws.id;
+            window._currentWorkspace = ws;
+            window._currentWorkspaceId = ws.id;
+            window._currentWorkspaceName = ws.name || '';
+            window._currentWorkspaceSlug = ws.slug || '';
+            window._currentWorkspaceData = ws;
             sessionStorage.setItem('ws_id', ws.id);
             const pillNameEl = document.getElementById('ws-pill-name');
             if (pillNameEl) pillNameEl.textContent = ws.name;
@@ -710,7 +720,7 @@
                 // Fallback: fetch from DB if not in local list
                 const sb = window.supabaseClient;
                 if (!sb) return;
-                sb.from('workspaces').select('id,name,slug,status,plan,modules,credentials,knowledge_base').eq('id', wsId).single()
+                sb.from('workspaces').select('id,name,slug,status,plan,modules,knowledge_base').eq('id', wsId).single()
                     .then(({ data }) => { if (data) window.switchWorkspace(data); });
             }
         };
@@ -2962,23 +2972,6 @@
 /* === C: Core Dashboard Logic (Module 2) === */
     const API_BASE = "https://api.consolidacao.7pro.tech"; // Production VPS
 
-    async function sendUserCredentials(email, name, password) {
-        try {
-            const res = await fetch(`${API_BASE}/api/email/send-credentials`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ user_email: email, user_name: name, temp_password: password })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if(data.error) alert('❌ Erro da API ao enviar credenciais:\n' + data.error);
-                else alert('✅ E-mail com credenciais enviado com sucesso!');
-            } else alert('Erro fatal na requisição.');
-        } catch (e) {
-            alert('⚠️ Backend não acessível para enviar e-mail. Inicie o servidor Python.');
-        }
-    }
-
     async function sendReportEmail(type, count) {
         const email = prompt(`Para qual e-mail enviar o relatório de ${type}?`);
         if (!email) return;
@@ -3134,7 +3127,7 @@
                 console.warn('[loadTeam] Edge function failed, falling back to direct query:', fnErr.message);
                 const { data, error } = await window.supabaseClient
                     .from('users')
-                    .select('id, name, email, role, phone, status, modules, temp_password, password_changed')
+                    .select('id, name, email, role, phone, status, modules, password_changed')
                     .eq('workspace_id', wsId)
                     .order('role');
                 if (error) throw error;
@@ -3180,18 +3173,8 @@
             let pwdCell = '';
             if (u.password_changed) {
                 pwdCell = '<span title="Usuário trocou a senha" style="font-size:11px;color:#4ade80;">🔒 Senha própria</span>';
-            } else if (u.temp_password) {
-                const safe = u.temp_password.replace(/'/g, "\\'");
-                pwdCell = `<span style="display:flex;align-items:center;gap:4px;">
-                    <span id="pwd-${u.id}" style="font-family:monospace;font-size:11px;background:#222;padding:2px 6px;border-radius:4px;color:#FFD700;display:none;">${safe}</span>
-                    <button onclick="document.getElementById('pwd-${u.id}').style.display=document.getElementById('pwd-${u.id}').style.display==='none'?'inline':'none'" 
-                        style="background:none;border:none;color:#888;cursor:pointer;font-size:12px;" title="Ver senha temporária">
-                        👁️
-                    </button>
-                    <span style="font-size:10px;color:#f59e0b;">Aguardando</span>
-                </span>`;
             } else {
-                pwdCell = '<span style="font-size:11px;color:#555;">-</span>';
+                pwdCell = '<span style="font-size:11px;color:#f59e0b;">Aguardando troca</span>';
             }
 
             let actions = '';
@@ -3200,7 +3183,7 @@
                     <button onclick="window.editUserModal('${u.id}')" title="Editar" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     </button>
-                    ${myRank >= 2 ? `<button onclick="window.resendInvite('${u.id}', '${u.email}')" title="Gerar nova senha" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;">
+                    ${myRank >= 2 ? `<button onclick="window.resendInvite('${u.id}')" title="Enviar link de redefinição" style="background:none;border:none;color:#aaa;cursor:pointer;margin-right:8px;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 2v6h6"/></svg>
                     </button>` : ''}
                     <button onclick="window.deleteUser('${u.id}')" title="Excluir" style="background:none;border:none;color:#f87171;cursor:pointer;">
@@ -3211,11 +3194,11 @@
             html += `
                 <tr style="border-bottom:1px solid rgba(255,255,255,.05);">
                     <td style="padding:14px 18px;">
-                        <div style="font-weight:600;color:#fff;">${u.name || 'Sem nome'}</div>
-                        <div style="font-size:0.75rem;color:#888;">${u.email}</div>
+                        <div style="font-weight:600;color:#fff;">${escHtml(u.name || 'Sem nome')}</div>
+                        <div style="font-size:0.75rem;color:#888;">${escHtml(u.email)}</div>
                     </td>
-                    <td style="padding:14px 18px;color:#ccc;font-size:0.85rem;">${u.phone || '-'}</td>
-                    <td style="padding:14px 18px;">${roleMap[u.role] || u.role}</td>
+                    <td style="padding:14px 18px;color:#ccc;font-size:0.85rem;">${escHtml(u.phone || '-')}</td>
+                    <td style="padding:14px 18px;">${roleMap[u.role] || escHtml(u.role)}</td>
                     <td style="padding:14px 18px;color:${statusColor};font-weight:600;font-size:0.85rem;">${statusNorm === 'ativo' ? 'Ativo' : 'Inativo'}</td>
                     <td style="padding:14px 18px;">${pwdCell}</td>
                     <td style="padding:14px 18px;text-align:right;">${actions}</td>
@@ -3561,8 +3544,7 @@
             window.closeUserModal();
             window.loadTeam();
 
-            // If creating a new user, show credentials popup
-            if (!id && fnData.tempPassword) {
+            if (!id) {
                 // Log user invite
                 window.logAudit && window.logAudit('user.invited', {
                     description: `Convite enviado para ${name} (${role})`,
@@ -3573,12 +3555,11 @@
                 showConfirmModal(
                     '✅ Membro adicionado!',
                     `<div style="text-align:left;">
-                        <p style="margin:0 0 12px;color:#ccc;">Guarde estas credenciais e envie ao membro:</p>
+                        <p style="margin:0 0 12px;color:#ccc;">O convite foi enviado por email para o novo membro.</p>
                         <div style="background:#111;border:1px solid #333;border-radius:8px;padding:14px;font-family:monospace;font-size:14px;line-height:2;">
-                            <div>📧 <b>Email:</b> ${email}</div>
-                            <div>🔑 <b>Senha:</b> <span style="color:#FFD700;font-size:16px;">${fnData.tempPassword}</span></div>
+                            <div>📧 <b>Email:</b> ${escHtml(email)}</div>
                         </div>
-                        <p style="margin:12px 0 0;font-size:11px;color:#888;">A senha estará visível na lista até o membro fazer login e alterá-la.</p>
+                        <p style="margin:12px 0 0;font-size:11px;color:#888;">Por segurança, senhas temporárias não ficam visíveis no painel.</p>
                     </div>`,
                     () => {}
                 );
@@ -3623,19 +3604,21 @@
         );
     };
 
-    window.resendInvite = async function(id, email) {
+    window.resendInvite = async function(id) {
+        const user = (window.currentTeamData || []).find(u => u.id === id);
+        const email = user?.email || '';
         showConfirmModal(
-            '🔑 Gerar Nova Senha',
-            `Deseja gerar uma nova senha temporária para <strong>${email}</strong>?<br><br>A senha atual será invalidada e o membro receberá um email com as novas credenciais.`,
+            '🔑 Enviar Link Seguro',
+            `Deseja enviar um link seguro de redefinição para <strong>${escHtml(email)}</strong>?<br><br>A senha atual será invalidada e o membro definirá uma nova senha pelo link recebido.`,
             async () => {
                 try {
-                    const fnData = await callManageUsers({ action: 'resend_invite', id, email });
+                    await callManageUsers({ action: 'resend_invite', id });
                     window.loadTeam();
                     showConfirmModal(
-                        '✅ Nova senha gerada!',
+                        '✅ Convite reenviado!',
                         `<div style="background:#111;border:1px solid #333;border-radius:8px;padding:14px;font-family:monospace;font-size:14px;line-height:2;">
-                            <div>📧 <b>Email:</b> ${email}</div>
-                            <div>🔑 <b>Nova Senha:</b> <span style="color:#FFD700;font-size:16px;">${fnData.tempPassword}</span></div>
+                            <div>📧 <b>Email:</b> ${escHtml(email)}</div>
+                            <div style="color:#ccc;">O link seguro de redefinição foi enviado por email.</div>
                         </div>`,
                         () => {}
                     );
@@ -3707,16 +3690,8 @@
     async function fetchAndSaveWAAccounts(shortToken) {
         setWASignupStatus('info', '🔍 Buscando contas WhatsApp Business...');
         try {
-            // 1. Exchange for long-lived token
-            const { data: exchangeData, error: exchangeError } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
-                body: { action: 'exchange', short_lived_token: shortToken }
-            });
-            if (exchangeError) throw new Error(exchangeError.message);
-            const longToken = exchangeData.long_lived_token || shortToken; // fallback to short if exchange fails
-
-            // 2. Fetch WABA accounts
             const { data: accountsData, error: accountsError } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
-                body: { action: 'fetch-accounts', short_lived_token: longToken }
+                body: { action: 'fetch-accounts', short_lived_token: shortToken, workspace_id: window.currentWorkspaceId }
             });
             if (accountsError) throw new Error(accountsError.message);
 
@@ -3733,10 +3708,10 @@
 
             if (accounts.length === 1) {
                 // Auto-save single account
-                await saveSelectedWAAccount(accounts[0], longToken);
+                await saveSelectedWAAccount(accounts[0], shortToken);
             } else {
                 // Show picker for multiple accounts
-                showWAAccountPicker(accounts, longToken);
+                showWAAccountPicker(accounts, shortToken);
             }
         } catch(e) {
             setWASignupStatus('error', `❌ Erro de conexão: ${e.message}`);
@@ -3747,40 +3722,38 @@
         setWASignupStatus('info', `Encontramos ${accounts.length} números. Escolha qual conectar:`);
         const picker = document.getElementById('wa-account-picker');
         picker.style.display = 'block';
+        window._waSignupAccounts = accounts;
+        window._waSignupShortToken = token;
         picker.innerHTML = accounts.map((a, i) => `
-            <div onclick="saveSelectedWAAccount(${JSON.stringify(a).replace(/"/g,'&quot;')}, '${token}')" style="
+            <div data-wa-account-index="${i}" style="
                 padding:14px; border-radius:10px; border:1px solid var(--card-border);
                 margin-bottom:8px; cursor:pointer; transition:all 0.2s;
                 background:rgba(255,255,255,0.04);
             " onmouseover="this.style.background='rgba(37,211,102,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                <div style="font-weight:600;color:#fff;">📱 ${a.phone_display}</div>
-                <div style="font-size:0.78rem;color:var(--text-dim);">WABA: ${a.waba_name} · ${a.phone_id}</div>
+                <div style="font-weight:600;color:#fff;">📱 ${escHtml(a.phone_display || a.phone_id || '')}</div>
+                <div style="font-size:0.78rem;color:var(--text-dim);">WABA: ${escHtml(a.waba_name || '')} · ${escHtml(a.phone_id || '')}</div>
             </div>
         `).join('');
+        picker.querySelectorAll('[data-wa-account-index]').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = Number(el.getAttribute('data-wa-account-index'));
+                const account = window._waSignupAccounts?.[idx];
+                if (account) saveSelectedWAAccount(account, window._waSignupShortToken);
+            });
+        });
     }
 
     async function saveSelectedWAAccount(account, token) {
         setWASignupStatus('info', `💾 Salvando ${account.phone_display}...`);
         document.getElementById('wa-account-picker').style.display = 'none';
         try {
-            // Fetch latest creds first since we don't have _currentWorkspace object
-            const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
-            let currentCreds = wsData?.credentials || {};
-            const payload = {
-                ...currentCreds,
-                whatsapp_token: token, 
-                phone_id: account.phone_id, 
-                business_id: account.waba_id, 
-                phone_display: account.phone_display || account.phone_id
-            };
-            const { error: saveError } = await window.supabaseClient.from('workspaces').update({
-                credentials: payload
-            }).eq('id', window.currentWorkspaceId);
-            
-            const saveData = saveError ? { error: saveError.message } : { status: 'saved' };
+            const { data: saveData, error: saveError } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+                body: { action: 'save-account', short_lived_token: token, account, workspace_id: window.currentWorkspaceId }
+            });
+            if (saveError) throw new Error(saveError.message);
             if (saveData.status === 'saved') {
                 setWASignupStatus('success', `🎉 Conectado com sucesso!`);
-                showWAConnectedCard(account);
+                showWAConnectedCard(saveData.account || account);
             } else {
                 setWASignupStatus('error', `❌ Erro ao salvar: ${saveData.error}`);
             }
@@ -3794,12 +3767,12 @@
         const card = document.getElementById('wa-connected-card');
         card.style.display = 'block';
         document.getElementById('wa-connected-details').innerHTML = `
-            <div>📱 <strong>${account.phone_display || account.phone_id}</strong></div>
-            <div>🏢 ${account.waba_name || 'WhatsApp Business Account'} (${account.waba_id})</div>
-            <div>🔑 Phone ID: ${account.phone_id}</div>
+            <div>📱 <strong>${escHtml(account.phone_display || account.phone_id || '')}</strong></div>
+            <div>🏢 ${escHtml(account.waba_name || 'WhatsApp Business Account')} (${escHtml(account.waba_id || '')})</div>
+            <div>🔑 Phone ID: ${escHtml(account.phone_id || '')}</div>
             <div style="margin-top:6px;color:#25D366;">✅ Ju irá responder automaticamente por este número</div>
         `;
-        document.getElementById('wa-status-text').innerText = `Conectado — ${account.phone_display}`;
+        document.getElementById('wa-status-text').innerText = `Conectado — ${account.phone_display || account.phone_id || ''}`;
         document.getElementById('wa-status-text').style.color = '#25D366';
         document.getElementById('wa-status-dot').style.background = '#25D366';
         document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(37,211,102,0.6)';
@@ -3810,11 +3783,10 @@
         if (!window.supabaseClient || !window.currentWorkspaceId) return;
         
         try {
-            const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
-            let creds = wsData?.credentials || {};
-            creds.ia_active = isActive;
-
-            await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+            const { error } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+                body: { action: 'set-ai-active', is_active: isActive, workspace_id: window.currentWorkspaceId }
+            });
+            if (error) throw error;
             const statusEl = document.getElementById('ia-active-status');
             if (statusEl) statusEl.innerText = isActive ? 'IA Ativa' : 'IA Pausada';
         } catch(e) {
@@ -3827,19 +3799,16 @@
         if (!window.supabaseClient || !window.currentWorkspaceId) return;
         if (!confirm('Tem certeza que deseja desconectar a conta do WhatsApp? Mila parará imediatamente de responder às mensagens.')) return;
 
-        const { data: wsData } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
-        let creds = wsData?.credentials || {};
-        // clear WA fields
-        delete creds.whatsapp_token;
-        delete creds.phone_id;
-        delete creds.business_id;
-        delete creds.phone_display;
-
-        window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', window._currentWorkspace.id).then(() => {
+        window.supabaseClient.functions.invoke('whatsapp-auth', {
+            body: { action: 'disconnect', workspace_id: window.currentWorkspaceId }
+        }).then(({ error }) => {
+            if (error) throw error;
             document.getElementById('wa-connected-card').style.display = 'none';
             document.getElementById('wa-connect-section').style.display = 'block';
             setWASignupStatus('info', '🔌 Desconectado. Clique em Conectar para reconectar.');
             window.hasWhatsappConfig = false;
+        }).catch((e) => {
+            alert('❌ Erro: ' + e.message);
         });
     }
 
@@ -3870,11 +3839,16 @@
         }
         
         try {
-            let creds = window._currentWorkspace?.credentials || {};
-            const { error } = await window.supabaseClient.from('workspaces').update({
-                credentials: {...creds, whatsapp_token: token, phone_id: id, business_id: b_id, app_secret: secret}
-            }).eq('id', window._currentWorkspace.id);
-            
+            const { error } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+                body: {
+                    action: 'manual-save',
+                    workspace_id: window.currentWorkspaceId,
+                    phone_id: id,
+                    token,
+                    business_id: b_id,
+                    app_secret: secret
+                }
+            });
             if (error) throw error;
             alert('✅ Credenciais Salvas!');
             checkWAStatus();
@@ -3884,19 +3858,25 @@
     }
 
     async function checkWAStatus() {
-        if (!window.supabaseClient || !window._currentWorkspace?.id) return;
+        if (!window.supabaseClient || !window.currentWorkspaceId) return;
         window.hasWhatsappConfig = false;
         
-        const { data, error } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', window._currentWorkspace.id).single();
-        if (data && data.credentials && data.credentials.whatsapp_token) {
+        const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+            body: { action: 'status', workspace_id: window.currentWorkspaceId }
+        });
+        if (error) {
+            console.warn('checkWAStatus error:', error.message);
+            return;
+        }
+        if (data && data.connected) {
             window.hasWhatsappConfig = true;
-            const phoneDisplay = data.credentials.phone_display || data.credentials.phone_id || 'Número conectado';
+            const phoneDisplay = data.phone_display || data.phone_id || 'Número conectado';
             document.getElementById('wa-status-text').innerText = `Conectado — ${phoneDisplay}`;
             document.getElementById('wa-status-text').style.color = '#25D366';
             document.getElementById('wa-status-dot').style.background = '#25D366';
             document.getElementById('wa-status-dot').style.boxShadow = '0 0 8px rgba(37,211,102,0.6)';
 
-            const iaActive = data.credentials.ia_active !== false;
+            const iaActive = data.ia_active !== false;
             const toggleWrap = document.getElementById('wa-power-toggle');
             if (toggleWrap) toggleWrap.checked = iaActive;
             const statusEl = document.getElementById('ia-active-status');
@@ -3907,18 +3887,18 @@
             const connectSection = document.getElementById('wa-connect-section');
             if (connCard && connectSection) {
                 showWAConnectedCard({
-                    phone_display: data.credentials.phone_display || data.credentials.phone_id,
-                    phone_id: data.credentials.phone_id,
-                    waba_id: data.credentials.waba_id || data.credentials.business_id || '',
-                    waba_name: 'Lagoinha Orlando'
+                    phone_display: data.phone_display || data.phone_id,
+                    phone_id: data.phone_id,
+                    waba_id: data.waba_id || '',
+                    waba_name: data.waba_name || 'WhatsApp Business Account'
                 });
             }
-            // Pre-fill manual fields too
+            // Pre-fill non-secret manual fields only.
             if(document.getElementById('cloud-phone-id')) {
-                document.getElementById('cloud-phone-id').value = data.credentials.phone_id || '';
-                document.getElementById('cloud-token').value = data.credentials.whatsapp_token || '';
-                document.getElementById('cloud-business-id').value = data.credentials.business_id || data.credentials.waba_id || '';
-                document.getElementById('cloud-app-secret').value = data.credentials.app_secret || '';
+                document.getElementById('cloud-phone-id').value = data.phone_id || '';
+                document.getElementById('cloud-token').value = '';
+                document.getElementById('cloud-business-id').value = data.waba_id || '';
+                document.getElementById('cloud-app-secret').value = '';
             }
         } else {
             document.getElementById('wa-status-text').innerText = "Inativo / Faltam Dados";
@@ -4110,7 +4090,7 @@
         
         container.innerHTML += `
             <div class="wa-bubble sent" style="opacity:0.7;">
-                ${txt}
+                ${escHtml(txt)}
                 <div class="wa-bubble-time">${timeStr}</div>
             </div>
         `;
@@ -4132,14 +4112,17 @@
             .update({ llm_lock_until: lockUntil })
             .eq('id', waActiveLeadId);
         
-        // Calling Python Backend to dispatch to Meta Cloud API
-        fetch(`${API_BASE}/whatsapp/send`, {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        fetch(`https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-message`, {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session?.access_token || ''}`
+            },
             body: JSON.stringify({
-                phone: String(lead.phone),
-                text: txt,
-                workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3'
+                lead_id: waActiveLeadId,
+                workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3',
+                message: { type: 'text', content: txt }
             })
         }).catch(e=>console.log(e));
         
@@ -4671,13 +4654,11 @@ async function loadNotificationSettings() {
     if (!window.currentWorkspaceId) return;
     try {
         const sb = window.supabaseClient;
-        const { data, error } = await sb
-            .from('workspaces')
-            .select('credentials')
-            .eq('id', window.currentWorkspaceId)
-            .single();
+        const { data, error } = await sb.functions.invoke('whatsapp-auth', {
+            body: { action: 'notification-settings-get', workspace_id: window.currentWorkspaceId }
+        });
         if (error) throw error;
-        const notif = data.credentials?.notifications || {};
+        const notif = data.notifications || {};
         
         const emailPastor = document.getElementById('notif-email-pastor');
         if (emailPastor) {
@@ -4692,17 +4673,13 @@ async function saveNotificationSettings() {
     
     try {
         const sb = window.supabaseClient;
-        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
-        const creds = { ...(ws?.credentials || {}) };
-        
-        creds.notifications = {
-            ...creds.notifications,
-            email_pastor: emailPastor
-        };
-        
-        const { error } = await sb.from('workspaces').update({
-            credentials: creds
-        }).eq('id', window.currentWorkspaceId);
+        const { error } = await sb.functions.invoke('whatsapp-auth', {
+            body: {
+                action: 'notification-settings-save',
+                workspace_id: window.currentWorkspaceId,
+                email_pastor: emailPastor
+            }
+        });
         
         if (error) throw error;
         window.showToast && showToast('Preferências de notificação salvas!', 'success');
@@ -4796,12 +4773,12 @@ window.loadIaAtendente = async function() {
     if (!window.currentWorkspaceId) return;
     try {
         const sb = window.supabaseClient;
-        const { data } = await sb.from('workspaces')
-            .select('credentials, knowledge_base')
-            .eq('id', window.currentWorkspaceId)
-            .single();
+        const { data, error } = await sb.functions.invoke('whatsapp-auth', {
+            body: { action: 'ia-settings-get', workspace_id: window.currentWorkspaceId }
+        });
+        if (error) throw error;
 
-        const creds = data?.credentials || {};
+        const creds = data?.settings || {};
         const kb    = data?.knowledge_base || {};
 
         // Toggles
@@ -4835,14 +4812,15 @@ window.saveIaAtendente = async function() {
     if (!window.currentWorkspaceId) return;
     try {
         const sb = window.supabaseClient;
-        const { data: ws } = await sb.from('workspaces').select('credentials').eq('id', window.currentWorkspaceId).single();
-        const creds = { ...(ws?.credentials || {}) };
-
-        creds.ia_active         = document.getElementById('ia-atendente-toggle')?.checked ?? false;
-        creds.ia_memory_enabled = document.getElementById('ia-memory-toggle')?.checked    ?? false;
-        creds.ia_system_prompt  = (document.getElementById('ia-system-prompt')?.value || '').trim() || null;
-
-        const { error } = await sb.from('workspaces').update({ credentials: creds }).eq('id', window.currentWorkspaceId);
+        const { error } = await sb.functions.invoke('whatsapp-auth', {
+            body: {
+                action: 'ia-settings-save',
+                workspace_id: window.currentWorkspaceId,
+                ia_active: document.getElementById('ia-atendente-toggle')?.checked ?? false,
+                ia_memory_enabled: document.getElementById('ia-memory-toggle')?.checked ?? false,
+                ia_system_prompt: (document.getElementById('ia-system-prompt')?.value || '').trim()
+            }
+        });
         if (error) throw error;
         window.showToast && showToast('Configurações da IA Atendente salvas!', 'success');
     } catch(e) {
@@ -4883,13 +4861,12 @@ window.loadAutomationConfig = async function() {
         const sb = window.supabaseClient;
         const { data, error } = await sb
             .from('workspaces')
-            .select('automation_config, credentials')
+            .select('automation_config')
             .eq('id', window.currentWorkspaceId)
             .single();
         if (error) throw error;
 
         const cfg = data?.automation_config || {};
-        const creds = data?.credentials || {};
 
         // Enable toggle
         const enabled = cfg.enabled === true;
@@ -4910,32 +4887,21 @@ window.loadAutomationConfig = async function() {
         window._autoRules = Array.isArray(cfg.rules) ? [...cfg.rules] : [];
 
         // Fetch and populate Meta templates
-        await _fetchAndPopulateMetaTemplates(creds, window._autoRules);
+        await _fetchAndPopulateMetaTemplates(window._autoRules);
 
     } catch(e) { console.error('loadAutomationConfig:', e); }
 };
 
-async function _fetchAndPopulateMetaTemplates(creds, rules) {
-    const token = creds?.whatsapp_token;
-    const phoneId = creds?.phone_id;
+async function _fetchAndPopulateMetaTemplates(rules) {
     const selects = document.querySelectorAll('.auto-template-select');
     if (!selects.length) return;
     
-    if (!token || !phoneId) {
-        selects.forEach(s => {
-            s.innerHTML = '<option value="">⚠️ Credenciais Meta não configuradas</option>';
-            s.disabled = true;
-        });
-        return;
-    }
-    
     try {
-        const resp = await fetch(
-            `https://graph.facebook.com/v18.0/${phoneId}/message_templates?status=APPROVED&limit=100&fields=name,language,status,components`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const json = await resp.json();
-        const templates = json.data || [];
+        const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-list-templates', {
+            body: { workspace_id: window.currentWorkspaceId }
+        });
+        if (error || data?.ok === false) throw new Error(error?.message || data?.error || 'Erro ao carregar templates');
+        const templates = data?.templates || [];
         
         window._wabaTemplatesCache = templates;
         
@@ -4967,6 +4933,10 @@ async function _fetchAndPopulateMetaTemplates(creds, rules) {
         
     } catch(e) {
         console.error('Error fetching templates:', e);
+        selects.forEach(s => {
+            s.innerHTML = '<option value="">⚠️ Templates indisponíveis</option>';
+            s.disabled = true;
+        });
     }
 }
 
@@ -10464,6 +10434,19 @@ function fmtMoney(val, currency) {
     return new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' ' + (currency || '');
 }
 
+async function getWorkspaceFinancialSettings(workspaceId) {
+    try {
+        const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+            body: { action: 'financial-settings-get', workspace_id: workspaceId }
+        });
+        if (error || data?.error) throw new Error(error?.message || data?.error || 'Erro ao carregar configurações financeiras');
+        return data || {};
+    } catch (e) {
+        console.warn('[Financial settings]', e.message || e);
+        return {};
+    }
+}
+
 function periodToDateRange(period) {
     const now = new Date();
     let from = null;
@@ -10531,8 +10514,8 @@ window.openFinancialForm = async function() {
     const wsId = window.currentWorkspaceId;
     if (wsId) {
         try {
-            const { data: ws } = await window.supabaseClient.from('workspaces').select('credentials').eq('id', wsId).single();
-            const localCur = ws && ws.credentials && ws.credentials.local_currency;
+            const settings = await getWorkspaceFinancialSettings(wsId);
+            const localCur = settings.local_currency;
             if (localCur) {
                 const sel = document.getElementById('fin-input-currency');
                 if (sel) sel.value = localCur;
@@ -10785,7 +10768,8 @@ window.submitFinancialReport = async function() {
 
 async function sendFinancialSubmissionEmail(report) {
     const sb = window.supabaseClient;
-    const { data: ws } = await sb.from('workspaces').select('name, credentials, regional_id').eq('id', report.workspace_id).single();
+    const { data: ws } = await sb.from('workspaces').select('name, regional_id').eq('id', report.workspace_id).single();
+    const finSettings = await getWorkspaceFinancialSettings(report.workspace_id);
     const churchName = (ws && ws.name) || 'Igreja';
     const SUPABASE_URL = 'https://uyseheucqikgcorrygzc.supabase.co';
     const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI';
@@ -10803,8 +10787,8 @@ async function sendFinancialSubmissionEmail(report) {
     };
 
     var regionalEmail = null, regionalName = 'Responsável Regional';
-    if (ws && ws.credentials && ws.credentials.financial_contact_email) {
-        regionalEmail = ws.credentials.financial_contact_email;
+    if (finSettings.financial_contact_email) {
+        regionalEmail = finSettings.financial_contact_email;
     }
     if (ws && ws.regional_id) {
         const { data: reg } = await sb.from('regionals').select('name, financial_contact_email, global_financial_contact_email').eq('id', ws.regional_id).single();
@@ -10906,10 +10890,11 @@ window.sendFinMessage = async function() {
 async function sendFinMessageEmail(reportId, message, direction, profile) {
     const sb = window.supabaseClient;
     const { data: report } = await sb.from('financial_reports').select('period_label, workspace_id').eq('id', reportId).single();
-    const { data: ws } = await sb.from('workspaces').select('name, credentials, regional_id').eq('id', report.workspace_id).single();
+    const { data: ws } = await sb.from('workspaces').select('name, regional_id').eq('id', report.workspace_id).single();
+    const finSettings = await getWorkspaceFinancialSettings(report.workspace_id);
     var recipientEmail = null, recipientName = 'Responsável';
     if (direction.includes('to_local')) {
-        recipientEmail = ws && ws.credentials && ws.credentials.financial_contact_email ? ws.credentials.financial_contact_email : null;
+        recipientEmail = finSettings.financial_contact_email || null;
         recipientName  = ws ? ws.name : 'Igreja';
     } else if (ws && ws.regional_id) {
         const { data: reg } = await sb.from('regionals').select('financial_contact_email, name').eq('id', ws.regional_id).single();
@@ -12394,19 +12379,8 @@ async function sendMilaMessage() {
         const linkEl = document.getElementById('rset-link-preview');
         if (linkEl) linkEl.textContent = getReportUrl();
 
-        // Fetch current password (masked)
-        const sb = window.supabaseClient;
-        if (sb && window.currentWorkspaceId) {
-            const { data: ws } = await sb
-                .from('workspaces')
-                .select('report_password')
-                .eq('id', window.currentWorkspaceId)
-                .single();
-            if (ws?.report_password) {
-                const pwEl = document.getElementById('rset-pw-display');
-                if (pwEl) pwEl.textContent = ws.report_password;
-            }
-        }
+        const pwEl = document.getElementById('rset-pw-display');
+        if (pwEl) pwEl.textContent = '••••••••';
 
         overlay.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -12454,9 +12428,8 @@ async function sendMilaMessage() {
         if (error) {
             showToast('❌ Erro ao salvar: ' + error.message);
         } else {
-            // Update displayed password
             const pwEl = document.getElementById('rset-pw-display');
-            if (pwEl) pwEl.textContent = newPw;
+            if (pwEl) pwEl.textContent = '••••••••';
             showToast('✅ Senha do relatório atualizada!', 2200);
             closeReportSettings();
         }

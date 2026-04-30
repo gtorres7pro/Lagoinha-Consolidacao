@@ -1,8 +1,11 @@
 import os
-import requests
-from dotenv import load_dotenv
+import httpx
+try:
+    from tools.env import load_local_env
+except ModuleNotFoundError:
+    from env import load_local_env
 
-load_dotenv()
+load_local_env()
 
 def send_whatsapp_message(phone_id: str, access_token: str, to: str, message: str) -> dict:
     """
@@ -27,12 +30,13 @@ def send_whatsapp_message(phone_id: str, access_token: str, to: str, message: st
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = httpx.post(url, headers=headers, json=payload, timeout=15)
         response.raise_for_status()
         return {"status": "success", "data": response.json()}
-    except requests.exceptions.HTTPError as e:
-        print(f"Meta API HTTP Error: {e.response.text}")
-        return {"error": str(e), "details": e.response.text}
+    except httpx.HTTPStatusError as e:
+        detail = e.response.text
+        print(f"Meta API HTTP Error: {detail}")
+        return {"error": str(e), "details": detail}
     except Exception as e:
         print(f"Meta API Exception: {str(e)}")
         return {"error": str(e)}
@@ -63,12 +67,13 @@ def send_whatsapp_template(phone_id: str, access_token: str, to: str, template_n
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = httpx.post(url, headers=headers, json=payload, timeout=15)
         response.raise_for_status()
         return {"status": "success", "data": response.json()}
-    except requests.exceptions.HTTPError as e:
-        print(f"Meta Template API HTTP Error: {e.response.text}")
-        return {"error": str(e), "details": e.response.text}
+    except httpx.HTTPStatusError as e:
+        detail = e.response.text
+        print(f"Meta Template API HTTP Error: {detail}")
+        return {"error": str(e), "details": detail}
     except Exception as e:
         print(f"Meta Template API Exception: {str(e)}")
         return {"error": str(e)}
@@ -86,7 +91,7 @@ def list_whatsapp_templates(waba_id: str, access_token: str) -> list:
         "limit": 50
     }
     try:
-        response = requests.get(url, params=params)
+        response = httpx.get(url, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
         return data.get("data", [])

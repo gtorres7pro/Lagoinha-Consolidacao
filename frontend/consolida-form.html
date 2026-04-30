@@ -1339,19 +1339,6 @@
 
                 if (error) throw error;
 
-                // 🟢 Fire & Forget: Send WhatsApp welcome template
-                // We don't have the new lead ID (no .select()), so we pass email+workspace
-                // for the Edge Function to resolve the lead.
-                fetch('https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-template', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        workspace_id: workspaceId,
-                        lead_email: leadData.email,
-                        lead_phone: leadData.phone
-                    })
-                }).catch(e => console.warn('[WA Template] dispatch error:', e));
-
                 // 🔔 Fire & Forget: Notify webhook (Google Sheets)
                 fetch('https://script.google.com/macros/s/AKfycbwCNOGzzEn1FVN5v2svzthrXOE-iBxbZcVNhU0d-epGCPYiJF4RNudJdS38HfOndfft/exec', {
                     method: 'POST',

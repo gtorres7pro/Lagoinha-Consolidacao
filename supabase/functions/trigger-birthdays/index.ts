@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { CORS_HEADERS, isInternalRequest, json } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: CORS_HEADERS });
   }
 
   try {
@@ -17,10 +13,8 @@ serve(async (req) => {
         throw new Error('Only POST requests allowed');
     }
 
-    // Optional: secure this endpoint using the Supabase JWT or a custom secret
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing Authorization header");
+    if (!isInternalRequest(req)) {
+      return json({ error: "Forbidden" }, 403);
     }
 
     // Initialize Supabase Client with Service Role to bypass RLS and fetch all birthdays globally
@@ -29,11 +23,6 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify invoker identity if needed via getUser, but since it's triggered by n8n, 
-    // it's highly recommended to just use the Service Role key in the Authorization header of n8n.
-    // If the token provided doesn't match the service key exactly (or a valid JWT that we trust), we can block.
-    // In this case, we trust the Authorization header is valid if it passes the Edge Function's native verify_jwt setting (which we will set to false and handle manually or set to true and use anon/service key).
-    
     // Determine the current local day targeting the typical timezone of the hub (America/Sao_Paulo or specified)
     // Defaulting to America/Sao_Paulo (UTC-3).
     const now = new Date();
@@ -65,9 +54,7 @@ serve(async (req) => {
     if (bError) throw bError;
 
     if (!birthdays || birthdays.length === 0) {
-        return new Response(JSON.stringify({ message: `No birthdays found for ${day}/${month}` }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return json({ message: `No birthdays found for ${day}/${month}` });
     }
 
     const results = [];
@@ -144,18 +131,13 @@ serve(async (req) => {
         }
     }
 
-    return new Response(JSON.stringify({ 
-        message: `Processed ${birthdays.length} birthdays`, 
-        date: `${day}/${month}`,
-        results 
-    }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+	    return json({
+	        message: `Processed ${birthdays.length} birthdays`,
+	        date: `${day}/${month}`,
+	        results
+	    });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: String(error) }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: String(error) }, 400);
   }
 });

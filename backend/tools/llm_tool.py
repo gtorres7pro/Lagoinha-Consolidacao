@@ -1,13 +1,16 @@
 import os
 import google.generativeai as genai
-from dotenv import load_dotenv
+try:
+    from tools.env import load_local_env
+except ModuleNotFoundError:
+    from env import load_local_env
 from tools.db_tool import supabase, get_workspace_config
 
-load_dotenv()
+load_local_env()
 
-# Initialize Gemini Client
-# Fallback ensures VPS works even without Coolify env vars
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAuyn3TwlJomME82CUmcWMP09h-ZeSKSXI")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not configured")
 genai.configure(api_key=GEMINI_KEY)
 
 # gemini-2.5-flash: confirmed working with billing enabled

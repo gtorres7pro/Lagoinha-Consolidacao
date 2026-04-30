@@ -1090,6 +1090,15 @@ let _allEvents  = [];
 let _allContent = [];
 let _allConnect = [];
 let _memberStatus = {}; // { workspace_id: { status, member_id } }
+
+function escHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 let _currentVideoId = null;
 let _prevScreen = null;
 
@@ -1622,9 +1631,9 @@ async function loadComments(contentId) {
     if (!data || !data.length) { el.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;padding:8px 0;">Sem comentários ainda. Sê o primeiro!</div>'; return; }
     el.innerHTML = data.map(cm => `
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;">
-            <div style="font-size:0.78rem;font-weight:700;margin-bottom:4px;">${cm.crie_app_users?.name || 'Anónimo'}</div>
-            <div style="font-size:0.85rem;color:var(--text2);">${cm.message}</div>
-            ${cm.reply ? `<div style="margin-top:8px;padding:8px;background:rgba(245,158,11,.06);border-left:3px solid var(--gold);border-radius:6px;font-size:0.78rem;color:var(--text2);"><strong style="color:var(--gold);">${cm.reply_by || 'CRIE'}</strong>: ${cm.reply}</div>` : ''}
+            <div style="font-size:0.78rem;font-weight:700;margin-bottom:4px;">${escHtml(cm.crie_app_users?.name || 'Anónimo')}</div>
+            <div style="font-size:0.85rem;color:var(--text2);">${escHtml(cm.message)}</div>
+            ${cm.reply ? `<div style="margin-top:8px;padding:8px;background:rgba(245,158,11,.06);border-left:3px solid var(--gold);border-radius:6px;font-size:0.78rem;color:var(--text2);"><strong style="color:var(--gold);">${escHtml(cm.reply_by || 'CRIE')}</strong>: ${escHtml(cm.reply)}</div>` : ''}
         </div>`).join('');
 }
 
@@ -1679,11 +1688,11 @@ function renderConnect(items) {
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                 <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">${catEmoji[item.category] || '📌'}</div>
                 <div>
-                    <div style="font-size:0.9rem;font-weight:700;">${item.title}</div>
-                    <div style="font-size:0.72rem;color:var(--text3);">${item.workspaces?.name || ''} · ${item.category || ''}</div>
+	                    <div style="font-size:0.9rem;font-weight:700;">${escHtml(item.title)}</div>
+	                    <div style="font-size:0.72rem;color:var(--text3);">${escHtml(item.workspaces?.name || '')} · ${escHtml(item.category || '')}</div>
                 </div>
             </div>
-            <div style="font-size:0.82rem;color:var(--text2);line-height:1.5;">${(item.description || '').substring(0,120)}${(item.description||'').length > 120 ? '…' : ''}</div>
+            <div style="font-size:0.82rem;color:var(--text2);line-height:1.5;">${escHtml((item.description || '').substring(0,120))}${(item.description||'').length > 120 ? '…' : ''}</div>
         </div>`).join('');
 }
 

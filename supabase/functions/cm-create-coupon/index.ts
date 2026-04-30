@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ADMIN_ROLES, authorizeWorkspaceUser } from "../_shared/auth.ts";
 
 /**
  * cm-create-coupon — mirrors crie-create-coupon but reads Stripe key from cm_settings
@@ -37,6 +38,11 @@ Deno.serve(async (req: Request) => {
 
   if (!workspace_id || !code || !type || !discount) {
     return new Response(JSON.stringify({ error: "workspace_id, code, type, discount required" }), { status: 400, headers: cors });
+  }
+
+  const authz = await authorizeWorkspaceUser(req, supabaseAdmin, workspace_id, ADMIN_ROLES);
+  if (!authz.ok) {
+    return new Response(JSON.stringify({ error: authz.error }), { status: authz.status, headers: cors });
   }
 
   // ── Get Stripe SK from cm_settings ────────────────────────────────

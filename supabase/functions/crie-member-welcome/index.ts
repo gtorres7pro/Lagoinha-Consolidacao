@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ADMIN_ROLES, authorizeInternalOrWorkspaceUser } from "../_shared/auth.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const sb = createClient(
@@ -46,6 +47,14 @@ Deno.serve(async (req: Request) => {
       .single();
     if (appErr || !app) throw new Error("Application not found");
     if (!app.email) throw new Error("No email on application");
+
+    const authz = await authorizeInternalOrWorkspaceUser(req, sb, app.workspace_id, ADMIN_ROLES);
+    if (!authz.ok) {
+      return new Response(JSON.stringify({ error: authz.error }), {
+        status: authz.status,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch workspace
     const { data: ws } = await sb

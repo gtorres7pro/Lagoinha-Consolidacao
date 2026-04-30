@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
+import { ADMIN_ROLES, authorizeWorkspaceUser } from "../_shared/auth.ts";
 
 const SUPABASE_URL             = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -85,6 +86,14 @@ Deno.serve(async (req: Request) => {
       .eq("id", application_id)
       .single();
     if (appErr || !app) throw new Error("Application not found");
+
+    const authz = await authorizeWorkspaceUser(req, supabase, app.workspace_id, ADMIN_ROLES);
+    if (!authz.ok) {
+      return new Response(JSON.stringify({ error: authz.error }), {
+        status: authz.status,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch workspace
     const { data: ws } = await supabase
@@ -375,12 +384,13 @@ Deno.serve(async (req: Request) => {
 
     if (uploadErr) throw new Error("Upload failed: " + uploadErr.message);
 
-    // ── Get public URL ─────────────────────────────────────────────────
-    const { data: publicData } = supabase.storage
+    // ── Return a signed URL instead of a permanent public URL ───────────
+    const { data: signedData, error: signedErr } = await supabase.storage
       .from("crie-member-applications")
-      .getPublicUrl(pdfPath);
+      .createSignedUrl(pdfPath, 60 * 60 * 24 * 7);
 
-    const pdfUrl = publicData?.publicUrl || "";
+    if (signedErr || !signedData?.signedUrl) throw new Error("Signed URL failed");
+    const pdfUrl = signedData.signedUrl;
 
     // ── Update application row ─────────────────────────────────────────
     await supabase

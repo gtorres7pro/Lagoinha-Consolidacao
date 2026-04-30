@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isInternalRequest } from "../_shared/auth.ts";
 
 const sb = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -43,6 +44,12 @@ function fmtCurrency(amount: number, currency: string): string {
 /* ── Main ─────────────────────────────────────────────────────────── */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (!isInternalRequest(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
 
   const refMonth = currentMonth();
   console.log(`[crie-billing-cron] Running for month: ${refMonth}`);

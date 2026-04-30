@@ -28,7 +28,7 @@ function getSlugFromURL() {
 
 /**
  * Resolves workspace data from slug.
- * Returns { id, name, slug, status, plan, settings } or null if not found.
+ * Returns public workspace routing data or null if not found.
  * Caches the result in sessionStorage for performance.
  */
 async function resolveWorkspace(slug) {
@@ -43,7 +43,7 @@ async function resolveWorkspace(slug) {
   });
   const { data, error } = await sb
     .from('workspaces')
-    .select('id, name, slug, status, credentials, knowledge_base')
+    .select('id, name, slug, status')
     .eq('slug', slug)
     .single();
 

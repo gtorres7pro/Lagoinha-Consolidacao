@@ -69,7 +69,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" }
+            { "name": "apikey", "value": "REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY" }
           ]
         },
         "options": {}
@@ -89,7 +89,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" }
+            { "name": "apikey", "value": "REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY" }
           ]
         },
         "options": {}
@@ -172,7 +172,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxOTg2NjI0MCwiZXhwIjoyMDM1NDQyMjQwfQ.PLACEHOLDER_REPLACE_WITH_REAL_SERVICE_KEY" },
+            { "name": "apikey", "value": "REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]

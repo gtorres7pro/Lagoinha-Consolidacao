@@ -14,6 +14,14 @@
     let _wsId = null;
     let _fbSDKReady = false;
 
+    async function _waAuth(action, body = {}) {
+        const { data, error } = await window.supabaseClient.functions.invoke('whatsapp-auth', {
+            body: { action, workspace_id: _wsId, ...body }
+        });
+        if (error || data?.error) throw new Error(error?.message || data?.error || 'Falha na operação WhatsApp');
+        return data || {};
+    }
+
     // ── Load Facebook SDK ─────────────────────────────────────
     function _loadFBSDK() {
         if (document.getElementById('facebook-jssdk')) return;
@@ -37,29 +45,26 @@
 
         _loadFBSDK();
 
-        // Load saved config
-        const { data } = await window.supabaseClient.from('workspaces')
-            .select('credentials').eq('id', _wsId).single();
-
-        const creds = data?.credentials || {};
+        // Load saved config without exposing stored Meta tokens to the browser.
+        const data = await _waAuth('status');
 
         // Show connection status
-        if (creds.phone_id && creds.whatsapp_token) {
+        if (data.connected) {
             _showConnected({
-                phone_display: creds.phone_display || creds.phone_id,
-                waba_id: creds.waba_id || creds.business_id || '—',
-                connected_at: creds.meta_connected_at,
+                phone_display: data.phone_display || data.phone_id,
+                waba_id: data.waba_id || '—',
+                connected_at: data.meta_connected_at,
             });
         } else {
             _showDisconnected();
         }
 
-        // Pre-fill manual fields if they exist
+        // Pre-fill non-secret manual fields only.
         const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
-        setVal('cloud-phone-id', creds.phone_id);
-        setVal('cloud-business-id', creds.waba_id || creds.business_id);
-        setVal('cloud-token', creds.whatsapp_token);
-        setVal('cloud-app-secret', creds.app_secret);
+        setVal('cloud-phone-id', data.phone_id);
+        setVal('cloud-business-id', data.waba_id);
+        setVal('cloud-token', '');
+        setVal('cloud-app-secret', '');
     };
 
     // ── Facebook Embedded Signup ──────────────────────────────
@@ -126,84 +131,31 @@
 
         try {
             const token = authResponse.accessToken;
-            let wabaId = null, phoneId = null, phoneDisplay = null;
-
-            // ── Strategy 1: sessionInfo from Meta postMessage (most reliable for Embedded Signup)
-            // Wait briefly for the postMessage to arrive before querying the API
             await new Promise(res => setTimeout(res, 800));
-            if (window._waSessionInfo) {
-                wabaId  = window._waSessionInfo.waba_id;
-                phoneId = window._waSessionInfo.phone_number_id;
-                console.log('[WA] Using sessionInfo from postMessage:', window._waSessionInfo);
-            }
-
-            // ── Strategy 2: /me/whatsapp_business_accounts (simpler & more direct than me/businesses)
-            if (!wabaId) {
-                const r1 = await fetch(
-                    `https://graph.facebook.com/v21.0/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number}&access_token=${token}`
-                ).then(r => r.json()).catch(() => ({}));
-                for (const acc of (r1.data || [])) {
-                    const phones = acc.phone_numbers?.data || [];
-                    if (phones.length > 0) {
-                        wabaId = acc.id; phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number;
-                        break;
-                    } else if (!wabaId) { wabaId = acc.id; }
-                }
-                if (r1.data?.length) console.log('[WA] /me/whatsapp_business_accounts:', r1.data);
-            }
-
-            // ── Strategy 3: Traverse me/businesses (original path)
-            if (!wabaId) {
-                const r2 = await fetch(
-                    `https://graph.facebook.com/v21.0/me/businesses?fields=whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}&access_token=${token}`
-                ).then(r => r.json()).catch(() => ({}));
-                for (const biz of (r2.data || [])) {
-                    for (const acc of (biz.whatsapp_business_accounts?.data || [])) {
-                        const phones = acc.phone_numbers?.data || [];
-                        if (phones.length > 0) {
-                            wabaId = acc.id; phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number;
-                            break;
-                        } else if (!wabaId) { wabaId = acc.id; }
-                    }
-                    if (wabaId) break;
-                }
-            }
-
-            // ── Strategy 4: We have a WABA ID but no phone yet — query phones directly
-            if (wabaId && !phoneId) {
-                const r3 = await fetch(
-                    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number&access_token=${token}`
-                ).then(r => r.json()).catch(() => ({}));
-                const phones = r3.data || [];
-                if (phones.length > 0) { phoneId = phones[0].id; phoneDisplay = phones[0].display_phone_number; }
-                console.log('[WA] Phones via WABA direct:', r3);
-            }
-
-            // ── No WABA found at all
-            if (!wabaId) {
+            const accountsData = await _waAuth('fetch-accounts', { short_lived_token: token });
+            const accounts = accountsData.accounts || [];
+            if (!accounts.length) {
                 _setStatus('⚠️ Não encontramos um número WhatsApp Business vinculado. Verifique se seu WABA está aprovado e use a configuração manual abaixo.', '#fbbf24', 'rgba(251,191,36,0.08)');
                 if (signupBtn) signupBtn.disabled = false;
                 return;
             }
 
-            // Save credentials (even if phoneId is null — manual entry can complete it later)
-            await _saveMetaCredentials({
-                whatsapp_token: token,
-                phone_id: phoneId || null,
-                phone_display: phoneDisplay || phoneId || wabaId,
-                waba_id: wabaId,
-                app_secret: null,
-                meta_connected_at: new Date().toISOString(),
+            const sessionInfo = window._waSessionInfo || {};
+            const selected = accounts.find(a =>
+                (sessionInfo.phone_number_id && a.phone_id === sessionInfo.phone_number_id) ||
+                (sessionInfo.waba_id && a.waba_id === sessionInfo.waba_id)
+            ) || accounts[0];
+
+            const saved = await _waAuth('save-account', {
+                short_lived_token: token,
+                account: selected,
             });
 
             window._waSessionInfo = null; // Clear after use
 
-            if (phoneId) {
-                _setStatus(`✅ Conectado: ${phoneDisplay || phoneId}`, '#4ade80', 'rgba(74,222,128,0.08)');
-                _showConnected({ phone_display: phoneDisplay || phoneId, waba_id: wabaId, connected_at: new Date().toISOString() });
-            } else {
-                _setStatus(`⚠️ WABA conectada (ID: ${wabaId}), mas sem número de telefone ainda. Preencha o Phone ID manualmente abaixo.`, '#fbbf24', 'rgba(251,191,36,0.08)');
-            }
+            const account = saved.account || selected;
+            _setStatus(`✅ Conectado: ${account.phone_display || account.phone_id}`, '#4ade80', 'rgba(74,222,128,0.08)');
+            _showConnected({ phone_display: account.phone_display || account.phone_id, waba_id: account.waba_id, connected_at: new Date().toISOString() });
 
         } catch (e) {
             console.error('[WA] FB login error:', e);
@@ -241,48 +193,19 @@
     // ── Shared credentials write ──────────────────────────────
     async function _saveMetaCredentials(fields) {
         if (!_wsId) return;
-        const { data } = await window.supabaseClient.from('workspaces')
-            .select('credentials').eq('id', _wsId).single();
-        const creds = data?.credentials || {};
-
-        // Remove all legacy Evolution fields
-        delete creds.whatsapp_mode;
-        delete creds.evolution_instance;
-        delete creds.evolution_status;
-
-        const merged = {
-            ...creds,
-            whatsapp_mode: 'meta',
-            ...fields,
-        };
-
-        const { error } = await window.supabaseClient.from('workspaces')
-            .update({ credentials: merged }).eq('id', _wsId);
-
-        if (error) {
-            window.showToast && window.showToast('Erro ao salvar: ' + error.message, 'error');
-            throw error;
-        }
+        await _waAuth('manual-save', {
+            phone_id: fields.phone_id,
+            token: fields.whatsapp_token,
+            business_id: fields.waba_id || fields.business_id || '',
+            app_secret: fields.app_secret || '',
+        });
     }
 
     // ── Disconnect Meta ───────────────────────────────────────
     window.disconnectMeta = async function () {
         if (!confirm('Desconectar o WhatsApp desta workspace? Automações serão pausadas.')) return;
 
-        const { data } = await window.supabaseClient.from('workspaces')
-            .select('credentials').eq('id', _wsId).single();
-        const creds = { ...(data?.credentials || {}) };
-
-        delete creds.whatsapp_token;
-        delete creds.phone_id;
-        delete creds.phone_display;
-        delete creds.waba_id;
-        delete creds.business_id;
-        delete creds.app_secret;
-        delete creds.meta_connected_at;
-        creds.whatsapp_mode = null;
-
-        await window.supabaseClient.from('workspaces').update({ credentials: creds }).eq('id', _wsId);
+        await _waAuth('disconnect');
 
         _showDisconnected();
         window.showToast && window.showToast('WhatsApp desconectado.', 'info');

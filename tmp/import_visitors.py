@@ -1,12 +1,18 @@
 import csv
 import json
-import requests
+import os
+import httpx
 import re
 
-URL = 'https://uyseheucqikgcorrygzc.supabase.co/rest/v1/leads'
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError('SUPABASE_URL and SUPABASE_KEY must be configured')
+
+URL = f'{SUPABASE_URL}/rest/v1/leads'
 HEADERS = {
-    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5c2VoZXVjcWlrZ2NvcnJ5Z3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NDcxMzIsImV4cCI6MjA4OTQyMzEzMn0._O9Wb2duZKRo9kSU_K_9sEl-7wEeQlEeR1GBuCSRVdI',
+    'apikey': SUPABASE_KEY,
+    'Authorization': f'Bearer {SUPABASE_KEY}',
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'
 }
@@ -17,7 +23,7 @@ def clean_phone(p):
 
 def process():
     print("Deleting existing visitors...")
-    requests.delete(URL + "?type=eq.visitor", headers=HEADERS)
+    httpx.delete(URL + "?type=eq.visitor", headers=HEADERS, timeout=30)
     
     inserted = 0
     with open('/Users/Gabriel/Documents/Antigravity/Lagoinha Consolidação/lista-visitantes.csv', 'r', encoding='utf-8-sig') as f:
@@ -90,7 +96,7 @@ def process():
                 "preferred_language": "pt"
             }
             
-            insert_resp = requests.post(URL, json=lead_data, headers=HEADERS)
+            insert_resp = httpx.post(URL, json=lead_data, headers=HEADERS, timeout=30)
             if insert_resp.status_code in (201, 200, 204):
                 inserted += 1
             else:

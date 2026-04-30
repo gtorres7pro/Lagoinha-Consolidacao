@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { ADMIN_ROLES, escapeHtml } from "../_shared/auth.ts";
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -29,7 +30,7 @@ Deno.serve(async (req: Request) => {
         // get user's workspace_id
         const { data: userData, error: userDataError } = await supabase
             .from('users')
-            .select('workspace_id, role, name')
+            .select('id, workspace_id, role, name, email, phone')
             .eq('id', user.id)
             .single();
 
@@ -186,7 +187,8 @@ ${kbString}
                             title: args.title,
                             description: args.description + (uniqueUrls.length > 0 ? '\n\nAnexos: ' + uniqueUrls.join(', ') : ''),
                             status: 'pending',
-                            submitted_by: userData.id
+                            submitted_by: user.id,
+                            workspace_id: wsId
                         }).select().single();
                         
                     const logId = logData ? logData.id : 'N/A';
@@ -217,30 +219,30 @@ ${kbString}
                             "<p style=\"margin: 5px 0 0 0; color: #aaa; font-size: 14px;\">Zelo Pro Triage by Mila &nbsp;•&nbsp; Ticket #" + logId.substring(0,6) + "</p>" +
                         "</div>" +
                         "<div style=\"padding: 30px;\">" +
-                            "<h3 style=\"margin-top: 0; color: #222; font-size: 18px;\">" + args.title + "</h3>" +
+                            "<h3 style=\"margin-top: 0; color: #222; font-size: 18px;\">" + escapeHtml(args.title) + "</h3>" +
                             "<div style=\"background: #f9f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-bottom: 25px;\">" +
-                                "<p style=\"margin: 0; font-size: 15px; color: #444; line-height: 1.6;\">" + args.description.replace(/\\n/g, '<br>') + "</p>" +
+                                "<p style=\"margin: 0; font-size: 15px; color: #444; line-height: 1.6;\">" + escapeHtml(args.description).replace(/\\n/g, '<br>') + "</p>" +
                             "</div>" +
                             attachmentsHtml +
                             "<h4 style=\"color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px;\">Dados do Autor</h4>" +
                             "<table style=\"width: 100%; border-collapse: collapse; margin-bottom: 25px;\">" +
                                 "<tr>" +
                                     "<td style=\"padding: 6px 0; color: #888; font-size: 14px; width: 30%;\">Nome</td>" +
-                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + (userData.name || 'Desconhecido') + "</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + escapeHtml(userData.name || 'Desconhecido') + "</td>" +
                                 "</tr>" +
                                 "<tr>" +
                                     "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">E-mail</td>" +
-                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + (userData.email || 'N/A') + "</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + escapeHtml(userData.email || 'N/A') + "</td>" +
                                 "</tr>" +
                                 "<tr>" +
                                     "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">Contato</td>" +
                                     "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" +
-                                        phone + " <a href=\"" + waLink + "\" style=\"display:inline-block; margin-left: 8px; background: #25D366; color: #fff; padding: 2px 8px; border-radius: 12px; text-decoration: none; font-size: 11px; font-weight: bold;\">WhatsApp me</a>" +
+                                        escapeHtml(phone) + " <a href=\"" + waLink + "\" style=\"display:inline-block; margin-left: 8px; background: #25D366; color: #fff; padding: 2px 8px; border-radius: 12px; text-decoration: none; font-size: 11px; font-weight: bold;\">WhatsApp me</a>" +
                                     "</td>" +
                                 "</tr>" +
                                 "<tr>" +
                                     "<td style=\"padding: 6px 0; color: #888; font-size: 14px;\">Workspace</td>" +
-                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + wsData.name + " (" + wsId.substring(0,8) + ")</td>" +
+                                    "<td style=\"padding: 6px 0; color: #111; font-size: 14px; font-weight: 500;\">" + escapeHtml(wsData.name) + " (" + wsId.substring(0,8) + ")</td>" +
                                 "</tr>" +
                             "</table>" +
                             "<div style=\"text-align: center; margin-top: 35px;\">" +
@@ -259,7 +261,7 @@ ${kbString}
                             body: JSON.stringify({
                                 from: "Zelo Pro Mila <nao-responda@7pro.tech>",
                                 to: "g@7proservices.com",
-                                subject: "[Zelo Triage] " + args.title,
+                                subject: "[Zelo Triage] " + String(args.title || '').slice(0, 120),
                                 html: niceHtml
                             })
                         });
@@ -275,6 +277,9 @@ ${kbString}
 
                 if (call.name === 'update_knowledge_base') {
                     try {
+                        if (!ADMIN_ROLES.includes(userData.role)) {
+                            throw new Error("Insufficient role for knowledge base updates");
+                        }
                         const newKbStr = call.args.new_json_object;
                         const newKbObj = JSON.parse(newKbStr);
                         
