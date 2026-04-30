@@ -151,10 +151,19 @@ async function dispatchAutomation(ws: any, lead: any, now: string) {
   const mode: string = ws.credentials?.automation_mode ?? "off";
   console.log(`[WH] dispatchAutomation mode=${mode} lead=${lead.id}`);
   if (mode === "ia_atendente" && ws.credentials?.ia_active !== false) {
-    callFlush(lead.id, now).catch(e => console.error("[WH] flush error:", e));
+    await callFlush(lead.id, now);
   } else if (mode === "n8n") {
-    dispatchToN8N(ws, lead, now).catch(e => console.error("[WH] n8n dispatch error:", e));
+    await dispatchToN8N(ws, lead, now);
   }
+}
+
+function runInBackground(promise: Promise<unknown>) {
+  const runtime = (globalThis as any).EdgeRuntime;
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(promise);
+    return;
+  }
+  promise.catch((e: any) => console.error("[WH] background task error:", e?.message ?? e));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -291,8 +300,11 @@ Deno.serve(async (req: Request) => {
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
 
-  // Fire automation (non-blocking)
-  dispatchAutomation(ws, lead, now);
+  // Fire automation without delaying Meta's webhook acknowledgement.
+  runInBackground(
+    dispatchAutomation(ws, lead, now)
+      .catch((e: any) => console.error("[WH] automation dispatch error:", e?.message ?? e))
+  );
 
   return new Response("EVENT_RECEIVED", { status: 200 });
 });

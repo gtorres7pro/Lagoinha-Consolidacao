@@ -3,18 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FBBF24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='40' fill='%23000'%3EZ%3C/text%3E%3C/svg%3E">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Zelo</title>
     
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a0a0a">
+    <meta name="color-scheme" content="dark light">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zelo">
     <link rel="apple-touch-icon" href="/icon-192.png">
 
-    <link rel="stylesheet" href="/hub.css?v=20260420v2">
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('zelo_theme') === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f3f6f2');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="/hub.css?v=20260501v1">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -45,10 +56,23 @@
             --radius-sm: 9px;
             --sidebar-w: 220px;
             --font: 'Inter', -apple-system, sans-serif;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        html { height: 100%; background: var(--bg-color); }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100dvh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+        @supports not (height: 100dvh) {
+            body { min-height: 100vh; height: 100vh; }
+        }
         
         /* ===== HOME MÓDULOS ===== */
         .home-glass-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
@@ -336,10 +360,10 @@
         .mobile-topbar {
             display: none;
             position: fixed; top: 0; left: 0; right: 0;
-            height: 56px; z-index: 60;
+            height: calc(56px + var(--safe-top)); z-index: 60;
             background: #050505;
             border-bottom: 1px solid var(--card-border);
-            padding: 0 16px;
+            padding: var(--safe-top) 16px 0;
             align-items: center;
             justify-content: space-between;
         }
@@ -2300,7 +2324,7 @@
                     #view-chat-ao-vivo, #view-mila {
                         left: 0;
                         right: 0;
-                        top: 54px;
+                        top: calc(54px + var(--safe-top));
                         max-width: 100vw !important;
                     }
                 }
@@ -8994,7 +9018,7 @@ graph TD
 
 
 
-    <script src="/hub-dashboard.js?v=20260420v2"></script>
+    <script src="/hub-dashboard.js?v=20260501v1"></script>
     <script src="/hub-whatsapp.js?v=20260414v1"></script>
 
     <script src="/hub-start.js?v=1"></script>

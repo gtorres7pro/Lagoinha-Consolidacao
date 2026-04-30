@@ -12,6 +12,47 @@ const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
 function evoPhone(p: string)  { return p.startsWith("+") ? p.slice(1) : p; }
 
+function kbText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.map(kbText).filter(Boolean).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value).trim();
+}
+
+function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
+  const field = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = kbText(kb?.[key]);
+      if (value) return value;
+    }
+    return "";
+  };
+
+  const rows = [
+    workspaceName ? `Igreja: ${workspaceName}` : "",
+    field("nome", "name") ? `Nome configurado: ${field("nome", "name")}` : "",
+    field("ia_about", "sobre", "about") ? `Sobre a igreja: ${field("ia_about", "sobre", "about")}` : "",
+    field("endereco", "address") ? `Endereco: ${field("endereco", "address")}` : "",
+    field("cultos", "schedule", "ia_schedule") ? `Horarios e cultos: ${field("cultos", "schedule", "ia_schedule")}` : "",
+    field("pastores", "pastor", "pastors") ? `Pastores/lideranca: ${field("pastores", "pastor", "pastors")}` : "",
+    field("start", "ia_consolidation", "consolidation") ? `Integracao/Start/consolidacao: ${field("start", "ia_consolidation", "consolidation")}` : "",
+    field("batismo", "ia_baptism", "baptism") ? `Batismo: ${field("batismo", "ia_baptism", "baptism")}` : "",
+    field("cafe_novos_membros", "novos_membros") ? `Cafe de Novos Membros: ${field("cafe_novos_membros", "novos_membros")}` : "",
+    field("eventos", "events") ? `Eventos: ${field("eventos", "events")}` : "",
+    field("ia_faq", "faq") ? `Perguntas frequentes: ${field("ia_faq", "faq")}` : "",
+    field("ia_limits", "limits") ? `Limites da IA: ${field("ia_limits", "limits")}` : "",
+    field("phone", "telefone") ? `Telefone/WhatsApp da igreja: ${field("phone", "telefone")}` : "",
+    field("social", "instagram") ? `Redes sociais: ${field("social", "instagram")}` : "",
+  ].filter(Boolean);
+
+  return rows.length ? rows.join("\n") : "Sem base de conhecimento configurada.";
+}
+
+function splitOutgoingMessages(text: string): string[] {
+  const separator = text.includes("|||") ? "|||" : "||";
+  return text.split(separator).map((s: string) => s.trim()).filter(Boolean);
+}
+
 // ── Meta send helpers ──────────────────────────────────────────────────────
 
 async function sendTextMeta(token: string, phoneNumberId: string, phone: string, text: string): Promise<boolean> {
@@ -160,8 +201,12 @@ Deno.serve(async (req: Request) => {
     .gt("created_at", message_created_at).limit(1);
   if (newer?.length) return new Response("skipped", { status: 200 });
 
-  const { data: lead } = await sb.from("leads").select("id, phone, workspace_id, name, llm_lock_until, bot_context").eq("id", lead_id).maybeSingle();
-  if (!lead) return new Response("not found", { status: 404 });
+  const { data: leadRecord } = await sb.from("leads")
+    .select("id, phone, workspace_id, name, llm_lock_until, bot_context, has_responded")
+    .eq("id", lead_id)
+    .maybeSingle();
+  if (!leadRecord) return new Response("not found", { status: 404 });
+  const lead = leadRecord;
 
   if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
     return new Response("human lock active", { status: 200 });
@@ -179,7 +224,7 @@ Deno.serve(async (req: Request) => {
   const userTextCombined = pending.map((m: any) => m.content).join("\n");
   const firstPendingTime = pending[0].created_at;
 
-  const { data: ws } = await sb.from("workspaces").select("id, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
+  const { data: ws } = await sb.from("workspaces").select("id, name, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
   const creds = ws?.credentials ?? {};
   const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
 
@@ -191,14 +236,18 @@ Deno.serve(async (req: Request) => {
   let inboundMarkedResponded = false;
 
   async function logAppError(action: string, details: Record<string, any>) {
-    await sb.from("app_logs").insert({
-      workspace_id: ws?.id ?? lead.workspace_id,
-      type: "error",
-      title: `WhatsApp ${action}`,
-      description: JSON.stringify({ lead_id, ...details }, null, 2),
-      status: "pending",
-      is_public: false,
-    }).then(() => {}).catch(() => {});
+    try {
+      await sb.from("app_logs").insert({
+        workspace_id: ws?.id ?? lead.workspace_id,
+        type: "error",
+        title: `WhatsApp ${action}`,
+        description: JSON.stringify({ lead_id, ...details }, null, 2),
+        status: "pending",
+        is_public: false,
+      });
+    } catch {
+      // Logging should never block the WhatsApp response flow.
+    }
   }
 
   async function markInboundResponded() {
@@ -552,6 +601,8 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   const dateContext = `DATA/HORA ATUAL (Eastern Time, Orlando): ${orlandoTime}`;
 
   const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare | cafe_pastor"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- cafe_pastor: quer falar com pastor, agendar cafe com pastor, agendamento pastoral\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
+  const knowledgeBaseBlock = buildKnowledgeBaseBlock(ws?.knowledge_base ?? {}, ws?.name);
+  const KNOWLEDGE_BASE_SECTION = `\n\nBASE DE CONHECIMENTO DA IGREJA:\n${knowledgeBaseBlock}\n\nUse a base acima como fonte principal. Se algo nao estiver nela, responda com cuidado e ofereca ajuda humana.`;
 
   // ── Build system instruction ──────────────────────────────────────────────
   // Priority: ia_system_prompt from credentials > ju_prompt from KB > built-in default
@@ -561,30 +612,21 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   if (customIaPrompt) {
     // Workspace-specific IA prompt configured via Automações > IA Atendente
-    systemInstruction = dateContext + "\n\n" + customIaPrompt + JSON_OUTPUT_FORMAT;
+    systemInstruction = dateContext + "\n\n" + customIaPrompt + KNOWLEDGE_BASE_SECTION + JSON_OUTPUT_FORMAT;
     systemInstruction = systemInstruction
       .replace(/\{firstName\}/g, firstName)
       .replace(/\{NOME\}/g, firstName);
     console.log(`[FLUSH] using ia_system_prompt from credentials`);
   } else if (customJuPrompt) {
     // Legacy KB ju_prompt
-    systemInstruction = dateContext + "\n\n" + customJuPrompt + JSON_OUTPUT_FORMAT;
+    systemInstruction = dateContext + "\n\n" + customJuPrompt + KNOWLEDGE_BASE_SECTION + JSON_OUTPUT_FORMAT;
     systemInstruction = systemInstruction
       .replace(/\{firstName\}/g, firstName)
       .replace(/\{NOME\}/g, firstName);
     console.log(`[FLUSH] using ju_prompt from knowledge_base`);
   } else {
     // Built-in default + KB fields
-    const kbFields = [
-      ws?.knowledge_base?.nome ? `Igreja: ${ws.knowledge_base.nome}` : "",
-      ws?.knowledge_base?.endereco ? `Endereço: ${ws.knowledge_base.endereco}` : "",
-      ws?.knowledge_base?.cultos ? `Cultos: ${ws.knowledge_base.cultos}` : "",
-      ws?.knowledge_base?.pastores ? `Pastores: ${ws.knowledge_base.pastores}` : "",
-      ws?.knowledge_base?.start ? `Start (Integração): ${ws.knowledge_base.start}` : "",
-      ws?.knowledge_base?.batismo ? `Batismo: ${ws.knowledge_base.batismo}` : ""
-    ].filter(Boolean).join("\n\n");
-    const kbBlock = kbFields || "Sem base de conhecimento configurada.";
-    systemInstruction = `${dateContext}\n\nVocê é a **Ju**, a assistente virtual e recepcionista exclusiva desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.\nBase de Conhecimento:\n${kbBlock}` + JSON_OUTPUT_FORMAT;
+    systemInstruction = `${dateContext}\n\nVocê é a **Ju**, a assistente virtual e recepcionista exclusiva desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.${KNOWLEDGE_BASE_SECTION}` + JSON_OUTPUT_FORMAT;
     console.log(`[FLUSH] using built-in default prompt (Ju)`);
   }
 
@@ -760,7 +802,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     finalReply = "Opa, minha inteligência artificial teve um pequeno engasgo de conexão agora. Pode me mandar um 'Oi' novamente em um minutinho? 😊";
   }
 
-  let chunks = finalReply.split("|||").map((s: string) => s.trim()).filter((s: string) => s);
+  let chunks = splitOutgoingMessages(finalReply);
 
   const hasAudio = pending.some((m: any) => m.type === "audio");
   const elevenLabsKey = creds?.llm_config?.elevenlabs_token;
@@ -788,7 +830,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   if (audioSent) {
     chunks = audioComplement
-      ? audioComplement.split("|||").map((s: string) => s.trim()).filter((s: string) => s)
+      ? splitOutgoingMessages(audioComplement)
       : [];
   }
 

@@ -1386,7 +1386,7 @@ body {
       </div>
 
       <!-- Membresía Section -->
-      <div class="section-label">🏅 Membresía</div>
+      <div class="section-label">🏅 Membresia</div>
       <div id="member-status-section" style="margin-bottom:24px;"></div>
 
       <!-- Subscription / Payment -->
@@ -1807,40 +1807,81 @@ function escHtml(value) {
 let _currentVideoId = null;
 let _prevScreen = null;
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, ms, label, fallback) {
+    let timer;
+    const timeout = new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+            const err = new Error(`${label || 'Operação'} demorou demasiado.`);
+            if (arguments.length >= 4) resolve(fallback);
+            else reject(err);
+        }, ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function restoreVisitorOrOnboarding() {
+    const storedVisitorId = localStorage.getItem('crie_visitor_user_id');
+    if (storedVisitorId) {
+        const restored = await withTimeout(loadVisitorSession(storedVisitorId), 5000, 'Sessão visitante', false).catch(err => {
+            console.warn('[CRIE app] visitor restore failed:', err.message);
+            return false;
+        });
+        if (restored) {
+            await showMainApp();
+            return;
+        }
+    }
+    configureAuthMode('visitor');
+    goToScreen('onboarding');
+}
+
+async function bootSignedInUser(user) {
+    _user = user;
+    await withTimeout(loadAppUser(), 6000, 'Perfil autenticado', null);
+    if (!_appUser) await withTimeout(createAppUserProfile(user), 6000, 'Criar perfil CRIE', null);
+    if (_appUser) {
+        await showMainApp();
+    } else {
+        configureAuthMode('member');
+        goToScreen('auth');
+        showToast('Não consegui carregar o perfil. Entra novamente.', 'error');
+    }
+}
+
 // ══ BOOT ═════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
     goToScreen('splash');
-    await new Promise(r => setTimeout(r, 1500));
+    await sleep(1500);
 
-    // Check for password reset redirect (Supabase sends #access_token + type=recovery)
-    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?').slice(1));
-    const urlParams  = new URLSearchParams(window.location.search);
-    if (hashParams.get('type') === 'recovery' || urlParams.get('reset') === 'true') {
-        // Supabase already loaded the session from the URL hash automatically
-        goToScreen('reset');
-        return;
-    }
-
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-        _user = session.user;
-        await loadAppUser();
-        if (_appUser) {
-            showMainApp();
-        } else {
-            // Auth user exists but no app profile → create one
-            // (covers: Zelo Pro leaders logging in to CRIE for the first time)
-            await createAppUserProfile(session.user);
-            showMainApp();
-        }
-    } else {
-        const storedVisitorId = localStorage.getItem('crie_visitor_user_id');
-        if (storedVisitorId && await loadVisitorSession(storedVisitorId)) {
-            showMainApp();
+    try {
+        // Check for password reset redirect (Supabase sends #access_token + type=recovery)
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', '?').slice(1));
+        const urlParams  = new URLSearchParams(window.location.search);
+        if (hashParams.get('type') === 'recovery' || urlParams.get('reset') === 'true') {
+            // Supabase already loaded the session from the URL hash automatically
+            goToScreen('reset');
             return;
         }
-        configureAuthMode('visitor');
-        goToScreen('onboarding');
+
+        const sessionRes = await withTimeout(
+            sb.auth.getSession(),
+            6000,
+            'Sessão Supabase',
+            { data:{ session:null }, error:null }
+        );
+        const session = sessionRes?.data?.session || null;
+        if (session?.user) {
+            await bootSignedInUser(session.user);
+        } else {
+            await restoreVisitorOrOnboarding();
+        }
+    } catch (err) {
+        console.warn('[CRIE app] boot fallback:', err.message);
+        await restoreVisitorOrOnboarding();
     }
 });
 
@@ -1851,10 +1892,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
         return;
     }
     if (event === 'SIGNED_IN' && session?.user) {
-        _user = session.user;
-        await loadAppUser();
-        if (!_appUser) await createAppUserProfile(session.user);
-        showMainApp();
+        await bootSignedInUser(session.user).catch(err => {
+            console.warn('[CRIE app] signed-in boot failed:', err.message);
+            configureAuthMode('member');
+            goToScreen('auth');
+        });
     } else if (event === 'SIGNED_OUT') {
         _user = null; _appUser = null;
         document.getElementById('bottom-nav').style.display = 'none';
@@ -1898,7 +1940,12 @@ function goBack() {
 
 async function showMainApp() {
     document.getElementById('bottom-nav').style.display = 'flex';
-    await loadWorkspaces();
+    try {
+        await withTimeout(loadWorkspaces(), 7000, 'Workspaces CRIE');
+    } catch (err) {
+        console.warn('[CRIE app] workspace load failed:', err.message);
+        _activeWorkspaces = [];
+    }
     goToTab('home');
 }
 
@@ -2508,12 +2555,11 @@ async function renderMemberBanner() {
 
     if (!ms) {
         const attended = visitorAttendanceCount(wsId);
-        const canApply = attended >= 3;
-        html = `<div class="member-status-card status-none" style="${canApply ? 'cursor:pointer;' : 'opacity:.5;'}" ${canApply ? 'onclick="openApplyWizard()"' : ''}>
+        html = `<div class="member-status-card status-none" style="cursor:pointer;" onclick="openApplyWizard()">
             <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:6px;">NÃO MEMBRO</div>
-            <div style="font-weight:800;font-size:1rem;color:#fff;margin-bottom:8px;">Torna-te membro do ${moduleName}</div>
-            <div style="font-size:0.8rem;color:var(--text3);margin-bottom:12px;">${canApply ? 'Acede a eventos exclusivos, conteúdos e muito mais.' : `Precisas participar em 3 eventos para te candidatares. ${attended}/3 registados.`}</div>
-            <div style="font-size:0.78rem;font-weight:800;color:var(--gold);">${canApply ? 'Candidatar-me →' : 'Candidatura bloqueada'}</div>
+            <div style="font-weight:800;font-size:1rem;color:var(--text);margin-bottom:8px;">Torna-te membro do ${moduleName}</div>
+            <div style="font-size:0.8rem;color:var(--text3);margin-bottom:12px;">Acede a eventos exclusivos, conteúdos e benefícios de membro. Participações registadas: ${attended}/3.</div>
+            <button onclick="event.stopPropagation();openApplyWizard()" style="border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#141414;padding:10px 12px;font:850 .78rem 'Inter','Outfit',sans-serif;cursor:pointer;">Candidatar-me →</button>
         </div>`;
     } else if (ms.status === 'pending') {
         html = `<div class="member-status-card status-pending">
@@ -2543,7 +2589,7 @@ async function loadHomeEvents() {
     if (!wsIds.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Nenhum workspace ativo</div></div>'; return; }
     const today = new Date().toISOString();
     const { data } = await sb.from('crie_events')
-        .select('id, title, date, location, price, currency, is_free, open_to_guests, members_pay, banner_url, workspace_id, status')
+        .select('id, title, description, date, location, price, currency, is_free, open_to_guests, members_pay, banner_url, workspace_id, status')
         .in('workspace_id', wsIds.slice(0,5))
         .eq('status', 'ACTIVE')
         .eq('open_to_guests', true)
@@ -2574,7 +2620,7 @@ async function loadEventos() {
     const wsIds = _activeWorkspaces.map(w => w.id);
     const today = new Date().toISOString();
     let q = sb.from('crie_events')
-        .select('id, title, date, location, price, currency, is_free, open_to_guests, members_pay, online_payment_enabled, banner_url, workspace_id, status')
+        .select('id, title, description, date, location, price, currency, is_free, open_to_guests, members_pay, online_payment_enabled, banner_url, workspace_id, status')
         .eq('status', 'ACTIVE')
         .gte('date', today)
         .order('date').limit(20);
@@ -2597,7 +2643,7 @@ function renderEventCard(ev, showDetails = false) {
     const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
     const price = Number(ev.price || 0);
     const priceStr = ev.is_free ? '' : (price > 0 ? `${price.toFixed(2)} ${currency(ev)}` : '');
-    const isMembersOnly = ev.open_to_guests === false;
+    const isMembersOnly = isMembersOnlyEvent(ev);
     return `<div class="event-card" onclick="openEventDetail('${ev.id}')">
         ${ev.banner_url
             ? `<img src="${ev.banner_url}" class="event-banner" alt="${ev.title}" loading="lazy">`
@@ -2624,14 +2670,14 @@ function filterEventos(btn, filter) {
     let filtered = _allEvents;
     if (filter === 'free')    filtered = _allEvents.filter(e => e.is_free);
     if (filter === 'paid')    filtered = _allEvents.filter(e => !e.is_free && e.price > 0);
-    if (filter === 'members') filtered = _allEvents.filter(e => e.open_to_guests === false);
+    if (filter === 'members') filtered = _allEvents.filter(isMembersOnlyEvent);
     renderEventsList(filtered);
 }
 
 function openEventDetail(id) {
     const ev = _allEvents.find(e => e.id === id);
     if (!ev) return;
-    const isMembersOnly = ev.open_to_guests === false;
+    const isMembersOnly = isMembersOnlyEvent(ev);
     const wsId = ev.workspace_id;
     const msStatus = _memberStatus[wsId]?.status;
     const canAccess = !isMembersOnly || msStatus === 'approved';
@@ -3057,12 +3103,11 @@ function renderMemberStatusSection() {
         let statusHtml = '';
         if (!ms) {
             const attended = visitorAttendanceCount(ws.id);
-            const canApply = attended >= 3;
-            statusHtml = `<div class="member-status-card status-none" style="${canApply ? 'cursor:pointer;' : 'opacity:.5;'}" ${canApply ? 'onclick="openApplyWizard()"' : ''}>
+            statusHtml = `<div class="member-status-card status-none" style="cursor:pointer;" onclick="openApplyWizard()">
                 <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;color:var(--text2) ;">CRIE ${ws.name}</div>
-                <div style="font-weight:700;color:#fff;margin-bottom:10px;">Não és membro</div>
-                <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">${canApply ? 'Já podes enviar candidatura.' : `Participa em 3 eventos para desbloquear. ${attended}/3`}</div>
-                <div style="font-size:0.78rem;font-weight:800;color:var(--gold);">${canApply ? '+ Candidatar-me →' : 'Bloqueado'}</div>
+                <div style="font-weight:850;color:var(--text);margin-bottom:8px;">Não és membro ainda</div>
+                <div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;">Envia a tua aplicação para a diretoria analisar. Participações registadas: ${attended}/3.</div>
+                <button onclick="event.stopPropagation();openApplyWizard()" style="border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#141414;padding:10px 12px;font:850 .78rem 'Inter','Outfit',sans-serif;cursor:pointer;width:100%;">+ Candidatar-me</button>
             </div>`;
         } else if (ms.status === 'pending') {
             statusHtml = `<div class="member-status-card status-pending">
@@ -3084,9 +3129,26 @@ function renderMemberStatusSection() {
             // Show payment section
             document.getElementById('payment-section').style.display = 'block';
             loadPaymentInfo(ws.id);
+        } else {
+            statusHtml = `<div class="member-status-card status-none" style="cursor:pointer;" onclick="openApplyWizard()">
+                <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;color:var(--text2);">CRIE ${ws.name}</div>
+                <div style="font-weight:850;color:var(--text);margin-bottom:8px;">Membresia</div>
+                <div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;">Estado atual: ${escHtml(ms.status || 'visitante')}. Podes abrir a aplicação para atualizar os teus dados.</div>
+                <button onclick="event.stopPropagation();openApplyWizard()" style="border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#141414;padding:10px 12px;font:850 .78rem 'Inter','Outfit',sans-serif;cursor:pointer;width:100%;">Abrir aplicação</button>
+            </div>`;
         }
         html += statusHtml;
     });
+    if (!html.trim() && _activeWorkspaces[0]) {
+        const ws = _activeWorkspaces[0];
+        const attended = visitorAttendanceCount(ws.id);
+        html = `<div class="member-status-card status-none" style="cursor:pointer;" onclick="openApplyWizard()">
+            <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;color:var(--text2);">CRIE ${escHtml(ws.name)}</div>
+            <div style="font-weight:850;color:var(--text);margin-bottom:8px;">Não és membro ainda</div>
+            <div style="font-size:0.78rem;color:var(--text3);margin-bottom:12px;">Envia a tua aplicação para a diretoria analisar. Participações registadas: ${attended}/3.</div>
+            <button onclick="event.stopPropagation();openApplyWizard()" style="border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#141414;padding:10px 12px;font:850 .78rem 'Inter','Outfit',sans-serif;cursor:pointer;width:100%;">+ Candidatar-me</button>
+        </div>`;
+    }
     el.innerHTML = html;
 }
 
@@ -3203,11 +3265,6 @@ async function submitMemberApplication() {
 
     if (!wsId) { msg.textContent = 'Seleciona o teu CRIE.'; return; }
     if (!_appUser) { msg.textContent = 'Precisas de estar autenticado.'; return; }
-    if (visitorAttendanceCount(wsId) < 3 && !isApprovedMember(wsId)) {
-        msg.textContent = `Precisas participar em 3 eventos antes de te candidatares. Tens ${visitorAttendanceCount(wsId)}/3.`;
-        return;
-    }
-
     const { error } = await sb.from('crie_member_applications').insert({
         app_user_id: _appUser.id,
         workspace_id: wsId,
@@ -3416,9 +3473,17 @@ function currency(ev) {
     return m[ev.currency] || ev.currency || '€';
 }
 
+function isMembersOnlyEvent(ev) {
+    if (!ev) return false;
+    const openValue = String(ev.open_to_guests).toLowerCase();
+    if (ev.open_to_guests === false || openValue === 'false' || openValue === '0') return true;
+    const text = `${ev.title || ''} ${ev.description || ''}`.toLowerCase();
+    return /\b(fechad[ao]|s[oó]\s+membros|membros\s+only|members\s+only|exclusiv[ao])\b/.test(text);
+}
+
 function canSeeEventInApp(ev) {
     if (eventModule(ev) !== preferredModuleForWorkspace(ev.workspace_id)) return false;
-    return ev.open_to_guests !== false || isApprovedMember(ev.workspace_id);
+    return !isMembersOnlyEvent(ev) || isApprovedMember(ev.workspace_id);
 }
 
 async function quickRegisterMemberForEvent(ev) {
@@ -3534,7 +3599,7 @@ loadEventos = async function() {
     const wsIds = _activeWorkspaces.map(w => w.id);
     const today = new Date().toISOString();
     let q = sb.from('crie_events')
-        .select('id, title, date, location, price, currency, is_free, open_to_guests, members_pay, online_payment_enabled, banner_url, workspace_id, status')
+        .select('id, title, description, date, location, price, currency, is_free, open_to_guests, members_pay, online_payment_enabled, banner_url, workspace_id, status')
         .eq('status','ACTIVE').gte('date', today).order('date').limit(20);
     if (wsIds.length) q = q.in('workspace_id', wsIds);
     const [crieRes, cmEvents] = await Promise.all([q, loadCmEventsForApp(wsIds, today)]);
@@ -3551,7 +3616,7 @@ loadHomeEvents = async function() {
     const wsIds = _activeWorkspaces.map(w => w.id);
     const today = new Date().toISOString();
     const [crieRes, cmEvents] = await Promise.all([
-        wsIds.length ? sb.from('crie_events').select('id,title,date,location,price,currency,is_free,open_to_guests,members_pay,online_payment_enabled,banner_url,workspace_id,status')
+        wsIds.length ? sb.from('crie_events').select('id,title,description,date,location,price,currency,is_free,open_to_guests,members_pay,online_payment_enabled,banner_url,workspace_id,status')
             .eq('status','ACTIVE').gte('date',today)
             .in('workspace_id',wsIds).order('date').limit(30) : { data:[] },
         loadCmEventsForApp(wsIds, today)
@@ -3567,7 +3632,7 @@ const _origOpenEventDetail = openEventDetail;
 function openEventDetail(id) {
     const ev = _allEvents.find(e => e.id === id);
     if (!ev) return;
-    const isMembersOnly = ev.open_to_guests === false;
+    const isMembersOnly = isMembersOnlyEvent(ev);
     const wsId = ev.workspace_id;
     const msStatus = _memberStatus[wsId]?.status;
     if (isMembersOnly && msStatus !== 'approved') {
@@ -3662,10 +3727,6 @@ submitMemberApplication = async function() {
     const msg = document.getElementById('apply-msg');
     if (!wsId) { msg.textContent = 'Seleciona o teu CRIE.'; return; }
     if (!_appUser) { msg.textContent = 'Precisas de estar autenticado.'; return; }
-    if (visitorAttendanceCount(wsId) < 3 && !isApprovedMember(wsId)) {
-        msg.textContent = `Precisas participar em 3 eventos antes de te candidatares. Tens ${visitorAttendanceCount(wsId)}/3.`;
-        return;
-    }
     const table = preferredModuleForWorkspace(wsId) === 'cm' ? 'cm_member_applications' : 'crie_member_applications';
     const { error } = await sb.from(table).insert({
         app_user_id: _appUser.id,
@@ -3692,10 +3753,6 @@ let _sigCanvas, _sigCtx, _sigDrawing = false, _sigHasData = false;
 
 function openApplyWizard() {
     const wsId = _activeWorkspaces[0]?.id;
-    if (wsId && visitorAttendanceCount(wsId) < 3 && !isApprovedMember(wsId)) {
-        showToast(`Precisas participar em 3 eventos antes de pedir membresia. Tens ${visitorAttendanceCount(wsId)}/3.`, 'info');
-        return;
-    }
     if (wsId && _memberStatus[wsId]?.status === 'pending') {
         showToast('A tua candidatura está pendente.', 'info');
         return;
@@ -3794,11 +3851,6 @@ async function submitFullApplication() {
     }
     const companies=[coData(1),coData(2)].filter(Boolean);
     const wsId=_activeWorkspaces[0]&&_activeWorkspaces[0].id;
-    if (wsId && visitorAttendanceCount(wsId) < 3 && !isApprovedMember(wsId)) {
-        msg.textContent=`Precisas participar em 3 eventos antes de te candidatares. Tens ${visitorAttendanceCount(wsId)}/3.`;
-        btn.disabled=false; btn.textContent='Enviar Aplicacao';
-        return;
-    }
     const g=function(id){return (document.getElementById(id)||{}).value||null;};
     const rg=function(name){const el=document.querySelector('[name="'+name+'"]:checked'); return el?el.value:null;};
     const payload={workspace_id:wsId,app_user_id:_appUser.id,module:preferredModuleForWorkspace(wsId),full_name:g('ap-name'),birth_date:g('ap-birth'),phone_mobile:g('ap-phone'),phone_home:g('ap-phone2'),email:g('ap-email'),shirt_size:g('ap-shirt'),spouse_name:g('ap-spouse'),address:g('ap-addr'),address2:g('ap-addr2'),city:g('ap-city'),state:g('ap-state'),zip:g('ap-zip'),is_lagoinha_member:rg('ap-lagoinha')==='sim',lagoinha_member_since:g('ap-lagoinha-since'),is_baptized:rg('ap-baptized')==='sim',baptism_details:g('ap-baptism-detail'),attended_crie:rg('ap-attended')==='sim',sponsor_name:g('ap-sponsor'),attended_dates:[g('ap-date1'),g('ap-date2'),g('ap-date3')].filter(Boolean),owns_company:rg('ap-owns-co')==='sim',companies:companies,agreed_to_terms:true,signature_url:sigUrl,signed_at:new Date().toISOString(),status:'pending'};
