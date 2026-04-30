@@ -412,7 +412,7 @@
         }
 
         /* ===== TOP BAR ===== */
-        .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; max-width: 100vw; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; max-width: 100vw; min-width: 0; }
         .period-btn {
             padding: 5px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
             background: transparent; color: rgba(255,255,255,.45); font-size: .75rem;
@@ -434,7 +434,7 @@
         .fin-tr:last-child { border-bottom: none; }
         .fin-group-header { background: rgba(255,255,255,.03); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.25); padding: 8px 16px; border-top: 1px solid rgba(255,255,255,.05); }
 
-        .view-section { display: none; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100%; width: 100%; max-width: 100vw; box-sizing: border-box; }
+        .view-section { display: none; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100%; width: 100%; max-width: 100vw; min-width: 0; box-sizing: border-box; }
         /* ===== MAIN AREA ===== */
         .crie-pad { padding: 24px 40px; }
         .crie-pad-top { padding: 24px 40px 0; }
@@ -2280,19 +2280,28 @@
                 /* Fix for full-bleed views to ignore hub-main padding */
                 #view-chat-ao-vivo, #view-mila {
                     position: fixed !important;
-                    top: 0; bottom: 0; right: 0;
+                    top: 0; bottom: 0; right: 12px;
                     left: var(--sidebar-w);
                     z-index: 10;
+                    width: auto !important;
+                    max-width: calc(100vw - var(--sidebar-w) - 12px) !important;
                     height: auto !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     overflow: hidden;
                     box-sizing: border-box;
                 }
+                body.sidebar-collapsed #view-chat-ao-vivo,
+                body.sidebar-collapsed #view-mila {
+                    left: 60px;
+                    max-width: calc(100vw - 72px) !important;
+                }
                 @media (max-width: 1023px) {
                     #view-chat-ao-vivo, #view-mila {
                         left: 0;
+                        right: 0;
                         top: 54px;
+                        max-width: 100vw !important;
                     }
                 }
 
@@ -8916,7 +8925,7 @@ graph TD
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="/birthdays.js?v=20260402v1"></script>
-    <script src="/hub-chat.js?v=20260404v2"></script>
+    <script src="/hub-chat.js?v=20260430v5"></script>
     <script src="/hub-form-builder.js?v=20260420v1"></script>
     <script src="/hub-cafe-pastor.js?v=20260421v6"></script>
 
