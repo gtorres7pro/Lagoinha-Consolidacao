@@ -5971,6 +5971,36 @@ window.confirmCrieInvite = function() {
 // ═══════════════════════════════════════════════════════════
 // CRIE — MEMBROS
 // ═══════════════════════════════════════════════════════════
+function crieAppPublicLink() {
+    return 'https://crie-app.7prolabs.com/crie-app.html';
+}
+
+async function copyTextToClipboard(text, successMessage) {
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        if (window.hubToast) hubToast(successMessage, 'success');
+        else if (typeof showHubToast === 'function') showHubToast(successMessage, 'success');
+    } catch (err) {
+        if (window.hubToast) hubToast('Não foi possível copiar o link.', 'error');
+        else if (typeof showHubToast === 'function') showHubToast('Não foi possível copiar o link.', 'error');
+    }
+}
+
+window.copyCrieAppLink = function() {
+    copyTextToClipboard(crieAppPublicLink(), 'Link do CRIE App copiado!');
+};
+
 async function loadCrieMembros() {
     const wsId = getCrieWorkspaceId();
     if (!wsId) return;
@@ -6017,6 +6047,9 @@ function renderCrieMembros(list) {
 
     function buildCard(m) {
         const initials    = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        const avatarHtml  = m.avatar_url
+            ? `<img src="${m.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+            : initials;
         const statusColor = m.status === 'Ativo' ? '#4ade80' : '#f87171';
         const phoneClean  = (m.phone || '').replace(/\D/g, '');
         const waLink      = phoneClean ? `https://wa.me/${phoneClean}` : null;
@@ -6034,7 +6067,7 @@ function renderCrieMembros(list) {
              onmouseout="this.style.transform='';this.style.boxShadow=''">
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
                 <div style="position:relative;flex-shrink:0;">
-                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:#F59E0B;font-size:1rem;">${initials}</div>
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:#F59E0B;font-size:1rem;overflow:hidden;">${avatarHtml}</div>
                     ${payDot}
                 </div>
                 <div style="flex:1;min-width:0;">
@@ -6088,7 +6121,9 @@ async function openMembroDrawer(memberId) {
 
     // Update header
     const initials = m.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-    document.getElementById('membro-drawer-avatar').textContent = initials;
+    document.getElementById('membro-drawer-avatar').innerHTML = m.avatar_url
+        ? `<img src="${m.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : initials;
     document.getElementById('membro-drawer-name').textContent = m.name;
     document.getElementById('membro-drawer-subtitle').textContent = m.email || '';
     const badge = document.getElementById('membro-drawer-status-badge');
@@ -13725,16 +13760,35 @@ async function reviewApplicationV1(appId, appUserId, decision) {
         .update({ status: decision, reviewed_at: new Date().toISOString() })
         .eq('id', appId);
     if (decision === 'approved') {
-        const app = (window._crieAppsAll || []).find(a => a.id === appId);
+        let app = (window._crieAppsAll || []).find(a => a.id === appId);
+        if (!app) {
+            const { data } = await sb().from('crie_member_applications_v2')
+                .select('id, app_user_id, full_name, email, phone_mobile, module')
+                .eq('id', appId)
+                .maybeSingle();
+            app = data || null;
+        }
         const wsId2 = wsId;
         if (app) {
-            await supabase.from('crie_members').upsert({
+            const memberTable = app.module === 'cm' ? 'cm_members' : 'crie_members';
+            await supabase.from(memberTable).upsert({
                 workspace_id: wsId2,
                 name: app.full_name, email: app.email, phone: app.phone_mobile,
                 app_user_id: app.app_user_id || null, status: 'ativo', source: 'app',
             }, { onConflict: 'email,workspace_id', ignoreDuplicates: true });
+            try {
+                const EDGE = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
+                const { data: { session } } = await sb().auth.getSession();
+                fetch(EDGE + '/crie-member-welcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session?.access_token || '') },
+                    body: JSON.stringify({ application_id: appId }),
+                }).catch(function(err) { console.warn('Welcome email error:', err); });
+            } catch (err) {
+                console.warn('Welcome email error:', err);
+            }
         }
-        showHubToast('✅ Membro aprovado!', 'success');
+        showHubToast('✅ Membro aprovado! Email de boas-vindas em envio.', 'success');
     } else {
         showHubToast('Candidatura rejeitada.', 'info');
     }
@@ -14190,8 +14244,8 @@ async function loadPendingApplications() {
             </div>
             ${app.motivation ? `<div style="font-size:0.8rem;color:rgba(255,255,255,.5);margin-bottom:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;font-style:italic;">"${app.motivation}"</div>` : ''}
             <div style="display:flex;gap:8px;">
-                <button onclick="reviewApplication('${app.id}','${app.app_user_id}','approved')" style="flex:1;padding:8px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:0.78rem;font-weight:700;cursor:pointer;">✅ Aprovar</button>
-                <button onclick="reviewApplication('${app.id}','${app.app_user_id}','rejected')" style="flex:1;padding:8px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.78rem;font-weight:700;cursor:pointer;">❌ Rejeitar</button>
+                <button onclick="reviewLegacyApplication('${app.id}','${app.app_user_id}','approved')" style="flex:1;padding:8px;border-radius:8px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:0.78rem;font-weight:700;cursor:pointer;">✅ Aprovar</button>
+                <button onclick="reviewLegacyApplication('${app.id}','${app.app_user_id}','rejected')" style="flex:1;padding:8px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171;font-size:0.78rem;font-weight:700;cursor:pointer;">❌ Rejeitar</button>
             </div>
         </div>`;
     }).join('');
@@ -14216,7 +14270,7 @@ function togglePendingApps() {
     list.style.display = isOpen ? 'none' : 'flex';
 }
 
-async function reviewApplication(appId, appUserId, decision) {
+async function reviewLegacyApplication(appId, appUserId, decision) {
     const wsId = window._currentWsId || (typeof currentWsId === 'function' ? currentWsId() : null);
 
     // 1. Update the application status
@@ -14258,17 +14312,21 @@ async function reviewApplication(appId, appUserId, decision) {
             })();
 
             try {
+                const { data: { session } } = await sb().auth.getSession();
                 fetch(`${SUPABASE_URL}/functions/v1/crie-member-welcome`, {
                     method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
                     body:    JSON.stringify({
                         memberName:    appUser.name,
                         memberEmail:   appUser.email,
+                        memberPhone:   appUser.phone || null,
+                        workspace_id:  wsId,
+                        module:        'crie',
                         workspaceName: wsName,
                         appUrl:        'https://crie-app.7prolabs.com',
                     }),
                 }).then(r => r.json()).then(r => {
-                    if (r.sent) console.log('✅ Welcome email sent to:', appUser.email);
+                    if (r.ok) console.log('✅ Welcome email sent to:', appUser.email);
                     else        console.warn('📧 Email skipped:', r.reason || r.error);
                 }).catch(err => console.warn('Email fetch error:', err));
             } catch (_) { /* Non-blocking */ }

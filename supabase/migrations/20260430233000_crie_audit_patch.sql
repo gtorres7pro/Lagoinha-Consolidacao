@@ -1,6 +1,6 @@
 -- CRIE / CRIE Mulheres audit patch
--- Kept as a readable standalone copy. The deployable migration lives in:
--- supabase/migrations/20260430233000_crie_audit_patch.sql
+-- Adds event payment flags, visitor/member profile fields, finance indexes,
+-- and the profile-photo bucket used by the CRIE app.
 
 alter table if exists public.crie_events
   add column if not exists members_pay boolean not null default false;

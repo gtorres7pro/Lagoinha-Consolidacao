@@ -1,0 +1,202 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e7]: Z
+    - generic [ref=e8]: CRIE
+    - generic [ref=e9]: Membros
+    - generic [ref=e10]: A tua comunidade, sempre contigo
+  - generic:
+    - generic:
+      - generic:
+        - generic: Z
+        - generic: CRIE Membros
+        - heading "Bem-vindo ao teu CRIE" [level=1]
+        - paragraph: Um espaço rápido para acompanhar eventos, workshop, comunidade e o teu percurso como visitante ou membro.
+      - generic:
+        - button "Entrar como visitante Acesso simples com email para eventos públicos.":
+          - generic:
+            - img
+          - generic:
+            - generic: Entrar como visitante
+            - generic: Acesso simples com email para eventos públicos.
+          - img
+        - button "Entrar como membro Usa a tua conta para conteúdos e benefícios ativos.":
+          - generic:
+            - img
+          - generic:
+            - generic: Entrar como membro
+            - generic: Usa a tua conta para conteúdos e benefícios ativos.
+          - img
+  - generic:
+    - generic:
+      - generic:
+        - generic: Z
+        - generic: CRIE
+      - paragraph: Acesso visitante
+    - generic:
+      - generic "Tipo de acesso":
+        - button "Visitante"
+        - button "Membro"
+      - generic:
+        - heading "Entrar como visitante" [level=2]
+        - paragraph: Continua com o teu email para ver eventos públicos e acompanhar a tua presença.
+      - generic:
+        - generic:
+          - generic: Email
+          - textbox "o.teu@email.com"
+        - button "Entrar como visitante"
+        - generic:
+          - button "Entrar com password"
+          - button "Repor password"
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic: Z
+        - generic: CRIE
+      - generic:
+        - generic:
+          - img
+    - generic:
+      - generic:
+        - generic: Hoje no CRIE
+        - generic: Olá!
+        - generic: Bem-vindo ao CRIE App
+        - generic:
+          - button "Eventos":
+            - img
+            - text: Eventos
+          - button "Workshop":
+            - img
+            - text: Workshop
+      - generic: Próximos Eventos
+      - generic: Workshop em Destaque
+  - generic:
+    - generic:
+      - heading "Eventos" [level=1]
+    - generic:
+      - button "Todos"
+      - button "Gratuitos"
+      - button "Pagos"
+      - button "Membros"
+  - generic:
+    - generic:
+      - heading "Workshop" [level=1]
+    - generic:
+      - button "Tudo"
+      - button "Público"
+      - button "Membros"
+    - generic:
+      - generic: 🎥 Todos os Vídeos
+  - generic:
+    - generic:
+      - button:
+        - img
+      - generic: Vídeo
+    - iframe [ref=e16]:
+      
+    - generic:
+      - generic: 💬 Comentários
+      - generic:
+        - textbox "Deixa um comentário…"
+        - button "↑"
+  - generic:
+    - generic:
+      - heading "Connect" [level=1]
+    - generic:
+      - button "Tudo"
+      - button "Emprego"
+      - button "Serviço"
+      - button "Doação"
+  - generic:
+    - generic:
+      - heading "Perfil" [level=1]
+      - button "Sair"
+    - generic:
+      - generic:
+        - generic: "?"
+        - generic:
+          - generic: —
+          - generic: —
+        - button "Editar"
+      - generic: 🏅 Membresía
+      - generic: 🔒 Segurança
+      - generic:
+        - generic:
+          - generic:
+            - generic: Autenticação 2FA
+            - generic: Verificando…
+          - button "Ativar"
+  - generic:
+    - generic:
+      - button:
+        - img
+      - generic:
+        - generic: Aplicação de Membresia
+        - generic: Passo 1 de 4
+    - generic:
+      - generic:
+        - generic: Informações Pessoais
+        - generic: Dados de identificação do aplicante
+        - generic:
+          - generic:
+            - generic: Nome completo *
+            - textbox "Seu nome completo"
+          - generic:
+            - generic:
+              - generic: Data de nascimento
+              - textbox
+            - generic:
+              - generic: Camiseta
+              - combobox:
+                - option "Tamanho…" [selected]
+                - option "S"
+                - option "M"
+                - option "L"
+                - option "XL"
+                - option "XXL"
+          - generic:
+            - generic: Celular *
+            - textbox "+1 (407) 000-0000"
+          - generic:
+            - generic: Telefone residencial
+            - textbox "Opcional"
+          - generic:
+            - generic: Email *
+            - textbox "seu@email.com"
+          - generic:
+            - generic: Nome do cônjuge
+            - textbox "Opcional"
+          - generic:
+            - generic: Endereço
+            - textbox "Rua, número"
+          - generic:
+            - generic: Complemento
+            - textbox "Apto, suite…"
+          - generic:
+            - generic:
+              - generic: Cidade
+              - textbox "Orlando"
+            - generic:
+              - generic: Estado
+              - textbox "FL"
+            - generic:
+              - generic: Zip Code
+              - textbox "32801"
+      - generic:
+        - button "Próximo →"
+  - generic:
+    - generic:
+      - generic:
+        - generic: Z
+        - generic: CRIE
+      - paragraph: Define uma nova password
+    - generic:
+      - generic: 🔐 Nova Password
+      - generic:
+        - generic:
+          - generic: Nova Password
+          - textbox "mín. 8 caracteres"
+        - generic:
+          - generic: Confirmar Password
+          - textbox "repete a password"
+        - button "Guardar Nova Password"

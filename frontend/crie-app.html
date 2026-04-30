@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0f0f13">
+<meta name="theme-color" content="#f8fafc">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="CRIE">
 <meta name="description" content="O app dos membros CRIE — eventos, conteúdos exclusivos e comunidade.">
 <title>CRIE — Membros</title>
@@ -408,7 +408,9 @@ body {
   background:linear-gradient(135deg,var(--gold),var(--purple));
   display:flex; align-items:center; justify-content:center;
   font-size:1.8rem; font-weight:800; flex-shrink:0;
+  overflow:hidden;
 }
+.avatar-ring img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
 
 /* ── EMPTY STATE ────────────────────────────────────────────── */
 .empty-state {
@@ -535,6 +537,532 @@ body {
 .event-card, .content-card, .connect-card {
   animation:cardIn .35s cubic-bezier(.4,0,.2,1) both;
 }
+
+/* ── LIGHT CRIE REDESIGN ─────────────────────────────────────── */
+:root {
+  --bg:       #f7f9fc;
+  --bg2:      #ffffff;
+  --bg3:      #eef3f8;
+  --surface:  rgba(255,255,255,0.86);
+  --surface2: rgba(255,255,255,0.68);
+  --border:   rgba(24,32,47,0.10);
+  --border2:  rgba(24,32,47,0.06);
+  --gold:     #d97706;
+  --accent:   #d97706;
+  --rose:     #d9468f;
+  --rose2:    #be2b72;
+  --gold2:    #f5b73f;
+  --gold-glow: rgba(217,119,6,0.16);
+  --purple:   #6257d8;
+  --green:    #0f8a6b;
+  --red:      #dc3f4a;
+  --blue:     #256fd4;
+  --text:     #172033;
+  --text1:    #172033;
+  --text2:    #5d687c;
+  --text3:    #8a95a8;
+  --shadow:   0 20px 50px rgba(34,44,66,0.11);
+  --shadow2:  0 10px 28px rgba(34,44,66,0.08);
+  --nav-h:    70px;
+  --radius:   16px;
+}
+body {
+  background:
+    linear-gradient(155deg, #f8fbff 0%, #fff8ee 46%, #eef8ff 100%);
+  color:var(--text);
+}
+#app::before {
+  content:'';
+  position:absolute; inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(24,32,47,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24,32,47,0.035) 1px, transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(to bottom, rgba(0,0,0,.42), transparent 62%);
+  z-index:0;
+}
+.screen { z-index:1; }
+.screen.active { animation:screenIn .36s cubic-bezier(.2,.75,.25,1) both; }
+@keyframes screenIn { from{opacity:0;transform:translateY(10px) scale(.992)} to{opacity:1;transform:translateY(0) scale(1)} }
+.scroll-area { padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 24px); }
+#bottom-nav {
+  left:12px; right:12px; bottom:10px;
+  height:calc(var(--nav-h) + var(--safe-bot));
+  padding:8px 8px calc(var(--safe-bot) + 8px);
+  background:rgba(255,255,255,0.84);
+  border:1px solid rgba(24,32,47,0.08);
+  border-radius:24px;
+  box-shadow:0 18px 40px rgba(34,44,66,0.16);
+}
+.nav-tab {
+  color:var(--text3);
+  border-radius:16px;
+}
+.nav-tab.active {
+  color:var(--accent);
+  background:rgba(217,119,6,0.09);
+}
+.nav-tab.active::after { display:none; }
+.nav-tab span { font-size:.62rem; letter-spacing:0; }
+.nav-badge {
+  background:linear-gradient(135deg,var(--red),#f97373);
+  box-shadow:0 8px 18px rgba(220,63,74,.28);
+}
+.top-bar {
+  padding:calc(var(--safe-top) + 14px) 20px 14px;
+  background:rgba(255,255,255,0.78);
+  border-bottom:1px solid rgba(24,32,47,0.08);
+  box-shadow:0 12px 32px rgba(34,44,66,0.06);
+}
+.top-bar h1 {
+  color:var(--text);
+  font-size:1.04rem;
+}
+.logo-z, .auth-logo-z, .splash-z-box {
+  background:linear-gradient(135deg,#ffcf6a,#d97706);
+  color:#141414;
+  box-shadow:0 12px 28px rgba(217,119,6,0.23);
+}
+.logo-name, .auth-logo-text { color:var(--text); }
+#home-ws-label {
+  background:rgba(37,111,212,0.08);
+  border:1px solid rgba(37,111,212,0.12);
+  color:var(--blue) !important;
+  padding:5px 9px;
+  border-radius:999px;
+}
+.top-bar [onclick="openNotifs()"] {
+  background:rgba(255,255,255,.72) !important;
+  border-color:rgba(24,32,47,.10) !important;
+  color:var(--text2);
+  box-shadow:0 8px 18px rgba(34,44,66,.08);
+}
+#screen-splash,
+#screen-onboarding,
+#screen-auth,
+#screen-reset {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.92), rgba(255,248,238,.88) 46%, rgba(238,248,255,.95));
+}
+#screen-splash::before,
+#screen-onboarding::before,
+#screen-auth::before,
+#screen-reset::before {
+  content:'';
+  position:absolute; inset:0;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(120deg, rgba(217,119,6,0.055) 0 1px, transparent 1px 18px);
+  mask-image:linear-gradient(to bottom, rgba(0,0,0,.36), transparent 70%);
+}
+#screen-splash {
+  justify-content:center;
+  align-items:center;
+  gap:0;
+  overflow:hidden;
+}
+.splash-z-wrap { margin-bottom:30px; }
+.splash-z-wrap::before {
+  content:'';
+  position:absolute;
+  inset:-22px;
+  border-radius:34px;
+  background:conic-gradient(from 0deg, transparent, rgba(217,119,6,.34), transparent 42%);
+  animation:splashSweep 1.8s linear infinite;
+  z-index:-1;
+}
+.splash-z-ring {
+  inset:-13px;
+  border:1px solid rgba(217,119,6,0.18);
+  box-shadow:0 0 0 10px rgba(255,255,255,.45);
+}
+.splash-z-box { width:88px; height:88px; border-radius:25px; }
+.splash-z-box span { color:#141414; }
+.splash-app-name {
+  color:rgba(23,32,51,.48);
+  letter-spacing:.16em;
+}
+.splash-tagline-sub { color:var(--text); }
+.splash-tagline { color:var(--text2); margin-bottom:28px; }
+.splash-loading {
+  width:154px; height:7px; border-radius:999px; border:0;
+  background:rgba(24,32,47,0.08);
+  overflow:hidden;
+  animation:none;
+}
+.splash-loading::before {
+  content:'';
+  display:block;
+  width:46%;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#d97706,#f6c85f,#5db7d8);
+  animation:splashLoad 1.15s cubic-bezier(.6,0,.25,1) infinite;
+}
+.splash-signal {
+  display:flex;
+  gap:5px;
+  justify-content:center;
+  margin-bottom:16px;
+}
+.splash-signal span {
+  width:22px;
+  height:3px;
+  border-radius:999px;
+  background:rgba(217,119,6,.26);
+  transform-origin:center;
+  animation:signalWave 1.2s ease-in-out infinite;
+}
+.splash-signal span:nth-child(2) { animation-delay:.12s; background:rgba(37,111,212,.22); }
+.splash-signal span:nth-child(3) { animation-delay:.24s; background:rgba(15,138,107,.22); }
+@keyframes splashSweep { to{transform:rotate(1turn)} }
+@keyframes splashLoad { 0%{transform:translateX(-120%)} 55%,100%{transform:translateX(235%)} }
+@keyframes signalWave { 0%,100%{transform:translateY(0) scaleX(.72);opacity:.55} 50%{transform:translateY(-5px) scaleX(1);opacity:1} }
+.welcome-shell {
+  position:relative;
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:calc(var(--safe-top) + 28px) 22px calc(var(--safe-bot) + 24px);
+}
+.welcome-hero {
+  padding-top:28px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+.welcome-mark {
+  position:relative;
+  width:82px;
+  height:82px;
+  border-radius:24px;
+  background:linear-gradient(135deg,#ffcf6a,#d97706);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:2.35rem;
+  font-weight:900;
+  color:#121212;
+  box-shadow:0 20px 44px rgba(217,119,6,.25);
+  margin-bottom:26px;
+}
+.welcome-mark::after {
+  content:'';
+  position:absolute;
+  inset:-9px;
+  border:1px solid rgba(217,119,6,.18);
+  border-radius:31px;
+}
+.welcome-kicker {
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:12px;
+}
+.welcome-title {
+  font-family:'Outfit','Inter',sans-serif;
+  font-size:2.35rem;
+  line-height:.98;
+  letter-spacing:0;
+  color:var(--text);
+  margin-bottom:18px;
+  max-width:320px;
+}
+.welcome-copy {
+  color:var(--text2);
+  font-size:.98rem;
+  line-height:1.55;
+  max-width:320px;
+}
+.welcome-actions {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.choice-card {
+  width:100%;
+  border:1px solid rgba(24,32,47,.09);
+  background:rgba(255,255,255,.82);
+  color:var(--text);
+  box-shadow:var(--shadow2);
+  border-radius:18px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-align:left;
+  cursor:pointer;
+  font-family:'Inter','Outfit',sans-serif;
+  transition:transform .16s, box-shadow .2s, border-color .2s;
+}
+.choice-card:active { transform:scale(.985); }
+.choice-card.primary {
+  border-color:rgba(217,119,6,.20);
+  background:linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,248,235,.94));
+}
+.choice-icon {
+  width:46px;
+  height:46px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  color:var(--accent);
+  background:rgba(217,119,6,.10);
+}
+.choice-card.secondary .choice-icon {
+  color:var(--blue);
+  background:rgba(37,111,212,.10);
+}
+.choice-title {
+  display:block;
+  font-size:.95rem;
+  font-weight:850;
+  letter-spacing:0;
+}
+.choice-sub {
+  display:block;
+  font-size:.76rem;
+  color:var(--text2);
+  margin-top:3px;
+  line-height:1.35;
+}
+.choice-arrow {
+  margin-left:auto;
+  color:var(--text3);
+}
+.auth-top {
+  justify-content:flex-start;
+  align-items:flex-start;
+  padding:calc(var(--safe-top) + 46px) 24px 18px;
+}
+.auth-logo-pill { gap:12px; }
+.auth-logo-z { width:52px; height:52px; border-radius:16px; }
+.auth-card {
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(24,32,47,.09);
+  border-radius:28px 28px 0 0;
+  box-shadow:0 -26px 60px rgba(34,44,66,0.12);
+}
+.access-tabs {
+  display:flex;
+  gap:6px;
+  background:rgba(24,32,47,.06);
+  border-radius:14px;
+  padding:5px;
+}
+.access-tab {
+  flex:1;
+  border:0;
+  border-radius:11px;
+  background:transparent;
+  color:var(--text2);
+  font-family:'Inter','Outfit',sans-serif;
+  font-size:.82rem;
+  font-weight:800;
+  padding:10px;
+  cursor:pointer;
+}
+.access-tab.active {
+  color:#151515;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(34,44,66,.10);
+}
+.auth-heading {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  margin:2px 0 4px;
+}
+.auth-heading h2 {
+  font-size:1.18rem;
+  line-height:1.15;
+  letter-spacing:0;
+}
+.auth-heading p {
+  color:var(--text2);
+  font-size:.82rem;
+  line-height:1.45;
+}
+.field-label {
+  color:var(--text2);
+  letter-spacing:.08em;
+}
+.field-input {
+  background:rgba(247,249,252,.95);
+  color:var(--text);
+  border:1px solid rgba(24,32,47,.10);
+  box-shadow:0 1px 0 rgba(255,255,255,.85) inset;
+}
+.field-input::placeholder { color:#a7b0bf; }
+.field-input:focus {
+  background:#fff;
+  border-color:rgba(217,119,6,.38);
+  box-shadow:0 0 0 4px rgba(217,119,6,.10);
+}
+.btn-primary {
+  border-radius:14px;
+  background:linear-gradient(135deg,#f6c85f,#d97706);
+  color:#141414;
+  box-shadow:0 14px 28px rgba(217,119,6,.22);
+}
+.btn-ghost {
+  color:var(--text2);
+  background:rgba(255,255,255,.68);
+  border:1px solid rgba(24,32,47,.10);
+}
+.event-card,
+.content-card,
+.connect-card,
+.member-status-card,
+.payment-row,
+#member-status-section > div,
+#screen-perfil .scroll-area > div[style*="background:var(--bg2)"],
+#screen-perfil .scroll-area > div[style*="background:var(--bg2)"] {
+  background:rgba(255,255,255,.86) !important;
+  border-color:rgba(24,32,47,.09) !important;
+  box-shadow:var(--shadow2);
+}
+.event-card,
+.content-card,
+.connect-card { border-radius:16px; }
+.event-banner-placeholder,
+.content-thumb-placeholder {
+  background:linear-gradient(135deg,rgba(217,119,6,.10),rgba(37,111,212,.10));
+}
+.event-title,
+.content-title,
+.empty-title,
+.home-greeting,
+.modal-title,
+.payment-month { color:var(--text); }
+.home-sub,
+.content-sub,
+.empty-desc { color:var(--text2); }
+.home-hero-card {
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg, rgba(255,255,255,.94), rgba(242,248,255,.88));
+  border:1px solid rgba(24,32,47,.08);
+  border-radius:22px;
+  padding:18px;
+  margin-bottom:18px;
+  box-shadow:var(--shadow);
+}
+.home-hero-card::after {
+  content:'';
+  position:absolute;
+  top:0; right:0;
+  width:44%;
+  height:100%;
+  background:linear-gradient(120deg, transparent, rgba(217,119,6,.10));
+  pointer-events:none;
+}
+.home-kicker {
+  color:var(--accent);
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.home-quick-actions {
+  position:relative;
+  display:flex;
+  gap:8px;
+  margin-top:16px;
+  z-index:1;
+}
+.home-quick-actions button {
+  border:1px solid rgba(24,32,47,.09);
+  background:rgba(255,255,255,.72);
+  color:var(--text);
+  border-radius:12px;
+  padding:9px 11px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font:800 .78rem 'Inter','Outfit',sans-serif;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(34,44,66,.07);
+}
+.section-label {
+  color:var(--text3);
+  letter-spacing:.08em;
+}
+.event-badge,
+.filter-chip,
+.ws-pill {
+  background:rgba(255,255,255,.72);
+  color:var(--text2);
+  border-color:rgba(24,32,47,.09);
+}
+.filter-chip.active {
+  background:rgba(217,119,6,.11);
+  color:var(--accent);
+  border-color:rgba(217,119,6,.24);
+  box-shadow:none;
+}
+.status-active { background:rgba(15,138,107,.08) !important; border-color:rgba(15,138,107,.20) !important; }
+.status-pending { background:rgba(217,119,6,.09) !important; border-color:rgba(217,119,6,.22) !important; }
+.status-none { background:rgba(255,255,255,.78) !important; }
+.avatar-ring {
+  color:#141414;
+  background:linear-gradient(135deg,#f6c85f,#5db7d8);
+}
+.modal-overlay {
+  background:rgba(23,32,51,.28);
+}
+.modal-sheet {
+  background:rgba(255,255,255,.96);
+  color:var(--text);
+  border-top:1px solid rgba(24,32,47,.08);
+  box-shadow:0 -24px 60px rgba(34,44,66,.18);
+}
+.modal-handle { background:rgba(24,32,47,.16); }
+#toast {
+  background:rgba(255,255,255,.92);
+  border-color:rgba(24,32,47,.10);
+  box-shadow:0 16px 44px rgba(34,44,66,.18);
+  color:var(--text);
+}
+#screen-player,
+#screen-aplicacao { background:var(--bg) !important; }
+#screen-player > div:first-child,
+#screen-aplicacao > div:first-child {
+  background:rgba(255,255,255,.86) !important;
+  border-bottom:1px solid rgba(24,32,47,.09) !important;
+  box-shadow:0 12px 32px rgba(34,44,66,.08);
+}
+[style*="color:#fff"],
+[style*="color: #fff"] {
+  color:var(--text) !important;
+}
+[style*="rgba(255,255,255,.4)"],
+[style*="rgba(255,255,255,0.4)"],
+[style*="rgba(255,255,255,.45)"],
+[style*="rgba(255,255,255,0.45)"],
+[style*="rgba(255,255,255,.5)"],
+[style*="rgba(255,255,255,0.5)"] {
+  color:var(--text2) !important;
+}
+@media (max-width:380px) {
+  .welcome-title { font-size:2.05rem; }
+  .choice-card { padding:14px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -550,36 +1078,41 @@ body {
     <div class="splash-app-name">CRIE</div>
     <div class="splash-tagline-sub">Membros</div>
     <div class="splash-tagline">A tua comunidade, sempre contigo</div>
+    <div class="splash-signal" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="splash-loading"></div>
   </div>
 
-  <!-- ══ ONBOARDING ══════════════════════════════════════════ -->
+  <!-- ══ WELCOME ═════════════════════════════════════════════ -->
   <div id="screen-onboarding" class="screen">
-    <div class="onboard-slides">
-      <div class="onboard-slide active" id="ob-0">
-        <div class="onboard-emoji-wrap"><div class="onboard-emoji">🌍</div></div>
-        <h2 class="onboard-title">Encontra o CRIE<br>na tua cidade</h2>
-        <p class="onboard-desc">Conecta-te ao teu CRIE local e faz parte de uma comunidade global.</p>
+    <div class="welcome-shell">
+      <div class="welcome-hero">
+        <div class="welcome-mark">Z</div>
+        <div class="welcome-kicker">CRIE Membros</div>
+        <h1 class="welcome-title">Bem-vindo ao teu CRIE</h1>
+        <p class="welcome-copy">Um espaço rápido para acompanhar eventos, workshop, comunidade e o teu percurso como visitante ou membro.</p>
       </div>
-      <div class="onboard-slide" id="ob-1">
-        <div class="onboard-emoji-wrap"><div class="onboard-emoji">🗓️</div></div>
-        <h2 class="onboard-title">Eventos exclusivos<br>para membros</h2>
-        <p class="onboard-desc">Inscreve-te em eventos, acompanha datas e faz o check-in direto pelo app.</p>
+      <div class="welcome-actions">
+        <button class="choice-card primary" onclick="startAuthFlow('visitor')">
+          <span class="choice-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+          </span>
+          <span>
+            <span class="choice-title">Entrar como visitante</span>
+            <span class="choice-sub">Acesso simples com email para eventos públicos.</span>
+          </span>
+          <svg class="choice-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <button class="choice-card secondary" onclick="startAuthFlow('member')">
+          <span class="choice-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 8l6 .9-4.5 4.3 1.1 6.1L12 16.2 6.4 19.3l1.1-6.1L3 8.9 9 8l3-6Z"/></svg>
+          </span>
+          <span>
+            <span class="choice-title">Entrar como membro</span>
+            <span class="choice-sub">Usa a tua conta para conteúdos e benefícios ativos.</span>
+          </span>
+          <svg class="choice-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
       </div>
-      <div class="onboard-slide" id="ob-2">
-        <div class="onboard-emoji-wrap"><div class="onboard-emoji">🎓</div></div>
-        <h2 class="onboard-title">Aprende com<br>o CRIE Workshop</h2>
-        <p class="onboard-desc">Vídeos, playlists e conteúdos exclusivos para membros ativos.</p>
-      </div>
-    </div>
-    <div class="onboard-dots">
-      <div class="onboard-dot active" id="dot-0"></div>
-      <div class="onboard-dot" id="dot-1"></div>
-      <div class="onboard-dot" id="dot-2"></div>
-    </div>
-    <div class="onboard-footer">
-      <button class="btn-primary" id="btn-onboard-next" onclick="onboardNext()">Começar</button>
-      <button class="btn-ghost" onclick="goToScreen('auth')">Já tenho conta — Entrar</button>
     </div>
   </div>
 
@@ -590,9 +1123,17 @@ body {
         <div class="auth-logo-z">Z</div>
         <div class="auth-logo-text">CRIE</div>
       </div>
-      <p style="color:var(--text3);font-size:.82rem;margin-top:8px;margin-bottom:36px;letter-spacing:.02em;">Comunidade de Membros</p>
+      <p id="auth-mode-label" style="color:var(--text2);font-size:.82rem;margin-top:10px;margin-bottom:20px;letter-spacing:.02em;">Acesso visitante</p>
     </div>
 	    <div class="auth-card">
+        <div class="access-tabs" aria-label="Tipo de acesso">
+          <button class="access-tab active" id="access-visitor" onclick="configureAuthMode('visitor')">Visitante</button>
+          <button class="access-tab" id="access-member" onclick="configureAuthMode('member')">Membro</button>
+        </div>
+        <div class="auth-heading">
+          <h2 id="auth-title">Entrar como visitante</h2>
+          <p id="auth-helper">Continua com o teu email para ver eventos públicos e acompanhar a tua presença.</p>
+        </div>
 	      <div class="auth-tabs" style="display:none;">
 	        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</button>
 	        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Registar</button>
@@ -601,7 +1142,7 @@ body {
 	      <!-- Login -->
 	      <div id="auth-login-form">
 	        <div><div class="field-label">Email</div><input id="login-email" class="field-input" type="email" placeholder="o.teu@email.com" autocomplete="email"></div>
-	        <div style="display:none;"><div class="field-label">Password</div><input id="login-pw" class="field-input" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+	        <div id="login-password-wrap" style="display:none;"><div class="field-label">Password</div><input id="login-pw" class="field-input" type="password" placeholder="••••••••" autocomplete="current-password"></div>
 	        <div id="visitor-profile-fields" style="display:none;flex-direction:column;gap:14px;">
 	          <div><div class="field-label">Nome</div><input id="visitor-name" class="field-input" type="text" placeholder="O teu nome" autocomplete="name"></div>
 	          <div><div class="field-label">Gênero</div>
@@ -628,7 +1169,11 @@ body {
 	          </div>
 	        </div>
 	        <div class="auth-msg" id="login-msg" style="color:var(--red);"></div>
-	        <button class="btn-primary" id="btn-login" onclick="doLogin()">Continuar</button>
+	        <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar como visitante</button>
+	        <div id="auth-secondary-actions" style="display:flex;gap:10px;margin-top:10px;">
+	          <button class="btn-ghost" id="btn-password-mode" onclick="togglePasswordLogin()" style="margin-top:0;flex:1;padding:11px;font-size:.78rem;">Entrar com password</button>
+	          <button class="btn-ghost" onclick="showForgotPw()" style="margin-top:0;flex:1;padding:11px;font-size:.78rem;">Repor password</button>
+	        </div>
 	      </div>
 
       <!-- Register -->
@@ -658,17 +1203,30 @@ body {
       </div>
     </div>
     <div class="scroll-area" style="padding:20px 20px 0;">
-      <div id="home-greeting" class="home-greeting">Olá! 👋</div>
-      <div class="home-sub" id="home-sub">Bem-vindo ao CRIE App</div>
+      <div class="home-hero-card">
+        <div class="home-kicker">Hoje no CRIE</div>
+        <div id="home-greeting" class="home-greeting">Olá!</div>
+        <div class="home-sub" id="home-sub">Bem-vindo ao CRIE App</div>
+        <div class="home-quick-actions">
+          <button onclick="goToTab('eventos')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Eventos
+          </button>
+          <button onclick="goToTab('workshop')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3V9Z"/></svg>
+            Workshop
+          </button>
+        </div>
+      </div>
 
       <!-- Member Status Banner -->
       <div id="home-member-banner" style="margin-bottom:20px;display:none;"></div>
 
       <!-- Next Events -->
-      <div class="section-label">📅 Próximos Eventos</div>
+      <div class="section-label">Próximos Eventos</div>
       <div id="home-events-list"><div class="spinner" style="margin:30px auto;"></div></div>
 
-      <div class="section-label" style="margin-top:24px;">🎓 Workshop em Destaque</div>
+      <div class="section-label" style="margin-top:24px;">Workshop em Destaque</div>
       <div id="home-workshop-list"><div class="spinner" style="margin:20px auto;"></div></div>
     </div>
   </div>
@@ -676,13 +1234,13 @@ body {
   <!-- ══ EVENTOS ═════════════════════════════════════════════ -->
   <div id="screen-eventos" class="screen">
     <div class="top-bar">
-      <h1>🗓️ Eventos</h1>
+      <h1>Eventos</h1>
     </div>
     <div class="filter-bar">
       <button class="filter-chip active" data-filter="all" onclick="filterEventos(this,'all')">Todos</button>
-      <button class="filter-chip" data-filter="free" onclick="filterEventos(this,'free')">🆓 Gratuitos</button>
-      <button class="filter-chip" data-filter="paid" onclick="filterEventos(this,'paid')">💳 Pagos</button>
-      <button class="filter-chip" data-filter="members" onclick="filterEventos(this,'members')">🔒 Membros</button>
+      <button class="filter-chip" data-filter="free" onclick="filterEventos(this,'free')">Gratuitos</button>
+      <button class="filter-chip" data-filter="paid" onclick="filterEventos(this,'paid')">Pagos</button>
+      <button class="filter-chip" data-filter="members" onclick="filterEventos(this,'members')">Membros</button>
     </div>
     <div class="scroll-area" style="padding:0 20px;">
       <div id="eventos-list"><div class="spinner" style="margin:40px auto;"></div></div>
@@ -692,12 +1250,12 @@ body {
   <!-- ══ WORKSHOP ════════════════════════════════════════════ -->
   <div id="screen-workshop" class="screen">
     <div class="top-bar">
-      <h1>🎓 Workshop</h1>
+      <h1>Workshop</h1>
     </div>
     <div class="filter-bar">
       <button class="filter-chip active" data-wf="all" onclick="filterWorkshop(this,'all')">Tudo</button>
-      <button class="filter-chip" data-wf="free" onclick="filterWorkshop(this,'free')">🌐 Público</button>
-      <button class="filter-chip" data-wf="members" onclick="filterWorkshop(this,'members')">🔒 Membros</button>
+      <button class="filter-chip" data-wf="free" onclick="filterWorkshop(this,'free')">Público</button>
+      <button class="filter-chip" data-wf="members" onclick="filterWorkshop(this,'members')">Membros</button>
     </div>
     <div class="scroll-area" style="padding:0 20px;">
       <div id="workshop-playlists" style="margin-bottom:20px;"></div>
@@ -729,13 +1287,13 @@ body {
   <!-- ══ CONNECT ═════════════════════════════════════════════ -->
   <div id="screen-connect" class="screen">
     <div class="top-bar">
-      <h1>🔗 Connect</h1>
+      <h1>Connect</h1>
     </div>
     <div class="filter-bar">
       <button class="filter-chip active" data-cf="all" onclick="filterConnect(this,'all')">Tudo</button>
-      <button class="filter-chip" data-cf="emprego" onclick="filterConnect(this,'emprego')">💼 Emprego</button>
-      <button class="filter-chip" data-cf="servico" onclick="filterConnect(this,'servico')">🛠️ Serviço</button>
-      <button class="filter-chip" data-cf="doacao" onclick="filterConnect(this,'doacao')">🎁 Doação</button>
+      <button class="filter-chip" data-cf="emprego" onclick="filterConnect(this,'emprego')">Emprego</button>
+      <button class="filter-chip" data-cf="servico" onclick="filterConnect(this,'servico')">Serviço</button>
+      <button class="filter-chip" data-cf="doacao" onclick="filterConnect(this,'doacao')">Doação</button>
     </div>
     <div class="scroll-area" style="padding:0 20px;">
       <div id="connect-list"><div class="spinner" style="margin:40px auto;"></div></div>
@@ -1064,8 +1622,23 @@ body {
       <div class="modal-title">✏️ Editar Perfil</div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div><div class="field-label">Nome</div><input id="ep-name" class="field-input" placeholder="O teu nome"></div>
+        <div><div class="field-label">Telefone</div><input id="ep-phone" class="field-input" type="tel" placeholder="+1 407 000 0000"></div>
+        <div><div class="field-label">Gênero</div>
+          <select id="ep-gender" class="field-input">
+            <option value="">Seleciona…</option>
+            <option value="feminino">Feminino</option>
+            <option value="masculino">Masculino</option>
+            <option value="outro">Outro</option>
+            <option value="prefiro_nao_dizer">Prefiro não dizer</option>
+          </select>
+        </div>
         <div><div class="field-label">Cidade</div><input id="ep-city" class="field-input" placeholder="Lisboa, Porto…"></div>
+        <div><div class="field-label">Foto</div><input id="ep-photo" class="field-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></div>
         <div><div class="field-label">Bio</div><textarea id="ep-bio" class="field-input" rows="2" placeholder="Algo sobre ti…" style="resize:none;"></textarea></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><div class="field-label">Nova password</div><input id="ep-password" class="field-input" type="password" placeholder="mín. 8 caracteres" autocomplete="new-password"></div>
+          <div><div class="field-label">Confirmar</div><input id="ep-password2" class="field-input" type="password" placeholder="repete a password" autocomplete="new-password"></div>
+        </div>
       </div>
       <div class="auth-msg" id="ep-msg" style="color:var(--red);margin:12px 0;"></div>
       <button class="btn-primary" style="margin-top:4px;" onclick="saveProfile()">Guardar</button>
@@ -1116,6 +1689,9 @@ let _allConnect = [];
 let _memberStatus = {}; // { workspace_id: { status, member_id } }
 let _visitorAttendanceByWs = {}; // { workspace_id: attended_count }
 let _visitorProfilePendingEmail = null;
+let _authMode = 'visitor';
+let _visitorProfilePendingId = null;
+let _visitorProfilePendingSeed = null;
 
 function escHtml(value) {
     return String(value ?? '')
@@ -1160,8 +1736,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             showMainApp();
             return;
         }
-        const seen = localStorage.getItem('crie_ob_done');
-        goToScreen(seen ? 'auth' : 'onboarding');
+        configureAuthMode('visitor');
+        goToScreen('onboarding');
     }
 });
 
@@ -1179,7 +1755,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
     } else if (event === 'SIGNED_OUT') {
         _user = null; _appUser = null;
         document.getElementById('bottom-nav').style.display = 'none';
-        goToScreen('auth');
+        configureAuthMode('visitor');
+        goToScreen('onboarding');
     }
 });
 
@@ -1216,10 +1793,10 @@ function goBack() {
     }
 }
 
-function showMainApp() {
+async function showMainApp() {
     document.getElementById('bottom-nav').style.display = 'flex';
+    await loadWorkspaces();
     goToTab('home');
-    loadWorkspaces();
 }
 
 // ══ ONBOARDING ════════════════════════════════════════════════════
@@ -1242,7 +1819,54 @@ function onboardNext() {
     }
 }
 
+function startAuthFlow(mode) {
+    localStorage.setItem('crie_ob_done', '1');
+    configureAuthMode(mode);
+    goToScreen('auth');
+}
+
 // ══ AUTH ══════════════════════════════════════════════════════════
+function configureAuthMode(mode = 'visitor') {
+    _authMode = mode === 'member' ? 'member' : 'visitor';
+    const isMember = _authMode === 'member';
+    const visitorTab = document.getElementById('access-visitor');
+    const memberTab = document.getElementById('access-member');
+    visitorTab?.classList.toggle('active', !isMember);
+    memberTab?.classList.toggle('active', isMember);
+
+    const label = document.getElementById('auth-mode-label');
+    const title = document.getElementById('auth-title');
+    const helper = document.getElementById('auth-helper');
+    const email = document.getElementById('login-email');
+    const msg = document.getElementById('login-msg');
+    const profileFields = document.getElementById('visitor-profile-fields');
+    const forgotBtn = document.querySelector('#auth-secondary-actions button:last-child');
+    const passwordBtn = document.getElementById('btn-password-mode');
+
+    if (label) label.textContent = isMember ? 'Acesso membro' : 'Acesso visitante';
+    if (title) title.textContent = isMember ? 'Entrar como membro' : 'Entrar como visitante';
+    if (helper) helper.textContent = isMember
+        ? 'Usa o email e password da tua conta para libertar conteúdos, inscrições e pagamentos de membro.'
+        : 'Continua com o teu email para ver eventos públicos e acompanhar a tua presença.';
+    if (email) email.placeholder = isMember ? 'email de membro' : 'email de visitante';
+    if (msg) { msg.textContent = ''; msg.style.color = 'var(--red)'; }
+    if (profileFields) profileFields.style.display = 'none';
+    if (forgotBtn) forgotBtn.style.display = isMember ? '' : 'none';
+    if (passwordBtn) {
+        passwordBtn.style.display = isMember ? 'none' : '';
+        passwordBtn.textContent = 'Entrar como membro';
+    }
+
+    const wrap = document.getElementById('login-password-wrap');
+    const pw = document.getElementById('login-pw');
+    if (wrap) wrap.style.display = isMember ? '' : 'none';
+    if (!isMember && pw) pw.value = '';
+
+    const btn = document.getElementById('btn-login');
+    if (btn) btn.textContent = isMember ? 'Entrar como membro' : 'Entrar como visitante';
+    switchAuthTab('login');
+}
+
 function switchAuthTab(tab) {
     document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
@@ -1254,16 +1878,34 @@ function switchAuthTab(tab) {
     document.getElementById('auth-register-form').style.gap = '14px';
 }
 
+function togglePasswordLogin(force) {
+    if (_authMode === 'visitor' && force !== false) {
+        configureAuthMode('member');
+        return;
+    }
+    const wrap = document.getElementById('login-password-wrap');
+    const pw = document.getElementById('login-pw');
+    const btn = document.getElementById('btn-password-mode');
+    const loginBtn = document.getElementById('btn-login');
+    if (!wrap) return;
+    const shouldShow = typeof force === 'boolean' ? force : wrap.style.display === 'none';
+    wrap.style.display = shouldShow ? '' : 'none';
+    if (!shouldShow && pw) pw.value = '';
+    if (btn) btn.textContent = shouldShow ? 'Entrar sem password' : 'Entrar com password';
+    if (loginBtn) loginBtn.textContent = shouldShow ? 'Entrar como membro' : 'Entrar como visitante';
+}
+
 async function doLogin() {
     const email = document.getElementById('login-email').value.trim();
     const pw    = document.getElementById('login-pw').value;
     const msg   = document.getElementById('login-msg');
     const btn   = document.getElementById('btn-login');
     if (!email) { msg.textContent = 'Insere o teu email.'; return; }
+    if (_authMode === 'member' && !pw) { msg.textContent = 'Insere a tua password de membro.'; return; }
     if (pw) {
-        btn.disabled = true; btn.textContent = 'A entrar…';
+        btn.disabled = true; btn.textContent = 'A entrar...';
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
-        btn.disabled = false; btn.textContent = 'Continuar';
+        btn.disabled = false; btn.textContent = 'Entrar como membro';
         if (error) msg.textContent = '❌ ' + (error.message === 'Invalid login credentials' ? 'Email ou password incorretos.' : error.message);
         else msg.textContent = '';
         return;
@@ -1298,6 +1940,33 @@ async function findKnownVisitorByEmail(email) {
     return [crieMember.data?.[0], cmMember.data?.[0], crieAtt.data?.[0], cmAtt.data?.[0]].find(Boolean) || null;
 }
 
+function needsProfileCompletion(profile) {
+    return !profile?.name || !profile?.gender || !profile?.phone;
+}
+
+function showVisitorProfileCompletion(email, profile, message, seed = null) {
+    const profileFields = document.getElementById('visitor-profile-fields');
+    const btn = document.getElementById('btn-login');
+    const msg = document.getElementById('login-msg');
+    _visitorProfilePendingEmail = email;
+    _visitorProfilePendingId = profile?.id || null;
+    _visitorProfilePendingSeed = seed;
+    if (document.getElementById('visitor-name')) document.getElementById('visitor-name').value = profile?.name || '';
+    if (document.getElementById('visitor-gender')) document.getElementById('visitor-gender').value = profile?.gender || '';
+    const phone = profile?.phone || '';
+    const countryEl = document.getElementById('visitor-phone-country');
+    const phoneEl = document.getElementById('visitor-phone');
+    const country = ['+351', '+244', '+258', '+55', '+1', '+44'].find(code => phone.startsWith(code));
+    if (countryEl && country) countryEl.value = country;
+    if (phoneEl) phoneEl.value = country ? phone.slice(country.length) : phone;
+    if (profileFields) profileFields.style.display = 'flex';
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar acesso'; }
+    if (msg) {
+        msg.style.color = 'var(--text3)';
+        msg.textContent = message;
+    }
+}
+
 async function upsertVisitorProfile(payload) {
     const insertPayload = { ...payload };
     let { data, error } = await sb.from('crie_app_users').insert(insertPayload).select().single();
@@ -1322,33 +1991,34 @@ async function continueVisitorAccess(rawEmail) {
     btn.disabled = true; btn.textContent = 'A verificar…'; msg.textContent = '';
 
     try {
-        const existing = await sb.from('crie_app_users').select('*').eq('email', email).maybeSingle();
-        if (existing.data) {
-            _appUser = existing.data;
-            localStorage.setItem('crie_visitor_user_id', _appUser.id);
-            showMainApp();
-            return;
-        }
+        const completingProfile = profileFields?.style.display === 'flex' && (_visitorProfilePendingEmail || email) === email;
+        if (!completingProfile) {
+            const existing = await sb.from('crie_app_users').select('*').eq('email', email).maybeSingle();
+            if (existing.data) {
+                if (needsProfileCompletion(existing.data)) {
+                    showVisitorProfileCompletion(email, existing.data, 'Completa os dados para ativar o acesso correto ao CRIE App.', { workspace_id: existing.data.workspace_id });
+                    return;
+                }
+                _appUser = existing.data;
+                localStorage.setItem('crie_visitor_user_id', _appUser.id);
+                showMainApp();
+                return;
+            }
 
-        const known = await findKnownVisitorByEmail(email);
-        if (known) {
-            _appUser = await upsertVisitorProfile({
-                workspace_id: known.workspace_id || await getFirstCrieWorkspaceId(),
-                name: known.name || email.split('@')[0],
-                email,
-                phone: known.phone || null,
+            const known = await findKnownVisitorByEmail(email);
+            if (known) {
+                showVisitorProfileCompletion(email, {
+                    name: known.name || email.split('@')[0],
+                    phone: known.phone || '',
+                }, 'Encontramos o teu email. Completa os dados para entrar como visitante.', {
+                    workspace_id: known.workspace_id || await getFirstCrieWorkspaceId(),
+                });
+                return;
+            }
+
+            showVisitorProfileCompletion(email, null, 'Não encontramos este email. Completa os dados para entrar como visitante.', {
+                workspace_id: await getFirstCrieWorkspaceId(),
             });
-            localStorage.setItem('crie_visitor_user_id', _appUser.id);
-            showMainApp();
-            return;
-        }
-
-        if (profileFields?.style.display !== 'flex') {
-            _visitorProfilePendingEmail = email;
-            profileFields.style.display = 'flex';
-            btn.disabled = false; btn.textContent = 'Criar acesso';
-            msg.style.color = 'var(--text3)';
-            msg.textContent = 'Não encontramos este email. Completa os dados para entrar como visitante.';
             return;
         }
 
@@ -1360,25 +2030,41 @@ async function continueVisitorAccess(rawEmail) {
         if (!name || !gender || !phone) {
             msg.style.color = 'var(--red)';
             msg.textContent = 'Preenche nome, gênero e telefone.';
-            btn.disabled = false; btn.textContent = 'Criar acesso';
+            btn.disabled = false; btn.textContent = 'Guardar acesso';
             return;
         }
 
-        _appUser = await upsertVisitorProfile({
-            workspace_id: await getFirstCrieWorkspaceId(),
-            name,
-            email: _visitorProfilePendingEmail || email,
-            phone,
-            gender,
-        });
+        if (_visitorProfilePendingId) {
+            const { data, error } = await sb.from('crie_app_users').update({
+                name,
+                email: _visitorProfilePendingEmail || email,
+                phone,
+                gender,
+            }).eq('id', _visitorProfilePendingId).select().single();
+            if (error) throw error;
+            _appUser = data;
+        } else {
+            const seed = _visitorProfilePendingSeed || {};
+            _appUser = await upsertVisitorProfile({
+                workspace_id: seed.workspace_id || await getFirstCrieWorkspaceId(),
+                name,
+                email: _visitorProfilePendingEmail || email,
+                phone,
+                gender,
+            });
+        }
         localStorage.setItem('crie_visitor_user_id', _appUser.id);
+        _visitorProfilePendingId = null;
+        _visitorProfilePendingSeed = null;
+        _visitorProfilePendingEmail = null;
+        if (profileFields) profileFields.style.display = 'none';
         showMainApp();
     } catch (err) {
         msg.style.color = 'var(--red)';
         msg.textContent = '❌ ' + err.message;
     } finally {
         btn.disabled = false;
-        btn.textContent = profileFields?.style.display === 'flex' ? 'Criar acesso' : 'Continuar';
+        btn.textContent = profileFields?.style.display === 'flex' ? 'Guardar acesso' : 'Entrar como visitante';
     }
 }
 
@@ -1513,11 +2199,52 @@ function normalizeMemberStatus(status) {
 }
 
 function isApprovedMember(wsId) {
-    return _memberStatus[wsId]?.status === 'approved';
+    return !!_user && _memberStatus[wsId]?.status === 'approved';
 }
 
 function visitorAttendanceCount(wsId) {
     return Number(_visitorAttendanceByWs[wsId] || 0);
+}
+
+function profileGender() {
+    return String(_appUser?.gender || '').trim().toLowerCase();
+}
+
+function isFemaleProfile() {
+    const g = profileGender();
+    return ['feminino', 'female', 'mulher', 'women', 'woman', 'f'].includes(g);
+}
+
+function isCmEnabledForWorkspace(ws) {
+    if (!ws) return false;
+    if (ws.cm_settings && Object.prototype.hasOwnProperty.call(ws.cm_settings, 'enabled')) {
+        return ws.cm_settings.enabled === true;
+    }
+    return (ws.modules || []).includes('crie_mulheres');
+}
+
+function preferredModuleForWorkspace(wsId) {
+    const ws = _activeWorkspaces.find(w => w.id === wsId) || _activeWorkspaces[0];
+    return isCmEnabledForWorkspace(ws) && isFemaleProfile() ? 'cm' : 'crie';
+}
+
+function eventModule(ev) {
+    return ev?._source === 'cm' ? 'cm' : 'crie';
+}
+
+function applyModuleTheme(module) {
+    const isCm = module === 'cm';
+    const accent = isCm ? '#f472b6' : '#F59E0B';
+    const accent2 = isCm ? '#ec4899' : '#FFD700';
+    document.documentElement.style.setProperty('--accent', accent);
+    document.documentElement.style.setProperty('--gold', accent);
+    document.documentElement.style.setProperty('--gold2', accent2);
+    const appName = isCm ? 'CRIE Mulheres' : 'CRIE';
+    document.querySelectorAll('.logo-name,.auth-logo-text').forEach(el => { el.textContent = appName; });
+    const splash = document.querySelector('.splash-app-name');
+    if (splash) splash.textContent = isCm ? 'CRIE MULHERES' : 'CRIE';
+    const homeSub = document.getElementById('home-sub');
+    if (homeSub) homeSub.textContent = isCm ? 'Bem-vinda ao CRIE Mulheres App' : 'Bem-vindo ao CRIE App';
 }
 
 async function loadWorkspaces() {
@@ -1536,7 +2263,7 @@ async function loadWorkspaces() {
         _activeWorkspaces.forEach(w => {
             const opt = document.createElement('option');
             opt.value = w.id;
-            opt.textContent = w.name;
+            opt.textContent = `${w.name} · ${preferredModuleForWorkspace(w.id) === 'cm' ? 'CRIE Mulheres' : 'CRIE'}`;
             sel.appendChild(opt);
         });
     }
@@ -1589,13 +2316,15 @@ async function loadWorkspaces() {
     // Set ws label in home
     const wsLabel = document.getElementById('home-ws-label');
     if (wsLabel) wsLabel.textContent = _activeWorkspaces[0]?.name || '';
+    window._activeModule = preferredModuleForWorkspace(_activeWorkspaces[0]?.id) === 'cm' ? 'crie_mulheres' : 'crie';
+    applyModuleTheme(window._activeModule === 'crie_mulheres' ? 'cm' : 'crie');
 }
 
 // ══ HOME DATA ═════════════════════════════════════════════════════
 async function loadHomeData() {
     if (_appUser) {
         const el = document.getElementById('home-greeting');
-        if (el) el.textContent = `Olá, ${_appUser.name?.split(' ')[0]}! 👋`;
+        if (el) el.textContent = `Olá, ${_appUser.name?.split(' ')[0]}!`;
     }
     // Check membership status for banner
     await renderMemberBanner();
@@ -1609,6 +2338,7 @@ async function renderMemberBanner() {
     if (!_activeWorkspaces.length) { el.style.display = 'none'; return; }
     const wsId  = _activeWorkspaces[0]?.id;
     const ms    = _memberStatus[wsId];
+    const moduleName = preferredModuleForWorkspace(wsId) === 'cm' ? 'CRIE Mulheres' : 'CRIE';
     let html    = '';
 
     if (!ms) {
@@ -1616,7 +2346,7 @@ async function renderMemberBanner() {
         const canApply = attended >= 3;
         html = `<div class="member-status-card status-none" style="${canApply ? 'cursor:pointer;' : 'opacity:.5;'}" ${canApply ? 'onclick="openApplyWizard()"' : ''}>
             <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:6px;">NÃO MEMBRO</div>
-            <div style="font-weight:800;font-size:1rem;color:#fff;margin-bottom:8px;">Torna-te membro do CRIE</div>
+            <div style="font-weight:800;font-size:1rem;color:#fff;margin-bottom:8px;">Torna-te membro do ${moduleName}</div>
             <div style="font-size:0.8rem;color:var(--text3);margin-bottom:12px;">${canApply ? 'Acede a eventos exclusivos, conteúdos e muito mais.' : `Precisas participar em 3 eventos para te candidatares. ${attended}/3 registados.`}</div>
             <div style="font-size:0.78rem;font-weight:800;color:var(--gold);">${canApply ? 'Candidatar-me →' : 'Candidatura bloqueada'}</div>
         </div>`;
@@ -1625,10 +2355,16 @@ async function renderMemberBanner() {
             <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">⏳ CANDIDATURA PENDENTE</div>
             <div style="font-size:0.85rem;color:var(--text2);">A tua candidatura está a ser analisada. Receberás uma notificação em breve.</div>
         </div>`;
+    } else if (ms.status === 'approved' && !_user) {
+        html = `<div class="member-status-card status-active">
+            <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">MEMBRO ENCONTRADO</div>
+            <div style="font-size:0.85rem;color:var(--text2);margin-bottom:10px;">Entra com password para aceder aos eventos e conteúdos de membro.</div>
+            <div onclick="goToScreen('auth');togglePasswordLogin(true)" style="font-size:0.78rem;font-weight:800;color:var(--gold);cursor:pointer;">Entrar com password →</div>
+        </div>`;
     } else if (ms.status === 'approved') {
         html = `<div class="member-status-card status-active">
             <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">✅ MEMBRO ATIVO</div>
-            <div style="font-size:0.85rem;color:var(--text2);">Parabéns! Tens acesso completo ao CRIE.</div>
+            <div style="font-size:0.85rem;color:var(--text2);">Parabéns! Tens acesso completo ao ${moduleName}.</div>
         </div>`;
     }
     el.innerHTML = html;
@@ -1925,7 +2661,12 @@ async function loadPerfil() {
     document.getElementById('profile-name').textContent  = _appUser.name || '—';
     document.getElementById('profile-email').textContent = _appUser.email || '—';
     document.getElementById('profile-city').textContent  = _appUser.city || '';
-    document.getElementById('profile-avatar').textContent = (_appUser.name || '?').charAt(0).toUpperCase();
+    const avatar = document.getElementById('profile-avatar');
+    if (avatar) {
+        avatar.innerHTML = _appUser.avatar_url
+            ? `<img src="${escHtml(_appUser.avatar_url)}" alt="">`
+            : escHtml((_appUser.name || '?').charAt(0).toUpperCase());
+    }
 
     renderMemberStatusSection();
     loadMfaStatus();
@@ -1959,6 +2700,13 @@ function renderMemberStatusSection() {
             statusHtml = `<div class="member-status-card status-pending">
                 <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">CRIE ${ws.name}</div>
                 <div style="font-weight:700;">⏳ Candidatura Pendente</div>
+            </div>`;
+        } else if (ms.status === 'approved' && !_user) {
+            statusHtml = `<div class="member-status-card status-active">
+                <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">CRIE ${ws.name}</div>
+                <div style="font-weight:700;margin-bottom:8px;">Membro encontrado</div>
+                <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">Entra com password para libertar o acesso de membro.</div>
+                <div onclick="goToScreen('auth');togglePasswordLogin(true)" style="font-size:0.78rem;font-weight:800;color:var(--gold);cursor:pointer;">Entrar com password →</div>
             </div>`;
         } else if (ms.status === 'approved') {
             statusHtml = `<div class="member-status-card status-active">
@@ -2159,22 +2907,75 @@ async function processPayment(type) {
 // ══ PROFILE EDIT ══════════════════════════════════════════════════
 function openEditProfile() {
     document.getElementById('ep-name').value = _appUser?.name || '';
+    document.getElementById('ep-phone').value = _appUser?.phone || '';
+    document.getElementById('ep-gender').value = _appUser?.gender || '';
     document.getElementById('ep-city').value = _appUser?.city || '';
     document.getElementById('ep-bio').value  = _appUser?.bio  || '';
+    document.getElementById('ep-photo').value = '';
+    document.getElementById('ep-password').value = '';
+    document.getElementById('ep-password2').value = '';
     document.getElementById('ep-msg').textContent = '';
     openModal('modal-edit-profile');
 }
 
 async function saveProfile() {
     const name = document.getElementById('ep-name').value.trim();
+    const phone = document.getElementById('ep-phone').value.trim();
+    const gender = document.getElementById('ep-gender').value || null;
     const city = document.getElementById('ep-city').value.trim();
     const bio  = document.getElementById('ep-bio').value.trim();
+    const file = document.getElementById('ep-photo')?.files?.[0] || null;
+    const password = document.getElementById('ep-password').value;
+    const password2 = document.getElementById('ep-password2').value;
     const msg  = document.getElementById('ep-msg');
     if (!name) { msg.textContent = 'Nome é obrigatório.'; return; }
-    const { error } = await sb.from('crie_app_users').update({ name, city, bio }).eq('id', _appUser.id);
-    if (error) { msg.textContent = '❌ Erro ao guardar.'; return; }
-    _appUser.name = name; _appUser.city = city; _appUser.bio = bio;
+    if ((password || password2) && !_user) { msg.textContent = 'Entra com password para alterar a password.'; return; }
+    if (password || password2) {
+        if (password.length < 8) { msg.textContent = 'Password demasiado curta (mín. 8 caracteres).'; return; }
+        if (password !== password2) { msg.textContent = 'As passwords não coincidem.'; return; }
+    }
+
+    let avatar_url = _appUser.avatar_url || null;
+    if (file) {
+        if (!_user) { msg.textContent = 'Entra com password para enviar foto.'; return; }
+        if (file.size > 5 * 1024 * 1024) { msg.textContent = 'Foto demasiado grande (máx. 5MB).'; return; }
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+        const path = `${_user.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await sb.storage.from('crie-profile-photos').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
+        if (upErr) { msg.textContent = '❌ Erro ao enviar foto: ' + upErr.message; return; }
+        const { data: pub } = sb.storage.from('crie-profile-photos').getPublicUrl(path);
+        avatar_url = pub?.publicUrl || avatar_url;
+    }
+
+    if (password) {
+        const { error: pwErr } = await sb.auth.updateUser({ password });
+        if (pwErr) { msg.textContent = '❌ ' + pwErr.message; return; }
+    }
+
+    const profilePatch = {
+        name,
+        phone: phone || null,
+        gender,
+        city,
+        bio,
+        avatar_url,
+        must_change_password: false,
+    };
+    const { error } = await sb.from('crie_app_users').update(profilePatch).eq('id', _appUser.id);
+    if (error) { msg.textContent = '❌ Erro ao guardar: ' + error.message; return; }
+
+    const wsIds = _activeWorkspaces.map(w => w.id);
+    const memberPatch = { name, phone: phone || null, gender, avatar_url };
+    if ((_appUser.email || '') && wsIds.length) {
+        await Promise.allSettled([
+            sb.from('crie_members').update(memberPatch).eq('email', _appUser.email).in('workspace_id', wsIds),
+            sb.from('cm_members').update(memberPatch).eq('email', _appUser.email).in('workspace_id', wsIds),
+        ]);
+    }
+
+    Object.assign(_appUser, profilePatch);
     closeModal('modal-edit-profile');
+    await loadWorkspaces();
     loadPerfil();
     showToast('✓ Perfil atualizado!', 'success');
 }
@@ -2224,6 +3025,7 @@ function currency(ev) {
 }
 
 function canSeeEventInApp(ev) {
+    if (eventModule(ev) !== preferredModuleForWorkspace(ev.workspace_id)) return false;
     return ev.open_to_guests !== false || isApprovedMember(ev.workspace_id);
 }
 
@@ -2470,11 +3272,7 @@ submitMemberApplication = async function() {
         msg.textContent = `Precisas participar em 3 eventos antes de te candidatares. Tens ${visitorAttendanceCount(wsId)}/3.`;
         return;
     }
-    // Check if the selected workspace uses CM
-    const { data: wsData } = await sb.from('workspaces').select('cm_settings, modules').eq('id', wsId).single();
-    const isCmWorkspace = !!(wsData?.cm_settings && Object.keys(wsData.cm_settings).length) ||
-        (wsData?.modules || []).includes('crie_mulheres');
-    const table = isCmWorkspace ? 'cm_member_applications' : 'crie_member_applications';
+    const table = preferredModuleForWorkspace(wsId) === 'cm' ? 'cm_member_applications' : 'crie_member_applications';
     const { error } = await sb.from(table).insert({
         app_user_id: _appUser.id,
         workspace_id: wsId,
@@ -2609,7 +3407,7 @@ async function submitFullApplication() {
     }
     const g=function(id){return (document.getElementById(id)||{}).value||null;};
     const rg=function(name){const el=document.querySelector('[name="'+name+'"]:checked'); return el?el.value:null;};
-    const payload={workspace_id:wsId,app_user_id:_appUser.id,module:(window._activeModule==='crie_mulheres'?'cm':'crie'),full_name:g('ap-name'),birth_date:g('ap-birth'),phone_mobile:g('ap-phone'),phone_home:g('ap-phone2'),email:g('ap-email'),shirt_size:g('ap-shirt'),spouse_name:g('ap-spouse'),address:g('ap-addr'),address2:g('ap-addr2'),city:g('ap-city'),state:g('ap-state'),zip:g('ap-zip'),is_lagoinha_member:rg('ap-lagoinha')==='sim',lagoinha_member_since:g('ap-lagoinha-since'),is_baptized:rg('ap-baptized')==='sim',baptism_details:g('ap-baptism-detail'),attended_crie:rg('ap-attended')==='sim',sponsor_name:g('ap-sponsor'),attended_dates:[g('ap-date1'),g('ap-date2'),g('ap-date3')].filter(Boolean),owns_company:rg('ap-owns-co')==='sim',companies:companies,agreed_to_terms:true,signature_url:sigUrl,signed_at:new Date().toISOString(),status:'pending'};
+    const payload={workspace_id:wsId,app_user_id:_appUser.id,module:preferredModuleForWorkspace(wsId),full_name:g('ap-name'),birth_date:g('ap-birth'),phone_mobile:g('ap-phone'),phone_home:g('ap-phone2'),email:g('ap-email'),shirt_size:g('ap-shirt'),spouse_name:g('ap-spouse'),address:g('ap-addr'),address2:g('ap-addr2'),city:g('ap-city'),state:g('ap-state'),zip:g('ap-zip'),is_lagoinha_member:rg('ap-lagoinha')==='sim',lagoinha_member_since:g('ap-lagoinha-since'),is_baptized:rg('ap-baptized')==='sim',baptism_details:g('ap-baptism-detail'),attended_crie:rg('ap-attended')==='sim',sponsor_name:g('ap-sponsor'),attended_dates:[g('ap-date1'),g('ap-date2'),g('ap-date3')].filter(Boolean),owns_company:rg('ap-owns-co')==='sim',companies:companies,agreed_to_terms:true,signature_url:sigUrl,signed_at:new Date().toISOString(),status:'pending'};
     const {error}=await sb.from('crie_member_applications_v2').insert(payload);
     btn.disabled=false; btn.textContent='Enviar Aplicacao';
     if(error){msg.textContent=(error.code==='23505'?'Ja existe uma candidatura sua.':error.message); return;}

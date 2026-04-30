@@ -5271,6 +5271,10 @@ graph TD
                     <p>Membros permanentes do CRIE Mulheres neste workspace</p>
                 </div>
                 <div class="actions">
+                    <button class="hub-btn" onclick="copyCmAppLink()" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.24);color:#60a5fa;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar App
+                    </button>
                     <button class="hub-btn" style="background:linear-gradient(135deg,#d6336c,#a61e4d);border:none;" onclick="openAddCmMembroModal()">+ Nova Membra</button>
                 </div>
             </header>
@@ -5788,6 +5792,13 @@ graph TD
 
             <div id="cm-rel-tab-config" style="display:none;padding:20px 24px;">
                 <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
+                    <label style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(214,51,108,.06);border:1px solid rgba(214,51,108,.16);border-radius:14px;padding:14px 16px;cursor:pointer;">
+                        <span>
+                            <span style="display:block;font-size:.78rem;color:#fff;font-weight:800;">CRIE Mulheres ativo</span>
+                            <span style="display:block;font-size:.72rem;color:rgba(255,255,255,.42);margin-top:3px;">Quando ativo, mulheres acessam CRIE Mulheres e homens acessam CRIE.</span>
+                        </span>
+                        <input id="cm-cfg-enabled" type="checkbox" style="width:18px;height:18px;accent-color:#d6336c;">
+                    </label>
                     <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Taxa de Mensalidade</label><input id="cm-cfg-fee" type="number" step="0.01" placeholder="0.00" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:.9rem;outline:none;box-sizing:border-box;"></div>
                     <div><label style="font-size:.72rem;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;">Moeda</label>
                         <select id="cm-cfg-currency" class="hub-field-input">
@@ -6010,6 +6021,10 @@ graph TD
                     <p>Membros permanentes do CRIE neste workspace</p>
                 </div>
                 <div class="actions">
+                    <button class="hub-btn" onclick="copyCrieAppLink()" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.24);color:#60a5fa;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar App
+                    </button>
                     <button class="hub-btn" onclick="openAddMembroModal()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Novo Membro

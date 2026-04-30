@@ -31,21 +31,124 @@ function fmtDate(d: string): string {
   });
 }
 
+function makeTemporaryPassword(): string {
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+async function findAuthUserByEmail(email: string): Promise<any | null> {
+  const needle = email.trim().toLowerCase();
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const found = data.users.find((u: any) => (u.email || "").toLowerCase() === needle);
+    if (found) return found;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
+async function ensureAppLogin(app: any, workspaceName: string) {
+  const email = String(app.email || "").trim().toLowerCase();
+  const tempPassword = makeTemporaryPassword();
+  const fullName = app.full_name || app.name || email.split("@")[0];
+
+  const { data: existingProfile } = await sb
+    .from("crie_app_users")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  let authUserId = existingProfile?.auth_user_id || null;
+
+  if (authUserId) {
+    const { error } = await sb.auth.admin.updateUserById(authUserId, {
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { name: fullName, workspace_name: workspaceName },
+    });
+    if (error) throw error;
+  } else {
+    const { data: created, error: createErr } = await sb.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { name: fullName, workspace_name: workspaceName },
+    });
+
+    if (createErr) {
+      const found = await findAuthUserByEmail(email);
+      if (!found) throw createErr;
+      authUserId = found.id;
+      const { error: updateErr } = await sb.auth.admin.updateUserById(authUserId, {
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { name: fullName, workspace_name: workspaceName },
+      });
+      if (updateErr) throw updateErr;
+    } else {
+      authUserId = created.user?.id || null;
+    }
+  }
+
+  const profilePatch = {
+    auth_user_id: authUserId,
+    workspace_id: app.workspace_id,
+    name: fullName,
+    email,
+    phone: app.phone_mobile || app.phone || existingProfile?.phone || null,
+    gender: app.gender || existingProfile?.gender || null,
+    must_change_password: true,
+    temp_password_sent_at: new Date().toISOString(),
+  };
+
+  if (existingProfile?.id) {
+    const { error } = await sb.from("crie_app_users").update(profilePatch).eq("id", existingProfile.id);
+    if (error) throw error;
+  } else {
+    const { error } = await sb.from("crie_app_users").insert(profilePatch);
+    if (error) throw error;
+  }
+
+  return { tempPassword, authUserId };
+}
+
 /* ── Main ─────────────────────────────────────────────────────────── */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { application_id, pdf_url } = await req.json();
-    if (!application_id) throw new Error("Missing application_id");
+    const body = await req.json();
+    const { application_id, pdf_url } = body;
+    let app: any = null;
 
-    // Fetch application
-    const { data: app, error: appErr } = await sb
-      .from("crie_member_applications_v2")
-      .select("*")
-      .eq("id", application_id)
-      .single();
-    if (appErr || !app) throw new Error("Application not found");
+    if (application_id) {
+      const { data, error: appErr } = await sb
+        .from("crie_member_applications_v2")
+        .select("*")
+        .eq("id", application_id)
+        .single();
+      if (appErr || !data) throw new Error("Application not found");
+      app = data;
+    } else {
+      if (!body.memberEmail || !body.workspace_id) {
+        throw new Error("Missing application_id or legacy memberEmail/workspace_id");
+      }
+      app = {
+        workspace_id: body.workspace_id,
+        module: body.module || "crie",
+        full_name: body.memberName || body.memberEmail,
+        email: body.memberEmail,
+        phone_mobile: body.memberPhone || null,
+        created_at: new Date().toISOString(),
+        reviewed_at: new Date().toISOString(),
+        companies: [],
+      };
+    }
+
     if (!app.email) throw new Error("No email on application");
 
     const authz = await authorizeInternalOrWorkspaceUser(req, sb, app.workspace_id, ADMIN_ROLES);
@@ -66,6 +169,7 @@ Deno.serve(async (req: Request) => {
     const wsName = ws?.name || "CRIE";
     const firstName = (app.full_name || "Membro").split(" ")[0];
     const isCM = app.module === "cm";
+    const { tempPassword } = await ensureAppLogin(app, wsName);
 
     // ── Brand tokens ─────────────────────────────────────────────────
     const accent     = isCM ? "#D6336C" : "#F59E0B";
@@ -91,6 +195,25 @@ Deno.serve(async (req: Request) => {
            </table>
          </td></tr>`
       : "";
+
+    const accessBlock = `<tr><td style="padding:0 40px 28px">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#111318;border-radius:16px;border:1px solid ${accent}55;overflow:hidden">
+        <tr><td style="padding:24px 28px">
+          <p style="margin:0 0 14px;font-size:13px;font-weight:800;color:${accent};text-transform:uppercase;letter-spacing:1px">Acesso ao CRIE App</p>
+          <p style="margin:0 0 14px;font-size:14px;color:rgba(255,255,255,.76);line-height:1.7">Use o email desta aplicação e a password temporária abaixo para entrar no app. Depois, altere a password no seu perfil.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0c0c10;border:1px solid rgba(255,255,255,.08);border-radius:12px">
+            <tr>
+              <td style="padding:14px 16px;color:#aaa;font-size:12px;width:32%">Email</td>
+              <td style="padding:14px 16px;color:#fff;font-size:14px;font-weight:700">${app.email}</td>
+            </tr>
+            <tr>
+              <td style="padding:14px 16px;color:#aaa;font-size:12px;border-top:1px solid rgba(255,255,255,.08)">Password temporária</td>
+              <td style="padding:14px 16px;color:${accent};font-size:18px;font-weight:900;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.08)">${tempPassword}</td>
+            </tr>
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>`;
 
     // ── Companies summary ────────────────────────────────────────────
     const companies: any[] = app.companies || [];
@@ -199,6 +322,9 @@ Deno.serve(async (req: Request) => {
   <!-- PDF download -->
   ${pdfBlock}
 
+  <!-- App access -->
+  ${accessBlock}
+
   <!-- Next steps -->
   <tr><td style="padding:0 40px 32px">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;border-radius:14px;border:1px solid #eee">
@@ -211,7 +337,7 @@ Deno.serve(async (req: Request) => {
           </tr>
           <tr>
             <td style="padding:8px 0;vertical-align:top;width:28px;font-size:16px">2️⃣</td>
-            <td style="padding:8px 0;font-size:14px;color:#444;line-height:1.6"><b>Baixe o App</b> — Acesse conteúdos, playlists e a agenda do grupo pelo app do CRIE.</td>
+            <td style="padding:8px 0;font-size:14px;color:#444;line-height:1.6"><b>Entre no App</b> — Acesse conteúdos, playlists e a agenda do grupo pelo app do CRIE.</td>
           </tr>
           <tr>
             <td style="padding:8px 0;vertical-align:top;width:28px;font-size:16px">3️⃣</td>

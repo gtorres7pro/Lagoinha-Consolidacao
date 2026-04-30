@@ -304,6 +304,8 @@ async function renderCmConfigTab() {
   v('cm-cfg-timezone', cfg.timezone || 'America/Sao_Paulo');
   v('cm-cfg-initial-balance', cfg.initial_balance ?? '');
   v('cm-cfg-initial-balance-date', (cfg.initial_balance_date || '').slice(0, 10));
+  const enabledEl = document.getElementById('cm-cfg-enabled');
+  if (enabledEl) enabledEl.checked = cfg.enabled === true;
 
   const statusEl = document.getElementById('cm-stripe-status');
   const btnConn  = document.getElementById('btn-cm-stripe-connect');
@@ -1154,6 +1156,9 @@ function renderCmMembros(members) {
 
   function buildCard(m) {
     var initials    = (m.name||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+    var avatarHtml  = m.avatar_url
+      ? `<img src="${cmEsc(m.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : cmEsc(initials);
     var overdueIds  = window._cmOverdueIds || new Set();
     var hasOverdue  = overdueIds.has(m.id);
     var fee         = m.monthly_fee || ((window._cmSettings && window._cmSettings.membership_fee) || 0);
@@ -1175,7 +1180,7 @@ function renderCmMembros(members) {
              onmouseout="this.style.transform='';this.style.boxShadow=''">
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
                 <div style="position:relative;flex-shrink:0;">
-                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;">${cmEsc(initials)}</div>
+                    <div style="width:44px;height:44px;border-radius:50%;background:rgba(214,51,108,.12);border:1px solid rgba(214,51,108,.3);display:flex;align-items:center;justify-content:center;font-weight:900;color:${CM_ROSE};font-size:1rem;overflow:hidden;">${avatarHtml}</div>
                     ${payDot}
                 </div>
                 <div style="flex:1;min-width:0;">
@@ -1465,9 +1470,19 @@ window.reviewCmApplication = async function(appId, appUserId, decision) {
         await sb.from('cm_members').insert({ workspace_id:wsId, name:appUser.name, email:appUser.email, phone:appUser.phone||null, app_user_id:appUserId, status:'ativo', source:'app' });
       }
       try {
+        const { data: { session } } = await sb.auth.getSession();
         fetch(`${EDGE}/crie-member-welcome`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ memberName:appUser.name, memberEmail:appUser.email, workspaceName:(window._allWorkspaces||[]).find(w=>w.id===wsId)?.name||'', appUrl:'https://crie-app.7prolabs.com' })
+          method:'POST',
+          headers:{'Content-Type':'application/json', 'Authorization': `Bearer ${session?.access_token || ''}`},
+          body: JSON.stringify({
+            memberName:appUser.name,
+            memberEmail:appUser.email,
+            memberPhone:appUser.phone || null,
+            workspace_id:wsId,
+            module:'cm',
+            workspaceName:(window._allWorkspaces||[]).find(w=>w.id===wsId)?.name||'',
+            appUrl:'https://crie-app.7prolabs.com'
+          })
         }).catch(_=>{});
       } catch(_) {}
     }
@@ -1761,6 +1776,24 @@ window.copyCmInscricaoLink = function() {
   });
 };
 
+window.copyCmAppLink = function() {
+  const link = 'https://crie-app.7prolabs.com/crie-app.html';
+  const notify = () => showToast('Link do CRIE App copiado!', 'success');
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(link).then(notify).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = link; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      notify();
+    });
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = link; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  notify();
+};
+
 
 (function initCmBadgePoller() {
   // Source of truth: crie_member_applications_v2 (module='cm')
@@ -1834,9 +1867,11 @@ window.saveCmConfig = async function() {
   const timezone = document.getElementById('cm-cfg-timezone')?.value || 'America/Sao_Paulo';
   const initialBalance = parseFloat(document.getElementById('cm-cfg-initial-balance')?.value || '0') || 0;
   const initialDate = document.getElementById('cm-cfg-initial-balance-date')?.value || null;
+  const enabled = document.getElementById('cm-cfg-enabled')?.checked === true;
   const existing = window._cmSettings || {};
   const updated  = {
     ...existing,
+    enabled,
     membership_fee:fee,
     membership_currency:currency,
     default_country_code:country,
