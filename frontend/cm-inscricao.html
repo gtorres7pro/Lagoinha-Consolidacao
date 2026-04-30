@@ -177,24 +177,26 @@ async function init() {
   let ev = null;
   if (eventId) {
     const { data } = await sb.from('cm_events')
-      .select('*').eq('id', eventId).eq('workspace_id', wsId).eq('status', 'active').single();
+      .select('*').eq('id', eventId).eq('workspace_id', wsId).eq('status', 'active').eq('open_to_guests', true).single();
     ev = data;
   }
   if (!ev) {
-    // Auto-load: next upcoming active event open to guests (or any active)
+    // Auto-load: next upcoming active event open to guests only
     const now = new Date().toISOString();
     const { data: upcoming } = await sb.from('cm_events')
       .select('*')
       .eq('workspace_id', wsId)
       .eq('status', 'active')
+      .eq('open_to_guests', true)
       .gte('event_date', now)
       .order('event_date', { ascending: true })
       .limit(1);
     ev = upcoming?.[0] || null;
     if (!ev) {
-      // Fallback: any active event
+      // Fallback: most recent active event open to guests
       const { data: anyActive } = await sb.from('cm_events')
         .select('*').eq('workspace_id', wsId).eq('status', 'active')
+        .eq('open_to_guests', true)
         .order('event_date', { ascending: false }).limit(1);
       ev = anyActive?.[0] || null;
     }

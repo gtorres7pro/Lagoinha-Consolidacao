@@ -25,8 +25,34 @@ async function cmWsId() {
   const { data } = await sb.from('users').select('workspace_id').eq('id', user.id).single();
   return data?.workspace_id || null;
 }
+const CM_CURRENCY_SYMBOLS = {
+  BRL:'R$',
+  EUR:'€',
+  USD:'$',
+  GBP:'£',
+  CHF:'CHF',
+  CAD:'CA$',
+  AUD:'A$',
+  AOA:'Kz',
+  MZN:'MT',
+  ARS:'$',
+  COP:'$',
+};
+function cmCurrencyCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const bySymbol = { '€':'EUR', 'R$':'BRL', '$':'USD', '£':'GBP', Kz:'AOA', MT:'MZN' };
+  return bySymbol[raw] || raw.toUpperCase();
+}
+function cmCurrency(settings) {
+  return cmCurrencyCode(settings?.default_currency || settings?.membership_currency || settings?.currency || 'BRL');
+}
+function cmCurrencySymbol(value) {
+  const code = cmCurrencyCode(value);
+  return CM_CURRENCY_SYMBOLS[code] || value || 'R$';
+}
 function cmFmt(amount, sym) {
-  sym = sym || (window._cmSettings?.currency_symbol || 'R$');
+  sym = sym || cmCurrencySymbol(cmCurrency(window._cmSettings || {}));
   return sym + ' ' + parseFloat(amount || 0).toFixed(2).replace('.', ',');
 }
 function cmDateStr(ts) {
@@ -91,11 +117,88 @@ async function loadCmRelatorios() {
   const wsId = await cmWsId();
   if (!wsId) return;
 
-  // Load finances
-  const { data: finances } = await sb.from('cm_finances')
-    .select('*').eq('workspace_id', wsId)
-    .order('created_at', { ascending: false });
-  window._cmFinances = finances || [];
+  const safeQuery = async (query, fallback = []) => {
+    try {
+      const { data, error } = await query;
+      if (error) {
+        console.warn('[CM reports] optional query failed:', error.message);
+        return fallback;
+      }
+      return data || fallback;
+    } catch (err) {
+      console.warn('[CM reports] optional query failed:', err.message);
+      return fallback;
+    }
+  };
+
+  const [settingsRow, finances, members, payments, bills] = await Promise.all([
+    safeQuery(sb.from('workspaces').select('cm_settings').eq('id', wsId).single(), {}),
+    safeQuery(sb.from('cm_finances').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+    safeQuery(sb.from('cm_members').select('id,name,email,status,monthly_fee').eq('workspace_id', wsId)),
+    safeQuery(sb.from('cm_membership_payments').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+    safeQuery(sb.from('cm_member_bills').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+  ]);
+  window._cmSettings = settingsRow?.cm_settings || window._cmSettings || {};
+
+  const cfgCurrency = cmCurrency(window._cmSettings);
+  const memberById = {};
+  (members || []).forEach(m => { memberById[m.id] = m; });
+  const paidStatuses = new Set(['paid', 'pago', 'succeeded', 'success', 'confirmed']);
+  const isPaid = p => paidStatuses.has(String(p?.status || p?.payment_status || '').toLowerCase());
+  const rows = [...(finances || [])];
+  const seenPaymentKeys = new Set();
+
+  (payments || []).filter(isPaid).forEach(p => {
+    const member = memberById[p.member_id] || {};
+    const amount = parseFloat(p.amount || 0);
+    const ref = p.reference_month || p.month || '';
+    if (p.member_id && ref) seenPaymentKeys.add(`${p.member_id}|${ref}|${amount.toFixed(2)}`);
+    rows.push({
+      id: `cm-membership-payment-${p.id}`,
+      type: 'income',
+      description: `Mensalidade${member.name ? ' - ' + member.name : ''}${ref ? ' (' + ref + ')' : ''}`,
+      payment_method: p.payment_method || 'membresia',
+      amount,
+      currency: cmCurrencyCode(p.currency || cfgCurrency),
+      created_at: p.paid_at || p.created_at,
+      readonly: true,
+    });
+  });
+
+  (bills || []).filter(isPaid).forEach(b => {
+    const amount = parseFloat(b.amount || 0);
+    const ref = b.reference_month || b.month || '';
+    const key = b.member_id && ref ? `${b.member_id}|${ref}|${amount.toFixed(2)}` : '';
+    if (key && seenPaymentKeys.has(key)) return;
+    const member = memberById[b.member_id] || {};
+    rows.push({
+      id: `cm-member-bill-${b.id}`,
+      type: 'income',
+      description: `Mensalidade${member.name ? ' - ' + member.name : ''}${ref ? ' (' + ref + ')' : ''}`,
+      payment_method: 'membresia',
+      amount,
+      currency: cmCurrencyCode(b.currency || cfgCurrency),
+      created_at: b.paid_at || b.updated_at || b.created_at,
+      readonly: true,
+    });
+  });
+
+  const initialBalance = Number(window._cmSettings.initial_balance || 0);
+  if (initialBalance !== 0) {
+    rows.push({
+      id: 'cm-initial-balance',
+      type: initialBalance >= 0 ? 'income' : 'expense',
+      description: 'Saldo inicial do workspace',
+      payment_method: 'saldo inicial',
+      amount: Math.abs(initialBalance),
+      currency: cfgCurrency,
+      created_at: window._cmSettings.initial_balance_date || new Date(0).toISOString(),
+      readonly: true,
+    });
+  }
+
+  rows.sort((a,b)=>new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  window._cmFinances = rows;
   renderCmFinances(window._cmFinances);
 
   // Init settings tab
@@ -118,7 +221,7 @@ function renderCmFinances(rows) {
       <td><span style="color:${typeColor[r.type]||'#fff'};font-weight:700;">${cmEsc(typeMap[r.type]||r.type)}</span></td>
       <td>${cmEsc(r.description||'—')}</td>
       <td>${cmEsc(r.payment_method||'—')}</td>
-      <td style="color:${r.type==='expense'?'#f87171':'#34d399'};font-weight:700;">${cmFmt(r.amount)}</td>
+      <td style="color:${r.type==='expense'?'#f87171':'#34d399'};font-weight:700;">${cmFmt(r.amount, r.currency ? cmCurrencySymbol(r.currency) : undefined)}</td>
     </tr>`).join('');
 
   // KPIs
@@ -129,12 +232,10 @@ function renderCmFinances(rows) {
   setEl('cm-kpi-despesas', cmFmt(despesas));
   setEl('cm-kpi-saldo', cmFmt(receitas - despesas));
 
-  // Mensalidades KPI (sum from cm_membership_payments)
-  cmSb().from('cm_membership_payments').select('amount').eq('status','paid')
-    .then(({data}) => {
-      const total = (data||[]).reduce((s,p)=>s+parseFloat(p.amount||0),0);
-      setEl('cm-kpi-mensalidades', cmFmt(total));
-    });
+  const mensalidades = rows
+    .filter(r => ['membresia', 'membership_payment'].includes(String(r.payment_method || r.source || '').toLowerCase()) || String(r.id || '').includes('membership-payment') || String(r.id || '').includes('member-bill'))
+    .reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  setEl('cm-kpi-mensalidades', cmFmt(mensalidades));
 }
 
 // switchCmRelTab — handles financeiro / por-evento / config
@@ -201,6 +302,8 @@ async function renderCmConfigTab() {
   v('cm-cfg-currency', cfg.membership_currency || 'BRL');
   v('cm-cfg-country', cfg.default_country_code || '+55');
   v('cm-cfg-timezone', cfg.timezone || 'America/Sao_Paulo');
+  v('cm-cfg-initial-balance', cfg.initial_balance ?? '');
+  v('cm-cfg-initial-balance-date', (cfg.initial_balance_date || '').slice(0, 10));
 
   const statusEl = document.getElementById('cm-stripe-status');
   const btnConn  = document.getElementById('btn-cm-stripe-connect');
@@ -293,6 +396,7 @@ function renderCmEventos(events) {
           <div style="display:flex;gap:4px;">
             ${e.online_payment_enabled ? '<span style="font-size:.65rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:#34d399;border-radius:6px;padding:2px 6px;">Stripe</span>' : ''}
             ${e.open_to_guests ? '<span style="font-size:.65rem;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.2);color:#60a5fa;border-radius:6px;padding:2px 6px;">Público</span>' : ''}
+            ${e.members_pay ? '<span style="font-size:.65rem;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:#fbbf24;border-radius:6px;padding:2px 6px;">Membras pagam</span>' : ''}
           </div>
         </div>
       </div>
@@ -372,6 +476,7 @@ window.openCmEventoDrawer = function(eventId) {
   setToggle('cm-toggle-is-free', !!e.is_free);
   setToggle('cm-toggle-online-payment', !!e.online_payment_enabled);
   setToggle('cm-toggle-open-to-guests', !!e.open_to_guests);
+  setToggle('cm-toggle-members-pay', e.members_pay === true);
   const pr = document.getElementById('cm-dedit-price-row');
   if (pr) pr.style.display = e.is_free ? 'none' : 'grid';
 
@@ -402,12 +507,16 @@ window.openCmEventoDrawer = function(eventId) {
   const inscLink = window.location.origin + '/cm-inscricao.html?id=' + eventId;
   const linkEl   = document.getElementById('cm-drawer-link-url');
   const qrEl     = document.getElementById('cm-drawer-link-qr');
-  if (linkEl) linkEl.textContent = inscLink;
+  if (linkEl) linkEl.textContent = e.open_to_guests ? inscLink : 'Evento exclusivo para membras - sem link público';
   if (qrEl) {
-    qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(inscLink)}`;
-    qrEl.style.display = 'block';
+    if (e.open_to_guests) {
+      qrEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(inscLink)}`;
+      qrEl.style.display = 'block';
+    } else {
+      qrEl.style.display = 'none';
+    }
   }
-  window._cmDrawerInscricaoLink = inscLink;
+  window._cmDrawerInscricaoLink = e.open_to_guests ? inscLink : '';
 
   // Show drawer on Info tab
   switchCmDrawerTab('info');
@@ -454,6 +563,7 @@ window.saveCmEventoDrawer = async function() {
     is_free: getToggle('cm-toggle-is-free'),
     online_payment_enabled: getToggle('cm-toggle-online-payment'),
     open_to_guests: getToggle('cm-toggle-open-to-guests'),
+    members_pay: getToggle('cm-toggle-members-pay'),
   };
   const dateVal = document.getElementById('cm-dedit-date')?.value;
   if (dateVal) payload.event_date = new Date(dateVal).toISOString();
@@ -519,6 +629,13 @@ window.toggleCmEventoOnlinePayment = function(el) {
   el.dataset.val = on ? '1' : '0';
 };
 window.toggleCmEventoOpenToGuests = function(el) {
+  const on = el.dataset.val !== '1';
+  const knob = el.querySelector('div');
+  el.style.background = on ? '#d6336c' : 'rgba(255,255,255,.1)';
+  if(knob) knob.style.left = on ? '21px' : '3px';
+  el.dataset.val = on ? '1' : '0';
+};
+window.toggleCmEventoMembersPay = function(el) {
   const on = el.dataset.val !== '1';
   const knob = el.querySelector('div');
   el.style.background = on ? '#d6336c' : 'rgba(255,255,255,.1)';
@@ -1715,8 +1832,18 @@ window.saveCmConfig = async function() {
   const currency = document.getElementById('cm-cfg-currency')?.value || 'BRL';
   const country  = document.getElementById('cm-cfg-country')?.value || '+55';
   const timezone = document.getElementById('cm-cfg-timezone')?.value || 'America/Sao_Paulo';
+  const initialBalance = parseFloat(document.getElementById('cm-cfg-initial-balance')?.value || '0') || 0;
+  const initialDate = document.getElementById('cm-cfg-initial-balance-date')?.value || null;
   const existing = window._cmSettings || {};
-  const updated  = { ...existing, membership_fee:fee, membership_currency:currency, default_country_code:country, timezone };
+  const updated  = {
+    ...existing,
+    membership_fee:fee,
+    membership_currency:currency,
+    default_country_code:country,
+    timezone,
+    initial_balance: initialBalance,
+    initial_balance_date: initialDate ? new Date(initialDate + 'T00:00:00').toISOString() : null,
+  };
   const { error } = await sb.from('workspaces').update({ cm_settings: updated }).eq('id', wsId);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   window._cmSettings = updated;

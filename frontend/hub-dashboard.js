@@ -5363,6 +5363,41 @@ window.switchTab = function(tab) {
  * Called on every CRIE tab switch so drawers and toggles always have fresh state.
  */
 let _crieStripeStateLoading = false;
+const CRIE_CURRENCY_SYMBOLS = {
+    USD: '$',
+    BRL: 'R$',
+    EUR: '€',
+    GBP: '£',
+    AOA: 'Kz',
+    MZN: 'MT',
+    CHF: 'CHF',
+    CAD: 'CA$',
+    AUD: 'A$',
+    ARS: '$',
+    COP: '$',
+};
+
+function crieCurrencyCode(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const bySymbol = { '€': 'EUR', 'R$': 'BRL', '$': 'USD', '£': 'GBP', Kz: 'AOA', MT: 'MZN' };
+    return bySymbol[raw] || raw.toUpperCase();
+}
+
+function crieCurrencySymbol(value) {
+    const code = crieCurrencyCode(value);
+    return CRIE_CURRENCY_SYMBOLS[code] || value || '$';
+}
+
+function crieSettingsCurrency(settings = {}) {
+    return crieCurrencyCode(settings.crie_default_currency || settings.default_currency || settings.membership_currency || 'BRL');
+}
+
+function crieMoney(amount, currency) {
+    const code = crieCurrencyCode(currency || window._crieDefaultCurrency || 'BRL');
+    return `${crieCurrencySymbol(code)}${Number(amount || 0).toFixed(2)}`;
+}
+
 async function _initCrieStripeState() {
     if (window._crieStripeConnected !== undefined) return; // already loaded
     if (_crieStripeStateLoading) return;
@@ -5376,17 +5411,17 @@ async function _initCrieStripeState() {
         window._crieStripeConnected      = !!s.stripe_connected;
         window._crieStripePublishableKey = s.stripe_publishable_key || '';
         // Regional defaults — used by event drawers and public forms
-        window._crieDefaultCurrency      = s.membership_currency || s.default_currency || s.crie_default_currency || 'USD';
-        window._crieDefaultCurrencySymbol = ({ USD:'$', BRL:'R$', EUR:'€', GBP:'£' })[window._crieDefaultCurrency] || '$';
-        window._crieDefaultCountryCode   = s.default_country_code || s.crie_default_country_code || '+1';
+        window._crieDefaultCurrency      = crieSettingsCurrency(s);
+        window._crieDefaultCurrencySymbol = crieCurrencySymbol(window._crieDefaultCurrency);
+        window._crieDefaultCountryCode   = s.crie_default_country_code || s.default_country_code || '+55';
         window._crieBillDueDay           = s.bill_due_day || 1;
         window._crieAutoBillEnabled      = !!s.auto_bill_enabled;
         window._crieMembershipFee        = s.membership_fee || 0;
     } catch(e) {
         window._crieStripeConnected      = false;
-        window._crieDefaultCurrency      = 'USD';
-        window._crieDefaultCurrencySymbol = '$';
-        window._crieDefaultCountryCode   = '+1';
+        window._crieDefaultCurrency      = 'BRL';
+        window._crieDefaultCurrencySymbol = 'R$';
+        window._crieDefaultCountryCode   = '+55';
     } finally {
         _crieStripeStateLoading = false;
     }
@@ -6534,14 +6569,14 @@ function renderCrieEventos(list) {
     };
 
     const publicUrl = _getPublicCrieUrl();
-    const currency  = ev => ev.currency || '€';
+    const currency  = ev => crieCurrencySymbol(ev.currency || window._crieDefaultCurrency || 'BRL');
 
     function renderCard(ev) {
         const st = statusMap[ev.status] || statusMap.DRAFT;
         const attendeeCount = ev.crie_attendees?.[0]?.count || 0;
         const occupancy = ev.capacity > 0 ? Math.round((attendeeCount / ev.capacity) * 100) : null;
         const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }) : '—';
-        const isPublic = ev.status === 'ACTIVE' || ev.status === 'LIVE';
+        const isPublic = (ev.status === 'ACTIVE' || ev.status === 'LIVE') && ev.open_to_guests !== false;
         const isFinalizado = ev.status === 'CONCLUIDO' || ev.locked;
         const hasReport = !!ev.report_sent_at;
 
@@ -6569,6 +6604,7 @@ function renderCrieEventos(list) {
                     : (ev.price > 0 ? `<span style="font-size:.76rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:4px 9px;color:#F59E0B;font-weight:700;">${ev.price.toFixed(2)} ${currency(ev)}</span>` : '')}
                 ${ev.online_payment_enabled ? '<span style="font-size:.76rem;background:rgba(99,80,255,.08);border:1px solid rgba(99,80,255,.25);border-radius:8px;padding:4px 9px;color:#a78bfa;font-weight:700;">&#9889; Pag. Online</span>' : ''}
                 ${ev.open_to_guests === false ? '<span style="font-size:.76rem;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:4px 9px;color:#f87171;font-weight:700;">&#128274; Só Membros</span>' : ''}
+                ${ev.members_pay ? '<span style="font-size:.76rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:4px 9px;color:#F59E0B;font-weight:700;">Membros pagam</span>' : '<span style="font-size:.76rem;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">Membros grátis</span>'}
                 <span style="font-size:.76rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.5);">&#128101; ${attendeeCount}${ev.capacity > 0 ? '/' + ev.capacity : ''}</span>
                 ${hasReport ? '<span style="font-size:.76rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:4px 9px;color:#4ade80;font-weight:700;">&#10003; Relatório enviado</span>' :
                               (isFinalizado ? '<span style="font-size:.76rem;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:4px 9px;color:#f87171;font-weight:700;">&#9888; Relatório pendente</span>' : '')}
@@ -6645,10 +6681,12 @@ function openEventoDrawer(id) {
     const isFree      = !!ev.is_free;
     const onlinePay   = !!ev.online_payment_enabled;
     const openGuests  = ev.open_to_guests !== false; // default true for backward compat
+    const membersPay  = ev.members_pay === true;
 
     setEventoToggle('toggle-is-free',          isFree,     '#F59E0B');
     setEventoToggle('toggle-online-payment',   onlinePay,  '#6350FF');
     setEventoToggle('toggle-open-to-guests',   openGuests, '#34D399');
+    setEventoToggle('toggle-members-pay',      membersPay, '#F59E0B');
 
     // Show/hide price row based on is_free at open time
     const priceRow = document.getElementById('dedit-price-row');
@@ -6760,6 +6798,11 @@ window.toggleEventoOpenToGuests = function(track) {
     setEventoToggle('toggle-open-to-guests', newVal, '#34D399');
 };
 
+window.toggleEventoMembersPay = function(track) {
+    const newVal = track.dataset.active !== 'true';
+    setEventoToggle('toggle-members-pay', newVal, '#F59E0B');
+};
+
 function switchDrawerTab(tab) {
     ['info','inscritos','financeiro'].forEach(t => {
         const panel = document.getElementById(`drawer-panel-${t}`);
@@ -6793,12 +6836,13 @@ async function saveEventoDrawer() {
         capacity:                parseInt(document.getElementById('dedit-capacity').value) || 0,
         location:                document.getElementById('dedit-location').value.trim(),
         price:                   parseFloat(document.getElementById('dedit-price').value) || 0,
-        currency:                document.getElementById('dedit-currency').value || 'EUR',
+        currency:                document.getElementById('dedit-currency').value || window._crieDefaultCurrency || 'BRL',
         status:                  document.getElementById('dedit-status').value,
         banner_url:              existingBannerUrl,
         is_free:                 document.getElementById('toggle-is-free')?.dataset.active === 'true',
         online_payment_enabled:  document.getElementById('toggle-online-payment')?.dataset.active === 'true',
         open_to_guests:          document.getElementById('toggle-open-to-guests')?.dataset.active === 'true',
+        members_pay:             document.getElementById('toggle-members-pay')?.dataset.active === 'true',
     };
     // If event is free, force price to 0 and disable online payment
     if (payload.is_free) { payload.price = 0; payload.online_payment_enabled = false; }
@@ -6890,8 +6934,7 @@ async function loadDrawerFinanceiro() {
 
     const pagos    = (att || []).filter(a => a.payment_status === 'Pago').length;
     const price    = ev.price || 0;
-    const currSymbols = { 'BRL': 'R$', 'EUR': '€', 'USD': '$', 'GBP': '£' };
-    const currency = currSymbols[ev.currency] || ev.currency || '€';
+    const currency = crieCurrencySymbol(ev.currency || window._crieDefaultCurrency || 'BRL');
     const recInscricoes = pagos * price;
     document.getElementById('fin-inscricoes-info').textContent = `${pagos} pagos x ${currency}${price.toFixed(2)} = ${currency}${recInscricoes.toFixed(2)}`;
 
@@ -6950,7 +6993,7 @@ async function saveFinLancamento() {
     const amount = parseFloat(document.getElementById('fin-form-amount').value);
     if (!id || !desc || isNaN(amount) || amount <= 0) { hubToast('Preenche descrição e valor!', 'error'); return; }
     const sb = window.supabaseClient;
-    const { error } = await sb.from('crie_finances').insert({ event_id: id, workspace_id: wsId, type: _finLancamentoType, description: desc, amount });
+    const { error } = await sb.from('crie_finances').insert({ event_id: id, workspace_id: wsId, type: _finLancamentoType, description: desc, amount, currency: window._crieDefaultCurrency || 'BRL' });
     if (error) { hubToast('Erro: ' + error.message, 'error'); return; }
     hubToast(`${_finLancamentoType} lançada!`, 'success');
     document.getElementById('fin-lancamento-form').style.display = 'none';
@@ -6987,7 +7030,7 @@ async function fecharEvento() {
     const ausentes  = total - presentes;
     const pagos     = attendees.filter(a => a.payment_status === 'Pago').length;
     const price     = ev.price || 0;
-    const currency  = ev.currency || '€';
+    const currency  = crieCurrencySymbol(ev.currency || window._crieDefaultCurrency || 'BRL');
     const recInsc   = pagos * price;
     const manRec    = lancamentos.filter(l => l.type === 'Receita').reduce((s,l) => s + l.amount, 0);
     const manDesp   = lancamentos.filter(l => l.type === 'Despesa').reduce((s,l) => s + l.amount, 0);
@@ -7110,6 +7153,8 @@ async function reabrirEvento() {
 function openCreateEventoModal() {
     const modal = document.getElementById('modal-create-evento');
     clearEventBanner();
+    const curr = document.querySelector('#modal-create-evento select[name="currency"]');
+    if (curr && window._crieDefaultCurrency) curr.value = window._crieDefaultCurrency;
     if (modal) modal.style.display = 'flex';
 }
 
@@ -7188,6 +7233,7 @@ function clearEventBanner() {
     setEventoToggle('ctoggle-is-free',          false, '#F59E0B');
     setEventoToggle('ctoggle-online-payment',   false, '#6350FF');
     setEventoToggle('ctoggle-open-to-guests',   true,  '#34D399');
+    setEventoToggle('ctoggle-members-pay',      false, '#F59E0B');
     const pr = document.getElementById('create-price-row');
     if (pr) pr.style.display = 'grid';
     ['create-is-free-val','create-online-pay-val'].forEach(id => {
@@ -7195,6 +7241,8 @@ function clearEventBanner() {
     });
     const og = document.getElementById('create-open-guests-val');
     if (og) og.value = 'true';
+    const mp = document.getElementById('create-members-pay-val');
+    if (mp) mp.value = 'false';
 }
 
 /**
@@ -7246,6 +7294,7 @@ async function saveCrieEvento(e) {
         is_free:                form.elements['is_free']?.value === 'true',
         online_payment_enabled: form.elements['online_payment_enabled']?.value === 'true',
         open_to_guests:         form.elements['open_to_guests']?.value !== 'false',
+        members_pay:            form.elements['members_pay']?.value === 'true',
     };
     if (payload.is_free) { payload.price = 0; payload.online_payment_enabled = false; }
     if (!payload.title) {
@@ -7573,6 +7622,7 @@ const FIN_TAG_META = {
     ingresso:  { icon: '🎟️', label: 'Ingresso',         color: 'rgba(96,165,250,0.5)'  },
     membresia: { icon: '⭐', label: 'Membresia',        color: 'rgba(251,191,36,0.6)'  },
     doacao:    { icon: '🎁', label: 'Doação',           color: 'rgba(52,211,153,0.5)'  },
+    saldo_inicial: { icon: '🏦', label: 'Saldo Inicial', color: 'rgba(96,165,250,0.5)' },
     avulso:    { icon: '📌', label: 'Avulso',           color: 'rgba(255,255,255,0.25)'},
 };
 
@@ -7649,8 +7699,8 @@ async function loadCrieSettings() {
     const feeInput = document.getElementById('membership-fee-input');
     const currSel  = document.getElementById('membership-currency-select');
     if (feeInput && s.membership_fee != null) feeInput.value = s.membership_fee;
-    // Use membership_currency or fall back to the workspace's default currency
-    const effectiveCurr = s.membership_currency || s.default_currency || s.crie_default_currency || 'USD';
+    // Use membership currency for billing, falling back to regional default.
+    const effectiveCurr = crieCurrencyCode(s.membership_currency || crieSettingsCurrency(s) || 'BRL');
     if (currSel) currSel.value = effectiveCurr;
 
     // ── Billing automation settings ───────────────────────────
@@ -7661,13 +7711,21 @@ async function loadCrieSettings() {
 
     // ── Regional settings ──────────────────────────────────────
     // Cache globally so event drawers & public pages can use these
-    window._crieDefaultCurrency    = s.crie_default_currency    || 'BRL';
-    window._crieDefaultCountryCode = s.crie_default_country_code || '+55';
+    window._crieDefaultCurrency       = crieSettingsCurrency(s);
+    window._crieDefaultCurrencySymbol = crieCurrencySymbol(window._crieDefaultCurrency);
+    window._crieDefaultCountryCode    = s.crie_default_country_code || s.default_country_code || '+55';
 
     const defCurrSel    = document.getElementById('crie-default-currency-select');
     const defCountrySel = document.getElementById('crie-default-country-select');
     if (defCurrSel)    defCurrSel.value    = window._crieDefaultCurrency;
     if (defCountrySel) defCountrySel.value = window._crieDefaultCountryCode;
+
+    const initialBalanceInput = document.getElementById('crie-initial-balance-input');
+    const initialBalanceDate  = document.getElementById('crie-initial-balance-date');
+    const initialCurrencyEl   = document.getElementById('crie-initial-balance-currency');
+    if (initialBalanceInput) initialBalanceInput.value = s.initial_balance ?? '';
+    if (initialBalanceDate)  initialBalanceDate.value  = (s.initial_balance_date || '').slice(0, 10);
+    if (initialCurrencyEl)   initialCurrencyEl.textContent = window._crieDefaultCurrency;
 
     // ── Coupons list ──────────────────────────────────────────
     await loadCrieCoupons();
@@ -7756,12 +7814,11 @@ window.saveMembershipSettings = async function() {
         if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
     } else {
         // Update global currency symbol immediately
-        window._crieDefaultCurrency = curr;
-        window._crieDefaultCurrencySymbol = ({ USD:'$', BRL:'R$', EUR:'€', GBP:'£' })[curr] || '$';
+        window._crieDefaultCurrency = crieCurrencyCode(curr);
+        window._crieDefaultCurrencySymbol = crieCurrencySymbol(curr);
         window._crieMembershipFee = fee;
         _crieStripeStateLoading = false; // force re-read on next tab switch
-        const sym = window._crieDefaultCurrencySymbol;
-        if (msg) { msg.textContent = `✓ Mensalidade de ${sym}${fee.toFixed(2)}/mês guardada.`; msg.style.color = '#4ade80'; }
+        if (msg) { msg.textContent = `✓ Mensalidade de ${crieMoney(fee, curr)}/mês guardada.`; msg.style.color = '#4ade80'; }
         setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     }
 };
@@ -7807,13 +7864,40 @@ window.saveCrieRegionalSettings = async function() {
         if (msg) { msg.textContent = '❌ Erro ao guardar.'; msg.style.color = '#f87171'; }
     } else {
         // Update global cache immediately
-        window._crieDefaultCurrency    = curr;
+        window._crieDefaultCurrency    = crieCurrencyCode(curr);
+        window._crieDefaultCurrencySymbol = crieCurrencySymbol(curr);
         window._crieDefaultCountryCode = country;
         // Reset stripe-state cache so next CRIE tab switch re-reads settings
         _crieStripeStateLoading = false;
         if (msg) { msg.textContent = `✓ Configurações regionais guardadas (${curr}, ${country}).`; msg.style.color = '#60a5fa'; }
         setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     }
+};
+
+/** Save initial finance balance for this workspace */
+window.saveCrieInitialBalanceSettings = async function() {
+    const wsId = getCrieWorkspaceId();
+    const amount = parseFloat(document.getElementById('crie-initial-balance-input')?.value || '0') || 0;
+    const date = document.getElementById('crie-initial-balance-date')?.value || null;
+    const msg = document.getElementById('crie-initial-balance-msg');
+    if (msg) { msg.textContent = 'A guardar...'; msg.style.color = 'rgba(255,255,255,0.4)'; }
+
+    const sb = window.supabaseClient;
+    const { data: ws } = await sb.from('workspaces').select('crie_settings').eq('id', wsId).single();
+    const current = ws?.crie_settings || {};
+    const updated = {
+        ...current,
+        initial_balance: amount,
+        initial_balance_date: date ? new Date(date + 'T00:00:00').toISOString() : null,
+    };
+    const { error } = await sb.from('workspaces').update({ crie_settings: updated }).eq('id', wsId);
+    if (error) {
+        if (msg) { msg.textContent = '❌ Erro ao guardar saldo inicial.'; msg.style.color = '#f87171'; }
+        return;
+    }
+    if (msg) { msg.textContent = `✓ Saldo inicial guardado: ${crieMoney(amount, crieSettingsCurrency(updated))}.`; msg.style.color = '#4ade80'; }
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    await loadCrieRelatorios();
 };
 
 /** Load and render coupons list */
@@ -7839,7 +7923,7 @@ function renderCrieCoupons(coupons) {
     const applicableLabel = { both: 'Ambos', events: 'Eventos', memberships: 'Mensalidades' };
 
     const rows = coupons.map(c => {
-        const discStr = c.type === 'percent' ? `${c.discount}%` : `${c.currency || 'EUR'} ${Number(c.discount).toFixed(2)}`;
+        const discStr = c.type === 'percent' ? `${c.discount}%` : `${c.currency || window._crieDefaultCurrency || 'BRL'} ${Number(c.discount).toFixed(2)}`;
         const expStr  = c.expires_at ? new Date(c.expires_at).toLocaleDateString('pt-PT') : '∞';
         const statusColor = c.is_active ? '#4ade80' : 'rgba(255,255,255,0.25)';
         return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">
@@ -7880,7 +7964,7 @@ window.updateCouponTypeUI = function() {
         label.textContent = 'Desconto (%)';
         input.max = 100; input.placeholder = '20';
     } else {
-        label.textContent = 'Valor Fixo (€)';
+        label.textContent = `Valor Fixo (${window._crieDefaultCurrency || 'BRL'})`;
         input.removeAttribute('max'); input.placeholder = '5.00';
     }
 };
@@ -7894,7 +7978,7 @@ window.saveCrieCoupon = async function() {
     const expDate = document.getElementById('coupon-expires-input')?.value || null;
     const msg     = document.getElementById('coupon-create-msg');
     const wsId    = getCrieWorkspaceId();
-    const curr    = document.getElementById('membership-currency-select')?.value || 'EUR';
+    const curr    = document.getElementById('membership-currency-select')?.value || window._crieDefaultCurrency || 'BRL';
 
     if (!code) { if (msg) {msg.textContent='⚠️ Código obrigatório.';msg.style.color='#f87171';} return; }
     if (!disc || disc <= 0) { if (msg) {msg.textContent='⚠️ Desconto inválido.';msg.style.color='#f87171';} return; }
@@ -7960,21 +8044,127 @@ async function loadCrieRelatorios() {
     if (!wsId) return;
     const sb = window.supabaseClient;
 
-    // Fetch everything in parallel
+    const safeQuery = async (query, fallback = []) => {
+        try {
+            const { data, error } = await query;
+            if (error) {
+                console.warn('[CRIE reports] optional query failed:', error.message);
+                return fallback;
+            }
+            return data || fallback;
+        } catch (err) {
+            console.warn('[CRIE reports] optional query failed:', err.message);
+            return fallback;
+        }
+    };
+
     const [
-        { data: attendees },
-        { data: membros },
-        { data: eventos },
-        { data: financas },
+        wsData,
+        attendees,
+        membros,
+        eventos,
+        financas,
+        membershipPayments,
+        memberBills,
+        legacyMemberPayments,
     ] = await Promise.all([
-        sb.from('crie_attendees').select('id, payment_status, presence_status, event_id, phone').eq('workspace_id', wsId),
-        sb.from('crie_members').select('id, status, monthly_fee').eq('workspace_id', wsId),
-        sb.from('crie_events').select('id, title, date, status, price, currency').eq('workspace_id', wsId).neq('status', 'ARCHIVED').order('date', { ascending: false }),
-        sb.from('crie_finances').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false }),
+        safeQuery(sb.from('workspaces').select('crie_settings').eq('id', wsId).single(), {}),
+        safeQuery(sb.from('crie_attendees').select('id, payment_status, presence_status, event_id, phone').eq('workspace_id', wsId)),
+        safeQuery(sb.from('crie_members').select('id, name, email, status, monthly_fee').eq('workspace_id', wsId)),
+        safeQuery(sb.from('crie_events').select('id, title, date, status, price, currency').eq('workspace_id', wsId).neq('status', 'ARCHIVED').order('date', { ascending: false })),
+        safeQuery(sb.from('crie_finances').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+        safeQuery(sb.from('crie_membership_payments').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+        safeQuery(sb.from('crie_member_bills').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
+        safeQuery(sb.from('crie_member_payments').select('*').eq('workspace_id', wsId).order('created_at', { ascending: false })),
     ]);
 
+    const settings = wsData?.crie_settings || {};
+    const reportCurrency = crieSettingsCurrency(settings);
+    window._crieDefaultCurrency = reportCurrency;
+    window._crieDefaultCurrencySymbol = crieCurrencySymbol(reportCurrency);
+    const memberById = {};
+    (membros || []).forEach(m => { memberById[m.id] = m; });
+
+    const paidStatuses = new Set(['paid', 'pago', 'succeeded', 'success', 'confirmed']);
+    const isPaid = p => paidStatuses.has(String(p?.status || p?.payment_status || '').toLowerCase());
+    const paidPaymentRows = [];
+    const paymentKeys = new Set();
+
+    (membershipPayments || []).filter(isPaid).forEach(p => {
+        const member = memberById[p.member_id] || {};
+        const ref = p.reference_month || p.month || '';
+        const amount = Number(p.amount || 0);
+        if (p.member_id && ref) paymentKeys.add(`${p.member_id}|${ref}|${amount.toFixed(2)}`);
+        paidPaymentRows.push({
+            id: `membership-payment-${p.id}`,
+            type: 'Receita',
+            tag: 'membresia',
+            source: 'membership_payment',
+            description: `Mensalidade${member.name ? ' - ' + member.name : ''}${ref ? ' (' + ref + ')' : ''}`,
+            amount,
+            currency: crieCurrencyCode(p.currency || reportCurrency),
+            created_at: p.paid_at || p.created_at,
+            member_id: p.member_id,
+            readonly: true,
+        });
+    });
+
+    (memberBills || []).filter(isPaid).forEach(b => {
+        const amount = Number(b.amount || 0);
+        const ref = b.reference_month || b.month || '';
+        const key = b.member_id && ref ? `${b.member_id}|${ref}|${amount.toFixed(2)}` : '';
+        if (key && paymentKeys.has(key)) return;
+        const member = memberById[b.member_id] || {};
+        paidPaymentRows.push({
+            id: `member-bill-${b.id}`,
+            type: 'Receita',
+            tag: 'membresia',
+            source: 'member_bill',
+            description: `Mensalidade${member.name ? ' - ' + member.name : ''}${ref ? ' (' + ref + ')' : ''}`,
+            amount,
+            currency: crieCurrencyCode(b.currency || reportCurrency),
+            created_at: b.paid_at || b.updated_at || b.created_at,
+            member_id: b.member_id,
+            readonly: true,
+        });
+    });
+
+    (legacyMemberPayments || []).filter(p => !p.status || isPaid(p)).forEach(p => {
+        const member = memberById[p.member_id] || {};
+        paidPaymentRows.push({
+            id: `legacy-member-payment-${p.id}`,
+            type: 'Receita',
+            tag: 'membresia',
+            source: 'legacy_member_payment',
+            description: p.description || `Mensalidade importada${member.name ? ' - ' + member.name : ''}`,
+            amount: Number(p.amount || 0),
+            currency: crieCurrencyCode(p.currency || reportCurrency),
+            created_at: p.paid_at || p.payment_date || p.date || p.created_at,
+            member_id: p.member_id,
+            readonly: true,
+        });
+    });
+
+    const financeRows = [...(financas || [])];
+    const initialBalance = Number(settings.initial_balance || 0);
+    if (initialBalance !== 0) {
+        financeRows.push({
+            id: 'initial-balance',
+            type: initialBalance >= 0 ? 'Receita' : 'Despesa',
+            tag: 'saldo_inicial',
+            source: 'initial_balance',
+            description: 'Saldo inicial do workspace',
+            amount: Math.abs(initialBalance),
+            currency: reportCurrency,
+            created_at: settings.initial_balance_date || new Date(0).toISOString(),
+            readonly: true,
+        });
+    }
+    financeRows.push(...paidPaymentRows);
+    financeRows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
     // Cache for the Financeiro tab
-    window._relFinancasAll = financas || [];
+    window._relFinancasAll = financeRows;
     window._relEventosMap  = {};
     (eventos || []).forEach(e => { window._relEventosMap[e.id] = e.title; });
 
@@ -7984,8 +8174,8 @@ async function loadCrieRelatorios() {
     const membresiaTotal = (membros || []).filter(m => m.status === 'Ativo').reduce((s, m) => s + Number(m.monthly_fee || 0), 0);
 
     // Case-insensitive type matching (fix for mixed "Receita"/"receita" data)
-    const receita  = (financas || []).filter(f => f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
-    const despesas = (financas || []).filter(f => f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
+    const receita  = financeRows.filter(f => f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
+    const despesas = financeRows.filter(f => f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
     const resultado = receita - despesas;
 
     // Also include inscription revenue from events (pagos × price)
@@ -8011,10 +8201,10 @@ async function loadCrieRelatorios() {
     const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     setText('rel-total-inscritos', totalInscritos);
     setText('rel-membros-ativos', membrosAtivos);
-    setText('rel-membresia', `€${membresiaTotal.toFixed(0)}`);
-    setText('rel-receita',   `€${receitaTotal.toFixed(2)}`);
-    setText('rel-despesas',  `€${despesas.toFixed(2)}`);
-    setText('rel-resultado', `${resultado >= 0 ? '+' : ''}€${(receitaTotal - despesas).toFixed(2)}`);
+    setText('rel-membresia', crieMoney(membresiaTotal, reportCurrency));
+    setText('rel-receita',   crieMoney(receitaTotal, reportCurrency));
+    setText('rel-despesas',  crieMoney(despesas, reportCurrency));
+    setText('rel-resultado', `${(receitaTotal - despesas) >= 0 ? '+' : '-'}${crieMoney(Math.abs(receitaTotal - despesas), reportCurrency)}`);
     setText('rel-eventos', (eventos || []).length);
     setText('rel-recorrencia', `${recorrenciaRate}%`);
 
@@ -8036,8 +8226,6 @@ async function loadCrieRelatorios() {
             const evAtt     = (attendees || []).filter(a => a.event_id === ev.id);
             const presentes = evAtt.filter(a => a.presence_status === 'Presente').length;
             const pagos     = evAtt.filter(a => a.payment_status  === 'Pago').length;
-            const currSymbols = { 'BRL': 'R$', 'EUR': '€', 'USD': '$', 'GBP': '£' };
-            const sym = currSymbols[ev.currency] || ev.currency || '€';
 
             // Recurrentes for this event: Presente here AND Presente in at least one other event
             const evRecorrentes = evAtt.filter(a => {
@@ -8046,8 +8234,8 @@ async function loadCrieRelatorios() {
                 return s && s.size > 1; // appeared in more than just this event
             }).length;
 
-            const evReceita  = (financas || []).filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
-            const evDespesas = (financas || []).filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
+            const evReceita  = financeRows.filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'receita').reduce((s, f) => s + Number(f.amount), 0);
+            const evDespesas = financeRows.filter(f => f.event_id === ev.id && f.type?.toLowerCase() === 'despesa').reduce((s, f) => s + Number(f.amount), 0);
             const inscRec    = pagos * Number(ev.price || 0);
             const evTotal    = evReceita + inscRec;
             const evResultado = evTotal - evDespesas;
@@ -8060,9 +8248,9 @@ async function loadCrieRelatorios() {
                 <td style="padding:12px 16px;text-align:center;color:#4ade80;">${presentes}</td>
                 <td style="padding:12px 16px;text-align:center;color:#34D399;">${evRecorrentes}</td>
                 <td style="padding:12px 16px;text-align:center;color:#F59E0B;">${pagos}</td>
-                <td style="padding:12px 16px;color:#4ade80;font-weight:700;">${sym}${evTotal.toFixed(2)}</td>
-                <td style="padding:12px 16px;color:#f87171;font-weight:700;">${sym}${evDespesas.toFixed(2)}</td>
-                <td style="padding:12px 16px;font-weight:800;color:${evResultado >= 0 ? '#4ade80' : '#f87171'};">${sym}${evResultado.toFixed(2)}</td>
+                <td style="padding:12px 16px;color:#4ade80;font-weight:700;">${crieMoney(evTotal, ev.currency || reportCurrency)}</td>
+                <td style="padding:12px 16px;color:#f87171;font-weight:700;">${crieMoney(evDespesas, ev.currency || reportCurrency)}</td>
+                <td style="padding:12px 16px;font-weight:800;color:${evResultado >= 0 ? '#4ade80' : '#f87171'};">${evResultado >= 0 ? '' : '-'}${crieMoney(Math.abs(evResultado), ev.currency || reportCurrency)}</td>
             </tr>`;
         }).join('');
     } else if (tbody) {
@@ -8077,6 +8265,7 @@ async function loadCrieRelatorios() {
 window.renderFinanceiro = function() {
     const all    = window._relFinancasAll || [];
     const evMap  = window._relEventosMap  || {};
+    const baseCurrency = window._crieDefaultCurrency || 'BRL';
     const typeF  = document.getElementById('fin-filter-type')?.value  || '';
     const tagF   = document.getElementById('fin-filter-tag')?.value   || '';
     const searchF = (document.getElementById('fin-filter-search')?.value || '').toLowerCase();
@@ -8093,10 +8282,10 @@ window.renderFinanceiro = function() {
     const saldo  = totalR - totalD;
 
     const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    setText('fin-total-receitas', `€${totalR.toFixed(2)}`);
-    setText('fin-total-despesas', `€${totalD.toFixed(2)}`);
+    setText('fin-total-receitas', crieMoney(totalR, baseCurrency));
+    setText('fin-total-despesas', crieMoney(totalD, baseCurrency));
     const elSaldo = document.getElementById('fin-total-saldo');
-    if (elSaldo) { elSaldo.textContent = `€${saldo.toFixed(2)}`; elSaldo.style.color = saldo >= 0 ? '#4ade80' : '#f87171'; }
+    if (elSaldo) { elSaldo.textContent = `${saldo >= 0 ? '' : '-'}${crieMoney(Math.abs(saldo), baseCurrency)}`; elSaldo.style.color = saldo >= 0 ? '#4ade80' : '#f87171'; }
 
     const tbody = document.getElementById('fin-transactions-body');
     if (!tbody) return;
@@ -8110,6 +8299,7 @@ window.renderFinanceiro = function() {
         const isRec   = f.type?.toLowerCase() === 'receita';
         const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString('pt-PT') : '—';
         const evTitle = f.event_id ? (evMap[f.event_id] || f.event_id.substring(0,8)+'…') : '—';
+        const amountText = crieMoney(f.amount, f.currency || baseCurrency);
 
         return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);" id="fin-row-${f.id}">
             <td style="padding:10px 14px;font-size:.75rem;color:rgba(255,255,255,.4);">${dateStr}</td>
@@ -8121,9 +8311,9 @@ window.renderFinanceiro = function() {
             <td style="padding:10px 14px;">
                 <span style="font-size:.72rem;font-weight:700;color:${isRec ? '#4ade80' : '#f87171'};">${isRec ? '▲ Receita' : '▼ Despesa'}</span>
             </td>
-            <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:.88rem;color:${isRec ? '#4ade80' : '#f87171'};">${isRec ? '+' : '-'}€${Number(f.amount).toFixed(2)}</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:.88rem;color:${isRec ? '#4ade80' : '#f87171'};">${isRec ? '+' : '-'}${amountText}</td>
             <td style="padding:10px 14px;">
-                ${!f.event_id ? `<button onclick="deleteAvulsaLancamento('${f.id}')" style="background:none;border:none;color:rgba(248,113,113,0.5);cursor:pointer;font-size:.9rem;padding:2px 6px;" title="Excluir">🗑</button>` : ''}
+                ${!f.event_id && !f.readonly ? `<button onclick="deleteAvulsaLancamento('${f.id}')" style="background:none;border:none;color:rgba(248,113,113,0.5);cursor:pointer;font-size:.9rem;padding:2px 6px;" title="Excluir">🗑</button>` : ''}
             </td>
         </tr>`;
     }).join('');
@@ -8152,6 +8342,7 @@ window.saveAvulsoLancamento = async function() {
     const amount = parseFloat(document.getElementById('av-amount')?.value);
     const dateV  = document.getElementById('av-date')?.value;
     const notes  = document.getElementById('av-notes')?.value.trim() || null;
+    const currency = window._crieDefaultCurrency || 'BRL';
 
     if (!desc || !amount || !dateV) {
         if (msgEl) { msgEl.style.color = '#f87171'; msgEl.textContent = 'Preencha descrição, valor e data.'; }
@@ -8163,6 +8354,7 @@ window.saveAvulsoLancamento = async function() {
         type, tag, source: 'avulso',
         description: desc,
         amount,
+        currency,
         notes,
         created_at: new Date(dateV).toISOString(),
         event_id: null,

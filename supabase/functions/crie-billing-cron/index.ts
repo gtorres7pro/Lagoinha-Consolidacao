@@ -59,21 +59,25 @@ Deno.serve(async (req: Request) => {
   try {
     const { data: workspaces, error: wsErr } = await sb
       .from("workspaces")
-      .select("id, name, crie_settings")
-      .not("crie_settings", "is", null);
+      .select("id, name, crie_settings, cm_settings");
 
     if (wsErr) throw new Error("Failed to fetch workspaces: " + wsErr.message);
 
     for (const ws of workspaces || []) {
-      const settings = ws.crie_settings || {};
-      if (!settings.auto_bill_enabled && !settings.membership_fee) continue;
+      const crieSettings = ws.crie_settings || {};
+      const cmSettings = ws.cm_settings || {};
 
-      const fee = settings.membership_fee;
-      const currency = settings.membership_currency || settings.default_currency || "USD";
-      if (!fee || fee <= 0) continue;
+      if (crieSettings.auto_bill_enabled && crieSettings.membership_fee > 0) {
+        const currency = crieSettings.membership_currency || crieSettings.default_currency || crieSettings.crie_default_currency || "BRL";
+        const dueDay = Number(crieSettings.bill_due_day || 1);
+        await processModule(ws.id, ws.name, "crie", crieSettings.membership_fee, currency, refMonth, dueDay, records);
+      }
 
-      await processModule(ws.id, ws.name, "crie", fee, currency, refMonth, records);
-      await processModule(ws.id, ws.name, "cm", fee, currency, refMonth, records);
+      if (cmSettings.auto_bill_enabled && cmSettings.membership_fee > 0) {
+        const currency = cmSettings.membership_currency || cmSettings.default_currency || cmSettings.currency || "BRL";
+        const dueDay = Number(cmSettings.bill_due_day || 1);
+        await processModule(ws.id, ws.name, "cm", cmSettings.membership_fee, currency, refMonth, dueDay, records);
+      }
     }
 
     if (records.length > 0 && RESEND_API_KEY) {
@@ -109,6 +113,7 @@ async function processModule(
   fee: number,
   currency: string,
   refMonth: string,
+  dueDay: number,
   records: BillRecord[],
 ) {
   const membersTable = module === "cm" ? "cm_members" : "crie_members";
@@ -119,7 +124,7 @@ async function processModule(
     .from(membersTable)
     .select("id, name, email, phone")
     .eq("workspace_id", wsId)
-    .eq("status", "ativo");
+    .in("status", ["Ativo", "ativo", "active", "approved"]);
 
   if (memErr) {
     console.error(`[crie-billing-cron] Error fetching ${label} members for ${wsId}:`, memErr.message);
@@ -148,7 +153,7 @@ async function processModule(
       amount: fee,
       currency,
       reference_month: refMonth,
-      due_date: `${refMonth}-01`,
+      due_date: `${refMonth}-${String(Math.min(Math.max(dueDay, 1), 28)).padStart(2, "0")}`,
       status: "pending",
       created_at: new Date().toISOString(),
     });

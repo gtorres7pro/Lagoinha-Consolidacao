@@ -468,6 +468,8 @@
     let _wsDefaultCountryCode = '+55'; // loaded from workspace crie_settings
     let _wsDefaultCurrency    = 'BRL'; // loaded from workspace crie_settings
     let _wsTimezone           = 'Europe/Lisbon'; // loaded from workspace crie_settings
+    const _urlParams          = new URLSearchParams(window.location.search);
+    const _requestedEventId   = _urlParams.get('id') || _urlParams.get('event');
 
     function show(id) {
         ['loading-state','no-event-state','form-state','success-state','payment-success-state','payment-cancelled-state']
@@ -539,16 +541,20 @@
                 document.title = `Inscrição CRIE ${ws.name} — Zelo`;
             }
 
-            // 3. Load next ACTIVE future event (now also fetches online_payment_enabled + is_free)
+            // 3. Load requested visitor-open event, or next ACTIVE future event open to visitors.
             const now = new Date().toISOString();
-            const { data: events, error: evErr } = await sb
+            let eventQuery = sb
                 .from('crie_events')
-                .select('id, title, date, location, price, currency, description, status, banner_url, online_payment_enabled, is_free')
+                .select('id, title, date, location, price, currency, description, status, banner_url, online_payment_enabled, is_free, open_to_guests')
                 .eq('workspace_id', _workspaceId)
                 .eq('status', 'ACTIVE')
-                .gte('date', now)
-                .order('date', { ascending: true })
-                .limit(1);
+                .eq('open_to_guests', true);
+            if (_requestedEventId) {
+                eventQuery = eventQuery.eq('id', _requestedEventId).limit(1);
+            } else {
+                eventQuery = eventQuery.gte('date', now).order('date', { ascending: true }).limit(1);
+            }
+            const { data: events, error: evErr } = await eventQuery;
 
             if (evErr) throw evErr;
             if (!events || events.length === 0) { show('no-event-state'); return; }
