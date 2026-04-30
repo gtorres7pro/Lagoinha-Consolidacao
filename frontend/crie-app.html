@@ -1146,13 +1146,16 @@ body {
 	        <div id="login-password-wrap" style="display:none;"><div class="field-label">Password</div><input id="login-pw" class="field-input" type="password" placeholder="••••••••" autocomplete="current-password"></div>
 	        <div id="visitor-profile-fields" style="display:none;flex-direction:column;gap:14px;">
 	          <div><div class="field-label">Nome</div><input id="visitor-name" class="field-input" type="text" placeholder="O teu nome" autocomplete="name"></div>
+	          <div><div class="field-label">CRIE</div>
+	            <select id="visitor-workspace" class="field-input">
+	              <option value="">Seleciona o teu CRIE…</option>
+	            </select>
+	          </div>
 	          <div><div class="field-label">Gênero</div>
 	            <select id="visitor-gender" class="field-input">
 	              <option value="">Seleciona…</option>
 	              <option value="feminino">Feminino</option>
 	              <option value="masculino">Masculino</option>
-	              <option value="outro">Outro</option>
-	              <option value="prefiro_nao_dizer">Prefiro não dizer</option>
 	            </select>
 	          </div>
 	          <div style="display:grid;grid-template-columns:96px 1fr;gap:10px;">
@@ -1326,10 +1329,10 @@ body {
 
       <!-- Subscription / Payment -->
       <div id="payment-section" style="display:none;">
-        <div class="section-label">💳 Pagamentos</div>
+        <div class="section-label">Histórico financeiro</div>
         <div id="payment-history" style="margin-bottom:16px;"></div>
-        <button onclick="openPayModal()" class="btn-primary" style="margin-bottom:24px;">
-          💳 Pagar Mensalidade
+        <button id="btn-pay-membership" onclick="openPayModal()" class="btn-primary" style="margin-bottom:24px;">
+          Pagar Mensalidade
         </button>
       </div>
 
@@ -1593,7 +1596,7 @@ body {
 
   <!-- Pay membership -->
   <div class="modal-overlay" id="modal-pay" onclick="closeModal('modal-pay')">
-    <div class="modal-sheet" onclick="e=>e.stopPropagation()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
       <div class="modal-handle"></div>
       <div class="modal-title">💳 Pagar Mensalidade</div>
       <div id="pay-modal-content">
@@ -1618,7 +1621,7 @@ body {
 
   <!-- Edit Profile -->
   <div class="modal-overlay" id="modal-edit-profile" onclick="closeModal('modal-edit-profile')">
-    <div class="modal-sheet" onclick="e=>e.stopPropagation()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
       <div class="modal-handle"></div>
       <div class="modal-title">✏️ Editar Perfil</div>
       <div style="display:flex;flex-direction:column;gap:14px;">
@@ -1629,8 +1632,6 @@ body {
             <option value="">Seleciona…</option>
             <option value="feminino">Feminino</option>
             <option value="masculino">Masculino</option>
-            <option value="outro">Outro</option>
-            <option value="prefiro_nao_dizer">Prefiro não dizer</option>
           </select>
         </div>
         <div><div class="field-label">Cidade</div><input id="ep-city" class="field-input" placeholder="Lisboa, Porto…"></div>
@@ -1693,6 +1694,9 @@ let _visitorProfilePendingEmail = null;
 let _authMode = 'visitor';
 let _visitorProfilePendingId = null;
 let _visitorProfilePendingSeed = null;
+const DEMO_MEMBER_OVERRIDE_KEY = 'crie_demo_member_email';
+const DEMO_MEMBER_ID = 'demo-local-member';
+const DEMO_MEMBER_EMAILS = ['gtorreshbl@gmail.com'];
 
 function escHtml(value) {
     return String(value ?? '')
@@ -1926,9 +1930,41 @@ async function loadVisitorSession(profileId) {
 }
 
 async function getFirstCrieWorkspaceId() {
-    const { data } = await sb.from('workspaces').select('id, crie_settings').eq('status', 'ativo').limit(10);
-    const ws = (data || []).find(w => w.crie_settings && Object.keys(w.crie_settings).length > 0);
+    const { data } = await sb.from('workspaces').select('id, name, slug, crie_settings, cm_settings, modules').in('status', ['ativo', 'active']).limit(25);
+    const ws = (data || []).filter(isRealCrieWorkspace)[0];
     return ws?.id || null;
+}
+
+function isRealCrieWorkspace(w) {
+    const slug = String(w?.slug || '').toLowerCase();
+    const name = String(w?.name || '').toLowerCase();
+    if (!w?.id || slug.includes('demo') || name.includes('demo')) return false;
+    return (w.crie_settings && Object.keys(w.crie_settings).length > 0) ||
+        (w.cm_settings && Object.keys(w.cm_settings).length > 0) ||
+        (w.modules || []).includes('crie') ||
+        (w.modules || []).includes('crie_mulheres');
+}
+
+async function loadVisitorWorkspaceOptions(selectedWsId = '') {
+    const sel = document.getElementById('visitor-workspace');
+    if (!sel) return null;
+    sel.innerHTML = '<option value="">A carregar workspaces…</option>';
+    const { data, error } = await sb
+        .from('workspaces')
+        .select('id, name, slug, crie_settings, cm_settings, modules')
+        .in('status', ['ativo', 'active'])
+        .order('name');
+    if (error) {
+        sel.innerHTML = '<option value="">Erro ao carregar workspaces</option>';
+        return null;
+    }
+    const workspaces = (data || []).filter(isRealCrieWorkspace);
+    sel.innerHTML = '<option value="">Seleciona o teu CRIE…</option>' + workspaces.map(w =>
+        `<option value="${escHtml(w.id)}">${escHtml(w.name || 'CRIE')}</option>`
+    ).join('');
+    if (selectedWsId && workspaces.some(w => w.id === selectedWsId)) sel.value = selectedWsId;
+    if (!sel.value && workspaces.length === 1) sel.value = workspaces[0].id;
+    return sel.value || null;
 }
 
 async function findKnownVisitorByEmail(email) {
@@ -1942,10 +1978,10 @@ async function findKnownVisitorByEmail(email) {
 }
 
 function needsProfileCompletion(profile) {
-    return !profile?.name || !profile?.gender || !profile?.phone;
+    return !profile?.name || !profile?.gender || !profile?.phone || !profile?.workspace_id;
 }
 
-function showVisitorProfileCompletion(email, profile, message, seed = null) {
+async function showVisitorProfileCompletion(email, profile, message, seed = null) {
     const profileFields = document.getElementById('visitor-profile-fields');
     const btn = document.getElementById('btn-login');
     const msg = document.getElementById('login-msg');
@@ -1954,6 +1990,7 @@ function showVisitorProfileCompletion(email, profile, message, seed = null) {
     _visitorProfilePendingSeed = seed;
     if (document.getElementById('visitor-name')) document.getElementById('visitor-name').value = profile?.name || '';
     if (document.getElementById('visitor-gender')) document.getElementById('visitor-gender').value = profile?.gender || '';
+    await loadVisitorWorkspaceOptions(profile?.workspace_id || seed?.workspace_id || '');
     const phone = profile?.phone || '';
     const countryEl = document.getElementById('visitor-phone-country');
     const phoneEl = document.getElementById('visitor-phone');
@@ -1997,7 +2034,7 @@ async function continueVisitorAccess(rawEmail) {
             const existing = await sb.from('crie_app_users').select('*').eq('email', email).maybeSingle();
             if (existing.data) {
                 if (needsProfileCompletion(existing.data)) {
-                    showVisitorProfileCompletion(email, existing.data, 'Completa os dados para ativar o acesso correto ao CRIE App.', { workspace_id: existing.data.workspace_id });
+                    await showVisitorProfileCompletion(email, existing.data, 'Completa os dados para ativar o acesso correto ao CRIE App.', { workspace_id: existing.data.workspace_id });
                     return;
                 }
                 _appUser = existing.data;
@@ -2008,7 +2045,7 @@ async function continueVisitorAccess(rawEmail) {
 
             const known = await findKnownVisitorByEmail(email);
             if (known) {
-                showVisitorProfileCompletion(email, {
+                await showVisitorProfileCompletion(email, {
                     name: known.name || email.split('@')[0],
                     phone: known.phone || '',
                 }, 'Encontramos o teu email. Completa os dados para entrar como visitante.', {
@@ -2017,20 +2054,21 @@ async function continueVisitorAccess(rawEmail) {
                 return;
             }
 
-            showVisitorProfileCompletion(email, null, 'Não encontramos este email. Completa os dados para entrar como visitante.', {
+            await showVisitorProfileCompletion(email, null, 'Não encontramos este email. Completa os dados para entrar como visitante.', {
                 workspace_id: await getFirstCrieWorkspaceId(),
             });
             return;
         }
 
         const name = document.getElementById('visitor-name')?.value.trim();
+        const selectedWorkspaceId = document.getElementById('visitor-workspace')?.value || _visitorProfilePendingSeed?.workspace_id || null;
         const gender = document.getElementById('visitor-gender')?.value || null;
         const country = document.getElementById('visitor-phone-country')?.value || '';
         const phoneRaw = document.getElementById('visitor-phone')?.value.trim() || '';
         const phone = phoneRaw ? country + phoneRaw.replace(/\D/g, '') : '';
-        if (!name || !gender || !phone) {
+        if (!name || !selectedWorkspaceId || !gender || !phone) {
             msg.style.color = 'var(--red)';
-            msg.textContent = 'Preenche nome, gênero e telefone.';
+            msg.textContent = 'Preenche workspace, nome, gênero e telefone.';
             btn.disabled = false; btn.textContent = 'Guardar acesso';
             return;
         }
@@ -2039,6 +2077,7 @@ async function continueVisitorAccess(rawEmail) {
             const { data, error } = await sb.from('crie_app_users').update({
                 name,
                 email: _visitorProfilePendingEmail || email,
+                workspace_id: selectedWorkspaceId,
                 phone,
                 gender,
             }).eq('id', _visitorProfilePendingId).select().single();
@@ -2047,7 +2086,7 @@ async function continueVisitorAccess(rawEmail) {
         } else {
             const seed = _visitorProfilePendingSeed || {};
             _appUser = await upsertVisitorProfile({
-                workspace_id: seed.workspace_id || await getFirstCrieWorkspaceId(),
+                workspace_id: selectedWorkspaceId || seed.workspace_id || await getFirstCrieWorkspaceId(),
                 name,
                 email: _visitorProfilePendingEmail || email,
                 phone,
@@ -2200,7 +2239,7 @@ function normalizeMemberStatus(status) {
 }
 
 function isApprovedMember(wsId) {
-    return !!_user && _memberStatus[wsId]?.status === 'approved';
+    return (_memberStatus[wsId]?.demo === true) || (!!_user && _memberStatus[wsId]?.status === 'approved');
 }
 
 function visitorAttendanceCount(wsId) {
@@ -2249,13 +2288,21 @@ function applyModuleTheme(module) {
 }
 
 async function loadWorkspaces() {
-    const { data } = await sb.from('workspaces').select('id, name, crie_settings, cm_settings, modules').eq('status', 'ativo');
-    _activeWorkspaces = (data || []).filter(w =>
-        (w.crie_settings && Object.keys(w.crie_settings).length > 0) ||
-        (w.cm_settings && Object.keys(w.cm_settings).length > 0) ||
-        (w.modules || []).includes('crie') ||
-        (w.modules || []).includes('crie_mulheres')
-    );
+    const { data } = await sb.from('workspaces').select('id, name, slug, crie_settings, cm_settings, modules').in('status', ['ativo', 'active']);
+    const appEmail = _appUser?.email?.toLowerCase();
+    const demoEmail = (localStorage.getItem(DEMO_MEMBER_OVERRIDE_KEY) || '').toLowerCase();
+    const shouldShowDemoMember = !!appEmail && (appEmail === demoEmail || DEMO_MEMBER_EMAILS.includes(appEmail));
+    const realWorkspaces = (data || []).filter(isRealCrieWorkspace);
+    const demoWorkspace = (data || []).find(w => w.slug === 'demo-beta');
+    const preferredWsId = _appUser?.workspace_id || localStorage.getItem('crie_ws_id') || '';
+    _activeWorkspaces = preferredWsId
+        ? realWorkspaces.filter(w => w.id === preferredWsId)
+        : realWorkspaces;
+    if (!_activeWorkspaces.length) _activeWorkspaces = realWorkspaces;
+    if (shouldShowDemoMember && demoWorkspace && !_activeWorkspaces.some(w => w.id === demoWorkspace.id)) {
+        _activeWorkspaces.unshift(demoWorkspace);
+    }
+    if (_appUser?.workspace_id) localStorage.setItem('crie_ws_id', _appUser.workspace_id);
 
     // Populate apply modal workspace select
     const sel = document.getElementById('apply-workspace');
@@ -2314,6 +2361,25 @@ async function loadWorkspaces() {
         addAttendance(cmAtt.data, r => !!r.checked_in);
     }
 
+    if (shouldShowDemoMember) {
+        const demoWs = _activeWorkspaces.find(w => w.slug === 'demo-beta');
+        if (demoWs) {
+            _memberStatus[demoWs.id] = { status:'approved', member_id:DEMO_MEMBER_ID, demo:true };
+        }
+    }
+
+    _activeWorkspaces.sort((a, b) => {
+        const rank = ws => {
+            const status = _memberStatus[ws.id]?.status;
+            if (status === 'approved') return 0;
+            if (status === 'pending') return 1;
+            if (ws.crie_settings && Object.keys(ws.crie_settings).length > 0) return 2;
+            if (ws.cm_settings && Object.keys(ws.cm_settings).length > 0) return 3;
+            return 4;
+        };
+        return rank(a) - rank(b) || String(a.name || '').localeCompare(String(b.name || ''));
+    });
+
     // Set ws label in home
     const wsLabel = document.getElementById('home-ws-label');
     if (wsLabel) wsLabel.textContent = _activeWorkspaces[0]?.name || '';
@@ -2356,7 +2422,7 @@ async function renderMemberBanner() {
             <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">⏳ CANDIDATURA PENDENTE</div>
             <div style="font-size:0.85rem;color:var(--text2);">A tua candidatura está a ser analisada. Receberás uma notificação em breve.</div>
         </div>`;
-    } else if (ms.status === 'approved' && !_user) {
+    } else if (ms.status === 'approved' && !_user && !ms.demo) {
         html = `<div class="member-status-card status-active">
             <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">MEMBRO ENCONTRADO</div>
             <div style="font-size:0.85rem;color:var(--text2);margin-bottom:10px;">Entra com password para aceder aos eventos e conteúdos de membro.</div>
@@ -2364,7 +2430,7 @@ async function renderMemberBanner() {
         </div>`;
     } else if (ms.status === 'approved') {
         html = `<div class="member-status-card status-active">
-            <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">✅ MEMBRO ATIVO</div>
+            <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:6px;">✅ MEMBRO ATIVO${ms.demo ? ' · DEMO' : ''}</div>
             <div style="font-size:0.85rem;color:var(--text2);">Parabéns! Tens acesso completo ao ${moduleName}.</div>
         </div>`;
     }
@@ -2702,7 +2768,7 @@ function renderMemberStatusSection() {
                 <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">CRIE ${ws.name}</div>
                 <div style="font-weight:700;">⏳ Candidatura Pendente</div>
             </div>`;
-        } else if (ms.status === 'approved' && !_user) {
+        } else if (ms.status === 'approved' && !_user && !ms.demo) {
             statusHtml = `<div class="member-status-card status-active">
                 <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">CRIE ${ws.name}</div>
                 <div style="font-weight:700;margin-bottom:8px;">Membro encontrado</div>
@@ -2712,7 +2778,7 @@ function renderMemberStatusSection() {
         } else if (ms.status === 'approved') {
             statusHtml = `<div class="member-status-card status-active">
                 <div style="font-size:0.72rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">CRIE ${ws.name}</div>
-                <div style="font-weight:700;">✅ Membro Ativo</div>
+                <div style="font-weight:700;">✅ Membro Ativo${ms.demo ? ' · Demo' : ''}</div>
             </div>`;
             // Show payment section
             document.getElementById('payment-section').style.display = 'block';
@@ -2728,10 +2794,34 @@ async function loadPaymentInfo(wsId) {
     const fee      = ws?.crie_settings?.membership_fee || null;
     // Use membership_currency → crie_default_currency → BRL
     const currency = ws?.crie_settings?.membership_currency || ws?.crie_settings?.crie_default_currency || 'BRL';
+    const isDemoMember = _memberStatus[wsId]?.demo === true;
+    const payBtn = document.getElementById('btn-pay-membership');
+    if (payBtn) payBtn.style.display = isDemoMember ? 'none' : '';
 
     // Update pay modal amount
     const amtEl = document.getElementById('pay-amount-value');
     if (amtEl) amtEl.textContent = fee ? `${currency} ${Number(fee).toFixed(2)}/mês` : '—';
+
+    if (isDemoMember) {
+        const phEl = document.getElementById('payment-history');
+        if (!phEl) return;
+        const amount = Number(fee || 100);
+        phEl.innerHTML = [
+            { description:'Demo teste - Mensalidade Maio 2026', reference_month:'2026-05', amount, currency, status:'pending', due_date:'2026-05-07' },
+            { description:'Demo teste - Pagamento Abril 2026', reference_month:'2026-04', amount, currency, status:'paid', paid_at:'2026-04-07T12:00:00+00:00' },
+        ].map(p => {
+            const paid = p.status === 'paid';
+            return `
+            <div class="payment-row">
+                <div>
+                    <div class="payment-month">${p.description}</div>
+                    <div style="font-size:0.72rem;color:var(--text3);">${p.currency} ${Number(p.amount).toFixed(2)}${p.due_date ? ' · vence ' + new Date(p.due_date).toLocaleDateString('pt-PT') : ''}</div>
+                </div>
+                <div class="payment-status ${paid ? 'paid' : 'pending'}">${paid ? '✓ Pago' : '⏳ Pendente'}</div>
+            </div>`;
+        }).join('');
+        return;
+    }
 
     // Load payment history
     if (!_appUser) return;
@@ -3162,10 +3252,10 @@ loadHomeEvents = async function() {
     const [crieRes, cmEvents] = await Promise.all([
         wsIds.length ? sb.from('crie_events').select('id,title,date,location,price,currency,is_free,open_to_guests,members_pay,online_payment_enabled,banner_url,workspace_id,status')
             .eq('status','ACTIVE').gte('date',today)
-            .in('workspace_id',wsIds.slice(0,5)).order('date').limit(3) : { data:[] },
+            .in('workspace_id',wsIds).order('date').limit(30) : { data:[] },
         loadCmEventsForApp(wsIds, today)
     ]);
-    _allEvents = [...(crieRes.data||[]).filter(canSeeEventInApp), ...cmEvents.slice(0,3)];
+    _allEvents = [...(crieRes.data||[]).filter(canSeeEventInApp), ...cmEvents];
     _allEvents.sort((a,b)=> new Date(a.date||a.event_date) - new Date(b.date||b.event_date));
     el.innerHTML = _allEvents.length ? _allEvents.slice(0,3).map(ev => renderEventCard(ev)).join('') :
         '<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-title">Sem eventos próximos</div></div>';
@@ -3209,6 +3299,8 @@ async function loadPaymentInfoCmAware(wsId) {
         cmMember = data;
     }
     if (cmMember) {
+        const payBtn = document.getElementById('btn-pay-membership');
+        if (payBtn) payBtn.style.display = '';
         // CM membership fee from cm_settings
         const { data: wsData } = await sb.from('workspaces').select('cm_settings').eq('id', wsId).single();
         const cfg = wsData?.cm_settings || {};
@@ -3252,14 +3344,14 @@ async function loadPaymentInfoCmAware(wsId) {
 
 // Override renderMemberStatusSection to use CM-aware payment loader
 const _origRenderStatus = renderMemberStatusSection;
-function renderMemberStatusSection() {
+renderMemberStatusSection = function() {
     _origRenderStatus();
     // After render, patch payment loader for approved members
     _activeWorkspaces.slice(0,3).forEach(ws => {
         const ms = _memberStatus[ws.id];
         if (ms?.status === 'approved') loadPaymentInfoCmAware(ws.id);
     });
-}
+};
 
 // #32 — submitMemberApplication routes to cm_member_applications for CM workspaces
 const _origSubmitApp = submitMemberApplication;
