@@ -2796,7 +2796,7 @@ async function loadConnect() {
         return;
     }
 
-    const select = 'id, title, category, description, workspace_id, contact_name, contact_email, contact_phone, status, pinned, expires_at, created_at, workspaces(name)';
+    const select = 'id, title, category, description, workspace_id, contact_name, contact_email, contact_phone, status, pinned, expires_at, created_at';
     const publicQ = sb.from('connect_listings')
         .select(select)
         .in('workspace_id', wsIds)
@@ -2979,12 +2979,14 @@ async function withdrawConnectOffer(id) {
     if (!item) return;
     if (!confirm('Retirar esta oferta do Connect?')) return;
     const email = (_appUser?.email || '').toLowerCase();
-    const { error } = await sb.from('connect_listings')
+    const { data, error } = await sb.from('connect_listings')
         .update({ status:'archived' })
         .eq('id', id)
-        .ilike('contact_email', email);
-    if (error && !item._local) {
-        showToast('Não foi possível retirar: ' + error.message, 'error');
+        .ilike('contact_email', email)
+        .select('id')
+        .maybeSingle();
+    if ((error || !data) && !item._local) {
+        showToast('Não foi possível retirar: ' + (error?.message || 'sem permissão para atualizar esta oferta'), 'error');
         return;
     }
     saveLocalConnectOffer({ ...item, status:'archived', _local:true });
