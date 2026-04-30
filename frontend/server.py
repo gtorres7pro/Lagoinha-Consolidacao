@@ -5,6 +5,7 @@ Dev server para Zelo — resolve slugs de workspace e força NO-CACHE.
 import http.server
 import os
 import sys
+from urllib.parse import urlparse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,10 +18,14 @@ class SlugRewriteHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def translate_path(self, path):
+        # Strip query string and fragment before any path resolution
+        path = urlparse(path).path
+
         full = super().translate_path(path)
         if os.path.exists(full):
             return full
 
+        # Slug rewrite: /orlando/dashboard.html → /dashboard.html
         parts = [p for p in path.split('/') if p]
         if parts:
             filename = parts[-1]
