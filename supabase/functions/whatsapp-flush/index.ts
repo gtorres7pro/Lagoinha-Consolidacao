@@ -177,8 +177,6 @@ Deno.serve(async (req: Request) => {
   const userTextCombined = pending.map((m: any) => m.content).join("\n");
   const firstPendingTime = pending[0].created_at;
 
-  await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
-
   const { data: ws } = await sb.from("workspaces").select("id, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
   const creds = ws?.credentials ?? {};
   const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
@@ -186,6 +184,25 @@ Deno.serve(async (req: Request) => {
   // First name extraction
   let firstName = "Amigo";
   if (lead.name) firstName = lead.name.split(" ")[0];
+
+  let outboundDelivered = false;
+  let inboundMarkedResponded = false;
+
+  async function logAppError(action: string, details: Record<string, any>) {
+    await sb.from("app_logs").insert({
+      workspace_id: ws?.id ?? lead.workspace_id,
+      type: "error",
+      module: "whatsapp",
+      action,
+      details,
+    }).then(() => {}).catch(() => {});
+  }
+
+  async function markInboundResponded() {
+    if (inboundMarkedResponded) return;
+    await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
+    inboundMarkedResponded = true;
+  }
 
   async function persistOutboundText(content: string) {
     await sb.from("messages").insert({
@@ -202,8 +219,18 @@ Deno.serve(async (req: Request) => {
   async function sendOutboundText(content: string): Promise<boolean> {
     const sent = await sendText(mode, creds, lead.phone, content);
     console.log(`[FLUSH] sendText (${mode}) ${sent ? "OK" : "FAILED"}: ${content.substring(0, 80)}`);
-    if (!sent) return false;
+    if (!sent) {
+      await logAppError("whatsapp_send_failed", {
+        lead_id,
+        phone: lead.phone,
+        mode,
+        content_preview: content.substring(0, 160),
+      });
+      return false;
+    }
     await persistOutboundText(content);
+    outboundDelivered = true;
+    await markInboundResponded();
     return true;
   }
 
@@ -480,11 +507,18 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     return new Response("no creds", { status: 500 });
   }
 
-  const geminiKey: string = creds?.llm_config?.gemini_token ?? "";
+  const geminiKey: string = creds?.llm_config?.gemini_token
+    ?? Deno.env.get("GEMINI_API_KEY")
+    ?? Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY")
+    ?? "";
+  const openAiKey: string = creds?.llm_config?.openai_token
+    ?? creds?.llm_config?.openai_api_key
+    ?? Deno.env.get("OPENAI_API_KEY")
+    ?? "";
   const iaMemoryEnabled: boolean = creds?.ia_memory_enabled !== false; // default on
   const memoryLimit = iaMemoryEnabled ? 8 : 0;
 
-  console.log(`[FLUSH] mode=${mode} lead=${lead.id} memory=${iaMemoryEnabled} gemini=${!!geminiKey}`);
+  console.log(`[FLUSH] mode=${mode} lead=${lead.id} memory=${iaMemoryEnabled} gemini=${!!geminiKey} openai=${!!openAiKey}`);
 
   // ── Build conversation history ────────────────────────────────────────────
   let historyRecords: any[] = [];
@@ -559,102 +593,105 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   // ── Call Gemini ───────────────────────────────────────────────────────────
   const model = "gemini-2.5-flash";
-  let finalReply = "Opa, tive um pequeno engasgo agora! Me chama de novo em um instante 😊";
+  let finalReply = "⚠️ Nenhum provedor de IA respondeu.";
   let detectedIntention = "none";
   let audioScript: string | null = null;
   let audioComplement: string | null = null;
 
   if (!geminiKey) {
-    console.error("[FLUSH] no gemini_token in llm_config — cannot generate reply");
-    return new Response("no_gemini_key", { status: 500 });
-  }
+    console.error("[FLUSH] no gemini_token in llm_config — trying fallback provider");
+    finalReply = "⚠️ Gemini token ausente.";
+  } else {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-  try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      let retries = 3;
+      let delay = 1000;
 
-    let retries = 3;
-    let delay = 1000;
-    
-    while (retries > 0) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+      while (retries > 0) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
 
-        const rawBody = await res.text();
-        if (res.ok) {
-          try {
-            const j = JSON.parse(rawBody);
-            const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-            const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
-            if (rawText) {
-              try {
-                const parsedJSON = JSON.parse(rawText);
-                if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
-                else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
-                if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
-                if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
-                if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
-              } catch {
-                console.log("LLM non-JSON:", rawText.substring(0, 200));
-                finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+          const rawBody = await res.text();
+          if (res.ok) {
+            try {
+              const j = JSON.parse(rawBody);
+              const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+              const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
+              if (rawText) {
+                try {
+                  const parsedJSON = JSON.parse(rawText);
+                  if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
+                  else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
+                  if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
+                  if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
+                  if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
+                } catch {
+                  console.log("LLM non-JSON:", rawText.substring(0, 200));
+                  finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+                }
+              } else {
+                finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+              }
+            } catch (e: any) {
+              finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
+              console.error("Gemini parse error:", e.message);
+            }
+            break; // Success, exit retry loop
+          } else {
+            if (res.status === 503 || res.status === 429 || res.status >= 500) {
+              console.error(`Gemini API HTTP ${res.status}. Retrying in ${delay}ms...`);
+              retries--;
+              if (retries === 0) {
+                finalReply = `⚠️ Gemini falhou após retentativas. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+                console.error("Gemini API error:", rawBody.substring(0, 300));
+              } else {
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+                continue;
               }
             } else {
-              finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+              finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+              console.error("Gemini API error:", rawBody.substring(0, 300));
+              break;
             }
-          } catch (e: any) {
-            finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
-            console.error("Gemini parse error:", e.message);
           }
-          break; // Success, exit retry loop
-        } else {
-          if (res.status === 503 || res.status === 429 || res.status >= 500) {
-            console.error(`Gemini API HTTP ${res.status}. Retrying in ${delay}ms...`);
+        } catch (e: any) {
+          clearTimeout(timeoutId);
+          if (e.name === "AbortError" || e.message.includes("fetch")) {
+            console.error(`Gemini ${e.name}. Retrying in ${delay}ms...`);
             retries--;
             if (retries === 0) {
-              finalReply = `⚠️ Gemini falhou após retentativas. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
-              console.error("Gemini API error:", rawBody.substring(0, 300));
+              finalReply = `⚠️ Gemini Error após retentativas: ${e.message}`;
             } else {
               await new Promise(resolve => setTimeout(resolve, delay));
               delay *= 2;
               continue;
             }
           } else {
-            finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
-            console.error("Gemini API error:", rawBody.substring(0, 300));
+            finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
+            console.error("Gemini fetch error:", e.message);
             break;
           }
         }
-      } catch (e: any) {
-        clearTimeout(timeoutId);
-        if (e.name === "AbortError" || e.message.includes("fetch")) {
-          console.error(`Gemini ${e.name}. Retrying in ${delay}ms...`);
-          retries--;
-          if (retries === 0) {
-            finalReply = `⚠️ Gemini Error após retentativas: ${e.message}`;
-          } else {
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-            continue;
-          }
-        } else {
-          finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
-          console.error("Gemini fetch error:", e.message);
-          break;
-        }
       }
+    } catch (e: any) {
+      finalReply = `⚠️ Gemini outer error: ${e.message}`;
+      console.error("Outer error:", e.message);
     }
-  } catch (e: any) { console.error("Outer error:", e.message); }
+  }
 
   // Se Gemini falhar após retentativas, tentar OpenAI como fallback
-  if (finalReply.startsWith("⚠️") && Deno.env.get("OPENAI_API_KEY")) {
+  if (finalReply.startsWith("⚠️") && openAiKey) {
     try {
       console.log(`[FLUSH] Gemini failed. Falling back to OpenAI...`);
       const openAiMessages = contents.map((c: any) => ({
@@ -666,13 +703,15 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
         messages: [
           { role: "system", content: systemInstruction },
           ...openAiMessages
-        ]
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.4
       };
       const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")}`
+          "Authorization": `Bearer ${openAiKey}`
         },
         body: JSON.stringify(openAiBody)
       });
@@ -680,19 +719,33 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
         const oData = await openAiRes.json();
         const fallbackText = oData.choices[0]?.message?.content;
         if (fallbackText) {
-          finalReply = fallbackText;
           try {
-            const parsed = JSON.parse(finalReply);
+            const parsed = JSON.parse(fallbackText.replace(/```json|```/g, "").trim());
             if (parsed.whatsapp_reply) {
               finalReply = parsed.whatsapp_reply;
               detectedIntention = parsed.detected_intention || "none";
+              audioScript = parsed.whatsapp_audio_script || null;
+              audioComplement = parsed.whatsapp_text_complement || null;
+            } else {
+              finalReply = `⚠️ OpenAI fallback sem whatsapp_reply. Raw: ${fallbackText.substring(0, 250)}`;
             }
-          } catch(e) {}
+          } catch(e: any) {
+            finalReply = `⚠️ OpenAI fallback retornou JSON inválido: ${e.message}`;
+          }
+        } else {
+          finalReply = "⚠️ OpenAI fallback sem texto.";
         }
+      } else {
+        const raw = await openAiRes.text();
+        finalReply = `⚠️ OpenAI fallback falhou. HTTP ${openAiRes.status}. Raw: ${raw.substring(0, 250)}`;
+        console.error("[FLUSH] OpenAI fallback HTTP error:", raw.substring(0, 300));
       }
-    } catch (e) {
+    } catch (e: any) {
+      finalReply = `⚠️ OpenAI fallback exception: ${e.message}`;
       console.error("[FLUSH] OpenAI fallback also failed", e);
     }
+  } else if (finalReply.startsWith("⚠️")) {
+    console.error("[FLUSH] no OpenAI key available for fallback");
   }
 
   // ── Send response ─────────────────────────────────────────────────────────
@@ -730,6 +783,8 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
           content: `[ÁUDIO GERADO]: ${audioScript}`, automated: true,
           responded_at: new Date().toISOString(),
         });
+        outboundDelivered = true;
+        await markInboundResponded();
       } else { console.warn("[TTS] Audio send failed. Falling back to text."); }
     } else { console.warn("[TTS] ElevenLabs failed. Falling back to text."); }
   }
@@ -744,6 +799,16 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     if (!chunk) continue;
     await sendOutboundText(chunk);
     if (chunks.length > 1) await new Promise<void>(r => setTimeout(r, 1200));
+  }
+
+  if (!outboundDelivered) {
+    await logAppError("flush_no_outbound_delivered", {
+      lead_id,
+      pending_ids: ids,
+      mode,
+      chunks: chunks.length,
+    });
+    return new Response(JSON.stringify({ ok: false, error: "no_outbound_delivered", processed: 0, mode }), { status: 502 });
   }
 
   // ─── KANBAN AUTOMATION ────────────────────────────────────────────────────

@@ -129,7 +129,7 @@ async function callFlush(lead_id: string, message_created_at: string) {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const internalSecret = Deno.env.get("ZELO_INTERNAL_SECRET") ?? Deno.env.get("INTERNAL_FUNCTION_SECRET") ?? "";
   try {
-    await fetch(flushUrl, {
+    const res = await fetch(flushUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,6 +138,9 @@ async function callFlush(lead_id: string, message_created_at: string) {
       },
       body: JSON.stringify({ lead_id, message_created_at })
     });
+    if (!res.ok) {
+      console.error("[WH] callFlush failed:", res.status, await res.text());
+    }
   } catch (e: any) {
     console.error("[WH] callFlush error:", e.message);
   }
