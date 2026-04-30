@@ -2,5 +2,16 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
     "csv-parse": "^6.2.1"
-  }
+  },
+  "name": "zelo-pro",
+  "version": "1.0.0",
+  "main": "patch.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }
