@@ -116,7 +116,8 @@ async function sendText(mode: string, creds: any, phone: string, text: string): 
   if (mode === "evolution") {
     return sendTextEvolution(creds.evolution_instance, phone, text);
   }
-  return sendTextMeta(creds.whatsapp_token, creds.phone_number_id, phone, text);
+  const phoneNumberId = creds.phone_number_id ?? creds.phone_id;
+  return sendTextMeta(creds.whatsapp_token, phoneNumberId, phone, text);
 }
 
 async function sendAudio(mode: string, creds: any, phone: string, audioBuffer: ArrayBuffer): Promise<boolean> {
@@ -124,9 +125,10 @@ async function sendAudio(mode: string, creds: any, phone: string, audioBuffer: A
     return sendAudioEvolution(creds.evolution_instance, phone, audioBuffer);
   }
   // Meta: upload first, then send
-  const mediaId = await uploadMediaToWhatsApp(creds.whatsapp_token, creds.phone_number_id, audioBuffer);
+  const phoneNumberId = creds.phone_number_id ?? creds.phone_id;
+  const mediaId = await uploadMediaToWhatsApp(creds.whatsapp_token, phoneNumberId, audioBuffer);
   if (!mediaId) return false;
-  return sendAudioMeta(creds.whatsapp_token, creds.phone_number_id, phone, mediaId);
+  return sendAudioMeta(creds.whatsapp_token, phoneNumberId, phone, mediaId);
 }
 
 // ── Validate workspace has enough creds to send ───────────────────────────
@@ -192,9 +194,10 @@ Deno.serve(async (req: Request) => {
     await sb.from("app_logs").insert({
       workspace_id: ws?.id ?? lead.workspace_id,
       type: "error",
-      module: "whatsapp",
-      action,
-      details,
+      title: `WhatsApp ${action}`,
+      description: JSON.stringify({ lead_id, ...details }, null, 2),
+      status: "pending",
+      is_public: false,
     }).then(() => {}).catch(() => {});
   }
 
@@ -752,13 +755,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   const isError = finalReply.startsWith("⚠️");
   if (isError) {
     // Log technical error to app_logs so it doesn't appear as a sent WhatsApp message
-    await sb.from("app_logs").insert({
-      workspace_id: ws!.id,
-      type: "error",
-      module: "whatsapp",
-      action: "flush_generation_error",
-      details: { lead_id, reason: finalReply },
-    }).then(() => {}).catch(() => {});
+    await logAppError("flush_generation_error", { reason: finalReply });
     // Send friendly fallback to user
     finalReply = "Opa, minha inteligência artificial teve um pequeno engasgo de conexão agora. Pode me mandar um 'Oi' novamente em um minutinho? 😊";
   }
