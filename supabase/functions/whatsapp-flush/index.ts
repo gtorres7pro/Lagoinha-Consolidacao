@@ -180,6 +180,40 @@ Deno.serve(async (req: Request) => {
   await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
 
   const { data: ws } = await sb.from("workspaces").select("id, credentials, knowledge_base").eq("id", lead.workspace_id).maybeSingle();
+  const creds = ws?.credentials ?? {};
+  const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
+
+  // First name extraction
+  let firstName = "Amigo";
+  if (lead.name) firstName = lead.name.split(" ")[0];
+
+  async function persistOutboundText(content: string) {
+    await sb.from("messages").insert({
+      workspace_id: ws!.id,
+      lead_id,
+      direction: "outbound",
+      type: "text",
+      content,
+      automated: true,
+      responded_at: new Date().toISOString(),
+    });
+  }
+
+  async function sendOutboundText(content: string): Promise<boolean> {
+    const sent = await sendText(mode, creds, lead.phone, content);
+    console.log(`[FLUSH] sendText (${mode}) ${sent ? "OK" : "FAILED"}: ${content.substring(0, 80)}`);
+    if (!sent) return false;
+    await persistOutboundText(content);
+    return true;
+  }
+
+  async function markLeadResponded(extra: Record<string, any> = {}) {
+    await sb.from("leads").update({
+      has_responded: true,
+      last_message_at: new Date().toISOString(),
+      ...extra,
+    }).eq("id", lead.id);
+  }
 
   // ── CAFÉ COM PASTOR MULTI-TURN BOT ───────────────────────────────────────
   const cpCtx: any = (lead as any).bot_context ?? null;
@@ -253,9 +287,9 @@ Deno.serve(async (req: Request) => {
       if (!activePastors.length) {
         await cpSaveCtx(null);
         const outMsg = "Hmm, no momento não há pastores com horários disponíveis para esse tipo de sessão. 😕 Que tal tentar de forma diferente ou falar com nosso time? ☕";
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors" }), { status: 200 });
       }
 
@@ -267,10 +301,10 @@ ${pastorList}
 
 Responda com o número ou nome do pastor. 👆`;
       
-      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_pastor", appointment_type: apptType, pastors: activePastors });
-      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      if (await sendOutboundText(outMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_pastor", appointment_type: apptType, pastors: activePastors });
+        await markLeadResponded();
+      }
       return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_pastor" }), { status: 200 });
     }
 
@@ -300,9 +334,9 @@ Responda com o número ou nome do pastor. 👆`;
         const outMsg = `Não consegui identificar o pastor. Digite o *número* ou *nome*:
 
 ${list}`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_pastor" }), { status: 200 });
       }
 
@@ -316,9 +350,9 @@ ${list}`;
       if (!pastoSlots.length) {
         await cpSaveCtx(null);
         const outMsg = `😕 ${chosenPastor.display_name} não tem horários disponíveis nos próximos dias. Gostaria de escolher outro pastor? Diga *sim* para recomeçar, ou acesse o link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "no_slots" }), { status: 200 });
       }
 
@@ -328,10 +362,10 @@ ${list}`;
 ${slotList}
 
 Digite o *número* do horário desejado. 📅`;
-      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_slot", pastor_id: chosenPastor.id, pastor_name: chosenPastor.display_name, appointment_type: apptType, slots: pastoSlots });
-      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      if (await sendOutboundText(outMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_slot", pastor_id: chosenPastor.id, pastor_name: chosenPastor.display_name, appointment_type: apptType, slots: pastoSlots });
+        await markLeadResponded();
+      }
       return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_slot" }), { status: 200 });
     }
 
@@ -350,9 +384,9 @@ Digite o *número* do horário desejado. 📅`;
         const outMsg = `Por favor, escolha o *número* de um dos horários:
 
 ${slotList}`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_slot" }), { status: 200 });
       }
 
@@ -368,10 +402,10 @@ ${slotList}`;
 ${typeLabel}
 
 Confirma? (Sim / Não)`;
-      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_confirm", pastor_id: pastorId, pastor_name: pastorName, slot: chosen, appointment_type: finalType });
-      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+      if (await sendOutboundText(outMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_confirm", pastor_id: pastorId, pastor_name: pastorName, slot: chosen, appointment_type: finalType });
+        await markLeadResponded();
+      }
       return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_confirm" }), { status: 200 });
     }
 
@@ -384,17 +418,17 @@ Confirma? (Sim / Não)`;
       if (isNo) {
         await cpSaveCtx(null);
         const outMsg = `Tudo bem! Seu agendamento foi cancelado. Se quiser reagendar, é só falar comigo! 😊☕`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "cancelled" }), { status: 200 });
       }
 
       if (!isYes) {
         const outMsg = `Confirma o agendamento com ${cpCtx.pastor_name}? Responda *Sim* ou *Não*.`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "re-ask_confirm" }), { status: 200 });
       }
 
@@ -404,9 +438,9 @@ Confirma? (Sim / Não)`;
 
       if (!result?.ok) {
         const outMsg = `Ops! Houve um erro ao confirmar o agendamento. 😕 Por favor, tente pelo link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(outMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "book_error" }), { status: 200 });
       }
 
@@ -426,16 +460,13 @@ ${typeLabel}
 
 O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! 🙏`;
 
-      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, outMsg);
-      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: outMsg, automated: true, responded_at: new Date().toISOString() });
-      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString(), inbox_status: "highlighted", inbox_priority: "cafe_pastor" }).eq("id", lead.id);
+      if (await sendOutboundText(outMsg)) {
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
       return new Response(JSON.stringify({ ok: true, cp_step: "booked", appointment: result.appointment }), { status: 200 });
     }
   }
   // ── END CAFÉ COM PASTOR MULTI-TURN ────────────────────────────────────────
-
-  const creds = ws?.credentials ?? {};
-  const mode: string = creds.whatsapp_mode ?? "meta"; // "evolution" | "meta"
 
   // ── Guard: IA must be active ─────────────────────────────────────────────
   if (creds.ia_active === false) {
@@ -474,10 +505,6 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     });
   }
   contents.push({ role: "user", parts: [{ text: userTextCombined }] });
-
-  // First name extraction
-  let firstName = "Amigo";
-  if (lead.name) firstName = lead.name.split(" ")[0];
 
   // Current date/time context (Eastern Time — relevant for Orlando)
   const orlandoTime = new Date().toLocaleString("pt-BR", {
@@ -671,13 +698,14 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   // ── Send response ─────────────────────────────────────────────────────────
   const isError = finalReply.startsWith("⚠️");
   if (isError) {
-    // Log technical error to DB so admin sees it
-    await sb.from("messages").insert({
-      workspace_id: ws!.id, lead_id,
-      direction: "outbound", type: "text",
-      content: finalReply, automated: true,
-      responded_at: new Date().toISOString(),
-    });
+    // Log technical error to app_logs so it doesn't appear as a sent WhatsApp message
+    await sb.from("app_logs").insert({
+      workspace_id: ws!.id,
+      type: "error",
+      module: "whatsapp",
+      action: "flush_generation_error",
+      details: { lead_id, reason: finalReply },
+    }).then(() => {}).catch(() => {});
     // Send friendly fallback to user
     finalReply = "Opa, minha inteligência artificial teve um pequeno engasgo de conexão agora. Pode me mandar um 'Oi' novamente em um minutinho? 😊";
   }
@@ -714,14 +742,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   for (const chunk of chunks) {
     if (!chunk) continue;
-    const sent = await sendText(mode, creds, lead.phone, chunk);
-    console.log(`[FLUSH] sendText (${mode}) ${sent ? "OK" : "FAILED"}: ${chunk.substring(0, 80)}`);
-    await sb.from("messages").insert({
-      workspace_id: ws!.id, lead_id,
-      direction: "outbound", type: "text",
-      content: chunk, automated: true,
-      responded_at: new Date().toISOString(),
-    });
+    await sendOutboundText(chunk);
     if (chunks.length > 1) await new Promise<void>(r => setTimeout(r, 1200));
   }
 
@@ -734,9 +755,9 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
       if (!activePastors.length) {
         const pubLink = `https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
         const noMsg = `Olá ${firstName}! Adoramos a ideia de um Café com Pastor! ☕ No momento estamos organizando os horários. Acesse o link para agendar: ${pubLink}`;
-        await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, noMsg);
-        await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: noMsg, automated: true, responded_at: new Date().toISOString() });
-        await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString() }).eq("id", lead.id);
+        if (await sendOutboundText(noMsg)) {
+          await markLeadResponded();
+        }
         return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors_initial" }), { status: 200 });
       }
       // Start flow: ask type
@@ -748,10 +769,10 @@ Temos os seguintes pastores disponíveis:
 ${pastorList}
 
 Primeiro: prefere uma sessão *presencial* na igreja ou *online* (vídeo chamada)?`;
-      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_type" });
-      await sendText(creds.whatsapp_mode ?? "meta", ws?.credentials ?? {}, lead.phone, startMsg);
-      await sb.from("messages").insert({ workspace_id: ws!.id, lead_id, direction: "outbound", type: "text", content: startMsg, automated: true, responded_at: new Date().toISOString() });
-      await sb.from("leads").update({ has_responded: true, last_message_at: new Date().toISOString(), inbox_status: "highlighted", inbox_priority: "cafe_pastor" }).eq("id", lead.id);
+      if (await sendOutboundText(startMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_type" });
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
       return new Response(JSON.stringify({ ok: true, cp_step: "started" }), { status: 200 });
     }
 

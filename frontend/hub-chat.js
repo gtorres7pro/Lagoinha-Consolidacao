@@ -110,7 +110,7 @@ function buildChatLayout() {
             <svg class="chat-search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" id="chat-search" placeholder="Pesquisar conversa..." oninput="filterLeadsList()" autocomplete="off" />
           </div>
-          <button class="csb" onclick="openNewConvoModal()" title="Nova Conversa" style="flex-shrink:0;margin-left:6px;background:var(--accent);border:none;border-radius:10px;padding:7px 10px;color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow: 0 2px 8px rgba(251,191,36,0.3);transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(251,191,36,0.4)';" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(251,191,36,0.3)';">
+          <button class="chat-new-convo-btn" onclick="openNewConvoModal()" title="Nova Conversa">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             Nova
           </button>
@@ -332,7 +332,7 @@ function buildChatLayout() {
 
     /* ═══════════ LEFT SIDEBAR ═══════════ */
     .chat-list-panel {
-      width:340px; min-width:300px; max-width:400px;
+      width:clamp(280px, 30vw, 340px); min-width:260px; max-width:340px;
       display:flex; flex-direction:column;
       background:#0f0f10;
       border-right:1px solid #1e1e28;
@@ -376,7 +376,7 @@ function buildChatLayout() {
     .chat-sidebar-expand-fab[style*="flex"] { animation:fabIn .18s ease; }
 
     /* Search */
-    .chat-search-wrap { padding:8px 12px; flex-shrink:0; background:#0f0f10; display:flex; align-items:center; }
+    .chat-search-wrap { padding:8px 12px; flex-shrink:0; background:#0f0f10; display:flex; align-items:center; gap:8px; }
     .chat-search-inner {
       flex: 1;
       display:flex; align-items:center; gap:10px;
@@ -391,6 +391,32 @@ function buildChatLayout() {
       color:#e9edef; font-size:.875rem; outline:none; font-family:inherit;
     }
     .chat-search-inner input::placeholder { color:#5a5a72; }
+
+    .chat-new-convo-btn {
+      flex-shrink:0;
+      min-height:36px;
+      padding:0 11px;
+      border:none;
+      border-radius:10px;
+      background:var(--accent);
+      color:#0a0a0c;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      font-size:.78rem;
+      font-weight:700;
+      white-space:nowrap;
+      box-shadow:0 2px 8px rgba(251,191,36,0.3);
+      transition:transform .15s, box-shadow .15s;
+      line-height:1;
+    }
+    .chat-new-convo-btn:hover {
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(251,191,36,0.4);
+    }
+    .chat-new-convo-btn svg { flex-shrink:0; }
 
     /* Filter tabs (broadcast modal only) */
     .chat-filter-tabs { display:none; }
@@ -556,7 +582,7 @@ function buildChatLayout() {
 
     /* ═══════════ MESSAGES ═══════════ */
     .chat-messages {
-      flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:2px;
+      flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 16px; display:flex; flex-direction:column; gap:2px;
       scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.04) transparent;
       background-color:#0a0a0c;
       background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FFD700' fill-opacity='0.018'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
@@ -565,13 +591,13 @@ function buildChatLayout() {
     .chat-messages::-webkit-scrollbar-thumb { background:rgba(255,255,255,.04); border-radius:3px; }
 
     @keyframes msgIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-    .msg-row { display:flex; animation:msgIn .12s ease; width:100%; margin-bottom:1px; }
+    .msg-row { display:flex; animation:msgIn .12s ease; width:100%; margin-bottom:1px; padding:0 6px; box-sizing:border-box; }
     .msg-row.outbound { justify-content:flex-end; }
     .msg-row.inbound { justify-content:flex-start; }
 
     .msg-bubble {
-      max-width:65%; padding:6px 7px 8px 9px; border-radius:7.5px; font-size:.875rem; line-height:1.38;
-      position:relative; word-break:break-word; min-width:80px;
+      max-width:min(68%, 680px); padding:6px 7px 8px 9px; border-radius:7.5px; font-size:.875rem; line-height:1.38;
+      position:relative; word-break:break-word; overflow-wrap:anywhere; min-width:80px;
       box-shadow:0 1px 2px rgba(0,0,0,.25);
     }
 
@@ -620,6 +646,7 @@ function buildChatLayout() {
     [data-theme="light"] .chat-search-wrap { background: #f9f9fb; }
     [data-theme="light"] .chat-search-inner { background: #fff; border: 1px solid #ddd; }
     [data-theme="light"] .chat-search-inner input { color: #111; }
+    [data-theme="light"] .chat-new-convo-btn { color:#111; }
     [data-theme="light"] .chat-lead-card { background: transparent; border-bottom: 1px solid #edf0f2; }
     [data-theme="light"] .chat-lead-card:hover { background: #f3f4f6; }
     [data-theme="light"] .chat-lead-card.active { background: #fff; border-left: 3px solid #FBBF24; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
@@ -646,7 +673,7 @@ function buildChatLayout() {
     [data-theme="light"] .cw-btn.send-btn:hover { background: #F59E0B; }
 
 
-    .msg-content { white-space:pre-wrap; padding-right:56px; min-height:18px; }
+    .msg-content { white-space:pre-wrap; padding-right:56px; min-height:18px; word-break:break-word; overflow-wrap:anywhere; }
 
     .msg-meta {
       font-size:.6875rem; color:rgba(255,255,255,.32); display:inline-flex; gap:3px; align-items:center;
@@ -784,6 +811,11 @@ function buildChatLayout() {
     }
 
     /* ═══════════ RESPONSIVE ═══════════ */
+    @media (max-width: 1280px) {
+      .chat-list-panel { width:300px; min-width:250px; max-width:300px; }
+      .msg-bubble { max-width:min(72%, 620px); }
+    }
+
     @media (max-width: 768px) {
       .chat-list-panel { width:100%; max-width:100%; position:absolute; z-index:10; height:100%; background:#0f0f10; }
       .chat-list-panel.collapsed { width:0; }
