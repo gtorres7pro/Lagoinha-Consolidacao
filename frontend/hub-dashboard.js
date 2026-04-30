@@ -4,6 +4,7 @@
         const saved = localStorage.getItem('zelo_theme');
         if (saved === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
         }
     } catch(e) { /* localStorage unavailable */ }
 })();
@@ -14396,12 +14397,22 @@ window.handleThemeToggle = function(isLight) {
             document.documentElement.removeAttribute('data-theme');
             localStorage.setItem('zelo_theme', 'dark');
         }
+        _syncThemeChrome(isLight);
         _syncThemeUI(isLight);
     } catch(e) { console.error('handleThemeToggle:', e); }
 };
 
+/** Keep browser/PWA chrome aligned with the selected theme. */
+function _syncThemeChrome(isLight) {
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', isLight ? '#f3f6f2' : '#0a0a0a');
+    document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+}
+
 /** Sync all theme UI indicators after a theme change. */
 function _syncThemeUI(isLight) {
+    _syncThemeChrome(isLight);
+
     const toggle = document.getElementById('theme-toggle-input');
     if (toggle) toggle.checked = isLight;
 

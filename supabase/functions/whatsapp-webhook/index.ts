@@ -114,13 +114,17 @@ async function dispatchToN8N(ws: any, lead: any, messageCreatedAt: string) {
     if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
   }
   console.error(`[WH-N8N] all 3 attempts failed for workspace=${ws.id}`);
-  await sb.from("app_logs").insert({
-    workspace_id: ws.id,
-    type: "error",
-    module: "whatsapp",
-    action: "n8n_dispatch_failed",
-    details: { lead_id: lead.id, webhook_url: webhookUrl },
-  }).then(() => {}).catch(() => {});
+  try {
+    await sb.from("app_logs").insert({
+      workspace_id: ws.id,
+      type: "error",
+      module: "whatsapp",
+      action: "n8n_dispatch_failed",
+      details: { lead_id: lead.id, webhook_url: webhookUrl },
+    });
+  } catch {
+    // Logging should not prevent Meta webhook acknowledgement.
+  }
 }
 
 // ── IA Atendente flush ───────────────────────────────────────────────────────
