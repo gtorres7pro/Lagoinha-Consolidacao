@@ -3358,6 +3358,24 @@ body *[data-no-transition] {
   color: var(--text-muted) !important;
 }
 
+[data-theme="light"] [style*="color: rgba(255,255,255,0.35)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,.35)"],
+[data-theme="light"] [style*="color:rgba(255,255,255,0.35)"] {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="light"] [stroke*="rgba(255,255,255,0.45)"],
+[data-theme="light"] [stroke*="rgba(255,255,255,.45)"],
+[data-theme="light"] [stroke*="rgba(255,255,255,0.35)"],
+[data-theme="light"] [stroke*="rgba(255,255,255,.35)"] {
+  stroke: var(--text-muted) !important;
+}
+
+[data-theme="light"] #home-lottie-bg {
+  opacity: 0.08 !important;
+  mix-blend-mode: multiply !important;
+}
+
 /* Inputs, filters and buttons */
 [data-theme="light"] input[type="text"],
 [data-theme="light"] input[type="search"],
