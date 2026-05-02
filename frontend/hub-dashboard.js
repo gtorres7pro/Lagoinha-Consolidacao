@@ -4856,6 +4856,10 @@ window.saveIaKnowledgeBase = async function() {
 
 
 
+function _automationSourceForForm(formKey) {
+    return formKey === 'visitor-form' ? 'visitante-form' : formKey;
+}
+
 window.loadAutomationConfig = async function() {
     if (!window.currentWorkspaceId) return;
     try {
@@ -4908,7 +4912,8 @@ async function _fetchAndPopulateMetaTemplates(rules) {
         
         selects.forEach(select => {
             const formKey = select.getAttribute('data-form');
-            const rule = rules.find(r => r.source === formKey);
+            const sourceKey = _automationSourceForForm(formKey);
+            const rule = rules.find(r => r.source === sourceKey || r.source === formKey);
             
             select.innerHTML = '<option value="">Nenhuma Automação (Desativado)</option>';
             select.disabled = false;
@@ -5033,6 +5038,7 @@ window.saveWabaAutomations = async function() {
         
         selects.forEach(select => {
             const formKey = select.getAttribute('data-form');
+            const sourceKey = _automationSourceForForm(formKey);
             const templateName = select.value;
             if (!templateName) return; 
             
@@ -5048,7 +5054,7 @@ window.saveWabaAutomations = async function() {
             });
             
             rules.push({
-                source: formKey,
+                source: sourceKey,
                 template: templateName,
                 language: language,
                 channel: 'meta',

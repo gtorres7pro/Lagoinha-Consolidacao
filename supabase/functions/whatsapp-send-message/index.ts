@@ -97,5 +97,39 @@ Deno.serve(async (req: Request) => {
   const waMessageId: string = metaData?.messages?.[0]?.id ?? null;
   console.log(`[WA-SEND] sent ok wa_id=${waMessageId} to=${toPhone}`);
 
-  return json({ ok: true, wa_message_id: waMessageId });
+  let humanLockUntil: string | null = null;
+  if (!apiKeyAuthorized) {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    humanLockUntil = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+    const waWindowExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: lockErr } = await sb.from("leads")
+      .update({
+        llm_lock_until: humanLockUntil,
+        last_message_at: nowIso,
+        wa_window_expires_at: waWindowExpiresAt,
+      })
+      .eq("id", lead_id)
+      .eq("workspace_id", workspace_id);
+
+    if (lockErr) {
+      console.error(`[WA-SEND] failed to set human lock lead=${lead_id}:`, lockErr.message);
+      return json({ ok: false, error: "Message sent, but failed to pause Ju for human takeover" }, 500);
+    }
+
+    const { error: pendingErr } = await sb.from("messages")
+      .update({ responded_at: nowIso })
+      .eq("workspace_id", workspace_id)
+      .eq("lead_id", lead_id)
+      .eq("direction", "inbound")
+      .is("responded_at", null);
+
+    if (pendingErr) {
+      console.error(`[WA-SEND] failed to mark pending inbound handled lead=${lead_id}:`, pendingErr.message);
+      return json({ ok: false, error: "Message sent and Ju paused, but failed to close pending inbound messages" }, 500);
+    }
+  }
+
+  return json({ ok: true, wa_message_id: waMessageId, human_lock_until: humanLockUntil });
 });

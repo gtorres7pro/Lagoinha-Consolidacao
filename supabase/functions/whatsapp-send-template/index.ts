@@ -26,6 +26,80 @@ function interpolate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+function extractTemplateVariables(body: string): string[] {
+  const matches = body.match(/\{\{\s*[\w.]+\s*\}\}/g) ?? [];
+  return [...new Set(matches.map((m) => m.replace(/[{}]/g, "").trim()).filter(Boolean))];
+}
+
+function fillTemplatePreview(body: string, values: string[]): string {
+  let preview = body;
+  values.forEach((value, index) => {
+    preview = preview.replaceAll(`{{${index + 1}}}`, value);
+  });
+  extractTemplateVariables(preview).forEach((name, index) => {
+    preview = preview.replaceAll(`{{${name}}}`, values[index] ?? "");
+  });
+  return preview.replace(/\s+/g, " ").trim();
+}
+
+function resolveVariable(raw: unknown, variableName: string, index: number, lead: any, firstName: string): string {
+  const value = String(raw ?? "").trim();
+  const ctx: Record<string, string> = {
+    "lead.name": lead.name ?? "",
+    "lead.first_name": firstName,
+    "lead.phone": lead.phone ?? "",
+    "lead.source": lead.source ?? "",
+    "lead.decisao": lead.decisao ?? "",
+    "lead.culto": lead.culto ?? "",
+    nome: firstName,
+    name: firstName,
+    firstName,
+    source: lead.source ?? "",
+    decisao: lead.decisao ?? "",
+    culto: lead.culto ?? "",
+  };
+
+  if (!value) return index === 0 ? firstName : "";
+  const wholeToken = value.match(/^\{\{\s*([\w.]+)\s*\}\}$/)?.[1];
+  if (wholeToken) return ctx[wholeToken] ?? "";
+  return value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => ctx[key] ?? "");
+}
+
+async function fetchTemplateBody(token: string, wabaId: string, templateName: string, languageCode: string): Promise<string> {
+  if (!token || !wabaId) return "";
+  const fields = encodeURIComponent("name,language,status,components");
+  const res = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=${fields}&limit=100`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    console.warn("[TMPL] Could not fetch template body:", await res.text());
+    return "";
+  }
+  const data = await res.json();
+  const template = (data?.data ?? []).find((t: any) => t.name === templateName && t.language === languageCode);
+  const body = template?.components?.find((c: any) => c.type === "BODY")?.text;
+  return typeof body === "string" ? body : "";
+}
+
+function buildAutomationContext(args: {
+  templateName: string;
+  languageCode: string;
+  source: string;
+  firstName: string;
+  preview: string;
+  lead: any;
+}) {
+  const details = [
+    `Template: ${args.templateName} (${args.languageCode})`,
+    `Origem: ${args.source || "formulario"}`,
+    `Nome: ${args.lead.name ?? args.firstName}`,
+    args.lead.decisao ? `Decisao: ${args.lead.decisao}` : "",
+    args.lead.culto ? `Culto: ${args.lead.culto}` : "",
+  ].filter(Boolean).join(" | ");
+  const preview = args.preview ? `\nMensagem enviada: ${args.preview}` : "";
+  return `[AUTOMACAO_FORMULARIO] Ju iniciou esta conversa automaticamente apos o preenchimento de formulario. Quando a pessoa responder, continue a conversa considerando este contexto. ${details}.${preview}`;
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -194,7 +268,22 @@ Deno.serve(async (req: Request) => {
     const templateName = overrideTemplate ?? matchedRule?.template ?? "consolidacao";
     const languageCode = overrideLang     ?? matchedRule?.language ?? "pt_BR";
     const toPhone      = metaPhone(lead.phone);
-    sentContent        = `[Template: ${templateName}] Olá, ${firstName}!`;
+    const wabaId       = creds.waba_id ?? creds.business_id ?? "";
+    const templateBody = await fetchTemplateBody(waToken, wabaId, templateName, languageCode);
+    const templateVars = extractTemplateVariables(templateBody);
+    const ruleVars     = matchedRule?.variables ?? {};
+    const varValues    = templateVars.map((variableName, index) =>
+      resolveVariable(ruleVars[variableName], variableName, index, lead, firstName)
+    );
+    const previewBody  = templateBody ? fillTemplatePreview(templateBody, varValues) : `Template ${templateName} enviado para ${firstName}`;
+    sentContent        = buildAutomationContext({
+      templateName,
+      languageCode,
+      source: leadSource,
+      firstName,
+      preview: previewBody,
+      lead,
+    });
 
     const templatePayload = {
       messaging_product: "whatsapp",
@@ -204,12 +293,18 @@ Deno.serve(async (req: Request) => {
       template: {
         name: templateName,
         language: { code: languageCode },
-        components: [
-          {
-            type: "body",
-            parameters: [{ type: "text", text: firstName }],
-          },
-        ],
+        ...(templateVars.length ? {
+          components: [
+            {
+              type: "body",
+              parameters: templateVars.map((variableName, index) => {
+                const parameter: Record<string, string> = { type: "text", text: varValues[index] || firstName };
+                if (!/^\d+$/.test(variableName)) parameter.parameter_name = variableName;
+                return parameter;
+              }),
+            },
+          ],
+        } : {}),
       },
     };
 

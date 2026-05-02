@@ -637,7 +637,9 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   };
 
   // ── Call Gemini ───────────────────────────────────────────────────────────
-  const model = "gemini-2.5-flash";
+  const primaryGeminiModel = creds?.llm_config?.gemini_model ?? "gemini-2.5-flash";
+  const fallbackGeminiModel = creds?.llm_config?.gemini_fallback_model ?? "gemini-2.0-flash";
+  const geminiModels = [...new Set([primaryGeminiModel, fallbackGeminiModel].filter(Boolean))];
   let finalReply = "⚠️ Nenhum provedor de IA respondeu.";
   let detectedIntention = "none";
   let audioScript: string | null = null;
@@ -647,91 +649,95 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     console.error("[FLUSH] no gemini_token in llm_config — trying fallback provider");
     finalReply = "⚠️ Gemini token ausente.";
   } else {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+    for (const model of geminiModels) {
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-      let retries = 3;
-      let delay = 1000;
+        let retries = 3;
+        let delay = 1000;
 
-      while (retries > 0) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+        while (retries > 0) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
+          try {
+            const res = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
-          const rawBody = await res.text();
-          if (res.ok) {
-            try {
-              const j = JSON.parse(rawBody);
-              const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-              const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
-              if (rawText) {
-                try {
-                  const parsedJSON = JSON.parse(rawText);
-                  if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
-                  else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
-                  if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
-                  if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
-                  if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
-                } catch {
-                  console.log("LLM non-JSON:", rawText.substring(0, 200));
-                  finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+            const rawBody = await res.text();
+            if (res.ok) {
+              try {
+                const j = JSON.parse(rawBody);
+                const rawText = j?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
+                if (rawText) {
+                  try {
+                    const parsedJSON = JSON.parse(rawText);
+                    if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
+                    else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
+                    if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
+                    if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
+                    if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
+                  } catch {
+                    console.log("LLM non-JSON:", rawText.substring(0, 200));
+                    finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+                  }
+                } else {
+                  finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+                }
+              } catch (e: any) {
+                finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
+                console.error("Gemini parse error:", e.message);
+              }
+              break; // Success, exit retry loop
+            } else {
+              if (res.status === 503 || res.status === 429 || res.status >= 500) {
+                console.error(`Gemini ${model} HTTP ${res.status}. Retrying in ${delay}ms...`);
+                retries--;
+                if (retries === 0) {
+                  finalReply = `⚠️ Gemini ${model} falhou após retentativas. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+                  console.error("Gemini API error:", rawBody.substring(0, 300));
+                } else {
+                  await new Promise(resolve => setTimeout(resolve, delay));
+                  delay *= 2;
+                  continue;
                 }
               } else {
-                finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
+                finalReply = `⚠️ Gemini ${model} falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
+                console.error("Gemini API error:", rawBody.substring(0, 300));
+                break;
               }
-            } catch (e: any) {
-              finalReply = `⚠️ Falha no parse do Gemini. Erro: ${e.message}`;
-              console.error("Gemini parse error:", e.message);
             }
-            break; // Success, exit retry loop
-          } else {
-            if (res.status === 503 || res.status === 429 || res.status >= 500) {
-              console.error(`Gemini API HTTP ${res.status}. Retrying in ${delay}ms...`);
+          } catch (e: any) {
+            clearTimeout(timeoutId);
+            if (e.name === "AbortError" || e.message.includes("fetch")) {
+              console.error(`Gemini ${model} ${e.name}. Retrying in ${delay}ms...`);
               retries--;
               if (retries === 0) {
-                finalReply = `⚠️ Gemini falhou após retentativas. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
-                console.error("Gemini API error:", rawBody.substring(0, 300));
+                finalReply = `⚠️ Gemini ${model} Error após retentativas: ${e.message}`;
               } else {
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
                 continue;
               }
             } else {
-              finalReply = `⚠️ Gemini falhou. HTTP ${res.status}. Raw: ${rawBody.substring(0, 250)}`;
-              console.error("Gemini API error:", rawBody.substring(0, 300));
+              finalReply = `⚠️ Gemini ${model} Fetch Error: ${e.message}`;
+              console.error("Gemini fetch error:", e.message);
               break;
             }
           }
-        } catch (e: any) {
-          clearTimeout(timeoutId);
-          if (e.name === "AbortError" || e.message.includes("fetch")) {
-            console.error(`Gemini ${e.name}. Retrying in ${delay}ms...`);
-            retries--;
-            if (retries === 0) {
-              finalReply = `⚠️ Gemini Error após retentativas: ${e.message}`;
-            } else {
-              await new Promise(resolve => setTimeout(resolve, delay));
-              delay *= 2;
-              continue;
-            }
-          } else {
-            finalReply = `⚠️ Gemini Fetch Error: ${e.message}`;
-            console.error("Gemini fetch error:", e.message);
-            break;
-          }
         }
+      } catch (e: any) {
+        finalReply = `⚠️ Gemini ${model} outer error: ${e.message}`;
+        console.error("Outer error:", e.message);
       }
-    } catch (e: any) {
-      finalReply = `⚠️ Gemini outer error: ${e.message}`;
-      console.error("Outer error:", e.message);
+      if (!finalReply.startsWith("⚠️")) break;
+      console.warn(`[FLUSH] Gemini model ${model} failed; trying next available model if configured.`);
     }
   }
 

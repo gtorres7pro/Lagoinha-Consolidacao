@@ -7,6 +7,26 @@ if (!VERIFY_TOKEN) console.error("[WH] WHATSAPP_VERIFY_TOKEN env var not set —
 
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
+async function logAppEvent(args: {
+  workspaceId?: string | null;
+  type?: string;
+  title: string;
+  description: string;
+}) {
+  try {
+    await sb.from("app_logs").insert({
+      workspace_id: args.workspaceId ?? null,
+      type: args.type ?? "error",
+      title: args.title,
+      description: args.description,
+      status: "pending",
+      is_public: false,
+    });
+  } catch (e: any) {
+    console.warn("[WH-LOG] app_logs insert failed:", e?.message ?? e);
+  }
+}
+
 // ── HMAC-SHA256 verification for Meta webhooks (X-Hub-Signature-256) ─────────
 async function verifyMetaSignature(rawBody: string, signatureHeader: string | null, appSecret: string): Promise<boolean> {
   if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
@@ -114,21 +134,15 @@ async function dispatchToN8N(ws: any, lead: any, messageCreatedAt: string) {
     if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
   }
   console.error(`[WH-N8N] all 3 attempts failed for workspace=${ws.id}`);
-  try {
-    await sb.from("app_logs").insert({
-      workspace_id: ws.id,
-      type: "error",
-      module: "whatsapp",
-      action: "n8n_dispatch_failed",
-      details: { lead_id: lead.id, webhook_url: webhookUrl },
-    });
-  } catch {
-    // Logging should not prevent Meta webhook acknowledgement.
-  }
+  await logAppEvent({
+    workspaceId: ws.id,
+    title: "WhatsApp n8n dispatch failed",
+    description: JSON.stringify({ lead_id: lead.id, webhook_url: webhookUrl }, null, 2),
+  });
 }
 
 // ── IA Atendente flush ───────────────────────────────────────────────────────
-async function callFlush(lead_id: string, message_created_at: string) {
+async function callFlush(workspace_id: string, lead_id: string, message_created_at: string) {
   const flushUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/whatsapp-flush";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const internalSecret = Deno.env.get("ZELO_INTERNAL_SECRET") ?? Deno.env.get("INTERNAL_FUNCTION_SECRET") ?? "";
@@ -143,10 +157,21 @@ async function callFlush(lead_id: string, message_created_at: string) {
       body: JSON.stringify({ lead_id, message_created_at })
     });
     if (!res.ok) {
-      console.error("[WH] callFlush failed:", res.status, await res.text());
+      const detail = await res.text();
+      console.error("[WH] callFlush failed:", res.status, detail);
+      await logAppEvent({
+        workspaceId: workspace_id,
+        title: "WhatsApp IA dispatch failed",
+        description: JSON.stringify({ lead_id, status: res.status, detail }, null, 2),
+      });
     }
   } catch (e: any) {
     console.error("[WH] callFlush error:", e.message);
+    await logAppEvent({
+      workspaceId: workspace_id,
+      title: "WhatsApp IA dispatch error",
+      description: JSON.stringify({ lead_id, error: e.message }, null, 2),
+    });
   }
 }
 
@@ -155,7 +180,7 @@ async function dispatchAutomation(ws: any, lead: any, now: string) {
   const mode: string = ws.credentials?.automation_mode ?? "off";
   console.log(`[WH] dispatchAutomation mode=${mode} lead=${lead.id}`);
   if (mode === "ia_atendente" && ws.credentials?.ia_active !== false) {
-    await callFlush(lead.id, now);
+    await callFlush(ws.id, lead.id, now);
   } else if (mode === "n8n") {
     await dispatchToN8N(ws, lead, now);
   }
@@ -208,10 +233,22 @@ Deno.serve(async (req: Request) => {
   console.log(`[WH-META] id=${msg.id} from=${msg.from} pnid=${pnid} type=${msg.type}`);
 
   // Find workspace by phone_number_id
-  const { data: wss } = await sb.from("workspaces").select("id,name,credentials");
+  const { data: wss, error: wsLookupErr } = await sb.from("workspaces").select("id,name,credentials");
+  if (wsLookupErr) {
+    console.error("[WH-META] workspace lookup error:", wsLookupErr.message);
+    await logAppEvent({
+      title: "WhatsApp webhook workspace lookup failed",
+      description: JSON.stringify({ phone_number_id: pnid, message_id: msg.id, error: wsLookupErr.message }, null, 2),
+    });
+    return new Response("DB_ERROR", { status: 500 });
+  }
   const ws = wss?.find((w: any) => w.credentials?.phone_id === pnid);
   if (!ws) {
     console.error(`[WH-META] no workspace for phone_id=${pnid}`);
+    await logAppEvent({
+      title: "WhatsApp webhook phone_id without workspace",
+      description: JSON.stringify({ phone_number_id: pnid, message_id: msg.id, from: msg.from }, null, 2),
+    });
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 
@@ -220,11 +257,25 @@ Deno.serve(async (req: Request) => {
   const sigHeader = req.headers.get("x-hub-signature-256");
   if (!appSecret) {
     console.error(`[WH-META] workspace=${ws.id} has no app_secret — rejecting unsigned webhook`);
+    await logAppEvent({
+      workspaceId: ws.id,
+      title: "WhatsApp webhook missing app secret",
+      description: JSON.stringify({ phone_number_id: pnid, message_id: msg.id }, null, 2),
+    });
     return new Response("Forbidden", { status: 403 });
   }
   const valid = await verifyMetaSignature(rawBody, sigHeader, appSecret);
   if (!valid) {
     console.error(`[WH-META] invalid signature for workspace=${ws.id}`);
+    await logAppEvent({
+      workspaceId: ws.id,
+      title: "WhatsApp webhook invalid signature",
+      description: JSON.stringify({
+        phone_number_id: pnid,
+        message_id: msg.id,
+        has_signature_header: !!sigHeader,
+      }, null, 2),
+    });
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -250,7 +301,15 @@ Deno.serve(async (req: Request) => {
     }).select().limit(1);
     lead = nl?.[0] ?? null;
   }
-  if (!lead) { console.error("[WH-META] no lead"); return new Response("EVENT_RECEIVED", { status: 200 }); }
+  if (!lead) {
+    console.error("[WH-META] no lead");
+    await logAppEvent({
+      workspaceId: ws.id,
+      title: "WhatsApp webhook could not create lead",
+      description: JSON.stringify({ phone, message_id: msg.id, contact_name: contact?.profile?.name ?? null }, null, 2),
+    });
+    return new Response("EVENT_RECEIVED", { status: 200 });
+  }
 
   // Human lock: save message but skip automation
   if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
@@ -258,12 +317,29 @@ Deno.serve(async (req: Request) => {
     let lockText = `[${msg.type}]`;
     if (msg.type === "text") lockText = msg.text?.body ?? "";
     const lockNow = new Date().toISOString();
-    await sb.from("messages").insert({
+    const { error: lockInsertErr } = await sb.from("messages").insert({
       workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
-      type: msg.type, content: lockText, automated: false, responded_at: null, wa_message_id: msg.id,
+      type: msg.type, content: lockText, automated: false, responded_at: lockNow, wa_message_id: msg.id,
     });
+    if (lockInsertErr) {
+      await logAppEvent({
+        workspaceId: ws.id,
+        title: "WhatsApp locked inbound insert failed",
+        description: JSON.stringify({ lead_id: lead.id, message_id: msg.id, error: lockInsertErr.message }, null, 2),
+      });
+      return new Response("DB_ERROR", { status: 500 });
+    }
     const lockExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await sb.from("leads").update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow }).eq("id", lead.id);
+    const { error: lockLeadErr } = await sb.from("leads")
+      .update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow })
+      .eq("id", lead.id);
+    if (lockLeadErr) {
+      await logAppEvent({
+        workspaceId: ws.id,
+        title: "WhatsApp locked lead update failed",
+        description: JSON.stringify({ lead_id: lead.id, message_id: msg.id, error: lockLeadErr.message }, null, 2),
+      });
+    }
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 
@@ -299,7 +375,15 @@ Deno.serve(async (req: Request) => {
     workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
     type: msg.type, content: text, automated: false, responded_at: null, wa_message_id: msg.id,
   });
-  if (ie) { console.error("[WH-META] insert error:", ie.message); return new Response("DB_ERROR", { status: 500 }); }
+  if (ie) {
+    console.error("[WH-META] insert error:", ie.message);
+    await logAppEvent({
+      workspaceId: ws.id,
+      title: "WhatsApp inbound message insert failed",
+      description: JSON.stringify({ lead_id: lead.id, message_id: msg.id, error: ie.message }, null, 2),
+    });
+    return new Response("DB_ERROR", { status: 500 });
+  }
 
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
