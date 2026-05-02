@@ -213,26 +213,6 @@ function buildChatLayout() {
             </div>
           </div>
 
-          <!-- Quick actions -->
-          <div class="chat-action-strip" id="chat-action-strip">
-            <button class="chat-action-btn" onclick="openLeadProfileDrawer()">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-              Perfil
-            </button>
-            <button class="chat-action-btn" id="chat-pin-strip-btn" onclick="togglePinCurrentLead()">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M5 17h14"/><path d="M6 3h12l-2 8 3 6H5l3-6-2-8Z"/></svg>
-              <span id="chat-pin-strip-label">Fixar</span>
-            </button>
-            <button class="chat-action-btn" onclick="openTemplateModal()">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
-              Template
-            </button>
-            <button class="chat-action-btn" onclick="document.getElementById('chat-file-input').click()">
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              Anexar
-            </button>
-          </div>
-
           <!-- Task Badge -->
           <div class="chat-task-banner" id="chat-task-banner" style="display:none;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
@@ -638,22 +618,6 @@ function buildChatLayout() {
     }
     .cha-btn:hover { background:rgba(255,215,0,.08); color:#FFD700; }
     .cha-btn.active { color:#FFD700; }
-
-    .chat-action-strip {
-      display:flex; align-items:center; gap:8px; padding:7px 16px;
-      background:#101014; border-bottom:1px solid #1e1e28; flex-shrink:0;
-      overflow-x:auto; scrollbar-width:none;
-    }
-    .chat-action-strip::-webkit-scrollbar { display:none; }
-    .chat-action-btn {
-      border:1px solid #252532; background:#17171d; color:#a8a8b8;
-      min-height:30px; padding:0 11px; border-radius:8px; cursor:pointer;
-      display:inline-flex; align-items:center; justify-content:center; gap:6px;
-      font-size:.74rem; font-weight:650; font-family:inherit; white-space:nowrap;
-      transition:all .12s;
-    }
-    .chat-action-btn:hover { color:#FFD700; border-color:rgba(255,215,0,.25); background:rgba(255,215,0,.08); }
-    .chat-action-btn.active { color:#0a0a0c; background:#FFD700; border-color:#FFD700; }
 
     /* Task banner */
     .chat-task-banner {
@@ -1922,18 +1886,11 @@ async function toggleArchiveCurrentLead() {
 function updatePinButtons(lead) {
   const isPinned = !!lead?.chat_pinned;
   const pinBtn = document.getElementById('chat-pin-btn');
-  const stripBtn = document.getElementById('chat-pin-strip-btn');
-  const stripLabel = document.getElementById('chat-pin-strip-label');
 
   if (pinBtn) {
     pinBtn.classList.toggle('active', isPinned);
     pinBtn.title = isPinned ? 'Desafixar conversa' : 'Fixar conversa';
   }
-  if (stripBtn) {
-    stripBtn.classList.toggle('active', isPinned);
-    stripBtn.title = isPinned ? 'Desafixar conversa' : 'Fixar conversa';
-  }
-  if (stripLabel) stripLabel.textContent = isPinned ? 'Desafixar' : 'Fixar';
 }
 
 // Toggle pin on current lead
