@@ -1,0 +1,89 @@
+/* Standalone public form safeguards.
+   Keeps mobile browsers and dashboard-scoped CSS from repainting public forms. */
+html.public-form-page {
+  color-scheme: dark;
+  background: var(--public-form-bg, var(--bg, var(--bg-dark, #0f0f13))) !important;
+}
+
+html.public-form-page,
+html.public-form-page body {
+  height: auto !important;
+  min-height: 100dvh !important;
+  overflow-x: hidden !important;
+}
+
+html.public-form-page body {
+  background-color: var(--public-form-bg, var(--bg, var(--bg-dark, #0f0f13))) !important;
+  color: var(--public-form-text, var(--text, #fff)) !important;
+  overflow-y: auto !important;
+}
+
+html.public-form-page .container,
+html.public-form-page .glass-card,
+html.public-form-page .card,
+html.public-form-page .form-card,
+html.public-form-page .auth-card {
+  background-color: var(
+    --public-form-surface-bg,
+    var(--bg-card, var(--card, var(--surface, #15161d)))
+  ) !important;
+  forced-color-adjust: none;
+}
+
+html.public-form-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html.public-form-page select,
+html.public-form-page textarea {
+  color-scheme: dark;
+  forced-color-adjust: none;
+  background-color: var(
+    --public-form-input-bg,
+    var(--bg-input, var(--bg-el, rgba(255,255,255,0.055)))
+  ) !important;
+  color: var(--public-form-control-text, var(--text, #fff)) !important;
+  -webkit-text-fill-color: var(--public-form-control-text, var(--text, #fff));
+  caret-color: var(--public-form-accent, var(--accent, var(--primary, #fbbf24)));
+}
+
+html.public-form-page input::placeholder,
+html.public-form-page textarea::placeholder {
+  color: var(--public-form-placeholder, rgba(255,255,255,0.26)) !important;
+  -webkit-text-fill-color: var(--public-form-placeholder, rgba(255,255,255,0.26));
+}
+
+html.public-form-page select option {
+  background-color: var(--public-form-menu-bg, #111318);
+  color: var(--public-form-control-text, var(--text, #fff));
+}
+
+html.public-form-page input:-webkit-autofill,
+html.public-form-page input:-webkit-autofill:hover,
+html.public-form-page input:-webkit-autofill:focus,
+html.public-form-page textarea:-webkit-autofill,
+html.public-form-page textarea:-webkit-autofill:hover,
+html.public-form-page textarea:-webkit-autofill:focus,
+html.public-form-page select:-webkit-autofill,
+html.public-form-page select:-webkit-autofill:hover,
+html.public-form-page select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(
+    --public-form-input-bg,
+    var(--bg-input, var(--bg-el, #1a1b22))
+  ) inset !important;
+  -webkit-text-fill-color: var(--public-form-control-text, var(--text, #fff)) !important;
+  caret-color: var(--public-form-accent, var(--accent, var(--primary, #fbbf24)));
+  transition: background-color 9999s ease-out;
+}
+
+html.public-form-page .iti__country-list,
+html.public-form-page .country-dropdown {
+  background-color: var(--public-form-menu-bg, #111318) !important;
+  color: var(--public-form-control-text, var(--text, #fff)) !important;
+}
+
+@media (max-width: 1023px) {
+  html.public-form-page,
+  html.public-form-page body {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+}

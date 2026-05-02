@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="public-form-page">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="color-scheme" content="dark">
   <title>Manutenção</title>
   <meta name="description" content="Relate um problema de manutenção em nossa igreja. Seu reporte ajuda a manter nosso espaço em ordem.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public-form.css?v=20260502">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,6 +18,16 @@
       font-family: 'Outfit', sans-serif;
       color: #fff;
       -webkit-font-smoothing: antialiased;
+    }
+
+    :root {
+      color-scheme: dark;
+      --public-form-bg: #0a0a0a;
+      --public-form-surface-bg: rgba(255,255,255,.025);
+      --public-form-input-bg: rgba(255,255,255,.06);
+      --public-form-menu-bg: #111318;
+      --public-form-accent: #FFD700;
+      --text: #fff;
     }
 
     /* ── HEADER ─────────────────────────────────────────────────── */

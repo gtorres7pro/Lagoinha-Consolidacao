@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="public-form-page">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="color-scheme" content="dark">
   <title>Cantina</title>
   <meta name="description" content="Faça seu pedido online e retire na cantina.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public-form.css?v=20260502">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
+      color-scheme: dark;
       --rose:    #fb7185;
       --rose-d:  #f43f5e;
       --gold:    #FFD700;
@@ -31,6 +34,11 @@
       --text:     #f0ecf8;
       --text-dim: rgba(240,236,248,0.45);
       --text-xs:  rgba(240,236,248,0.3);
+      --public-form-bg: #16141a;
+      --public-form-surface-bg: #1e1b24;
+      --public-form-input-bg: rgba(255,255,255,0.06);
+      --public-form-menu-bg: #1e1b24;
+      --public-form-accent: #fb7185;
     }
 
     html { scroll-behavior: smooth; }
