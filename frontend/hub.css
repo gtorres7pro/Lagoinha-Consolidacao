@@ -3713,9 +3713,10 @@ body *[data-no-transition] {
 @media (max-width: 1023px) {
   html,
   body {
-    height: 100svh !important;
-    min-height: 100svh !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
     overflow: hidden !important;
+    background: var(--bg-color) !important;
   }
 
   .mobile-topbar {
@@ -3729,7 +3730,7 @@ body *[data-no-transition] {
 
   .main,
   .hub-main {
-    height: calc(100svh - var(--zelo-mobile-topbar-h)) !important;
+    height: calc(100dvh - var(--zelo-mobile-topbar-h)) !important;
     min-height: 0 !important;
     overflow: hidden !important;
     background: var(--bg-color) !important;
@@ -3755,14 +3756,19 @@ body *[data-no-transition] {
 
   .sidebar,
   .hub-sidebar {
-    height: 100svh !important;
-    max-height: 100svh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
     padding-top: var(--zelo-pwa-top-pad) !important;
     padding-bottom: var(--zelo-pwa-bottom-pad) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
+  }
+
+  .sidebar-overlay {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
   }
 
   .brand {
@@ -3803,6 +3809,84 @@ body *[data-no-transition] {
     padding: 6px 8px !important;
     gap: 0 !important;
     overflow-y: auto !important;
+  }
+
+  .nav > .nav-group {
+    display: block !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 1px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .nav > .nav-group::before {
+    display: none !important;
+  }
+
+  .nav > .nav-group:hover {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  .nav > .nav-group > .nav-item-row {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 6px 10px !important;
+    margin: 0 !important;
+    position: relative !important;
+  }
+
+  .nav > .nav-group .nav-submenu-wrap {
+    display: none !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .nav > .nav-group.open {
+    padding: 4px !important;
+    margin: 4px 0 !important;
+    border-radius: 14px !important;
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+  }
+
+  .nav > .nav-group.open .nav-submenu-wrap {
+    display: block !important;
+    animation: none !important;
+  }
+
+  .nav > .nav-group.open > .nav-item-row {
+    margin-bottom: 2px !important;
+  }
+
+  .nav > .nav-group.open .nav-submenu-wrap > ul {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    width: 100% !important;
+    padding: 1px 0 2px !important;
+  }
+
+  .nav > .nav-group.open .nav-submenu-wrap li {
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+    width: 100% !important;
+    min-height: 32px !important;
+    padding: 5px 10px 5px 36px !important;
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: 9px !important;
   }
 
   .nav li,
@@ -4193,4 +4277,27 @@ body *[data-no-transition] {
 [data-theme="light"] .mobile-action-menu > button,
 [data-theme="light"] .mobile-action-menu > a {
   color: var(--text) !important;
+}
+
+@media (max-width: 1023px) {
+  [data-theme="light"] .nav > .nav-group {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  [data-theme="light"] .nav > .nav-group.open {
+    background: rgba(255,255,252,0.56) !important;
+    border-color: rgba(31,42,58,0.08) !important;
+    box-shadow: 0 10px 22px rgba(31,42,58,0.05) !important;
+  }
+
+  [data-theme="light"] .nav > .nav-group.open > .nav-item-row {
+    background: linear-gradient(135deg, rgba(245,181,27,0.16), rgba(255,255,252,0.78)) !important;
+    border-color: rgba(211,132,0,0.18) !important;
+  }
+
+  [data-theme="light"] .nav > .nav-group.open .nav-submenu-wrap li {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
 }

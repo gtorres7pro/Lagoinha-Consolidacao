@@ -1,4 +1,4 @@
-const CACHE_VERSION = '20260502v1';
+const CACHE_VERSION = '20260502v2';
 const STATIC_CACHE = `zelo-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `zelo-runtime-${CACHE_VERSION}`;
 
