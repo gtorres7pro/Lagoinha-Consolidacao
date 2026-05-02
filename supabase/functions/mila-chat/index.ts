@@ -11,6 +11,60 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function compactKnowledgeText(text: string): string {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+function splitKnowledgeSentences(text: string): string[] {
+    return compactKnowledgeText(text)
+        .split(/(?<=[.!?])\s+/)
+        .map((sentence) => sentence.trim())
+        .filter(Boolean);
+}
+
+function cleanKnowledgeText(text: string): string {
+    const softened = compactKnowledgeText(text)
+        .replace(/quando algu[eé]m perguntar(?: sobre [^,.!?;:]+)?[,;:]?\s*/gi, '')
+        .replace(/\bexplique que\s*/gi, '')
+        .replace(/\bresponda que\s*/gi, '')
+        .replace(/\bdiga que\s*/gi, '')
+        .replace(/\boriente(?: a pessoa)? a\s*/gi, '')
+        .replace(/\bpe[cç]a que a equipe\b/gi, 'a equipe');
+    const instructionPattern = /(a ju|a mila|usu[aá]rio|use essa informa[cç][aã]o|copie|cole|texto pronto|script de resposta)/i;
+    return splitKnowledgeSentences(softened)
+        .filter((sentence) => !instructionPattern.test(sentence))
+        .join(' ')
+        .trim();
+}
+
+function normalizeKnowledgePatch(value: unknown, key = ''): unknown {
+    if (typeof value === 'string') {
+        if (['ju_prompt', 'ia_limits'].includes(key)) {
+            return compactKnowledgeText(value);
+        }
+        return cleanKnowledgeText(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => normalizeKnowledgePatch(item, key))
+            .filter((item) => item !== '' && item !== null && item !== undefined);
+    }
+
+    if (value && typeof value === 'object') {
+        const output: Record<string, unknown> = {};
+        for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
+            const normalized = normalizeKnowledgePatch(childValue, childKey);
+            if (normalized !== '' && normalized !== null && normalized !== undefined) {
+                output[childKey] = normalized;
+            }
+        }
+        return output;
+    }
+
+    return value;
+}
+
 Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -73,11 +127,14 @@ ${kbString}
 **Regras de Atuação:**
 1. Você é cordial, solícita e engajada. Use linguagem natural.
 2. Se o usuário perguntar da base de dados, liste o que existe de forma resumida e elegante.
-3. Se o usuário pedir para atualizar a base, confirme os novos dados formatados e depois evoque 'update_knowledge_base'. Preserve o que já existe e envie apenas os campos novos/alterados quando for uma atualização parcial.
-4. Para assuntos como CRIE, CRIE Mulheres, Start, Batismo, Café com Pastor, cultos e endereço, prefira criar campos claros na base (por exemplo: crie, crie_mulheres, start, batismo, cafe_pastor) para que a Ju consulte pelo WhatsApp.
-5. **CHAMADO TÉCNICO:** Se o usuário reportar um erro, bug ou pedir uma funcionalidade (support/feedback), NÃO ABRA O TICKET IMEDIATAMENTE! Primeiro, seja INVESTIGATIVA. Demonstre empatia ("Ah, que pena!") e peça detalhes específicos ("Você tem um print?", "O que exatamente aconteceu antes do erro?").
-6. Após o usuário dar os detalhes do problema em mensagens subsequentes, SE você sentir que já tem informações ricas (como o caminho exato do bug ou detalhes de como reproduzir), ENTÃO evoque a tool 'open_support_ticket'.
-7. Dentro da description do ticket, forneça não apenas o que o usuário disse, mas a sua **Sugestão de Resolução para o Desenvolvedor**, baseando-se no problema (ex: dicas de frontend/backend/SQL).
+3. Se o usuário pedir para atualizar a base, analise a intenção, separe fatos úteis de opinião/instrução, confirme os novos dados em linguagem limpa e depois evoque 'update_knowledge_base'. Preserve o que já existe e envie apenas os campos novos/alterados quando for uma atualização parcial.
+4. A base de conhecimento é fonte de fatos para a Ju, não um roteiro pronto. Nunca salve frases como "quando alguém perguntar...", "explique que...", "responda que..." ou comandos internos para a Ju. Transforme isso em informação pública, curta e atemporal.
+5. Exemplo bom: {"crie":"O CRIE é a frente de empreendedorismo da Lagoinha Porto Velho, voltada a empreendedores e profissionais. O objetivo é conectar, fortalecer e apoiar quem empreende por meio de comunhão, capacitação e oportunidades."}
+6. Exemplo ruim: {"crie":"Quando alguém perguntar sobre CRIE, explique que não é Start e oriente a pessoa a falar com a equipe."}
+7. Para assuntos como CRIE, CRIE Mulheres, Start, Batismo, Café com Pastor, cultos e endereço, prefira criar campos claros na base (por exemplo: crie, crie_mulheres, start, batismo, cafe_pastor) para que a Ju consulte pelo WhatsApp.
+8. **CHAMADO TÉCNICO:** Se o usuário reportar um erro, bug ou pedir uma funcionalidade (support/feedback), NÃO ABRA O TICKET IMEDIATAMENTE! Primeiro, seja INVESTIGATIVA. Demonstre empatia ("Ah, que pena!") e peça detalhes específicos ("Você tem um print?", "O que exatamente aconteceu antes do erro?").
+9. Após o usuário dar os detalhes do problema em mensagens subsequentes, SE você sentir que já tem informações ricas (como o caminho exato do bug ou detalhes de como reproduzir), ENTÃO evoque a tool 'open_support_ticket'.
+10. Dentro da description do ticket, forneça não apenas o que o usuário disse, mas a sua **Sugestão de Resolução para o Desenvolvedor**, baseando-se no problema (ex: dicas de frontend/backend/SQL).
         `;
 
         const tools = [{
@@ -102,7 +159,7 @@ ${kbString}
                 },
                 {
                     name: "update_knowledge_base",
-                    description: "Atualiza a base de conhecimento da igreja. Envie um JSON com os campos novos ou alterados; ele será mesclado com a base atual sem apagar os demais campos.",
+                    description: "Atualiza a base de conhecimento da igreja. Envie um JSON com campos novos ou alterados; ele será mesclado com a base atual sem apagar os demais campos. O JSON deve conter apenas fatos públicos e naturais, nunca instruções internas para Ju/Mila ou frases como 'quando alguém perguntar'.",
                     parameters: {
                         type: "object",
                         properties: {
@@ -282,10 +339,13 @@ ${kbString}
                             throw new Error("Insufficient role for knowledge base updates");
                         }
                         const newKbStr = call.args.new_json_object;
-                        const newKbObj = JSON.parse(newKbStr);
+                        const newKbObj = normalizeKnowledgePatch(JSON.parse(newKbStr));
+                        if (!newKbObj || typeof newKbObj !== 'object' || Array.isArray(newKbObj)) {
+                            throw new Error("Knowledge base update must be a JSON object");
+                        }
                         const mergedKbObj = {
                             ...((wsData.knowledge_base && typeof wsData.knowledge_base === 'object') ? wsData.knowledge_base : {}),
-                            ...newKbObj
+                            ...(newKbObj as Record<string, unknown>)
                         };
                         
                         await supabase

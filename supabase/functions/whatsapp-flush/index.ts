@@ -59,16 +59,54 @@ function isCrieRequest(text: string): boolean {
   return /\bcrie\b/.test(normalizeForIntent(text));
 }
 
+function compactText(text: string): string {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function splitSentences(text: string): string[] {
+  return compactText(text)
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function cleanKnowledgeForReply(value: string): string {
+  const instructionPattern = /(quando algu[eé]m perguntar|explique que|oriente|orientar a pessoa|pe[cç]a que|responda|diga para|a ju|a mila|usu[aá]rio|use essa informa[cç][aã]o|copie|cole)/i;
+  return splitSentences(value)
+    .filter((sentence) => !instructionPattern.test(sentence))
+    .join(" ")
+    .trim();
+}
+
+function firstSentences(text: string, maxSentences = 2): string {
+  return splitSentences(text).slice(0, maxSentences).join(" ");
+}
+
+function buildCrieReply(text: string, kb: any, firstName: string): string {
+  const t = normalizeForIntent(text);
+  const isWomenTopic = /mulher|mulheres|\bcm\b/.test(t);
+  const rawInfo = isWomenTopic
+    ? fieldFromKb(kb, "crie_mulheres", "cm", "crie_women")
+    : fieldFromKb(kb, "crie", "ia_crie", "crie_empreendedores", "crie_info");
+  const publicInfo = cleanKnowledgeForReply(rawInfo);
+  const topicName = isWomenTopic ? "CRIE Mulheres" : "CRIE";
+
+  if (!publicInfo) {
+    return `${firstName}, ainda não tenho os detalhes do ${topicName} cadastrados aqui. Vou deixar a equipe acompanhar por aqui para te passar a informação certinha.`;
+  }
+
+  const summary = firstSentences(publicInfo, 2);
+  const asksPracticalInfo = /(inscri|agenda|valor|quando|pr[oó]ximo|participar|entrar|como funciona)/.test(t);
+  const practicalNextStep = asksPracticalInfo
+    ? " Para agenda, inscrições ou próximos encontros, posso pedir para a equipe te orientar por aqui."
+    : "";
+
+  return `Claro, ${firstName}! ${summary}${practicalNextStep}`;
+}
+
 function fallbackFromKnowledgeBase(text: string, kb: any, firstName: string): string {
   if (isCrieRequest(text)) {
-    const t = normalizeForIntent(text);
-    const crieMulheresInfo = fieldFromKb(kb, "crie_mulheres", "cm", "crie_women");
-    if (crieMulheresInfo && /mulher|mulheres|\bcm\b/.test(t)) {
-      return `Claro, ${firstName}! Sobre o CRIE Mulheres: ${crieMulheresInfo}`;
-    }
-    const crieInfo = fieldFromKb(kb, "crie", "ia_crie", "crie_empreendedores", "crie_info");
-    if (crieInfo) return `Claro, ${firstName}! Sobre o CRIE: ${crieInfo}`;
-    return `${firstName}, o CRIE é uma área específica da igreja, mas ainda não tenho os detalhes cadastrados aqui. Vou deixar a equipe acompanhar por aqui para te passar a informação certinha.`;
+    return buildCrieReply(text, kb, firstName);
   }
 
   const faq = fieldFromKb(kb, "ia_faq", "faq");
@@ -80,7 +118,7 @@ function fallbackFromKnowledgeBase(text: string, kb: any, firstName: string): st
 function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
   const field = (...keys: string[]) => {
     for (const key of keys) {
-      const value = kbText(kb?.[key]);
+      const value = cleanKnowledgeForReply(kbText(kb?.[key]));
       if (value) return value;
     }
     return "";
@@ -115,8 +153,9 @@ function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
     "telefone", "social", "instagram", "ju_prompt", "start_label",
   ]);
   const extraRows = Object.entries(kb ?? {})
-    .filter(([key, value]) => !handledKeys.has(key) && kbText(value))
-    .map(([key, value]) => `${key}: ${kbText(value)}`);
+    .map(([key, value]) => [key, cleanKnowledgeForReply(kbText(value))] as const)
+    .filter(([key, value]) => !handledKeys.has(key) && value)
+    .map(([key, value]) => `${key}: ${value}`);
   if (extraRows.length) rows.push(`Outras informacoes configuradas: ${extraRows.join(" | ")}`);
 
   return rows.length ? rows.join("\n") : "Sem base de conhecimento configurada.";
@@ -867,7 +906,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare | cafe_pastor"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- cafe_pastor: quer falar com pastor, agendar cafe com pastor, agendamento pastoral\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
   const knowledgeBaseBlock = buildKnowledgeBaseBlock(ws?.knowledge_base ?? {}, ws?.name);
-  const KNOWLEDGE_BASE_SECTION = `\n\nBASE DE CONHECIMENTO DA IGREJA:\n${knowledgeBaseBlock}\n\nUse a base acima como fonte principal. Se algo nao estiver nela, responda com cuidado e ofereca ajuda humana.`;
+  const KNOWLEDGE_BASE_SECTION = `\n\nBASE DE CONHECIMENTO DA IGREJA:\n${knowledgeBaseBlock}\n\nUse a base acima como fonte principal, nao como texto pronto. Responda de forma natural e curta, sem copiar instrucoes internas ou frases administrativas da base. Se algo nao estiver nela, responda com cuidado e ofereca ajuda humana.`;
   const AUTOMATION_CONTEXT_SECTION = buildAutomationContextBlock(conversationBotContext);
 
   // ── Build system instruction ──────────────────────────────────────────────
