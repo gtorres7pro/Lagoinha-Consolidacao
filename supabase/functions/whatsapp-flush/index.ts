@@ -2,10 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { isInternalRequest } from "../_shared/auth.ts";
 
-const SILENCE_MS = 2500;
+const SILENCE_MS = 1800;
 const GEMINI_TIMEOUT_MS = 8000;
 const GEMINI_MAX_ATTEMPTS = 1;
-const OPENAI_TIMEOUT_MS = 10000;
+const OPENAI_TIMEOUT_MS = 8000;
 const INTER_CHUNK_DELAY_MS = 600;
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
@@ -15,6 +15,7 @@ const OUTBOUND_SEND_TIMEOUT_MS = 10000;
 
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
 function evoPhone(p: string)  { return p.startsWith("+") ? p.slice(1) : p; }
+function phoneDigits(p: string) { return String(p || "").replace(/\D/g, ""); }
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
   const controller = new AbortController();
@@ -233,13 +234,36 @@ Deno.serve(async (req: Request) => {
   if (!leadRecord) return new Response("not found", { status: 404 });
   const lead = leadRecord;
 
-  if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
+  let conversationLeads: any[] = [lead];
+  let conversationLeadIds: string[] = [lead.id];
+  const leadPhoneDigits = phoneDigits(lead.phone);
+  const searchPhone = leadPhoneDigits.slice(-10);
+  if (searchPhone.length >= 7) {
+    const { data: relatedLeads, error: relatedLeadsError } = await sb.from("leads")
+      .select("id, phone, workspace_id, name, llm_lock_until, bot_context, has_responded, last_message_at, updated_at, created_at")
+      .eq("workspace_id", lead.workspace_id)
+      .ilike("phone", `%${searchPhone}%`);
+    if (relatedLeadsError) {
+      console.warn("[FLUSH] related lead lookup failed:", relatedLeadsError.message);
+    } else if (relatedLeads?.length) {
+      conversationLeads = relatedLeads;
+      conversationLeadIds = [...new Set([lead.id, ...relatedLeads.map((l: any) => l.id).filter(Boolean)])];
+    }
+  }
+
+  const lockActive = conversationLeads.some((l: any) => l.llm_lock_until && new Date(l.llm_lock_until) > new Date());
+  if (lockActive) {
+    await sb.from("messages")
+      .update({ responded_at: new Date().toISOString() })
+      .in("lead_id", conversationLeadIds)
+      .eq("direction", "inbound")
+      .is("responded_at", null);
     return new Response("human lock active", { status: 200 });
   }
 
   const { data: pending } = await sb.from("messages")
     .select("id, content, type, created_at")
-    .eq("lead_id", lead_id)
+    .in("lead_id", conversationLeadIds)
     .eq("direction", "inbound").is("responded_at", null)
     .order("created_at", { ascending: true });
 
@@ -316,11 +340,16 @@ Deno.serve(async (req: Request) => {
       has_responded: true,
       last_message_at: new Date().toISOString(),
       ...extra,
-    }).eq("id", lead.id);
+    }).in("id", conversationLeadIds);
   }
 
+  const latestLeadWithContext = [...conversationLeads]
+    .filter((l: any) => l.bot_context)
+    .sort((a: any, b: any) => String(b.last_message_at || b.updated_at || b.created_at || "").localeCompare(String(a.last_message_at || a.updated_at || a.created_at || "")))[0];
+  const conversationBotContext = latestLeadWithContext?.bot_context ?? lead.bot_context ?? null;
+
   // ── CAFÉ COM PASTOR MULTI-TURN BOT ───────────────────────────────────────
-  const cpCtx: any = (lead as any).bot_context ?? null;
+  const cpCtx: any = conversationBotContext?.flow === "cafe_pastor" ? conversationBotContext : ((lead as any).bot_context ?? null);
   const EDGE = Deno.env.get("SUPABASE_URL") + "/functions/v1";
   const SRK  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -361,7 +390,7 @@ Deno.serve(async (req: Request) => {
   }
 
   async function cpSaveCtx(ctx: any | null) {
-    await sb.from("leads").update({ bot_context: ctx }).eq("id", lead.id);
+    await sb.from("leads").update({ bot_context: ctx }).in("id", conversationLeadIds);
   }
 
   // Helper: format a slot for display in WhatsApp
@@ -593,16 +622,17 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     ?? Deno.env.get("OPENAI_API_KEY")
     ?? "";
   const iaMemoryEnabled: boolean = creds?.ia_memory_enabled !== false; // default on
-  const memoryLimit = iaMemoryEnabled ? 8 : 0;
+  const configuredMemoryLimit = Number(creds?.llm_config?.memory_limit ?? 6);
+  const memoryLimit = iaMemoryEnabled ? Math.max(0, Math.min(Number.isFinite(configuredMemoryLimit) ? configuredMemoryLimit : 6, 12)) : 0;
 
-  console.log(`[FLUSH] mode=${mode} lead=${lead.id} memory=${iaMemoryEnabled} gemini=${!!geminiKey} openai=${!!openAiKey}`);
+  console.log(`[FLUSH] mode=${mode} lead=${lead.id} related=${conversationLeadIds.length} memory=${iaMemoryEnabled ? memoryLimit : 0} gemini=${!!geminiKey} openai=${!!openAiKey}`);
 
   // ── Build conversation history ────────────────────────────────────────────
   let historyRecords: any[] = [];
   if (memoryLimit > 0) {
     const { data } = await sb.from("messages")
       .select("direction, content")
-      .eq("lead_id", lead_id)
+      .in("lead_id", conversationLeadIds)
       .lt("created_at", firstPendingTime)
       .order("created_at", { ascending: false })
       .limit(memoryLimit);
@@ -628,7 +658,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare | cafe_pastor"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- cafe_pastor: quer falar com pastor, agendar cafe com pastor, agendamento pastoral\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
   const knowledgeBaseBlock = buildKnowledgeBaseBlock(ws?.knowledge_base ?? {}, ws?.name);
   const KNOWLEDGE_BASE_SECTION = `\n\nBASE DE CONHECIMENTO DA IGREJA:\n${knowledgeBaseBlock}\n\nUse a base acima como fonte principal. Se algo nao estiver nela, responda com cuidado e ofereca ajuda humana.`;
-  const AUTOMATION_CONTEXT_SECTION = buildAutomationContextBlock(lead.bot_context);
+  const AUTOMATION_CONTEXT_SECTION = buildAutomationContextBlock(conversationBotContext);
 
   // ── Build system instruction ──────────────────────────────────────────────
   // Priority: ia_system_prompt from credentials > ju_prompt from KB > built-in default
@@ -659,22 +689,90 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   const payload = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents,
-    generationConfig: { response_mime_type: "application/json" }
+    generationConfig: { response_mime_type: "application/json", maxOutputTokens: 500 }
   };
 
-  // ── Call Gemini ───────────────────────────────────────────────────────────
+  // ── Call OpenAI first, then Gemini as fallback ────────────────────────────
   const primaryGeminiModel = creds?.llm_config?.gemini_model ?? "gemini-2.0-flash";
   const fallbackGeminiModel = creds?.llm_config?.gemini_fallback_model ?? "gemini-2.5-flash";
   const geminiModels = [...new Set([primaryGeminiModel, fallbackGeminiModel].filter(Boolean))];
+  const openAiModel = creds?.llm_config?.openai_model ?? "gpt-4.1-mini";
   let finalReply = "⚠️ Nenhum provedor de IA respondeu.";
   let detectedIntention = "none";
   let audioScript: string | null = null;
   let audioComplement: string | null = null;
 
-  if (!geminiKey) {
-    console.error("[FLUSH] no gemini_token in llm_config — trying fallback provider");
-    finalReply = "⚠️ Gemini token ausente.";
+  function consumeJsonResponse(rawText: string, providerLabel: string) {
+    const cleaned = rawText.replace(/```json|```/g, "").trim();
+    const parsedJSON = JSON.parse(cleaned);
+    if (parsedJSON.whatsapp_reply) {
+      finalReply = parsedJSON.whatsapp_reply;
+    } else {
+      finalReply = `⚠️ ${providerLabel} não retornou 'whatsapp_reply'. Raw: ${cleaned.substring(0, 250)}`;
+    }
+    audioScript = parsedJSON.whatsapp_audio_script || null;
+    audioComplement = parsedJSON.whatsapp_text_complement || null;
+    detectedIntention = parsedJSON.detected_intention || "none";
+  }
+
+  const openAiMessages = contents.map((c: any) => ({
+    role: c.role === "model" ? "assistant" : "user",
+    content: c.parts[0].text
+  }));
+
+  if (!openAiKey) {
+    console.error("[FLUSH] no OpenAI key available — trying Gemini fallback");
+    finalReply = "⚠️ OpenAI token ausente.";
   } else {
+    try {
+      console.log(`[FLUSH] trying OpenAI primary model=${openAiModel}`);
+      const openAiBody: Record<string, any> = {
+        model: openAiModel,
+        messages: [
+          { role: "system", content: systemInstruction },
+          ...openAiMessages
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.4,
+      };
+      if (/^(gpt-5|o\d)/.test(openAiModel)) {
+        openAiBody.max_completion_tokens = 500;
+      } else {
+        openAiBody.max_tokens = 500;
+      }
+
+      const openAiRes = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openAiKey}`
+        },
+        body: JSON.stringify(openAiBody)
+      }, OPENAI_TIMEOUT_MS);
+
+      const raw = await openAiRes.text();
+      if (openAiRes.ok) {
+        const oData = JSON.parse(raw);
+        const replyText = oData.choices?.[0]?.message?.content;
+        if (replyText) {
+          consumeJsonResponse(replyText, "OpenAI");
+        } else {
+          finalReply = "⚠️ OpenAI sem texto.";
+        }
+      } else {
+        finalReply = `⚠️ OpenAI falhou. HTTP ${openAiRes.status}. Raw: ${raw.substring(0, 250)}`;
+        console.error("[FLUSH] OpenAI HTTP error:", raw.substring(0, 300));
+      }
+    } catch (e: any) {
+      finalReply = `⚠️ OpenAI exception: ${e.message}`;
+      console.error("[FLUSH] OpenAI primary failed:", e?.message ?? e);
+    }
+  }
+
+  if (finalReply.startsWith("⚠️") && !geminiKey) {
+    console.error("[FLUSH] no Gemini key available for fallback");
+  } else if (finalReply.startsWith("⚠️")) {
+    console.log(`[FLUSH] OpenAI unavailable/failed. Falling back to Gemini...`);
     for (const model of geminiModels) {
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
@@ -698,15 +796,10 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
                 const finishReason = j?.candidates?.[0]?.finishReason ?? "unknown";
                 if (rawText) {
                   try {
-                    const parsedJSON = JSON.parse(rawText);
-                    if (parsedJSON.whatsapp_reply) finalReply = parsedJSON.whatsapp_reply;
-                    else finalReply = `⚠️ LLM não retornou 'whatsapp_reply'. Raw: ${rawText.substring(0, 250)}`;
-                    if (parsedJSON.whatsapp_audio_script) audioScript = parsedJSON.whatsapp_audio_script;
-                    if (parsedJSON.whatsapp_text_complement) audioComplement = parsedJSON.whatsapp_text_complement;
-                    if (parsedJSON.detected_intention) detectedIntention = parsedJSON.detected_intention;
-                  } catch {
+                    consumeJsonResponse(rawText, "Gemini");
+                  } catch (e: any) {
                     console.log("LLM non-JSON:", rawText.substring(0, 200));
-                    finalReply = rawText.replace(/```json|```/g, "").trim() || "⚠️ LLM retornou texto vazio.";
+                    finalReply = `⚠️ Gemini retornou JSON inválido: ${e.message}`;
                   }
                 } else {
                   finalReply = `⚠️ LLM sem texto. finishReason: ${finishReason}. Raw: ${rawBody.substring(0, 250)}`;
@@ -759,64 +852,6 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
       if (!finalReply.startsWith("⚠️")) break;
       console.warn(`[FLUSH] Gemini model ${model} failed; trying next available model if configured.`);
     }
-  }
-
-  // Se Gemini falhar após retentativas, tentar OpenAI como fallback
-  if (finalReply.startsWith("⚠️") && openAiKey) {
-    try {
-      console.log(`[FLUSH] Gemini failed. Falling back to OpenAI...`);
-      const openAiMessages = contents.map((c: any) => ({
-        role: c.role === "model" ? "assistant" : "user",
-        content: c.parts[0].text
-      }));
-      const openAiBody = {
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemInstruction },
-          ...openAiMessages
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.4
-      };
-      const openAiRes = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openAiKey}`
-        },
-        body: JSON.stringify(openAiBody)
-      }, OPENAI_TIMEOUT_MS);
-      if (openAiRes.ok) {
-        const oData = await openAiRes.json();
-        const fallbackText = oData.choices[0]?.message?.content;
-        if (fallbackText) {
-          try {
-            const parsed = JSON.parse(fallbackText.replace(/```json|```/g, "").trim());
-            if (parsed.whatsapp_reply) {
-              finalReply = parsed.whatsapp_reply;
-              detectedIntention = parsed.detected_intention || "none";
-              audioScript = parsed.whatsapp_audio_script || null;
-              audioComplement = parsed.whatsapp_text_complement || null;
-            } else {
-              finalReply = `⚠️ OpenAI fallback sem whatsapp_reply. Raw: ${fallbackText.substring(0, 250)}`;
-            }
-          } catch(e: any) {
-            finalReply = `⚠️ OpenAI fallback retornou JSON inválido: ${e.message}`;
-          }
-        } else {
-          finalReply = "⚠️ OpenAI fallback sem texto.";
-        }
-      } else {
-        const raw = await openAiRes.text();
-        finalReply = `⚠️ OpenAI fallback falhou. HTTP ${openAiRes.status}. Raw: ${raw.substring(0, 250)}`;
-        console.error("[FLUSH] OpenAI fallback HTTP error:", raw.substring(0, 300));
-      }
-    } catch (e: any) {
-      finalReply = `⚠️ OpenAI fallback exception: ${e.message}`;
-      console.error("[FLUSH] OpenAI fallback also failed", e);
-    }
-  } else if (finalReply.startsWith("⚠️")) {
-    console.error("[FLUSH] no OpenAI key available for fallback");
   }
 
   // ── Send response ─────────────────────────────────────────────────────────
@@ -935,7 +970,7 @@ Primeiro: prefere uma sessão *presencial* na igreja ou *online* (vídeo chamada
     if (detectedIntention === "batismo") leadUpdate.task_batismo = false;
     if (detectedIntention === "escalation") leadUpdate.task_followup = false;
     if (detectedIntention === "wecare") leadUpdate.task_start = false;
-    if (Object.keys(leadUpdate).length > 0) await sb.from("leads").update(leadUpdate).eq("id", lead.id);
+    if (Object.keys(leadUpdate).length > 0) await sb.from("leads").update(leadUpdate).in("id", conversationLeadIds);
 
     // Email escalation alert
     if (detectedIntention === "escalation" && adminUser?.email) {
@@ -977,7 +1012,7 @@ Primeiro: prefere uma sessão *presencial* na igreja ou *online* (vídeo chamada
   } else if (!lead.has_responded) {
     inboxUpdate.inbox_status = "neutral";
   }
-  await sb.from("leads").update(inboxUpdate).eq("id", lead.id);
+  await sb.from("leads").update(inboxUpdate).in("id", conversationLeadIds);
 
   return new Response(JSON.stringify({ ok: true, processed: ids.length, intention: detectedIntention, mode }), { status: 200 });
 });

@@ -50,6 +50,7 @@ async function verifyMetaSignature(rawBody: string, signatureHeader: string | nu
 
 function normPhone(r: string) { const c = r.trim(); return c.startsWith("+") ? c : "+" + c; }
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
+function phoneDigits(p: string) { return String(p || "").replace(/\D/g, ""); }
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
   let binary = "";
@@ -78,6 +79,42 @@ async function transcribeAudioWithGemini(audioBuffer: ArrayBuffer, mimeType: str
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
   return (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+}
+
+async function buildInboundMessageText(ws: any, msg: any): Promise<string> {
+  if (msg.type === "text") return msg.text?.body ?? "";
+
+  if (msg.type === "audio" && msg.audio?.id) {
+    const mediaLine = `[MEDIA_ID: ${msg.audio.id}]`;
+    try {
+      const waToken = ws.credentials?.whatsapp_token;
+      const geminiKey = ws.credentials?.llm_config?.gemini_token;
+      if (waToken && geminiKey) {
+        const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${msg.audio.id}`, {
+          headers: { "Authorization": `Bearer ${waToken}` }
+        });
+        const mediaMeta = await mediaMetaRes.json();
+        if (mediaMeta.url) {
+          const mediaRes = await fetch(mediaMeta.url, { headers: { "Authorization": `Bearer ${waToken}` } });
+          const audioBuffer = await mediaRes.arrayBuffer();
+          const transcription = await transcribeAudioWithGemini(audioBuffer, msg.audio.mime_type || "audio/ogg", geminiKey);
+          return transcription
+            ? `[ÁUDIO TRANSCRITO] "${transcription}"\n${mediaLine}`
+            : `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)\n${mediaLine}`;
+        }
+      }
+      return `[ÁUDIO]\n${mediaLine}`;
+    } catch (_e: any) {
+      return `[ÁUDIO]: Erro ao transcrever.\n${mediaLine}`;
+    }
+  }
+
+  if (msg.type === "image") {
+    const mediaLine = msg.image?.id ? `\n[MEDIA_ID: ${msg.image.id}]` : "";
+    return msg.image?.caption ? `[IMAGEM] ${msg.image.caption}${mediaLine}` : `[IMAGEM]${mediaLine}`;
+  }
+
+  return `[${msg.type}]`;
 }
 
 // ── n8n outbound webhook ─────────────────────────────────────────────────────
@@ -305,6 +342,7 @@ Deno.serve(async (req: Request) => {
 
   const phone = normPhone(msg.from);
   const contact = value.contacts?.[0] ?? null;
+  const searchPhone = phoneDigits(phone).slice(-10);
 
   // Find or create lead
   let lead: any = null;
@@ -312,12 +350,22 @@ Deno.serve(async (req: Request) => {
     const { data: r } = await sb.from("leads").select("*").eq("phone", p).eq("workspace_id", ws.id).order("created_at", { ascending: false }).limit(1);
     if (r?.[0]) { lead = r[0]; break; }
   }
+  if (!lead && searchPhone.length >= 7) {
+    const { data: r } = await sb.from("leads")
+      .select("*")
+      .eq("workspace_id", ws.id)
+      .ilike("phone", `%${searchPhone}%`)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (r?.[0]) lead = r[0];
+  }
   if (!lead) {
     const { data: nl } = await sb.from("leads").insert({
       workspace_id: ws.id,
       name: contact?.profile?.name ?? "Visitante",
       phone,
       type: "visitor",
+      source: "whatsapp-inbound",
     }).select().limit(1);
     lead = nl?.[0] ?? null;
   }
@@ -331,15 +379,41 @@ Deno.serve(async (req: Request) => {
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 
+  const contactName = contact?.profile?.name ?? null;
+  if (contactName && (!lead.name || lead.name === "Visitante" || lead.name === lead.phone)) {
+    const { data: updatedLead } = await sb.from("leads")
+      .update({ name: contactName })
+      .eq("id", lead.id)
+      .select()
+      .maybeSingle();
+    if (updatedLead) lead = updatedLead;
+  }
+
+  let relatedLeadIds: string[] = [lead.id];
+  let relatedLeads: any[] = [lead];
+  if (searchPhone.length >= 7) {
+    const { data: samePhoneLeads, error: samePhoneError } = await sb.from("leads")
+      .select("id, llm_lock_until")
+      .eq("workspace_id", ws.id)
+      .ilike("phone", `%${searchPhone}%`);
+    if (samePhoneError) {
+      console.warn("[WH-META] same-phone lead lookup failed:", samePhoneError.message);
+    } else if (samePhoneLeads?.length) {
+      relatedLeads = samePhoneLeads;
+      relatedLeadIds = [...new Set([lead.id, ...samePhoneLeads.map((l: any) => l.id).filter(Boolean)])];
+    }
+  }
+
+  const inboundText = await buildInboundMessageText(ws, msg);
+
   // Human lock: save message but skip automation
-  if (lead.llm_lock_until && new Date(lead.llm_lock_until) > new Date()) {
+  const humanLockActive = relatedLeads.some((l: any) => l.llm_lock_until && new Date(l.llm_lock_until) > new Date());
+  if (humanLockActive) {
     console.log("[WH-META] human lock active — saving but skipping automation");
-    let lockText = `[${msg.type}]`;
-    if (msg.type === "text") lockText = msg.text?.body ?? "";
     const lockNow = new Date().toISOString();
     const { error: lockInsertErr } = await sb.from("messages").insert({
       workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
-      type: msg.type, content: lockText, automated: false, responded_at: lockNow, wa_message_id: msg.id,
+      type: msg.type, content: inboundText, automated: false, responded_at: lockNow, wa_message_id: msg.id,
     });
     if (lockInsertErr) {
       await logAppEvent({
@@ -352,7 +426,7 @@ Deno.serve(async (req: Request) => {
     const lockExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error: lockLeadErr } = await sb.from("leads")
       .update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow })
-      .eq("id", lead.id);
+      .in("id", relatedLeadIds);
     if (lockLeadErr) {
       await logAppEvent({
         workspaceId: ws.id,
@@ -363,37 +437,10 @@ Deno.serve(async (req: Request) => {
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 
-  // Handle TEXT vs AUDIO vs IMAGE
-  let text = `[${msg.type}]`;
-  if (msg.type === "text") {
-    text = msg.text?.body ?? "";
-  } else if (msg.type === "audio" && msg.audio?.id) {
-    try {
-      const waToken = ws.credentials?.whatsapp_token;
-      const geminiKey = ws.credentials?.llm_config?.gemini_token;
-      if (waToken && geminiKey) {
-        const mediaMetaRes = await fetch(`https://graph.facebook.com/v21.0/${msg.audio.id}`, {
-          headers: { "Authorization": `Bearer ${waToken}` }
-        });
-        const mediaMeta = await mediaMetaRes.json();
-        if (mediaMeta.url) {
-          const mediaRes = await fetch(mediaMeta.url, { headers: { "Authorization": `Bearer ${waToken}` } });
-          const audioBuffer = await mediaRes.arrayBuffer();
-          const transcription = await transcribeAudioWithGemini(audioBuffer, msg.audio.mime_type || "audio/ogg", geminiKey);
-          text = transcription ? `[ÁUDIO TRANSCRITO] "${transcription}"` : `[ÁUDIO TRANSCRITO]: (fala vazia ou ininteligível)`;
-        }
-      }
-    } catch (e: any) {
-      text = `[ÁUDIO]: Erro ao transcrever.`;
-    }
-  } else if (msg.type === "image") {
-    text = msg.image?.caption ? `[IMAGEM] ${msg.image.caption}` : "[IMAGEM]";
-  }
-
   const now = new Date().toISOString();
   const { error: ie } = await sb.from("messages").insert({
     workspace_id: ws.id, lead_id: lead.id, direction: "inbound",
-    type: msg.type, content: text, automated: false, responded_at: null, wa_message_id: msg.id,
+    type: msg.type, content: inboundText, automated: false, responded_at: null, wa_message_id: msg.id,
   });
   if (ie) {
     console.error("[WH-META] insert error:", ie.message);
@@ -406,7 +453,9 @@ Deno.serve(async (req: Request) => {
   }
 
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  await sb.from("leads").update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now }).eq("id", lead.id);
+  await sb.from("leads")
+    .update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now })
+    .in("id", relatedLeadIds);
 
   // Fire automation without delaying Meta's webhook acknowledgement.
   runInBackground(

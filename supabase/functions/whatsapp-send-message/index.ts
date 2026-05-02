@@ -4,6 +4,10 @@ import { CORS_HEADERS, OPERATOR_ROLES, authorizeWorkspaceUser, json, text } from
 
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
+function phoneDigits(phone: string) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return text("Method Not Allowed", 405);
@@ -48,33 +52,106 @@ Deno.serve(async (req: Request) => {
     .single();
   if (leadErr || !lead) return json({ ok: false, error: "Lead not found" }, 404);
 
+  let relatedLeadIds = [lead.id];
+  const searchPhone = phoneDigits(lead.phone).slice(-10);
+  if (searchPhone.length >= 7) {
+    const { data: samePhoneLeads, error: samePhoneErr } = await sb.from("leads")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .ilike("phone", `%${searchPhone}%`);
+    if (samePhoneErr) {
+      console.warn(`[WA-SEND] same-phone lead lookup failed lead=${lead_id}:`, samePhoneErr.message);
+    } else if (samePhoneLeads?.length) {
+      relatedLeadIds = [...new Set([lead.id, ...samePhoneLeads.map((l: any) => l.id).filter(Boolean)])];
+    }
+  }
+
   // Normalize phone for Meta (must be digits only, no +)
-  const toPhone = lead.phone.startsWith("+") ? lead.phone.slice(1) : lead.phone;
+  const toPhone = String(lead.phone || "").replace(/\D/g, "");
+
+  function mediaLinkFromMessage(): string {
+    const content = message.content;
+    const link = typeof content === "string"
+      ? content
+      : content?.link ?? content?.url;
+    if (!link || !/^https:\/\//i.test(link)) {
+      throw new Error(`${message.type} messages require a public HTTPS media link`);
+    }
+    return link;
+  }
+
+  function optionalText(value: unknown): string | undefined {
+    const text = typeof value === "string" ? value.trim() : "";
+    return text || undefined;
+  }
 
   // Build Meta Cloud API request body
   let apiBody: any;
-  if (message.type === "text") {
-    apiBody = {
-      messaging_product: "whatsapp",
-      to: toPhone,
-      type: "text",
-      text: { body: message.content },
-    };
-  } else if (message.type === "template") {
-    // message.content expected as: { name, language, components? }
-    const tpl = typeof message.content === "string" ? JSON.parse(message.content) : message.content;
-    apiBody = {
-      messaging_product: "whatsapp",
-      to: toPhone,
-      type: "template",
-      template: {
-        name: tpl.name,
-        language: { code: tpl.language ?? "pt_BR" },
-        components: tpl.components ?? [],
-      },
-    };
-  } else {
-    return json({ ok: false, error: `Unsupported message type: ${message.type}` }, 400);
+  try {
+    if (message.type === "text") {
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "text",
+        text: { body: message.content },
+      };
+    } else if (message.type === "template") {
+      // message.content expected as: { name, language, components? }
+      const tpl = typeof message.content === "string" ? JSON.parse(message.content) : message.content;
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "template",
+        template: {
+          name: tpl.name,
+          language: { code: tpl.language ?? "pt_BR" },
+          components: tpl.components ?? [],
+        },
+      };
+    } else if (message.type === "image") {
+      const image: Record<string, string> = { link: mediaLinkFromMessage() };
+      const caption = optionalText(message.caption);
+      if (caption) image.caption = caption;
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "image",
+        image,
+      };
+    } else if (message.type === "audio" || message.type === "voice") {
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "audio",
+        audio: { link: mediaLinkFromMessage() },
+      };
+    } else if (message.type === "video") {
+      const video: Record<string, string> = { link: mediaLinkFromMessage() };
+      const caption = optionalText(message.caption);
+      if (caption) video.caption = caption;
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "video",
+        video,
+      };
+    } else if (message.type === "document" || message.type === "file") {
+      const document: Record<string, string> = { link: mediaLinkFromMessage() };
+      const filename = optionalText(message.filename);
+      const caption = optionalText(message.caption);
+      if (filename) document.filename = filename;
+      if (caption) document.caption = caption;
+      apiBody = {
+        messaging_product: "whatsapp",
+        to: toPhone,
+        type: "document",
+        document,
+      };
+    } else {
+      return json({ ok: false, error: `Unsupported message type: ${message.type}` }, 400);
+    }
+  } catch (e) {
+    return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 400);
   }
 
   const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phone_id}/messages`, {
@@ -110,8 +187,8 @@ Deno.serve(async (req: Request) => {
         last_message_at: nowIso,
         wa_window_expires_at: waWindowExpiresAt,
       })
-      .eq("id", lead_id)
-      .eq("workspace_id", workspace_id);
+      .eq("workspace_id", workspace_id)
+      .in("id", relatedLeadIds);
 
     if (lockErr) {
       console.error(`[WA-SEND] failed to set human lock lead=${lead_id}:`, lockErr.message);
@@ -121,7 +198,7 @@ Deno.serve(async (req: Request) => {
     const { error: pendingErr } = await sb.from("messages")
       .update({ responded_at: nowIso })
       .eq("workspace_id", workspace_id)
-      .eq("lead_id", lead_id)
+      .in("lead_id", relatedLeadIds)
       .eq("direction", "inbound")
       .is("responded_at", null);
 

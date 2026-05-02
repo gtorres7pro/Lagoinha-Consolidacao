@@ -18,6 +18,7 @@ const PRIORITY_LABELS = {
 let chatState = {
   leads: [],
   selectedLeadId: null,
+  selectedPhoneKey: null,
   messages: [],
   realtimeChannel: null,
   filter: 'all',
@@ -26,6 +27,10 @@ let chatState = {
   lockTimers: {},
   workspaceId: null,
   currentUser: null,
+  voiceRecorder: null,
+  voiceStream: null,
+  voiceChunks: [],
+  voiceRecordingStartedAt: null,
 };
 
 async function resolveChatWorkspaceId(_sb, userWorkspaceId) {
@@ -181,8 +186,8 @@ function buildChatLayout() {
             <button class="chat-back-btn" onclick="toggleChatSidebar()" id="chat-expand-btn" title="Voltar" style="display:none;">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
-            <div class="chat-header-avatar" id="chat-header-avatar">J</div>
-            <div class="chat-header-info">
+            <div class="chat-header-avatar" id="chat-header-avatar" onclick="openLeadProfileDrawer()" title="Abrir perfil">J</div>
+            <div class="chat-header-info" onclick="openLeadProfileDrawer()" title="Abrir perfil">
               <div class="chat-header-name" id="chat-header-name">—</div>
               <div class="chat-header-sub" id="chat-header-sub">—</div>
             </div>
@@ -193,13 +198,39 @@ function buildChatLayout() {
               <button class="chat-reactivate-btn" id="chat-reactivate-btn" style="display:none;" onclick="reactivateAI()">
                 ⚡ Reativar IA
               </button>
-              <button class="cha-btn" id="chat-highlight-btn" onclick="toggleHighlightCurrentLead()" title="Destacar conversa">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <button class="cha-btn" id="chat-profile-btn" onclick="openLeadProfileDrawer()" title="Perfil">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              </button>
+              <button class="cha-btn" id="chat-pin-btn" onclick="togglePinCurrentLead()" title="Fixar conversa">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M5 17h14"/><path d="M6 3h12l-2 8 3 6H5l3-6-2-8Z"/></svg>
+              </button>
+              <button class="cha-btn" id="chat-template-header-btn" onclick="openTemplateModal()" title="Enviar template">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
               </button>
               <button class="cha-btn" id="chat-archive-btn" onclick="toggleArchiveCurrentLead()" title="Arquivar">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
               </button>
             </div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="chat-action-strip" id="chat-action-strip">
+            <button class="chat-action-btn" onclick="openLeadProfileDrawer()">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              Perfil
+            </button>
+            <button class="chat-action-btn" id="chat-pin-strip-btn" onclick="togglePinCurrentLead()">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M5 17h14"/><path d="M6 3h12l-2 8 3 6H5l3-6-2-8Z"/></svg>
+              <span id="chat-pin-strip-label">Fixar</span>
+            </button>
+            <button class="chat-action-btn" onclick="openTemplateModal()">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
+              Template
+            </button>
+            <button class="chat-action-btn" onclick="document.getElementById('chat-file-input').click()">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              Anexar
+            </button>
           </div>
 
           <!-- Task Badge -->
@@ -235,7 +266,7 @@ function buildChatLayout() {
               </button>
             </div>
 
-            <button class="chat-send-btn empty" id="chat-send-btn" onclick="sendManualMessage()">
+            <button class="chat-send-btn empty" id="chat-send-btn" onclick="handleChatSendButton()" title="Enviar mensagem ou gravar áudio">
               <svg id="chat-mic-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
               <svg id="chat-send-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="display:none;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
@@ -321,6 +352,17 @@ function buildChatLayout() {
               <button class="chat-tpl-send" id="broadcast-send-btn" onclick="sendBroadcast()" disabled>📢 Enviar Broadcast</button>
             </div>
           </div>
+        </div>
+
+        <!-- Lead Profile Drawer -->
+        <div class="chat-profile-overlay" id="chat-profile-overlay" style="display:none;" onclick="if(event.target===this)closeLeadProfileDrawer()">
+          <aside class="chat-profile-drawer">
+            <div class="chat-profile-header">
+              <span>Perfil</span>
+              <button onclick="closeLeadProfileDrawer()" title="Fechar">✕</button>
+            </div>
+            <div class="chat-profile-body" id="chat-profile-body"></div>
+          </aside>
         </div>
       </div>
     </div>
@@ -489,7 +531,14 @@ function buildChatLayout() {
       display:flex; align-items:center; justify-content:center;
       font-weight:700; color:#0a0a0c; font-size:1.1rem; flex-shrink:0;
       text-transform:uppercase; letter-spacing:-.5px;
+      overflow:hidden; position:relative;
     }
+    .lead-avatar img, .chat-header-avatar img, .chat-profile-avatar img {
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    .lead-avatar.has-photo .avatar-fallback,
+    .chat-header-avatar.has-photo .avatar-fallback,
+    .chat-profile-avatar.has-photo .avatar-fallback { display:none; }
     /* 24h active window dot — gold instead of green */
     .lead-window-dot {
       width:10px; height:10px; border-radius:50%; background:#FFD700;
@@ -508,6 +557,11 @@ function buildChatLayout() {
     .lead-card-name {
       font-weight:500; font-size:.97rem; color:#e9edef;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;
+    }
+    .lead-merge-badge {
+      display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
+      min-width:18px; height:18px; margin-left:6px; padding:0 6px; border-radius:999px;
+      background:rgba(255,215,0,.14); color:#FFD700; font-size:.68rem; font-weight:800;
     }
     .lead-card-time { font-size:.72rem; color:#5a5a72; white-space:nowrap; flex-shrink:0; margin-left:8px; }
     .lead-card-time.has-unread { color:#FFD700; }
@@ -557,7 +611,7 @@ function buildChatLayout() {
       width:40px; height:40px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
       font-weight:700; color:#0a0a0c; font-size:1.05rem; flex-shrink:0;
-      cursor:pointer;
+      cursor:pointer; overflow:hidden; position:relative;
     }
     .chat-header-info { flex:1; min-width:0; cursor:pointer; }
     .chat-header-name { font-weight:500; font-size:.97rem; color:#e9edef; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -584,6 +638,22 @@ function buildChatLayout() {
     }
     .cha-btn:hover { background:rgba(255,215,0,.08); color:#FFD700; }
     .cha-btn.active { color:#FFD700; }
+
+    .chat-action-strip {
+      display:flex; align-items:center; gap:8px; padding:7px 16px;
+      background:#101014; border-bottom:1px solid #1e1e28; flex-shrink:0;
+      overflow-x:auto; scrollbar-width:none;
+    }
+    .chat-action-strip::-webkit-scrollbar { display:none; }
+    .chat-action-btn {
+      border:1px solid #252532; background:#17171d; color:#a8a8b8;
+      min-height:30px; padding:0 11px; border-radius:8px; cursor:pointer;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      font-size:.74rem; font-weight:650; font-family:inherit; white-space:nowrap;
+      transition:all .12s;
+    }
+    .chat-action-btn:hover { color:#FFD700; border-color:rgba(255,215,0,.25); background:rgba(255,215,0,.08); }
+    .chat-action-btn.active { color:#0a0a0c; background:#FFD700; border-color:#FFD700; }
 
     /* Task banner */
     .chat-task-banner {
@@ -723,6 +793,15 @@ function buildChatLayout() {
     .msg-audio-player {
       display:flex; align-items:center; gap:8px; min-width:200px;
     }
+    .msg-audio-stack { display:flex; flex-direction:column; gap:8px; min-width:min(260px, 70vw); }
+    .msg-transcription {
+      border-left:3px solid rgba(255,215,0,.65); background:rgba(255,215,0,.06);
+      border-radius:0 7px 7px 0; padding:7px 9px; line-height:1.38;
+    }
+    .msg-transcription-label {
+      display:block; color:#FFD700; font-size:.68rem; font-weight:700; margin-bottom:3px;
+      text-transform:uppercase; letter-spacing:.04em;
+    }
     .msg-image-wrap {
       cursor:pointer; line-height:0; border-radius:8px; overflow:hidden;
     }
@@ -783,6 +862,14 @@ function buildChatLayout() {
     .chat-send-btn:not(.empty) { background:#FFD700; color:#0a0a0c; }
     .chat-send-btn:not(.empty):hover { background:#ffe033; box-shadow:0 0 12px rgba(255,215,0,.3); }
     .chat-send-btn:disabled { opacity:.3; cursor:not-allowed; }
+    .chat-send-btn.recording {
+      background:#f87171; color:#fff; box-shadow:0 0 0 6px rgba(248,113,113,.12);
+      animation:recordPulse 1.1s ease-in-out infinite;
+    }
+    @keyframes recordPulse {
+      0%,100% { transform:scale(1); }
+      50% { transform:scale(1.04); }
+    }
 
     /* ═══════════ TEMPLATE MODAL ═══════════ */
     .chat-template-overlay {
@@ -835,6 +922,46 @@ function buildChatLayout() {
     }
     .chat-tpl-send:disabled { opacity:.35; cursor:not-allowed; }
     .chat-tpl-send:not(:disabled):hover { background:#ffe033; box-shadow:0 4px 16px rgba(255,215,0,.25); }
+
+    .chat-profile-overlay {
+      position:absolute; inset:0; z-index:70; background:rgba(0,0,0,.42);
+      display:flex; justify-content:flex-end;
+    }
+    .chat-profile-drawer {
+      width:min(360px, 92vw); height:100%; background:#141418; border-left:1px solid #252532;
+      box-shadow:-18px 0 40px rgba(0,0,0,.35); display:flex; flex-direction:column;
+      animation:profileDrawerIn .16s ease;
+    }
+    @keyframes profileDrawerIn { from{transform:translateX(22px);opacity:.85} to{transform:none;opacity:1} }
+    .chat-profile-header {
+      height:56px; padding:0 16px; display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid #252532; color:#e9edef; font-weight:700;
+    }
+    .chat-profile-header button {
+      width:34px; height:34px; border-radius:50%; border:none; background:transparent; color:#a8a8b8;
+      cursor:pointer; font-size:1rem;
+    }
+    .chat-profile-header button:hover { background:rgba(255,255,255,.06); color:#fff; }
+    .chat-profile-body { overflow:auto; padding:20px 18px 28px; }
+    .chat-profile-hero { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; margin-bottom:20px; }
+    .chat-profile-avatar {
+      width:88px; height:88px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center;
+      color:#0a0a0c; font-size:1.9rem; font-weight:800; position:relative;
+      border:2px solid rgba(255,215,0,.22);
+    }
+    .chat-profile-name { color:#fff; font-size:1.15rem; font-weight:750; margin-top:4px; }
+    .chat-profile-phone { color:#8696a0; font-size:.84rem; }
+    .chat-profile-section { border-top:1px solid #252532; padding-top:14px; margin-top:14px; }
+    .chat-profile-section-title {
+      color:#5a5a72; font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;
+    }
+    .chat-profile-field { display:flex; justify-content:space-between; gap:12px; padding:7px 0; }
+    .chat-profile-label { color:#8696a0; font-size:.78rem; flex-shrink:0; }
+    .chat-profile-value { color:#e9edef; font-size:.84rem; text-align:right; overflow-wrap:anywhere; }
+    .chat-profile-bio {
+      background:#101014; border:1px solid #252532; border-radius:8px; color:#d1d5db;
+      padding:10px 12px; font-size:.84rem; line-height:1.5; white-space:pre-wrap;
+    }
 
     /* Section separator in leads list */
     .chat-section-label {
@@ -893,7 +1020,7 @@ async function loadLeads() {
   if (!chatState.workspaceId) return;
   const { data: leads, error } = await window._sb
     .from('leads')
-    .select('id, name, phone, inbox_status, inbox_priority, has_responded, llm_lock_until, wa_window_expires_at, last_message_at')
+    .select('id, name, phone, email, type, source, inbox_status, inbox_priority, has_responded, llm_lock_until, wa_window_expires_at, last_message_at, created_at, decisao, culto, batizado, gc_status, melhor_horario, cidade, estado, pais, tags, bot_context, task_meta, chat_pinned, chat_pinned_at, profile_photo_url, bio')
     .eq('workspace_id', chatState.workspaceId)
     .not('last_message_at', 'is', null)
     .order('last_message_at', { ascending: false })
@@ -912,6 +1039,7 @@ async function loadLeads() {
     ...l,
     inbox_status: l.inbox_status || 'neutral',
     inbox_priority: l.inbox_priority || 'none',
+    chat_pinned: !!l.chat_pinned,
   }));
   renderLeadsList();
   updateSidebarBadge();
@@ -928,13 +1056,146 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+function getLeadInitials(lead) {
+  return (lead?.name || lead?.phone || 'V')
+    .split(' ')
+    .map(w => w?.[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'V';
+}
+
+function getLeadPhotoUrl(lead) {
+  return lead?.profile_photo_url
+    || lead?.bot_context?.profile_photo_url
+    || lead?.bot_context?.photo_url
+    || lead?.task_meta?.profile_photo_url
+    || lead?.task_meta?.photo_url
+    || '';
+}
+
+function getLeadBio(lead) {
+  return lead?.bio
+    || lead?.bot_context?.bio
+    || lead?.bot_context?.description
+    || lead?.task_meta?.bio
+    || lead?.task_meta?.description
+    || '';
+}
+
+function chatPhoneKey(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function leadTimeValue(lead, field) {
+  const value = lead?.[field];
+  return value ? new Date(value).getTime() || 0 : 0;
+}
+
+function maxIso(leads, field) {
+  const latest = Math.max(0, ...(leads || []).map(l => leadTimeValue(l, field)));
+  return latest ? new Date(latest).toISOString() : null;
+}
+
+function conversationLeadsFor(seedLead) {
+  if (!seedLead) return [];
+  const key = chatPhoneKey(seedLead.phone);
+  if (!key) return [seedLead];
+  return chatState.leads.filter(l => chatPhoneKey(l.phone) === key);
+}
+
+function conversationLeadIdsFor(seedLead) {
+  return [...new Set(conversationLeadsFor(seedLead).map(l => l.id).filter(Boolean))];
+}
+
+function primaryLeadFor(leads) {
+  return [...(leads || [])].sort((a, b) =>
+    (leadTimeValue(b, 'last_message_at') || leadTimeValue(b, 'created_at')) -
+    (leadTimeValue(a, 'last_message_at') || leadTimeValue(a, 'created_at'))
+  )[0] || null;
+}
+
+function mergedConversationLead(leads) {
+  const primary = primaryLeadFor(leads);
+  if (!primary) return null;
+  const leadIds = [...new Set(leads.map(l => l.id).filter(Boolean))];
+  const highlighted = leads.some(l => l.inbox_status === 'highlighted');
+  const archived = leads.every(l => l.inbox_status === 'archived');
+  const latestLock = maxIso(leads, 'llm_lock_until');
+  const latestWindow = maxIso(leads, 'wa_window_expires_at');
+  const latestMessage = maxIso(leads, 'last_message_at') || primary.last_message_at;
+  const pinnedAt = maxIso(leads, 'chat_pinned_at');
+  const priorityLead = leads.find(l => l.inbox_priority && l.inbox_priority !== 'none') || primary;
+  const profileLead = leads.find(l => getLeadPhotoUrl(l) || getLeadBio(l) || l.email) || primary;
+
+  return {
+    ...primary,
+    inbox_status: highlighted ? 'highlighted' : (archived ? 'archived' : (primary.inbox_status || 'neutral')),
+    inbox_priority: priorityLead.inbox_priority || 'none',
+    has_responded: leads.every(l => !!l.has_responded),
+    llm_lock_until: latestLock || primary.llm_lock_until,
+    wa_window_expires_at: latestWindow || primary.wa_window_expires_at,
+    last_message_at: latestMessage,
+    chat_pinned: leads.some(l => !!l.chat_pinned),
+    chat_pinned_at: pinnedAt || primary.chat_pinned_at,
+    profile_photo_url: profileLead.profile_photo_url || primary.profile_photo_url,
+    bio: profileLead.bio || primary.bio,
+    email: profileLead.email || primary.email,
+    bot_context: profileLead.bot_context || primary.bot_context,
+    task_meta: profileLead.task_meta || primary.task_meta,
+    _conversationLeadIds: leadIds,
+    _conversationLeads: leads,
+  };
+}
+
+function conversationLeadForId(leadId) {
+  const seed = chatState.leads.find(l => l.id === leadId);
+  return mergedConversationLead(conversationLeadsFor(seed));
+}
+
+function selectedConversationLead() {
+  if (!chatState.selectedLeadId) return null;
+  return conversationLeadForId(chatState.selectedLeadId);
+}
+
+function conversationGroups() {
+  const groups = new Map();
+  for (const lead of chatState.leads) {
+    const key = chatPhoneKey(lead.phone) || lead.id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(lead);
+  }
+  return Array.from(groups.values()).map(mergedConversationLead).filter(Boolean);
+}
+
+function avatarInnerHtml(lead) {
+  const initials = escapeHtml(getLeadInitials(lead));
+  const photo = getLeadPhotoUrl(lead);
+  if (!photo) return `<span class="avatar-fallback">${initials}</span>`;
+  const safePhoto = escapeHtml(photo);
+  return `<span class="avatar-fallback">${initials}</span><img src="${safePhoto}" alt="" loading="lazy" onerror="this.parentElement.classList.remove('has-photo');this.remove()">`;
+}
+
+function setAvatarElement(el, lead) {
+  if (!el) return;
+  const photo = getLeadPhotoUrl(lead);
+  el.classList.toggle('has-photo', !!photo);
+  el.style.background = getAvatarColor(lead?.name || lead?.phone || '');
+  el.innerHTML = avatarInnerHtml(lead);
+}
+
 function renderLeadsList() {
   const container = document.getElementById('chat-leads-list');
   if (!container) return;
 
   const searchVal = (document.getElementById('chat-search')?.value ?? '').toLowerCase();
-  let leads = chatState.leads.filter(l => {
-    if (searchVal && !l.name?.toLowerCase().includes(searchVal) && !l.phone?.includes(searchVal)) return false;
+  let leads = conversationGroups().filter(l => {
+    const haystack = (l._conversationLeads || [l])
+      .map(item => `${item.name || ''} ${item.phone || ''}`)
+      .join(' ')
+      .toLowerCase();
+    if (searchVal && !haystack.includes(searchVal)) return false;
     switch (chatState.filter) {
       case 'highlighted': return l.inbox_status === 'highlighted';
       case 'responded': return l.has_responded;
@@ -945,7 +1206,7 @@ function renderLeadsList() {
   });
 
   // Also collect archived count (always, for the sidebar button)
-  const archivedCount = chatState.leads.filter(l => l.inbox_status === 'archived').length;
+  const archivedCount = conversationGroups().filter(l => l.inbox_status === 'archived').length;
   const archiveBtn = document.getElementById('chat-archive-filter-btn');
   if (archiveBtn) {
     archiveBtn.classList.toggle('active-filter', chatState.filter === 'archived');
@@ -958,27 +1219,29 @@ function renderLeadsList() {
     return;
   }
 
-  // Group: pinned/highlighted first → rest
-  const highlighted = leads.filter(l => l.inbox_status === 'highlighted');
-  const normal = leads.filter(l => l.inbox_status !== 'highlighted');
+  leads.sort((a, b) => {
+    if (!!a.chat_pinned !== !!b.chat_pinned) return b.chat_pinned ? 1 : -1;
+    const pinA = a.chat_pinned_at ? new Date(a.chat_pinned_at).getTime() : 0;
+    const pinB = b.chat_pinned_at ? new Date(b.chat_pinned_at).getTime() : 0;
+    if (pinA !== pinB) return pinB - pinA;
+    return new Date(b.last_message_at || b.created_at || 0) - new Date(a.last_message_at || a.created_at || 0);
+  });
 
-  let html = '';
-
-  if (highlighted.length && chatState.filter === 'all') {
-    html += highlighted.map(buildLeadCard).join('');
-  }
-  html += normal.map(buildLeadCard).join('');
-  container.innerHTML = html;
+  container.innerHTML = leads.map(buildLeadCard).join('');
 }
 
 function buildLeadCard(lead) {
-  const isActive = lead.id === chatState.selectedLeadId;
-  const isHighlighted = lead.inbox_status === 'highlighted';
+  const isActive = chatPhoneKey(lead.phone) === chatState.selectedPhoneKey || lead.id === chatState.selectedLeadId;
+  const isPinned = !!lead.chat_pinned;
   const windowOpen = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
-  const initials = (lead.name || 'V').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const timeAgo = lead.last_message_at ? formatTimeAgo(lead.last_message_at) : '';
   const unreadCount = !lead.has_responded ? 1 : 0;
   const avatarBg = getAvatarColor(lead.name || lead.phone || '');
+  const hasPhoto = !!getLeadPhotoUrl(lead);
+  const mergedCount = lead._conversationLeadIds?.length || 1;
+  const mergedBadge = mergedCount > 1
+    ? `<span class="lead-merge-badge" title="Cadastros unidos por WhatsApp">${mergedCount}</span>`
+    : '';
 
   // Build last message preview
   const lastMsgPreview = lead._lastPreview || lead.phone || 'Toque para conversar';
@@ -988,19 +1251,19 @@ function buildLeadCard(lead) {
   <div class="chat-lead-card ${isActive ? 'active' : ''}"
        id="lead-card-${lead.id}" onclick="selectLead('${lead.id}')">
     <div class="lead-avatar-wrap">
-      <div class="lead-avatar" style="background:${avatarBg};">${initials}</div>
+      <div class="lead-avatar ${hasPhoto ? 'has-photo' : ''}" style="background:${avatarBg};">${avatarInnerHtml(lead)}</div>
       ${windowOpen ? '<span class="lead-window-dot" title="Janela 24h aberta"></span>' : ''}
     </div>
     <div class="lead-card-body">
       <div class="lead-card-row">
-        <span class="lead-card-name">${escapeHtml(lead.name || 'Visitante')}</span>
+        <span class="lead-card-name">${escapeHtml(lead.name || 'Visitante')}${mergedBadge}</span>
         <span class="lead-card-time ${hasUnread ? 'has-unread' : ''}" style="color:${hasUnread ? '#25D366' : '#8696a0'}">${timeAgo}</span>
       </div>
       <div class="lead-card-row lead-card-bottom">
-        <span class="lead-card-preview">${isHighlighted ? '📌 ' : ''}${escapeHtml(lastMsgPreview)}</span>
+        <span class="lead-card-preview">${isPinned ? '📌 ' : ''}${escapeHtml(lastMsgPreview)}</span>
         <div class="lead-card-badges">
           ${hasUnread ? `<span class="unread-badge">${unreadCount}</span>` : ''}
-          ${isHighlighted && !hasUnread ? '<span class="pin-badge">📌</span>' : ''}
+          ${isPinned && !hasUnread ? '<span class="pin-badge">📌</span>' : ''}
         </div>
       </div>
     </div>
@@ -1009,13 +1272,14 @@ function buildLeadCard(lead) {
 
 // ─── SELECT LEAD ─────────────────────────────────────────────────────────────
 async function selectLead(leadId) {
-  chatState.selectedLeadId = leadId;
-  let lead = chatState.leads.find(l => l.id === leadId);
+  let lead = conversationLeadForId(leadId);
   if (!lead) return;
+  chatState.selectedLeadId = lead.id;
+  chatState.selectedPhoneKey = chatPhoneKey(lead.phone);
+  const conversationIds = lead._conversationLeadIds || [lead.id];
 
   // Update active state
-  document.querySelectorAll('.chat-lead-card').forEach(c => c.classList.remove('active'));
-  document.getElementById(`lead-card-${leadId}`)?.classList.add('active');
+  renderLeadsList();
 
   // Show chat window
   document.getElementById('chat-empty-state').style.display = 'none';
@@ -1023,10 +1287,8 @@ async function selectLead(leadId) {
   activeEl.style.display = 'flex';
 
   // Header
-  const initials = (lead.name || 'V').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const avatarEl = document.getElementById('chat-header-avatar');
-  avatarEl.textContent = initials;
-  avatarEl.style.background = getAvatarColor(lead.name || lead.phone || '');
+  setAvatarElement(avatarEl, lead);
   document.getElementById('chat-header-name').textContent = lead.name || 'Visitante';
   const subParts = [lead.phone || '', lead.type === 'saved' ? 'Consolidação' : 'Visitante'];
   document.getElementById('chat-header-sub').textContent = subParts.filter(Boolean).join(' · ');
@@ -1042,18 +1304,22 @@ async function selectLead(leadId) {
 
   // ── Refresh wa fields from DB (cache may be stale after inbound message) ──
   try {
-    const { data: freshLead } = await window._sb
+    const { data: freshLeads } = await window._sb
       .from('leads')
-      .select('wa_window_expires_at, llm_lock_until, inbox_status, last_message_at, inbox_priority')
-      .eq('id', leadId)
-      .maybeSingle();
-    if (freshLead) {
-      // Merge fresh data into in-memory lead
-      lead = Object.assign(lead, freshLead);
-      // Also update leads array
-      const idx = chatState.leads.findIndex(l => l.id === leadId);
-      if (idx >= 0) chatState.leads[idx] = Object.assign(chatState.leads[idx], freshLead);
+      .select('id, wa_window_expires_at, llm_lock_until, inbox_status, last_message_at, inbox_priority, chat_pinned, chat_pinned_at, profile_photo_url, bio, email, source, cidade, estado, pais, decisao, culto, batizado, gc_status, melhor_horario, tags, bot_context, task_meta')
+      .in('id', conversationIds);
+    if (freshLeads?.length) {
+      freshLeads.forEach(freshLead => {
+        const idx = chatState.leads.findIndex(l => l.id === freshLead.id);
+        if (idx >= 0) chatState.leads[idx] = Object.assign(chatState.leads[idx], freshLead);
+      });
+      lead = conversationLeadForId(chatState.selectedLeadId) || lead;
+      chatState.selectedLeadId = lead.id;
+      chatState.selectedPhoneKey = chatPhoneKey(lead.phone);
       // Re-eval lock UI with fresh data
+      setAvatarElement(avatarEl, lead);
+      document.getElementById('chat-header-name').textContent = lead.name || 'Visitante';
+      document.getElementById('chat-header-sub').textContent = [lead.phone || '', lead.type === 'saved' ? 'Consolidação' : 'Visitante'].filter(Boolean).join(' · ');
       updateLockUI(lead);
     }
   } catch (e) { /* non-fatal */ }
@@ -1062,13 +1328,13 @@ async function selectLead(leadId) {
   applyWindowUI(lead);
 
   // Load messages
-  await loadMessages(leadId);
+  await loadMessages(chatState.selectedLeadId);
 
   // Check linked task
-  await loadLinkedTask(leadId, lead.inbox_priority);
+  await loadLinkedTask(chatState.selectedLeadId, lead.inbox_priority);
 
   // Subscribe to realtime for this lead
-  subscribeToLead(leadId);
+  subscribeToLead(chatState.selectedLeadId);
 }
 
 // Track window expire timer so we can clear it
@@ -1106,17 +1372,7 @@ function applyWindowUI(lead) {
     }
   }
 
-  // Update highlight button visual state
-  const highlightBtn = document.getElementById('chat-highlight-btn');
-  if (highlightBtn) {
-    if (lead.inbox_priority === 'highlighted') {
-      highlightBtn.classList.add('active');
-      highlightBtn.title = 'Remover destaque';
-    } else {
-      highlightBtn.classList.remove('active');
-      highlightBtn.title = 'Destacar conversa';
-    }
-  }
+  updatePinButtons(lead);
 
   // Clear any previous window expire timer
   if (_windowExpireTimer) { clearTimeout(_windowExpireTimer); _windowExpireTimer = null; }
@@ -1135,7 +1391,7 @@ function applyWindowUI(lead) {
       if (msUntilExpiry > 0 && msUntilExpiry < 48 * 60 * 60 * 1000) {
         _windowExpireTimer = setTimeout(() => {
           // Re-apply UI to lock the input
-          const currentLead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+          const currentLead = selectedConversationLead();
           if (currentLead) {
             applyWindowUI(currentLead);
             // Inject a system message about window closing
@@ -1159,10 +1415,13 @@ function applyWindowUI(lead) {
 }
 
 async function loadMessages(leadId) {
+  const lead = conversationLeadForId(leadId) || chatState.leads.find(l => l.id === leadId);
+  const leadIds = lead?._conversationLeadIds || conversationLeadIdsFor(lead);
+  if (!leadIds.length) return;
   const { data: msgs } = await window._sb
     .from('messages')
     .select('id, direction, type, content, automated, created_at')
-    .eq('lead_id', leadId)
+    .in('lead_id', leadIds)
     .order('created_at', { ascending: true })
     .limit(500);
 
@@ -1213,6 +1472,21 @@ function renderMessages() {
   container.scrollTop = container.scrollHeight;
 }
 
+function parseAudioMessageContent(raw) {
+  const text = String(raw || '');
+  const urlMatch = text.match(/https?:\/\/[^\s]+/);
+  const mediaMatch = text.match(/\[MEDIA_ID:\s*([A-Za-z0-9_-]+)\]/i);
+  const transcriptMatch = text.match(/\[ÁUDIO TRANSCRITO\]\s*["“]?([\s\S]*?)["”]?(?:\n\[MEDIA_ID:|$)/i)
+    || text.match(/\[AUDIO TRANSCRITO\]\s*["“]?([\s\S]*?)["”]?(?:\n\[MEDIA_ID:|$)/i)
+    || text.match(/\[ÁUDIO TRANSCRITO\]:\s*([\s\S]*?)(?:\n\[MEDIA_ID:|$)/i);
+  const compactRaw = text.trim();
+  const mediaId = mediaMatch?.[1]
+    || (!urlMatch && /^[A-Za-z0-9_-]{12,}$/.test(compactRaw) ? compactRaw : null);
+  let transcription = transcriptMatch?.[1]?.trim() || '';
+  transcription = transcription.replace(/\n?\[MEDIA_ID:[\s\S]*$/i, '').replace(/^"|"$/g, '').trim();
+  return { audioUrl: urlMatch?.[0] || (compactRaw.startsWith('http') ? compactRaw : null), mediaId, transcription };
+}
+
 function buildMessageBubble(msg, isConsecutive) {
   const isOutbound = msg.direction === 'outbound';
   const isManual = isOutbound && !msg.automated;
@@ -1229,26 +1503,34 @@ function buildMessageBubble(msg, isConsecutive) {
   let content = '';
 
   if (type === 'audio' || type === 'voice') {
-    // Check if the content is a URL we can play or a meta media ID
-    const audioUrl = rawUrl || (raw.startsWith('http') ? raw : null);
-    if (audioUrl) {
-      content = `
+    const audioInfo = parseAudioMessageContent(raw);
+    let player = '';
+    if (audioInfo.audioUrl) {
+      player = `
         <div class="msg-audio-player">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
           <audio controls preload="none" style="height:32px;flex:1;min-width:0;accent-color:#FFD700;">
-            <source src="${audioUrl}">
+            <source src="${audioInfo.audioUrl}">
             Seu browser não suporta áudio.
           </audio>
         </div>`;
-    } else {
-      // Media ID — needs to be fetched via API, show a playable loading button
-      const mediaId = raw.replace(/[^\w-]/g, '');
-      content = `
+    } else if (audioInfo.mediaId) {
+      player = `
         <div class="msg-audio-player" id="ap-${msg.id}">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
-          <button onclick="playAudioMessage('${msg.id}','${mediaId}')" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#FFD700;border-radius:20px;padding:4px 14px;cursor:pointer;font-size:.75rem;">▶ Ouvir áudio</button>
+          <button onclick="playAudioMessage('${msg.id}','${audioInfo.mediaId}')" style="background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.3);color:#FFD700;border-radius:20px;padding:4px 14px;cursor:pointer;font-size:.75rem;">▶ Ouvir áudio</button>
+        </div>`;
+    } else {
+      player = `
+        <div class="msg-audio-player">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <span style="font-size:.82rem;color:#a8a8b8;">Áudio recebido</span>
         </div>`;
     }
+    const transcript = audioInfo.transcription
+      ? `<div class="msg-transcription"><span class="msg-transcription-label">Transcrição</span>${escapeHtml(audioInfo.transcription)}</div>`
+      : '';
+    content = `<div class="msg-audio-stack">${player}${transcript}</div>`;
   } else if (type === 'image') {
     const imgUrl = rawUrl || raw;
     content = `
@@ -1258,7 +1540,7 @@ function buildMessageBubble(msg, isConsecutive) {
   } else if (type === 'document' || type === 'file') {
     const docUrl = rawUrl || raw;
     // Extract filename from URL or content
-    const fnMatch = raw.match(/\[(?:Imagem|Arquivo|Documento): ([^\]]+)\]/) || raw.match(/([^/]+\.[a-z]{2,5})$/i);
+    const fnMatch = raw.match(/\[(?:Imagem|Arquivo|Documento|Áudio|Audio|Vídeo|Video): ([^\]]+)\]/) || raw.match(/([^/]+\.[a-z0-9]{2,5})$/i);
     const fileName = fnMatch ? fnMatch[1] : 'Arquivo';
     content = `
       <a href="${docUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;color:#FFD700;text-decoration:none;">
@@ -1307,7 +1589,7 @@ async function loadLinkedTask(leadId, priority) {
   const bannerEl = document.getElementById('chat-task-banner');
   bannerEl.style.display = 'none';
   if (!priority || priority === 'none') return;
-  const lead = chatState.leads.find(l => l.id === leadId);
+  const lead = conversationLeadForId(leadId) || chatState.leads.find(l => l.id === leadId);
   if (!lead) return;
   const { data: tasks } = await window._sb
     .from('tasks')
@@ -1342,8 +1624,9 @@ async function sendManualMessage() {
   const message = input.value.trim();
   if (!message || !chatState.selectedLeadId) return;
 
-  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  const lead = selectedConversationLead();
   if (!lead) return;
+  const leadIds = lead._conversationLeadIds || [lead.id];
 
   const sendBtn = document.getElementById('chat-send-btn');
   sendBtn.disabled = true;
@@ -1365,7 +1648,7 @@ async function sendManualMessage() {
       },
       body: JSON.stringify({
         workspace_id: chatState.workspaceId,
-        lead_id: chatState.selectedLeadId,
+        lead_id: lead.id,
         message: { type: 'text', content: message },
       }),
     });
@@ -1382,6 +1665,14 @@ async function sendManualMessage() {
       lead.llm_lock_until = lockUntil;
       lead.last_message_at = now;
       lead.wa_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      chatState.leads.forEach(l => {
+        if (leadIds.includes(l.id)) {
+          l.llm_lock_until = lockUntil;
+          l.last_message_at = now;
+          l.wa_window_expires_at = lead.wa_window_expires_at;
+          l.has_responded = true;
+        }
+      });
       updateLockUI(lead);
       applyWindowUI(lead);
       const msgObj = {
@@ -1395,14 +1686,15 @@ async function sendManualMessage() {
       try {
         await window._sb.from('messages').insert({
           workspace_id: chatState.workspaceId,
-          lead_id: chatState.selectedLeadId,
+          lead_id: lead.id,
           direction: 'outbound', type: 'text',
           content: message, automated: false, responded_at: now,
         });
         await window._sb.from('leads').update({
           llm_lock_until: lockUntil,
           last_message_at: now,
-        }).eq('id', chatState.selectedLeadId);
+          has_responded: true,
+        }).in('id', leadIds);
       } catch (dbErr) {
         console.warn('[Chat] DB persist failed:', dbErr.message);
       }
@@ -1415,10 +1707,118 @@ async function sendManualMessage() {
     showChatToast('❌ Erro de conexão com o servidor.', 'error');
   } finally {
     sendBtn.disabled = false;
-    document.getElementById('chat-send-icon').style.display = 'block';
-    document.getElementById('chat-mic-icon').style.display = 'none';
-    sendBtn.classList.remove('empty');
+    autoresizeTextarea(input);
   }
+}
+
+async function handleChatSendButton() {
+  const input = document.getElementById('chat-input');
+  if (input?.value?.trim()) {
+    await sendManualMessage();
+    return;
+  }
+  await toggleVoiceRecording();
+}
+
+function chooseRecordingMimeType() {
+  if (!window.MediaRecorder) return '';
+  const preferred = [
+    'audio/ogg;codecs=opus',
+    'audio/mp4',
+    'audio/webm;codecs=opus',
+    'audio/webm',
+  ];
+  return preferred.find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+
+function audioExtensionForMime(mimeType) {
+  const clean = String(mimeType || '').split(';')[0].toLowerCase();
+  if (clean.includes('ogg')) return 'ogg';
+  if (clean.includes('mp4') || clean.includes('m4a')) return 'm4a';
+  if (clean.includes('mpeg') || clean.includes('mp3')) return 'mp3';
+  if (clean.includes('webm')) return 'webm';
+  return 'ogg';
+}
+
+function setVoiceRecordingUI(isRecording) {
+  const btn = document.getElementById('chat-send-btn');
+  const input = document.getElementById('chat-input');
+  const mic = document.getElementById('chat-mic-icon');
+  const send = document.getElementById('chat-send-icon');
+  if (btn) {
+    btn.classList.toggle('recording', isRecording);
+    btn.classList.toggle('empty', !isRecording);
+    btn.title = isRecording ? 'Parar e enviar áudio' : 'Enviar mensagem ou gravar áudio';
+  }
+  if (mic) mic.style.display = isRecording ? 'block' : (input?.value?.trim() ? 'none' : 'block');
+  if (send) send.style.display = isRecording ? 'none' : (input?.value?.trim() ? 'block' : 'none');
+  if (input) input.placeholder = isRecording ? 'Gravando áudio...' : 'Mensagem';
+}
+
+async function toggleVoiceRecording() {
+  if (chatState.voiceRecorder?.state === 'recording') {
+    chatState.voiceRecorder.stop();
+    return;
+  }
+
+  if (!chatState.selectedLeadId) return;
+  const input = document.getElementById('chat-input');
+  if (input?.disabled) return;
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    showChatToast('❌ Gravação de áudio não suportada neste navegador.', 'error');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = chooseRecordingMimeType();
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    chatState.voiceRecorder = recorder;
+    chatState.voiceStream = stream;
+    chatState.voiceChunks = [];
+    chatState.voiceRecordingStartedAt = Date.now();
+
+    recorder.ondataavailable = (ev) => {
+      if (ev.data?.size) chatState.voiceChunks.push(ev.data);
+    };
+    recorder.onerror = () => {
+      showChatToast('❌ Erro ao gravar áudio.', 'error');
+      stopVoiceStream();
+      setVoiceRecordingUI(false);
+    };
+    recorder.onstop = async () => {
+      const durationMs = Date.now() - (chatState.voiceRecordingStartedAt || Date.now());
+      const recordedType = recorder.mimeType || mimeType || 'audio/ogg';
+      const blob = new Blob(chatState.voiceChunks, { type: recordedType });
+      stopVoiceStream();
+      setVoiceRecordingUI(false);
+
+      if (durationMs < 600 || blob.size < 400) {
+        showChatToast('Áudio muito curto.', 'warn');
+        return;
+      }
+
+      const ext = audioExtensionForMime(recordedType);
+      const file = new File([blob], `audio-${Date.now()}.${ext}`, { type: recordedType });
+      await sendChatMediaFile(file, { fromRecorder: true });
+    };
+
+    recorder.start();
+    setVoiceRecordingUI(true);
+    showChatToast('Gravando áudio...', 'info');
+  } catch (e) {
+    setVoiceRecordingUI(false);
+    stopVoiceStream();
+    showChatToast(`❌ Microfone indisponível: ${e.message}`, 'error');
+  }
+}
+
+function stopVoiceStream() {
+  chatState.voiceStream?.getTracks?.().forEach(track => track.stop());
+  chatState.voiceStream = null;
+  chatState.voiceRecorder = null;
+  chatState.voiceChunks = [];
+  chatState.voiceRecordingStartedAt = null;
 }
 
 function handleChatKeydown(e) {
@@ -1426,6 +1826,7 @@ function handleChatKeydown(e) {
 }
 
 function autoresizeTextarea(el) {
+  if (chatState.voiceRecorder?.state === 'recording') return;
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 
@@ -1478,9 +1879,12 @@ function updateLockUI(lead) {
 
 async function reactivateAI() {
   if (!chatState.selectedLeadId) return;
-  await window._sb.from('leads').update({ llm_lock_until: null }).eq('id', chatState.selectedLeadId);
-  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
-  if (lead) { lead.llm_lock_until = null; updateLockUI(lead); }
+  const lead = selectedConversationLead();
+  const leadIds = lead?._conversationLeadIds || [chatState.selectedLeadId];
+  await window._sb.from('leads').update({ llm_lock_until: null }).in('id', leadIds);
+  chatState.leads.forEach(l => { if (leadIds.includes(l.id)) l.llm_lock_until = null; });
+  const refreshed = selectedConversationLead();
+  if (refreshed) updateLockUI(refreshed);
   showChatToast('✅ IA reativada!', 'success');
 }
 
@@ -1488,18 +1892,21 @@ async function reactivateAI() {
 // Smart archive toggle: archive if active/highlighted, unarchive if archived
 async function toggleArchiveCurrentLead() {
   if (!chatState.selectedLeadId) return;
-  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  const lead = selectedConversationLead();
   if (!lead) return;
+  const leadIds = lead._conversationLeadIds || [lead.id];
 
   const isCurrentlyArchived = lead.inbox_status === 'archived';
   const newStatus = isCurrentlyArchived ? 'neutral' : 'archived';
 
-  await window._sb.from('leads').update({ inbox_status: newStatus }).eq('id', chatState.selectedLeadId);
+  await window._sb.from('leads').update({ inbox_status: newStatus }).in('id', leadIds);
+  chatState.leads.forEach(l => { if (leadIds.includes(l.id)) l.inbox_status = newStatus; });
   lead.inbox_status = newStatus;
 
   if (newStatus === 'archived') {
     // Remove from view and close chat
     chatState.selectedLeadId = null;
+    chatState.selectedPhoneKey = null;
     document.getElementById('chat-empty-state').style.display = 'flex';
     document.getElementById('chat-active').style.display = 'none';
     showChatToast('📦 Conversa arquivada.', 'info');
@@ -1512,34 +1919,54 @@ async function toggleArchiveCurrentLead() {
   renderLeadsList();
 }
 
-// Toggle highlight/star on current lead
-async function toggleHighlightCurrentLead() {
+function updatePinButtons(lead) {
+  const isPinned = !!lead?.chat_pinned;
+  const pinBtn = document.getElementById('chat-pin-btn');
+  const stripBtn = document.getElementById('chat-pin-strip-btn');
+  const stripLabel = document.getElementById('chat-pin-strip-label');
+
+  if (pinBtn) {
+    pinBtn.classList.toggle('active', isPinned);
+    pinBtn.title = isPinned ? 'Desafixar conversa' : 'Fixar conversa';
+  }
+  if (stripBtn) {
+    stripBtn.classList.toggle('active', isPinned);
+    stripBtn.title = isPinned ? 'Desafixar conversa' : 'Fixar conversa';
+  }
+  if (stripLabel) stripLabel.textContent = isPinned ? 'Desafixar' : 'Fixar';
+}
+
+// Toggle pin on current lead
+async function togglePinCurrentLead() {
   if (!chatState.selectedLeadId) return;
-  const lead = chatState.leads.find(l => l.id === chatState.selectedLeadId);
+  const lead = selectedConversationLead();
   if (!lead) return;
+  const leadIds = lead._conversationLeadIds || [lead.id];
 
-  const isHighlighted = lead.inbox_priority === 'highlighted';
-  const newPriority = isHighlighted ? null : 'highlighted';
+  const newPinned = !lead.chat_pinned;
+  const pinnedAt = newPinned ? new Date().toISOString() : null;
 
-  await window._sb.from('leads').update({ inbox_priority: newPriority }).eq('id', chatState.selectedLeadId);
-  lead.inbox_priority = newPriority;
-
-  // Update button visual
-  const highlightBtn = document.getElementById('chat-highlight-btn');
-  if (highlightBtn) {
-    if (newPriority === 'highlighted') {
-      highlightBtn.classList.add('active');
-      highlightBtn.title = 'Remover destaque';
-      showChatToast('⭐ Conversa destacada.', 'success');
-    } else {
-      highlightBtn.classList.remove('active');
-      highlightBtn.title = 'Destacar conversa';
-      showChatToast('Destaque removido.', 'info');
-    }
+  const { error } = await window._sb
+    .from('leads')
+    .update({ chat_pinned: newPinned, chat_pinned_at: pinnedAt })
+    .in('id', leadIds);
+  if (error) {
+    showChatToast(`❌ ${error.message}`, 'error');
+    return;
   }
 
+  chatState.leads.forEach(l => {
+    if (leadIds.includes(l.id)) {
+      l.chat_pinned = newPinned;
+      l.chat_pinned_at = pinnedAt;
+    }
+  });
+  updatePinButtons(selectedConversationLead() || lead);
+  showChatToast(newPinned ? '📌 Conversa fixada.' : 'Conversa desafixada.', newPinned ? 'success' : 'info');
   renderLeadsList();
 }
+
+const toggleHighlightCurrentLead = togglePinCurrentLead;
 
 // ─── REALTIME ─────────────────────────────────────────────────────────────────
 function _setRealtimeStatus(status) {
@@ -1568,6 +1995,7 @@ function setupRealtime() {
       const msg = payload.new;
       // Update lead state
       const lead = chatState.leads.find(l => l.id === msg.lead_id);
+      const selectedIds = selectedConversationLead()?._conversationLeadIds || [];
       if (lead) {
         const hadWindowBefore = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
         lead.last_message_at = msg.created_at;
@@ -1575,8 +2003,9 @@ function setupRealtime() {
         if (msg.direction === 'inbound') {
           const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
           lead.wa_window_expires_at = newExpiry.toISOString();
-          if (msg.lead_id === chatState.selectedLeadId) {
-            applyWindowUI(lead);
+          if (selectedIds.includes(msg.lead_id)) {
+            const activeLead = selectedConversationLead() || lead;
+            applyWindowUI(activeLead);
             // If window was previously closed (or first inbound), inject a system message
             if (!hadWindowBefore) {
               const expiryTime = newExpiry.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1590,7 +2019,7 @@ function setupRealtime() {
         }
       }
       // If this lead is open, add message live
-      if (msg.lead_id === chatState.selectedLeadId) {
+      if (selectedIds.includes(msg.lead_id)) {
         // Avoid duplicates from optimistic inserts (check by id OR by content+direction within 3s)
         const isDupe = chatState.messages.find(m =>
           m.id === msg.id ||
@@ -1657,11 +2086,87 @@ function filterLeadsList() { renderLeadsList(); }
 
 // ─── SIDEBAR BADGE ────────────────────────────────────────────────────────────
 function updateSidebarBadge() {
-  const highlighted = chatState.leads.filter(l => l.inbox_status === 'highlighted').length;
+  const highlighted = conversationGroups().filter(l => l.inbox_status === 'highlighted').length;
   const badge = document.getElementById('chat-unread-badge');
   if (!badge) return;
   badge.textContent = highlighted;
   badge.style.display = highlighted > 0 ? 'inline-flex' : 'none';
+}
+
+function profileField(label, value) {
+  const display = value === null || value === undefined || value === '' ? '—' : value;
+  return `
+    <div class="chat-profile-field">
+      <span class="chat-profile-label">${escapeHtml(label)}</span>
+      <span class="chat-profile-value">${escapeHtml(display)}</span>
+    </div>`;
+}
+
+function formatProfileDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
+}
+
+function openLeadProfileDrawer() {
+  if (!chatState.selectedLeadId) return;
+  const lead = selectedConversationLead();
+  if (!lead) return;
+
+  const overlay = document.getElementById('chat-profile-overlay');
+  const body = document.getElementById('chat-profile-body');
+  if (!overlay || !body) return;
+
+  const bio = getLeadBio(lead) || 'Sem bio cadastrada.';
+  const hasPhoto = !!getLeadPhotoUrl(lead);
+  const avatarBg = getAvatarColor(lead.name || lead.phone || '');
+  const tags = Array.isArray(lead.tags) && lead.tags.length ? lead.tags.join(', ') : '';
+  const location = [lead.cidade, lead.estado, lead.pais].filter(Boolean).join(', ');
+  const source = lead.source || lead.type || 'whatsapp';
+  const status = lead.chat_pinned ? 'Fixada' : lead.inbox_status === 'archived' ? 'Arquivada' : 'Ativa';
+
+  body.innerHTML = `
+    <div class="chat-profile-hero">
+      <div class="chat-profile-avatar ${hasPhoto ? 'has-photo' : ''}" style="background:${avatarBg};">${avatarInnerHtml(lead)}</div>
+      <div class="chat-profile-name">${escapeHtml(lead.name || 'Visitante')}</div>
+      <div class="chat-profile-phone">${escapeHtml(lead.phone || 'Sem telefone')}</div>
+    </div>
+
+    <div class="chat-profile-section">
+      <div class="chat-profile-section-title">Bio</div>
+      <div class="chat-profile-bio">${escapeHtml(bio)}</div>
+    </div>
+
+    <div class="chat-profile-section">
+      <div class="chat-profile-section-title">Dados</div>
+      ${profileField('Nome', lead.name || 'Visitante')}
+      ${profileField('Telefone', lead.phone)}
+      ${profileField('Email', lead.email)}
+      ${profileField('Origem', source)}
+      ${profileField('Status', status)}
+      ${profileField('Localização', location)}
+      ${profileField('Tags', tags)}
+    </div>
+
+    <div class="chat-profile-section">
+      <div class="chat-profile-section-title">Consolidação</div>
+      ${profileField('Decisão', lead.decisao)}
+      ${profileField('Culto', lead.culto)}
+      ${profileField('Batizado', lead.batizado)}
+      ${profileField('GC', lead.gc_status)}
+      ${profileField('Melhor horário', lead.melhor_horario)}
+      ${profileField('Criado em', formatProfileDate(lead.created_at))}
+      ${profileField('Última mensagem', formatProfileDate(lead.last_message_at))}
+    </div>`;
+  overlay.style.display = 'flex';
+}
+
+function closeLeadProfileDrawer() {
+  const overlay = document.getElementById('chat-profile-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
@@ -1945,28 +2450,53 @@ async function handleChatFileAttach(event) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file || !chatState.selectedLeadId) return;
+  await sendChatMediaFile(file);
+}
 
-  const maxSize = 16 * 1024 * 1024; // 16MB (Meta's limit)
-  if (file.size > maxSize) { showChatToast('❌ Arquivo muito grande. Máximo 16MB.', 'error'); return; }
-
+async function sendChatMediaFile(file, options = {}) {
+  if (!file || !chatState.selectedLeadId) return;
+  const lead = selectedConversationLead();
+  if (!lead) return;
+  const leadIds = lead._conversationLeadIds || [lead.id];
   const isImage = file.type.startsWith('image/');
   const isAudio = file.type.startsWith('audio/');
   const isVideo = file.type.startsWith('video/');
-  // Everything else is a document
-  let msgType = 'document';
-  if (isImage) msgType = 'image';
-  else if (isAudio) msgType = 'audio';
-  else if (isVideo) msgType = 'video';
 
-  showChatToast('📎 Fazendo upload...', 'info');
+  let msgType = 'document';
+  if (isImage && ['image/jpeg', 'image/png'].includes(file.type)) msgType = 'image';
+  else if (isAudio) msgType = 'audio';
+  else if (isVideo && file.type === 'video/mp4') msgType = 'video';
+
+  const maxByType = {
+    image: 5 * 1024 * 1024,
+    audio: 16 * 1024 * 1024,
+    video: 16 * 1024 * 1024,
+    document: 100 * 1024 * 1024,
+  };
+  const maxSize = maxByType[msgType] || maxByType.document;
+  if (file.size > maxSize) {
+    const mb = Math.round(maxSize / 1024 / 1024);
+    showChatToast(`❌ Arquivo muito grande. Máximo ${mb}MB.`, 'error');
+    return;
+  }
+
+  if (isImage && msgType === 'document') {
+    showChatToast('Imagem enviada como arquivo. WhatsApp aceita JPEG ou PNG como imagem.', 'warn');
+  }
+  if (isVideo && msgType === 'document') {
+    showChatToast('Vídeo enviado como arquivo. WhatsApp aceita MP4 como vídeo.', 'warn');
+  }
+
+  showChatToast(options.fromRecorder ? 'Enviando áudio...' : '📎 Fazendo upload...', 'info');
 
   try {
-    const ext = file.name.split('.').pop();
-    const path = `chat/${chatState.selectedLeadId}/${Date.now()}.${ext}`;
+    const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+    const path = `chat/${lead.id}/${Date.now()}-${safeName || `file.${ext}`}`;
 
     const { error: upErr } = await window._sb.storage
       .from('app_files')
-      .upload(path, file, { cacheControl: '3600', upsert: false });
+      .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream' });
     if (upErr) throw upErr;
 
     const { data: urlData } = window._sb.storage.from('app_files').getPublicUrl(path);
@@ -1981,32 +2511,48 @@ async function handleChatFileAttach(event) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
       body: JSON.stringify({
         workspace_id: chatState.workspaceId,
-        lead_id: chatState.selectedLeadId,
+        lead_id: lead.id,
         message: {
           type: msgType,
           content: publicUrl,
-          filename: file.name, // used for document display name
+          filename: file.name,
+          mime_type: file.type || null,
         },
       }),
     });
     const result = await res.json();
     if (res.ok && result.ok) {
       const now = new Date().toISOString();
-      const dbContent = isImage
-        ? publicUrl
-        : `[${file.name}] ${publicUrl}`;
+      const label = msgType === 'image' ? 'Imagem'
+        : msgType === 'audio' ? 'Áudio'
+          : msgType === 'video' ? 'Vídeo'
+            : 'Arquivo';
+      const dbContent = `[${label}: ${file.name}] ${publicUrl}`;
       await window._sb.from('messages').insert({
         workspace_id: chatState.workspaceId,
-        lead_id: chatState.selectedLeadId,
+        lead_id: lead.id,
         direction: 'outbound', type: msgType,
         content: dbContent,
         automated: false, responded_at: now,
+        wa_message_id: result.wa_message_id || null,
       });
       showChatToast('✅ Arquivo enviado!', 'success');
       chatState.messages.push({
         id: crypto.randomUUID(), direction: 'outbound', type: msgType,
         content: dbContent, automated: false, created_at: now,
       });
+      const lockUntil = result.human_lock_until || new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      chatState.leads.forEach(l => {
+        if (leadIds.includes(l.id)) {
+          l.last_message_at = now;
+          l.llm_lock_until = lockUntil;
+          l.wa_window_expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+          l.has_responded = true;
+        }
+      });
+      const updatedLead = selectedConversationLead() || lead;
+      updateLockUI(updatedLead);
+      applyWindowUI(updatedLead);
       renderMessages();
     } else {
       throw new Error(result.error || 'Erro no envio');
@@ -2419,9 +2965,13 @@ window.toggleChatSidebar = toggleChatSidebar;
 window.sendManualMessage = sendManualMessage;
 window.handleChatKeydown = handleChatKeydown;
 window.autoresizeTextarea = autoresizeTextarea;
+window.handleChatSendButton = handleChatSendButton;
 window.reactivateAI = reactivateAI;
 window.toggleArchiveCurrentLead = toggleArchiveCurrentLead;
+window.togglePinCurrentLead = togglePinCurrentLead;
 window.toggleHighlightCurrentLead = toggleHighlightCurrentLead;
+window.openLeadProfileDrawer = openLeadProfileDrawer;
+window.closeLeadProfileDrawer = closeLeadProfileDrawer;
 window.goToLinkedTask = goToLinkedTask;
 window.openTemplateModal = openTemplateModal;
 window.closeTemplateModal = closeTemplateModal;
@@ -2457,14 +3007,15 @@ async function playAudioMessage(msgId, mediaId) {
       body: JSON.stringify({ workspace_id: chatState.workspaceId, media_id: mediaId }),
     });
     const data = await res.json();
-    if (data.ok && data.url) {
+    const audioSrc = data.data_url || data.url;
+    if (data.ok && audioSrc) {
       container.innerHTML = `
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="flex-shrink:0;opacity:.7;"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
         <audio controls autoplay preload="auto" style="height:32px;flex:1;min-width:0;accent-color:#FFD700;">
-          <source src="${data.url}">
+          <source src="${audioSrc}">
         </audio>`;
     } else {
-      if (btn) { btn.disabled = false; btn.textContent = '❌ Falha ao carregar'; }
+      if (btn) { btn.disabled = false; btn.textContent = data.error ? `❌ ${data.error}` : '❌ Falha ao carregar'; }
     }
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = `❌ ${e.message}`; }

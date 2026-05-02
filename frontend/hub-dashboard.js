@@ -3902,7 +3902,38 @@
 
     // --- WHATSAPP CLONE JS ---
     let waActiveLeadId = null;
+    let waActivePhoneKey = null;
     let waMessagesInterval = null;
+
+    function waPhoneKey(phone) {
+        return String(phone || '').replace(/\D/g, '');
+    }
+
+    function waLeadTimestamp(lead) {
+        return lead?.last_message_at || lead?.last_interaction || lead?.updated_at || lead?.created_at || '';
+    }
+
+    function waConversationLeads(seedLead) {
+        if (!seedLead) return [];
+        const key = waPhoneKey(seedLead.phone);
+        const wsId = seedLead.workspace_id || window.currentWorkspaceId;
+        if (!key) return [seedLead];
+        return (window.globalLeads || [])
+            .filter(l => waPhoneKey(l.phone) === key && (!wsId || String(l.workspace_id) === String(wsId)));
+    }
+
+    function waConversationLeadIds(seedLead) {
+        return [...new Set(waConversationLeads(seedLead).map(l => l.id).filter(Boolean))];
+    }
+
+    function waPrimaryLead(leads) {
+        const sorted = [...(leads || [])].sort((a, b) => String(waLeadTimestamp(b)).localeCompare(String(waLeadTimestamp(a))));
+        return sorted[0] || null;
+    }
+
+    function waCurrentLead() {
+        return (window.globalLeads || []).find(l => String(l.id) === String(waActiveLeadId)) || null;
+    }
 
     // Render left sidebar
     window.renderWAChatList = function() {
@@ -3912,13 +3943,36 @@
         let html = '';
         const searchQ = (document.getElementById('waSearch')?.value || '').toLowerCase();
         
-        // Filter leads with phone numbers, sort by last_interaction (most recent first)
-        const chats = globalLeads
-            .filter(l => l.phone && (l.name || '').toLowerCase().includes(searchQ))
+        const groups = new Map();
+        (window.globalLeads || []).forEach(lead => {
+            const key = waPhoneKey(lead.phone);
+            if (!key) return;
+            const wsId = lead.workspace_id || window.currentWorkspaceId || '';
+            const groupKey = `${wsId}:${key}`;
+            if (!groups.has(groupKey)) groups.set(groupKey, { key, wsId, leads: [] });
+            groups.get(groupKey).leads.push(lead);
+        });
+
+        const chats = Array.from(groups.values())
+            .map(group => {
+                const primary = waPrimaryLead(group.leads);
+                const latestTs = group.leads.reduce((latest, lead) => {
+                    const ts = waLeadTimestamp(lead);
+                    return String(ts).localeCompare(String(latest)) > 0 ? ts : latest;
+                }, '');
+                return { ...group, primary, latestTs };
+            })
+            .filter(group => {
+                if (!group.primary) return false;
+                if (!searchQ) return true;
+                const haystack = group.leads
+                    .map(l => `${l.name || ''} ${l.phone || ''}`)
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.includes(searchQ);
+            })
             .sort((a, b) => {
-                const tA = a.last_interaction || a.created_at || '';
-                const tB = b.last_interaction || b.created_at || '';
-                return tB.localeCompare(tA);
+                return String(b.latestTs).localeCompare(String(a.latestTs));
             });
         
         function relativeTime(ts) {
@@ -3937,22 +3991,27 @@
         if (chats.length === 0) {
             html = `<div style="padding: 20px; text-align: center; color: #8696a0;">Nenhuma conversa encontrada.</div>`;
         } else {
-            chats.forEach(lead => {
+            chats.forEach(group => {
+                const lead = group.primary;
                 let nameSafe = lead.name || 'Desconhecido';
                 let initials = 'DC';
                 try {
                     initials = nameSafe.split(' ').map(n=>n?n[0]:'').join('').substring(0,2).toUpperCase() || 'WA';
                 } catch(e) {}
-                const timeLabel = relativeTime(lead.last_interaction || lead.created_at);
+                const timeLabel = relativeTime(group.latestTs);
+                const isActive = group.key && group.key === waActivePhoneKey;
+                const mergedBadge = group.leads.length > 1
+                    ? `<span title="Cadastros unidos por WhatsApp" style="font-size:.68rem;background:rgba(255,215,0,.18);color:#f6c342;border-radius:999px;padding:1px 6px;margin-left:6px;">${group.leads.length}</span>`
+                    : '';
                 html += `
-                    <div class="wa-chat-item ${lead.id === waActiveLeadId ? 'active' : ''}" onclick="showWAChat('${lead.id}')">
+                    <div class="wa-chat-item ${isActive ? 'active' : ''}" onclick="showWAChat('${lead.id}')">
                         <div class="wa-avatar">${initials}</div>
                         <div class="wa-chat-info">
                             <div class="wa-chat-top">
-                                <span class="wa-chat-name">${lead.name}</span>
+                                <span class="wa-chat-name">${escHtml(lead.name || 'Desconhecido')}${mergedBadge}</span>
                                 <span class="wa-chat-time">${timeLabel}</span>
                             </div>
-                            <div class="wa-chat-msg">${lead.phone}</div>
+                            <div class="wa-chat-msg">${escHtml(lead.phone || '')}</div>
                         </div>
                     </div>
                 `;
@@ -3964,21 +4023,23 @@
     window.filterWAChats = renderWAChatList;
 
     window.showWAChat = async function(leadId) {
-        waActiveLeadId = leadId;
+        const selectedLead = (window.globalLeads || []).find(l => String(l.id) === String(leadId));
+        if(!selectedLead) return;
+
+        const lead = waPrimaryLead(waConversationLeads(selectedLead)) || selectedLead;
+        waActiveLeadId = lead.id;
+        waActivePhoneKey = waPhoneKey(lead.phone);
         renderWAChatList(); // update active class
         
-        const lead = globalLeads.find(l => String(l.id) === String(leadId));
-        if(!lead) return;
-        
-        const initials = lead.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+        const initials = (lead.name || 'WA').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
         const mainArea = document.getElementById('waMainArea');
         
         let ui = `
             <div class="wa-main-header">
                 <div class="wa-avatar">${initials}</div>
                 <div class="wa-main-header-info">
-                    <div class="wa-main-name">${lead.name}</div>
-                    <div class="wa-main-status">${lead.phone}</div>
+                    <div class="wa-main-name">${escHtml(lead.name || 'Desconhecido')}</div>
+                    <div class="wa-main-status">${escHtml(lead.phone || '')}</div>
                 </div>
             </div>
             <div class="wa-messages-area" id="waMsgContainer">
@@ -3995,9 +4056,9 @@
         `;
         mainArea.innerHTML = ui;
         
-        loadMessagesFromSupabase(leadId);
+        loadMessagesFromSupabase(waActiveLeadId);
         if(waMessagesInterval) clearInterval(waMessagesInterval);
-        waMessagesInterval = setInterval(() => loadMessagesFromSupabase(leadId), 5000); // sync every 5s
+        waMessagesInterval = setInterval(() => loadMessagesFromSupabase(waActiveLeadId), 5000); // sync every 5s
     };
     
     window.loadMessagesFromSupabase = async function(leadId) {
@@ -4007,25 +4068,29 @@
         if(!container) return;
 
         // Find the lead to get its phone number
-        const activeLead = window.globalLeads ? window.globalLeads.find(l => String(l.id) === String(leadId)) : null;
+        const activeLead = waCurrentLead() || (window.globalLeads || []).find(l => String(l.id) === String(leadId));
         
         let msgs = [];
         let fetchError = null;
 
         if (activeLead && activeLead.phone) {
-            // Normalize phone: get last 10 digits for matching
-            const phoneDigits = String(activeLead.phone).replace(/\D/g, '');
+            const phoneDigits = waPhoneKey(activeLead.phone);
             const searchPhone = phoneDigits.slice(-10);
+            const wsId = activeLead.workspace_id || window.currentWorkspaceId;
+            const localLeadIds = waConversationLeadIds(activeLead);
             
-            // Step 1: Find ALL lead IDs with this phone number (handles + prefix mismatch)
+            // Step 1: Find ALL lead IDs with this phone number in the same workspace.
             const { data: relatedLeads } = await window.supabaseClient
-                .from('leads').select('id').ilike('phone', `%${searchPhone}%`);
+                .from('leads').select('id')
+                .eq('workspace_id', wsId)
+                .ilike('phone', `%${searchPhone}%`);
             
-            if (relatedLeads && relatedLeads.length > 0) {
-                const leadIds = relatedLeads.map(l => l.id);
+            const leadIds = [...new Set([...(relatedLeads || []).map(l => l.id), ...localLeadIds])];
+            if (leadIds.length > 0) {
                 // Step 2: Fetch messages for all those lead IDs
                 const { data, error } = await window.supabaseClient
                     .from('messages').select('*')
+                    .eq('workspace_id', wsId)
                     .in('lead_id', leadIds)
                     .order('created_at', {ascending: true});
                 msgs = data || [];
@@ -4070,7 +4135,9 @@
         const inp = document.getElementById('waInputField');
         if(!inp || !inp.value.trim() || !waActiveLeadId) return;
         
-        const lead = globalLeads.find(l => String(l.id) === String(waActiveLeadId));
+        const lead = waCurrentLead() || (window.globalLeads || []).find(l => String(l.id) === String(waActiveLeadId));
+        if (!lead) return;
+        const relatedLeadIds = waConversationLeadIds(lead);
         const txt = inp.value.trim();
         inp.value = '';
         
@@ -4089,7 +4156,7 @@
         
         // Save to DB
         await window.supabaseClient.from('messages').insert([{
-            lead_id: waActiveLeadId,
+            lead_id: lead.id,
             workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3',
             direction: 'outbound',
             content: txt,
@@ -4101,7 +4168,7 @@
         const lockUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         await window.supabaseClient.from('leads')
             .update({ llm_lock_until: lockUntil })
-            .eq('id', waActiveLeadId);
+            .in('id', relatedLeadIds.length ? relatedLeadIds : [lead.id]);
         
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         fetch(`https://uyseheucqikgcorrygzc.supabase.co/functions/v1/whatsapp-send-message`, {
@@ -4111,13 +4178,13 @@
                 "Authorization": `Bearer ${session?.access_token || ''}`
             },
             body: JSON.stringify({
-                lead_id: waActiveLeadId,
+                lead_id: lead.id,
                 workspace_id: lead.workspace_id || '9c4e23cf-26e3-4632-addb-f28325aedac3',
                 message: { type: 'text', content: txt }
             })
         }).catch(e=>console.log(e));
         
-        loadMessagesFromSupabase(waActiveLeadId);
+        loadMessagesFromSupabase(lead.id);
     };
 
     // Mudar provider radio button behaviour ja declarado, movido pro init.
@@ -4216,9 +4283,13 @@
             }, (payload) => {
                 const newMsg = payload.new;
                 // [H5] Realtime payload not logged in prod — contains lead PII
+                const changedLead = (window.globalLeads || []).find(l => String(l.id) === String(newMsg.lead_id));
+                if (changedLead) changedLead.last_message_at = newMsg.created_at;
 
                 // If the chat is currently open for this lead, reload the messages live
-                if (waActiveLeadId && String(newMsg.lead_id) === String(waActiveLeadId)) {
+                const activeLead = waCurrentLead();
+                const activeIds = activeLead ? waConversationLeadIds(activeLead).map(String) : [];
+                if (waActiveLeadId && activeIds.includes(String(newMsg.lead_id))) {
                     loadMessagesFromSupabase(waActiveLeadId);
                 }
 
