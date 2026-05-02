@@ -47,6 +47,36 @@ function kbText(value: unknown): string {
   return String(value).trim();
 }
 
+function fieldFromKb(kb: any, ...keys: string[]) {
+  for (const key of keys) {
+    const value = kbText(kb?.[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function isCrieRequest(text: string): boolean {
+  return /\bcrie\b/.test(normalizeForIntent(text));
+}
+
+function fallbackFromKnowledgeBase(text: string, kb: any, firstName: string): string {
+  if (isCrieRequest(text)) {
+    const t = normalizeForIntent(text);
+    const crieMulheresInfo = fieldFromKb(kb, "crie_mulheres", "cm", "crie_women");
+    if (crieMulheresInfo && /mulher|mulheres|\bcm\b/.test(t)) {
+      return `Claro, ${firstName}! Sobre o CRIE Mulheres: ${crieMulheresInfo}`;
+    }
+    const crieInfo = fieldFromKb(kb, "crie", "ia_crie", "crie_empreendedores", "crie_info");
+    if (crieInfo) return `Claro, ${firstName}! Sobre o CRIE: ${crieInfo}`;
+    return `${firstName}, o CRIE é uma área específica da igreja, mas ainda não tenho os detalhes cadastrados aqui. Vou deixar a equipe acompanhar por aqui para te passar a informação certinha.`;
+  }
+
+  const faq = fieldFromKb(kb, "ia_faq", "faq");
+  if (faq) return `${firstName}, posso te ajudar com as informações da igreja. Me diz só um pouco mais sobre o que você quer saber?`;
+
+  return `${firstName}, quero te responder com cuidado. Vou deixar nossa equipe acompanhar por aqui para te passar a informação certinha.`;
+}
+
 function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
   const field = (...keys: string[]) => {
     for (const key of keys) {
@@ -65,6 +95,8 @@ function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
     field("pastores", "pastor", "pastors") ? `Pastores/lideranca: ${field("pastores", "pastor", "pastors")}` : "",
     field("start", "ia_consolidation", "consolidation") ? `Integracao/Start/consolidacao: ${field("start", "ia_consolidation", "consolidation")}` : "",
     field("batismo", "ia_baptism", "baptism") ? `Batismo: ${field("batismo", "ia_baptism", "baptism")}` : "",
+    field("crie", "ia_crie", "crie_empreendedores", "crie_info") ? `CRIE/empreendedores: ${field("crie", "ia_crie", "crie_empreendedores", "crie_info")}` : "",
+    field("crie_mulheres", "cm", "crie_women") ? `CRIE Mulheres: ${field("crie_mulheres", "cm", "crie_women")}` : "",
     field("cafe_novos_membros", "novos_membros") ? `Cafe de Novos Membros: ${field("cafe_novos_membros", "novos_membros")}` : "",
     field("eventos", "events") ? `Eventos: ${field("eventos", "events")}` : "",
     field("ia_faq", "faq") ? `Perguntas frequentes: ${field("ia_faq", "faq")}` : "",
@@ -72,6 +104,20 @@ function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
     field("phone", "telefone") ? `Telefone/WhatsApp da igreja: ${field("phone", "telefone")}` : "",
     field("social", "instagram") ? `Redes sociais: ${field("social", "instagram")}` : "",
   ].filter(Boolean);
+
+  const handledKeys = new Set([
+    "nome", "name", "ia_about", "sobre", "about", "endereco", "address",
+    "cultos", "schedule", "ia_schedule", "pastores", "pastor", "pastors",
+    "start", "ia_consolidation", "consolidation", "batismo", "ia_baptism",
+    "baptism", "crie", "ia_crie", "crie_empreendedores", "crie_info",
+    "crie_mulheres", "cm", "crie_women", "cafe_novos_membros", "novos_membros",
+    "eventos", "events", "ia_faq", "faq", "ia_limits", "limits", "phone",
+    "telefone", "social", "instagram", "ju_prompt", "start_label",
+  ]);
+  const extraRows = Object.entries(kb ?? {})
+    .filter(([key, value]) => !handledKeys.has(key) && kbText(value))
+    .map(([key, value]) => `${key}: ${kbText(value)}`);
+  if (extraRows.length) rows.push(`Outras informacoes configuradas: ${extraRows.join(" | ")}`);
 
   return rows.length ? rows.join("\n") : "Sem base de conhecimento configurada.";
 }
@@ -769,6 +815,14 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     return await startCafePastorFlow("keyword");
   }
 
+  if (isCrieRequest(userTextCombined)) {
+    const crieReply = fallbackFromKnowledgeBase(userTextCombined, ws?.knowledge_base ?? {}, firstName);
+    if (await sendOutboundText(crieReply)) {
+      await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "crie" });
+    }
+    return new Response(JSON.stringify({ ok: true, processed: ids.length, deterministic: "crie", mode }), { status: 200 });
+  }
+
   const geminiKey: string = creds?.llm_config?.gemini_token
     ?? Deno.env.get("GEMINI_API_KEY")
     ?? Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY")
@@ -1045,6 +1099,21 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
       pending_ids: ids,
       silent_to_user: true,
     });
+
+    const fallbackReply = fallbackFromKnowledgeBase(userTextCombined, ws?.knowledge_base ?? {}, firstName);
+    if (fallbackReply && await sendOutboundText(fallbackReply)) {
+      return new Response(JSON.stringify({
+        ok: true,
+        processed: ids.length,
+        fallback: true,
+        mode,
+      }), { status: 200 });
+    }
+
+    await sb.from("messages")
+      .update({ bot_processing_at: null })
+      .in("id", ids);
+
     return new Response(JSON.stringify({
       ok: false,
       error: "generation_failed_silent",

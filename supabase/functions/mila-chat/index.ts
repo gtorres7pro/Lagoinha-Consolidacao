@@ -73,10 +73,11 @@ ${kbString}
 **Regras de Atuação:**
 1. Você é cordial, solícita e engajada. Use linguagem natural.
 2. Se o usuário perguntar da base de dados, liste o que existe de forma resumida e elegante.
-3. Se o usuário pedir para atualizar a base, confirme os novos dados formatados e depois evoque 'update_knowledge_base'.
-4. **CHAMADO TÉCNICO:** Se o usuário reportar um erro, bug ou pedir uma funcionalidade (support/feedback), NÃO ABRA O TICKET IMEDIATAMENTE! Primeiro, seja INVESTIGATIVA. Demonstre empatia ("Ah, que pena!") e peça detalhes específicos ("Você tem um print?", "O que exatamente aconteceu antes do erro?").
-5. Após o usuário dar os detalhes do problema em mensagens subsequentes, SE você sentir que já tem informações ricas (como o caminho exato do bug ou detalhes de como reproduzir), ENTÃO evoque a tool 'open_support_ticket'.
-6. Dentro da description do ticket, forneça não apenas o que o usuário disse, mas a sua **Sugestão de Resolução para o Desenvolvedor**, baseando-se no problema (ex: dicas de frontend/backend/SQL).
+3. Se o usuário pedir para atualizar a base, confirme os novos dados formatados e depois evoque 'update_knowledge_base'. Preserve o que já existe e envie apenas os campos novos/alterados quando for uma atualização parcial.
+4. Para assuntos como CRIE, CRIE Mulheres, Start, Batismo, Café com Pastor, cultos e endereço, prefira criar campos claros na base (por exemplo: crie, crie_mulheres, start, batismo, cafe_pastor) para que a Ju consulte pelo WhatsApp.
+5. **CHAMADO TÉCNICO:** Se o usuário reportar um erro, bug ou pedir uma funcionalidade (support/feedback), NÃO ABRA O TICKET IMEDIATAMENTE! Primeiro, seja INVESTIGATIVA. Demonstre empatia ("Ah, que pena!") e peça detalhes específicos ("Você tem um print?", "O que exatamente aconteceu antes do erro?").
+6. Após o usuário dar os detalhes do problema em mensagens subsequentes, SE você sentir que já tem informações ricas (como o caminho exato do bug ou detalhes de como reproduzir), ENTÃO evoque a tool 'open_support_ticket'.
+7. Dentro da description do ticket, forneça não apenas o que o usuário disse, mas a sua **Sugestão de Resolução para o Desenvolvedor**, baseando-se no problema (ex: dicas de frontend/backend/SQL).
         `;
 
         const tools = [{
@@ -101,13 +102,13 @@ ${kbString}
                 },
                 {
                     name: "update_knowledge_base",
-                    description: "Substitui a base de conhecimento inteira da igreja (Address, Pastores, Cultos, etc) pelo novo json fornecido.",
+                    description: "Atualiza a base de conhecimento da igreja. Envie um JSON com os campos novos ou alterados; ele será mesclado com a base atual sem apagar os demais campos.",
                     parameters: {
                         type: "object",
                         properties: {
                             new_json_object: {
                                 type: "string",
-                                description: "STRING CONTENDO O JSON ENCODE DA BASE DE DADOS COMPLETA, ATUALIZADA."
+                                description: "STRING CONTENDO O JSON ENCODE DOS CAMPOS NOVOS OU ALTERADOS DA BASE DE CONHECIMENTO."
                             }
                         },
                         required: ["new_json_object"]
@@ -282,10 +283,14 @@ ${kbString}
                         }
                         const newKbStr = call.args.new_json_object;
                         const newKbObj = JSON.parse(newKbStr);
+                        const mergedKbObj = {
+                            ...((wsData.knowledge_base && typeof wsData.knowledge_base === 'object') ? wsData.knowledge_base : {}),
+                            ...newKbObj
+                        };
                         
                         await supabase
                             .from('workspaces')
-                            .update({ knowledge_base: newKbObj })
+                            .update({ knowledge_base: mergedKbObj })
                             .eq('id', wsId);
                             
                         if (!resultText) resultText = "Feito! Já atualizei o banco de dados da " + wsData.name + " com essas novas configurações. A Ju vai aprender isso instantaneamente!";
