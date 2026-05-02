@@ -393,7 +393,7 @@ Deno.serve(async (req: Request) => {
   let relatedLeads: any[] = [lead];
   if (searchPhone.length >= 7) {
     const { data: samePhoneLeads, error: samePhoneError } = await sb.from("leads")
-      .select("id, llm_lock_until")
+      .select("id, name, phone, llm_lock_until, bot_context")
       .eq("workspace_id", ws.id)
       .ilike("phone", `%${searchPhone}%`);
     if (samePhoneError) {
@@ -402,6 +402,30 @@ Deno.serve(async (req: Request) => {
       relatedLeads = samePhoneLeads;
       relatedLeadIds = [...new Set([lead.id, ...samePhoneLeads.map((l: any) => l.id).filter(Boolean)])];
     }
+  }
+
+  if (contactName) {
+    await Promise.all(relatedLeads.map((l: any) => {
+      const existingContext = l?.bot_context && typeof l.bot_context === "object" && !Array.isArray(l.bot_context)
+        ? l.bot_context
+        : {};
+      const botContext = {
+        ...existingContext,
+        whatsapp_profile_name: contactName,
+        whatsapp_wa_id: msg.from,
+      };
+      const updatePayload: Record<string, any> = { bot_context: botContext };
+      if (!l.name || l.name === "Visitante" || l.name === l.phone) updatePayload.name = contactName;
+      return sb.from("leads").update(updatePayload).eq("id", l.id);
+    }));
+    lead = {
+      ...lead,
+      bot_context: {
+        ...(lead?.bot_context && typeof lead.bot_context === "object" && !Array.isArray(lead.bot_context) ? lead.bot_context : {}),
+        whatsapp_profile_name: contactName,
+        whatsapp_wa_id: msg.from,
+      },
+    };
   }
 
   const inboundText = await buildInboundMessageText(ws, msg);

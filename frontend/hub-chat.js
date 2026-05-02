@@ -27,6 +27,7 @@ let chatState = {
   lockTimers: {},
   workspaceId: null,
   currentUser: null,
+  workspaceTags: [],
   voiceRecorder: null,
   voiceStream: null,
   voiceChunks: [],
@@ -91,6 +92,7 @@ async function initChatAoVivo() {
 
   container.innerHTML = buildChatLayout();
   attachChatEvents();
+  await loadWorkspaceTags();
   await loadKPIs();
   await loadLeads();
   setupRealtime();
@@ -204,8 +206,14 @@ function buildChatLayout() {
               <button class="cha-btn" id="chat-pin-btn" onclick="togglePinCurrentLead()" title="Fixar conversa">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M5 17h14"/><path d="M6 3h12l-2 8 3 6H5l3-6-2-8Z"/></svg>
               </button>
+              <button class="cha-btn" id="chat-tags-btn" onclick="openChatTagPicker()" title="Adicionar tags">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><circle cx="7" cy="7" r="1.5"/></svg>
+              </button>
               <button class="cha-btn" id="chat-template-header-btn" onclick="openTemplateModal()" title="Enviar template">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
+              </button>
+              <button class="cha-btn" id="chat-clear-btn" onclick="clearCurrentChat()" title="Limpar conversa">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>
               </button>
               <button class="cha-btn" id="chat-archive-btn" onclick="toggleArchiveCurrentLead()" title="Arquivar">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
@@ -343,6 +351,20 @@ function buildChatLayout() {
             </div>
             <div class="chat-profile-body" id="chat-profile-body"></div>
           </aside>
+        </div>
+
+        <!-- Chat Tags Modal -->
+        <div class="chat-tags-overlay" id="chat-tags-overlay" style="display:none;" onclick="if(event.target===this)closeChatTagPicker()">
+          <div class="chat-tags-modal">
+            <div class="chat-tags-header">
+              <div>
+                <div class="chat-tags-title">Tags</div>
+                <div class="chat-tags-sub" id="chat-tags-sub">Adicionar tags à conversa</div>
+              </div>
+              <button onclick="closeChatTagPicker()" title="Fechar">✕</button>
+            </div>
+            <div class="chat-tags-body" id="chat-tags-body"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -537,11 +559,6 @@ function buildChatLayout() {
     .lead-card-name {
       font-weight:500; font-size:.97rem; color:#e9edef;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;
-    }
-    .lead-merge-badge {
-      display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
-      min-width:18px; height:18px; margin-left:6px; padding:0 6px; border-radius:999px;
-      background:rgba(255,215,0,.14); color:#FFD700; font-size:.68rem; font-weight:800;
     }
     .lead-card-time { font-size:.72rem; color:#5a5a72; white-space:nowrap; flex-shrink:0; margin-left:8px; }
     .lead-card-time.has-unread { color:#FFD700; }
@@ -926,6 +943,52 @@ function buildChatLayout() {
       background:#101014; border:1px solid #252532; border-radius:8px; color:#d1d5db;
       padding:10px 12px; font-size:.84rem; line-height:1.5; white-space:pre-wrap;
     }
+    .chat-tags-overlay {
+      position:absolute; inset:0; z-index:80; background:rgba(0,0,0,.55);
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .chat-tags-modal {
+      width:min(420px, 94vw); max-height:min(640px, 90vh); overflow:hidden;
+      background:#141418; border:1px solid rgba(255,215,0,.16); border-radius:12px;
+      box-shadow:0 24px 70px rgba(0,0,0,.55); display:flex; flex-direction:column;
+    }
+    .chat-tags-header {
+      padding:16px 18px; border-bottom:1px solid #252532; display:flex; align-items:center; justify-content:space-between; gap:14px;
+    }
+    .chat-tags-title { color:#fff; font-weight:800; font-size:.98rem; }
+    .chat-tags-sub { color:#8696a0; font-size:.74rem; margin-top:3px; }
+    .chat-tags-header button {
+      width:34px; height:34px; border-radius:50%; border:none; background:transparent; color:#a8a8b8;
+      cursor:pointer; font-size:1rem; flex-shrink:0;
+    }
+    .chat-tags-header button:hover { background:rgba(255,255,255,.06); color:#fff; }
+    .chat-tags-body { padding:18px; overflow:auto; }
+    .chat-tags-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .chat-tag-chip {
+      border:1px solid var(--tag-border); background:var(--tag-bg); color:var(--tag-color);
+      min-height:30px; padding:0 10px; border-radius:999px; cursor:pointer;
+      display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:750;
+      font-family:inherit;
+    }
+    .chat-tag-chip:hover { filter:brightness(1.12); }
+    .chat-tag-chip.active::after { content:'×'; font-size:.85rem; opacity:.72; }
+    .chat-tag-empty { color:#5a5a72; font-size:.82rem; padding:6px 0; }
+    .chat-tag-create {
+      border-top:1px solid #252532; padding-top:16px; display:grid;
+      grid-template-columns:1fr 42px auto; gap:8px; align-items:center;
+    }
+    .chat-tag-create input[type="text"] {
+      min-width:0; background:#101014; border:1px solid #252532; border-radius:8px;
+      color:#e9edef; padding:10px 12px; font-size:.82rem; font-family:inherit; outline:none;
+    }
+    .chat-tag-create input[type="text"]:focus { border-color:rgba(255,215,0,.35); }
+    .chat-tag-create input[type="color"] {
+      width:42px; height:38px; border:none; background:transparent; cursor:pointer;
+    }
+    .chat-tag-create button {
+      height:38px; padding:0 14px; border-radius:8px; border:none; background:#FFD700;
+      color:#0a0a0c; font-weight:800; cursor:pointer; font-family:inherit;
+    }
 
     /* Section separator in leads list */
     .chat-section-label {
@@ -979,6 +1042,23 @@ async function loadKPIs() {
   } catch (e) { console.error('[Chat] KPI error:', e); }
 }
 
+async function loadWorkspaceTags() {
+  if (!chatState.workspaceId) return;
+  try {
+    const { data, error } = await window._sb
+      .from('workspace_tags')
+      .select('id,name,color')
+      .eq('workspace_id', chatState.workspaceId)
+      .order('name');
+    if (error) throw error;
+    chatState.workspaceTags = data || [];
+    window._wsTags = chatState.workspaceTags;
+  } catch (e) {
+    console.warn('[Chat] tags load failed:', e?.message || e);
+    chatState.workspaceTags = Array.isArray(window._wsTags) ? window._wsTags : [];
+  }
+}
+
 // ─── LEADS ───────────────────────────────────────────────────────────────────
 async function loadLeads() {
   if (!chatState.workspaceId) return;
@@ -1020,8 +1100,15 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
+function getLeadDisplayName(lead) {
+  return lead?.bot_context?.whatsapp_profile_name
+    || lead?.task_meta?.whatsapp_profile_name
+    || lead?.name
+    || 'Visitante';
+}
+
 function getLeadInitials(lead) {
-  return (lead?.name || lead?.phone || 'V')
+  return (getLeadDisplayName(lead) || lead?.phone || 'V')
     .split(' ')
     .map(w => w?.[0])
     .filter(Boolean)
@@ -1145,7 +1232,7 @@ function setAvatarElement(el, lead) {
   if (!el) return;
   const photo = getLeadPhotoUrl(lead);
   el.classList.toggle('has-photo', !!photo);
-  el.style.background = getAvatarColor(lead?.name || lead?.phone || '');
+  el.style.background = getAvatarColor(getLeadDisplayName(lead) || lead?.phone || '');
   el.innerHTML = avatarInnerHtml(lead);
 }
 
@@ -1200,12 +1287,9 @@ function buildLeadCard(lead) {
   const windowOpen = lead.wa_window_expires_at && new Date(lead.wa_window_expires_at) > new Date();
   const timeAgo = lead.last_message_at ? formatTimeAgo(lead.last_message_at) : '';
   const unreadCount = !lead.has_responded ? 1 : 0;
-  const avatarBg = getAvatarColor(lead.name || lead.phone || '');
+  const displayName = getLeadDisplayName(lead);
+  const avatarBg = getAvatarColor(displayName || lead.phone || '');
   const hasPhoto = !!getLeadPhotoUrl(lead);
-  const mergedCount = lead._conversationLeadIds?.length || 1;
-  const mergedBadge = mergedCount > 1
-    ? `<span class="lead-merge-badge" title="Cadastros unidos por WhatsApp">${mergedCount}</span>`
-    : '';
 
   // Build last message preview
   const lastMsgPreview = lead._lastPreview || lead.phone || 'Toque para conversar';
@@ -1220,7 +1304,7 @@ function buildLeadCard(lead) {
     </div>
     <div class="lead-card-body">
       <div class="lead-card-row">
-        <span class="lead-card-name">${escapeHtml(lead.name || 'Visitante')}${mergedBadge}</span>
+        <span class="lead-card-name">${escapeHtml(displayName)}</span>
         <span class="lead-card-time ${hasUnread ? 'has-unread' : ''}" style="color:${hasUnread ? '#25D366' : '#8696a0'}">${timeAgo}</span>
       </div>
       <div class="lead-card-row lead-card-bottom">
@@ -1253,7 +1337,7 @@ async function selectLead(leadId) {
   // Header
   const avatarEl = document.getElementById('chat-header-avatar');
   setAvatarElement(avatarEl, lead);
-  document.getElementById('chat-header-name').textContent = lead.name || 'Visitante';
+  document.getElementById('chat-header-name').textContent = getLeadDisplayName(lead);
   const subParts = [lead.phone || '', lead.type === 'saved' ? 'Consolidação' : 'Visitante'];
   document.getElementById('chat-header-sub').textContent = subParts.filter(Boolean).join(' · ');
 
@@ -1282,7 +1366,7 @@ async function selectLead(leadId) {
       chatState.selectedPhoneKey = chatPhoneKey(lead.phone);
       // Re-eval lock UI with fresh data
       setAvatarElement(avatarEl, lead);
-      document.getElementById('chat-header-name').textContent = lead.name || 'Visitante';
+      document.getElementById('chat-header-name').textContent = getLeadDisplayName(lead);
       document.getElementById('chat-header-sub').textContent = [lead.phone || '', lead.type === 'saved' ? 'Consolidação' : 'Visitante'].filter(Boolean).join(' · ');
       updateLockUI(lead);
     }
@@ -1925,6 +2009,173 @@ async function togglePinCurrentLead() {
 
 const toggleHighlightCurrentLead = togglePinCurrentLead;
 
+async function clearCurrentChat() {
+  if (!chatState.selectedLeadId) return;
+  const lead = selectedConversationLead();
+  if (!lead) return;
+  const leadIds = lead._conversationLeadIds || [lead.id];
+  const label = getLeadDisplayName(lead);
+  const ok = confirm(`Limpar o histórico desta conversa com ${label}?`);
+  if (!ok) return;
+
+  const { error } = await window._sb
+    .from('messages')
+    .delete()
+    .eq('workspace_id', chatState.workspaceId)
+    .in('lead_id', leadIds);
+  if (error) {
+    showChatToast(`❌ ${error.message}`, 'error');
+    return;
+  }
+  chatState.messages = [];
+  renderMessages();
+  showChatToast('Conversa limpa.', 'success');
+}
+
+function sanitizeTagColor(color) {
+  return /^#[0-9a-f]{6}$/i.test(String(color || '')) ? color : '#FFD700';
+}
+
+function selectedLeadIdsForTags(lead) {
+  return lead?._conversationLeadIds?.length ? lead._conversationLeadIds : [lead?.id].filter(Boolean);
+}
+
+function leadTagsFor(lead) {
+  const tagSet = new Set();
+  const sourceLeads = lead?._conversationLeads?.length ? lead._conversationLeads : [lead];
+  sourceLeads.forEach(l => (Array.isArray(l?.tags) ? l.tags : []).forEach(t => tagSet.add(t)));
+  return [...tagSet];
+}
+
+function tagByName(name) {
+  return (chatState.workspaceTags || []).find(t => t.name === name) || (window._wsTags || []).find(t => t.name === name) || { name, color: '#FFD700' };
+}
+
+function tagChipStyle(tag, active = false) {
+  const color = sanitizeTagColor(tag?.color);
+  const bg = active ? `${color}26` : `${color}16`;
+  return `--tag-color:${color};--tag-bg:${bg};--tag-border:${color}55;`;
+}
+
+async function openChatTagPicker() {
+  if (!chatState.selectedLeadId) return;
+  if (!chatState.workspaceTags.length) await loadWorkspaceTags();
+  const overlay = document.getElementById('chat-tags-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  renderChatTagPicker();
+}
+
+function closeChatTagPicker() {
+  const overlay = document.getElementById('chat-tags-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderChatTagPicker() {
+  const lead = selectedConversationLead();
+  const body = document.getElementById('chat-tags-body');
+  const sub = document.getElementById('chat-tags-sub');
+  if (!lead || !body) return;
+
+  const currentTags = leadTagsFor(lead);
+  const availableTags = (chatState.workspaceTags || []).filter(t => !currentTags.includes(t.name));
+  if (sub) sub.textContent = getLeadDisplayName(lead);
+
+  body.innerHTML = `
+    <div class="chat-profile-section-title" style="margin-bottom:8px;">Atuais</div>
+    <div class="chat-tags-list">
+      ${currentTags.length ? currentTags.map(name => {
+        const tag = tagByName(name);
+        return `<button class="chat-tag-chip active" data-remove-chat-tag="${escapeHtml(name)}" style="${tagChipStyle(tag, true)}">${escapeHtml(name)}</button>`;
+      }).join('') : '<div class="chat-tag-empty">Sem tags nesta conversa.</div>'}
+    </div>
+    <div class="chat-profile-section-title" style="margin-bottom:8px;">Adicionar</div>
+    <div class="chat-tags-list">
+      ${availableTags.length ? availableTags.map(tag => `
+        <button class="chat-tag-chip" data-add-chat-tag="${escapeHtml(tag.name)}" style="${tagChipStyle(tag)}">${escapeHtml(tag.name)}</button>
+      `).join('') : '<div class="chat-tag-empty">Nenhuma tag disponível.</div>'}
+    </div>
+    <div class="chat-tag-create">
+      <input id="chat-new-tag-name" type="text" maxlength="30" placeholder="Nova tag">
+      <input id="chat-new-tag-color" type="color" value="#FFD700">
+      <button id="chat-create-tag-btn">Criar</button>
+    </div>
+  `;
+
+  body.querySelectorAll('[data-add-chat-tag]').forEach(btn => {
+    btn.addEventListener('click', () => addChatTag(btn.getAttribute('data-add-chat-tag')));
+  });
+  body.querySelectorAll('[data-remove-chat-tag]').forEach(btn => {
+    btn.addEventListener('click', () => removeChatTag(btn.getAttribute('data-remove-chat-tag')));
+  });
+  body.querySelector('#chat-create-tag-btn')?.addEventListener('click', createAndAddChatTag);
+  body.querySelector('#chat-new-tag-name')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') createAndAddChatTag();
+  });
+}
+
+async function setChatTags(nextTags) {
+  const lead = selectedConversationLead();
+  if (!lead) return false;
+  const leadIds = selectedLeadIdsForTags(lead);
+  const tags = [...new Set((nextTags || []).filter(Boolean))];
+  const { error } = await window._sb.from('leads').update({ tags }).in('id', leadIds);
+  if (error) {
+    showChatToast(`❌ ${error.message}`, 'error');
+    return false;
+  }
+  chatState.leads.forEach(l => { if (leadIds.includes(l.id)) l.tags = tags; });
+  if (Array.isArray(window.globalLeads)) {
+    window.globalLeads.forEach(l => { if (leadIds.includes(l.id)) l.tags = tags; });
+  }
+  renderLeadsList();
+  if (document.getElementById('chat-profile-overlay')?.style.display !== 'none') openLeadProfileDrawer();
+  return true;
+}
+
+async function addChatTag(tagName) {
+  if (!tagName) return;
+  const lead = selectedConversationLead();
+  const tags = leadTagsFor(lead);
+  if (!tags.includes(tagName)) tags.push(tagName);
+  if (await setChatTags(tags)) {
+    renderChatTagPicker();
+    showChatToast(`Tag "${tagName}" adicionada.`, 'success');
+  }
+}
+
+async function removeChatTag(tagName) {
+  if (!tagName) return;
+  const tags = leadTagsFor(selectedConversationLead()).filter(t => t !== tagName);
+  if (await setChatTags(tags)) {
+    renderChatTagPicker();
+    showChatToast(`Tag "${tagName}" removida.`, 'info');
+  }
+}
+
+async function createAndAddChatTag() {
+  const input = document.getElementById('chat-new-tag-name');
+  const colorInput = document.getElementById('chat-new-tag-color');
+  const name = input?.value?.trim();
+  const color = sanitizeTagColor(colorInput?.value || '#FFD700');
+  if (!name || !chatState.workspaceId) return;
+
+  const { data, error } = await window._sb
+    .from('workspace_tags')
+    .upsert({ workspace_id: chatState.workspaceId, name, color }, { onConflict: 'workspace_id,name' })
+    .select('id,name,color')
+    .single();
+  if (error) {
+    showChatToast(`❌ ${error.message}`, 'error');
+    return;
+  }
+  if (data && !chatState.workspaceTags.find(t => t.name === data.name)) {
+    chatState.workspaceTags.push(data);
+    window._wsTags = chatState.workspaceTags;
+  }
+  await addChatTag(name);
+}
+
 // ─── REALTIME ─────────────────────────────────────────────────────────────────
 function _setRealtimeStatus(status) {
   // status: 'connecting' | 'connected' | 'reconnecting' | 'error'
@@ -2077,9 +2328,11 @@ function openLeadProfileDrawer() {
   const body = document.getElementById('chat-profile-body');
   if (!overlay || !body) return;
 
+  const displayName = getLeadDisplayName(lead);
+  const whatsappName = lead?.bot_context?.whatsapp_profile_name || '';
   const bio = getLeadBio(lead) || 'Sem bio cadastrada.';
   const hasPhoto = !!getLeadPhotoUrl(lead);
-  const avatarBg = getAvatarColor(lead.name || lead.phone || '');
+  const avatarBg = getAvatarColor(displayName || lead.phone || '');
   const tags = Array.isArray(lead.tags) && lead.tags.length ? lead.tags.join(', ') : '';
   const location = [lead.cidade, lead.estado, lead.pais].filter(Boolean).join(', ');
   const source = lead.source || lead.type || 'whatsapp';
@@ -2088,7 +2341,7 @@ function openLeadProfileDrawer() {
   body.innerHTML = `
     <div class="chat-profile-hero">
       <div class="chat-profile-avatar ${hasPhoto ? 'has-photo' : ''}" style="background:${avatarBg};">${avatarInnerHtml(lead)}</div>
-      <div class="chat-profile-name">${escapeHtml(lead.name || 'Visitante')}</div>
+      <div class="chat-profile-name">${escapeHtml(displayName)}</div>
       <div class="chat-profile-phone">${escapeHtml(lead.phone || 'Sem telefone')}</div>
     </div>
 
@@ -2099,7 +2352,8 @@ function openLeadProfileDrawer() {
 
     <div class="chat-profile-section">
       <div class="chat-profile-section-title">Dados</div>
-      ${profileField('Nome', lead.name || 'Visitante')}
+      ${profileField('Nome WhatsApp', whatsappName || displayName)}
+      ${profileField('Nome no cadastro', lead.name || 'Visitante')}
       ${profileField('Telefone', lead.phone)}
       ${profileField('Email', lead.email)}
       ${profileField('Origem', source)}
@@ -2927,6 +3181,9 @@ window.reactivateAI = reactivateAI;
 window.toggleArchiveCurrentLead = toggleArchiveCurrentLead;
 window.togglePinCurrentLead = togglePinCurrentLead;
 window.toggleHighlightCurrentLead = toggleHighlightCurrentLead;
+window.clearCurrentChat = clearCurrentChat;
+window.openChatTagPicker = openChatTagPicker;
+window.closeChatTagPicker = closeChatTagPicker;
 window.openLeadProfileDrawer = openLeadProfileDrawer;
 window.closeLeadProfileDrawer = closeLeadProfileDrawer;
 window.goToLinkedTask = goToLinkedTask;
