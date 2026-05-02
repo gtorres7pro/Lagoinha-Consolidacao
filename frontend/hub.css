@@ -3719,6 +3719,15 @@ body *[data-no-transition] {
     background: var(--bg-color) !important;
   }
 
+  html[data-theme="light"],
+  html[data-theme="light"] body,
+  html[data-theme="light"] .main,
+  html[data-theme="light"] .hub-main,
+  html[data-theme="light"] .view-section,
+  html[data-theme="light"] #view-home {
+    background: #f3f6f2 !important;
+  }
+
   .mobile-topbar {
     min-height: var(--zelo-mobile-topbar-h) !important;
     height: var(--zelo-mobile-topbar-h) !important;
@@ -3809,10 +3818,19 @@ body *[data-no-transition] {
     padding: 6px 8px !important;
     gap: 0 !important;
     overflow-y: auto !important;
+    align-items: stretch !important;
+  }
+
+  .nav > li,
+  .nav > .nav-section-label {
+    flex: 0 0 auto !important;
   }
 
   .nav > .nav-group {
     display: block !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    max-height: none !important;
     min-height: 0 !important;
     padding: 0 !important;
     margin: 1px 0 !important;
@@ -3821,6 +3839,7 @@ body *[data-no-transition] {
     background: transparent !important;
     box-shadow: none !important;
     overflow: visible !important;
+    contain: none !important;
   }
 
   .nav > .nav-group::before {
