@@ -654,6 +654,11 @@ window.openTaskModal = async function (taskId, defaultStatus) {
         }
     } else {
         // New task — reset new-feature fields
+        if (srcBadge) {
+            srcBadge.style.display = '';
+            srcBadge.innerHTML = '<span class="task-modal-badge">Nova tarefa</span>';
+        }
+        setText('task-modal-created', 'Agora');
         const setVal2 = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
         setVal2('task-modal-recurrence', '');
         renderSubtasks(null, []);
@@ -665,6 +670,7 @@ window.openTaskModal = async function (taskId, defaultStatus) {
     const overlay = document.getElementById('task-modal-overlay');
     const panel   = document.getElementById('task-modal-panel');
     if (overlay && panel) {
+        panel.classList.toggle('task-modal-new', !taskId);
         overlay.style.display = 'flex';
         requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; }));
     }

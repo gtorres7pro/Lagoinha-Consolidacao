@@ -2090,6 +2090,9 @@
             }
 
             function initCharts() {
+                const chartLabelColor = () => document.documentElement.getAttribute('data-theme') === 'light'
+                    ? '#5f6675'
+                    : 'rgba(255,255,255,0.72)';
                 const commonOpts = { 
                     responsive: true, 
                     maintainAspectRatio: false, 
@@ -2104,7 +2107,7 @@
                             border: { display: false }, 
                             grid: { display: false }, 
                             ticks: { 
-                                color: '#CCC', 
+                                color: chartLabelColor,
                                 font: {family: 'Outfit', size: 10},
                                 callback: function(value) {
                                     let label = this.getLabelForValue ? this.getLabelForValue(value) : value;
@@ -2158,6 +2161,12 @@
                         });
                     }
                 });
+
+                window.refreshJourneyChartsTheme = function() {
+                    Object.values(chartInstances).forEach(chart => {
+                        if (chart && typeof chart.update === 'function') chart.update('none');
+                    });
+                };
             }
 
             function getFrequencies(arr) {
@@ -2359,6 +2368,7 @@
                         if (!lead.gc_status) lead.gc_status = "Não Informado";
                         if (!lead.created_at) lead.created_at = new Date().toISOString();
 
+                        lead.task_meta = normalizeLeadTaskMeta(lead.task_meta);
                         lead.task_start = Boolean(lead.task_start);
                         lead.task_gc = Boolean(lead.task_gc);
                         lead.task_batismo = Boolean(lead.task_batismo);
@@ -2425,36 +2435,16 @@
             window.toggleTask = async function(leadId, taskName, checkboxElem) {
                 try {
                     const isChecked = checkboxElem.checked;
-                    const taskMeta = checkboxElem.closest('.task-item').querySelector('.task-meta');
-                    
-                    if(isChecked) {
-                        const dStr = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                        taskMeta.innerHTML = `<span style="color: rgba(255,215,0,0.8);">Realizado por <b>Gabriel T.</b> em ${dStr}</span>`;
-                        addLog(`<strong style="color:var(--accent);">Gabriel T.</strong> concluiu "${taskName}"`);
-                    } else {
-                        taskMeta.innerHTML = '';
-                        addLog(`<span style="color:#FF6B6B;">Gabriel T.</span> desmarcou "${taskName}"`);
-                    }
-                    
-                    const ld = globalLeads.find(l => String(l.id) === String(leadId));
-                    if(ld) {
-                        if(taskName === 'Convidar p/ Start') ld.task_start = isChecked;
-                        if(taskName === 'Convidar p/ GC' || taskName === 'Convite para GC') ld.task_gc = isChecked;
-                        if(taskName === 'Convite de Batismo') ld.task_batismo = isChecked;
-                        if(taskName === 'Café Novos Membros') ld.task_cafe = isChecked;
-                        if(taskName === 'Follow-up Humano') ld.task_followup = isChecked;
-                    }
-                    
-                    // Light rebuild
-                    const timeRangeDays = parseInt(document.getElementById('filterTimeRange').value);
-                    const subset = globalLeads.filter(l => {
-                        const leadDate = new Date(l.created_at);
-                        const diffDays = (new Date() - leadDate) / (1000 * 3600 * 24);
-                        return isNaN(timeRangeDays) || diffDays <= timeRangeDays;
-                    });
-                    updateTopKPIs(subset);
+                    const taskKey = leadTaskKeyFromName(taskName);
+                    if (!taskKey) return;
+                    checkboxElem.disabled = true;
+                    await setLeadTaskStatus(leadId, taskKey, isChecked);
                 } catch (err) {
                     console.error("Erro toggleTask:", err);
+                    checkboxElem.checked = !checkboxElem.checked;
+                    if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar tarefa: ' + err.message, 'error');
+                } finally {
+                    checkboxElem.disabled = false;
                 }
             };
 
@@ -2633,7 +2623,7 @@
                     const telStr = lead.phone ? String(lead.phone).replace(/\D/g, '') : '';
                     const cleanPhone = telStr.length >= 10 ? telStr : '';
 
-                    const mkMeta = (val) => val ? `<span style="color: rgba(255,215,0,0.8);">Realizado por <b>Admin</b> no passado</span>` : '';
+                    const mkMeta = (taskKey) => formatLeadTaskMeta(lead, taskKey);
 
                     
                     const card = document.createElement('div');
@@ -2657,14 +2647,14 @@
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convite para GC', this)" ${lead.task_gc?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convite para GC</span>
-                                    <span class="task-meta">${mkMeta(lead.task_gc)}</span>
+                                    <span class="task-meta">${mkMeta('task_gc')}</span>
                                 </div>
                             </label>
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Follow-up Humano', this)" ${lead.task_followup?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Follow-up Humano</span>
-                                    <span class="task-meta">${mkMeta(lead.task_followup)}</span>
+                                    <span class="task-meta">${mkMeta('task_followup')}</span>
                                 </div>
                             </label>
                         </div>
@@ -2683,28 +2673,28 @@
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convidar p/ Start', this)" ${lead.task_start?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convidar p/ ${window._wsStartLabel || 'Start'}</span>
-                                    <span class="task-meta">${mkMeta(lead.task_start)}</span>
+                                    <span class="task-meta">${mkMeta('task_start')}</span>
                                 </div>
                             </label>
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convidar p/ GC', this)" ${lead.task_gc?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convidar p/ GC</span>
-                                    <span class="task-meta">${mkMeta(lead.task_gc)}</span>
+                                    <span class="task-meta">${mkMeta('task_gc')}</span>
                                 </div>
                             </label>
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Convite de Batismo', this)" ${lead.task_batismo?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Convite de Batismo</span>
-                                    <span class="task-meta">${mkMeta(lead.task_batismo)}</span>
+                                    <span class="task-meta">${mkMeta('task_batismo')}</span>
                                 </div>
                             </label>
                             <label class="task-item">
                                 <input type="checkbox" class="task-checkbox" onchange="toggleTask('${lead.id}', 'Café Novos Membros', this)" ${lead.task_cafe?'checked':''}>
                                 <div style="display:flex; justify-content:space-between; flex-grow:1; align-items:center;">
                                     <span>Café Novos Membros</span>
-                                    <span class="task-meta">${mkMeta(lead.task_cafe)}</span>
+                                    <span class="task-meta">${mkMeta('task_cafe')}</span>
                                 </div>
                             </label>
                         </div>
@@ -2769,8 +2759,8 @@
                                 <span style="flex-shrink:0;">🕐</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lead.melhor_horario||'<span style="color:rgba(255,255,255,.2);">—</span>'}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;min-width:0;overflow:hidden;" id="lead-tags-${lead.id}">
-                                ${(lead.tags||[]).map(tag => { const wt=(window._wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:1px 4px;border-radius:4px;font-size:0.55rem;cursor:pointer;white-space:nowrap;" onclick="removeTagFromLead('${lead.id}','${tag}')">${tag} ×</span>`; }).join('')}
-                                <span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:1px 4px;border-radius:4px;font-size:0.55rem;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
+                                ${(lead.tags||[]).map(tag => { const wt=(window._wsTags||[]).find(t=>t.name===tag); const color=wt?.color||'#FFD700'; return `<span style="${zeloTagChipStyle(color)}padding:2px 6px;border-radius:6px;font-size:0.58rem;cursor:pointer;white-space:nowrap;" onclick="removeTagFromLead('${lead.id}','${tag}')">${tag} ×</span>`; }).join('')}
+                                <span style="background:rgba(31,42,58,.06);border:1px solid rgba(31,42,58,.16);padding:2px 6px;border-radius:6px;font-size:0.58rem;color:var(--text-muted);font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;" onclick="openTagPicker('${lead.id}')">+ Tag</span>
                             </div>
                         </div>
 
@@ -4337,9 +4327,197 @@
 
     // ─── Lead Drawer Logic ────────────────────────────────────────────
     let _drawerLeadId = null;
+    let _leadReplyToNoteId = null;
+    let _leadTaskMetaAvailable = true;
+    let _leadTaskActivityAvailable = true;
+    let _leadNotesAvailable = true;
+
+    const LEAD_TASK_LABELS = {
+        task_start: 'Convidar para Start',
+        task_gc: 'Convidar para GC',
+        task_batismo: 'Convite de Batismo',
+        task_cafe: 'Café de Novos Membros',
+        task_followup: 'Follow-up Humano'
+    };
+
+    function normalizeLeadTaskMeta(meta) {
+        if (!meta) return {};
+        if (typeof meta === 'string') {
+            try { return JSON.parse(meta) || {}; } catch(e) { return {}; }
+        }
+        return (typeof meta === 'object' && !Array.isArray(meta)) ? meta : {};
+    }
+
+    function getLeadById(leadId) {
+        return (window.globalLeads || []).find(l => String(l.id) === String(leadId))
+            || (window._allSaved || []).find(l => String(l.id) === String(leadId))
+            || (window._allVisit || []).find(l => String(l.id) === String(leadId));
+    }
+
+    function syncLeadInMemory(leadId, patch) {
+        [window.globalLeads, window.globalConsolidados, window.globalVisitors, window._allSaved, window._allVisit].forEach(list => {
+            if (!Array.isArray(list)) return;
+            const item = list.find(l => String(l.id) === String(leadId));
+            if (item) Object.assign(item, patch);
+        });
+    }
+
+    function currentLeadUser() {
+        const profile = window.cachedProfile || window._profileCache || {};
+        const user = window._currentUser || {};
+        const name = profile.name || user.name || user.email || 'Usuário';
+        return { id: profile.id || user.id || null, name };
+    }
+
+    function formatLeadDate(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.valueOf())) return '';
+        return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function leadTaskKeyFromName(taskName) {
+        const normalized = String(taskName || '').toLowerCase();
+        if (normalized.includes('start')) return 'task_start';
+        if (normalized.includes('gc')) return 'task_gc';
+        if (normalized.includes('batismo')) return 'task_batismo';
+        if (normalized.includes('café') || normalized.includes('cafe')) return 'task_cafe';
+        if (normalized.includes('follow')) return 'task_followup';
+        return '';
+    }
+
+    function getLeadTaskDefs(lead) {
+        const isVisitor = (lead?.type || '').toLowerCase() === 'visitor';
+        return isVisitor
+            ? [
+                { key: 'welcome_auto', label: 'Welcome Message (IA)', auto: true, done: true, meta: 'WhatsApp enviado' },
+                { key: 'task_gc', label: 'Convite para GC' },
+                { key: 'task_followup', label: 'Follow-up Humano' }
+            ]
+            : [
+                { key: 'celebration_auto', label: 'Celebração Aut. (IA)', auto: true, done: true, meta: 'Completado automático' },
+                { key: 'task_start', label: `Convidar para ${window._wsStartLabel || 'Start'}` },
+                { key: 'task_gc', label: 'Convidar para GC' },
+                { key: 'task_batismo', label: 'Convite de Batismo' },
+                { key: 'task_cafe', label: 'Café de Novos Membros' }
+            ];
+    }
+
+    function leadWorkflowCounts(lead) {
+        const defs = getLeadTaskDefs(lead);
+        const done = defs.filter(t => t.auto ? t.done : Boolean(lead?.[t.key])).length;
+        return { done, total: defs.length, pct: defs.length ? Math.round((done / defs.length) * 100) : 0 };
+    }
+
+    function formatLeadTaskMeta(lead, taskKey) {
+        const meta = normalizeLeadTaskMeta(lead?.task_meta)[taskKey] || {};
+        if (lead?.[taskKey] && meta.completed_at) {
+            return `<span class="lead-task-meta-done">Realizado por <b>${escHtml(meta.completed_by_name || 'Usuário')}</b> em ${formatLeadDate(meta.completed_at)}</span>`;
+        }
+        if (lead?.[taskKey]) {
+            return '<span class="lead-task-meta-done">Realizado</span>';
+        }
+        if (meta.reopened_at) {
+            return `<span class="lead-task-meta-muted">Reaberta por ${escHtml(meta.reopened_by_name || 'Usuário')} em ${formatLeadDate(meta.reopened_at)}</span>`;
+        }
+        return '<span class="lead-task-meta-muted">Pendente</span>';
+    }
+
+    function hexToRgb(color) {
+        const hex = String(color || '').trim().replace('#', '');
+        if (!/^[0-9a-f]{6}$/i.test(hex)) return null;
+        return {
+            r: parseInt(hex.slice(0, 2), 16),
+            g: parseInt(hex.slice(2, 4), 16),
+            b: parseInt(hex.slice(4, 6), 16)
+        };
+    }
+
+    function rgbToHex(rgb) {
+        const c = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+        return '#' + c(rgb.r) + c(rgb.g) + c(rgb.b);
+    }
+
+    function darkenRgb(rgb, amount) {
+        return { r: rgb.r * (1 - amount), g: rgb.g * (1 - amount), b: rgb.b * (1 - amount) };
+    }
+
+    function readableTagTextColor(color) {
+        const rgb = hexToRgb(color);
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (!rgb || !isLight) return color || '#FFD700';
+        const luminance = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+        return luminance > 0.48 ? rgbToHex(darkenRgb(rgb, 0.52)) : color;
+    }
+
+    function zeloTagChipStyle(color, active) {
+        const c = color || '#FFD700';
+        const text = readableTagTextColor(c);
+        return `background:${c}${active ? '30' : '22'};color:${text};border:1px solid ${c}${active ? '70' : '45'};font-weight:800;`;
+    }
+
+    window.zeloTagChipStyle = zeloTagChipStyle;
+
+    async function insertLeadTaskActivity(lead, taskKey, action, user) {
+        if (!_leadTaskActivityAvailable || !window.supabaseClient || !lead) return;
+        const { error } = await window.supabaseClient.from('lead_task_activity').insert({
+            workspace_id: lead.workspace_id || window.currentWorkspaceId,
+            lead_id: lead.id,
+            task_key: taskKey,
+            action,
+            user_id: user.id,
+            user_name: user.name
+        });
+        if (error) {
+            _leadTaskActivityAvailable = false;
+            console.warn('[lead_task_activity] unavailable:', error.message);
+        }
+    }
+
+    async function setLeadTaskStatus(leadId, taskKey, done, opts = {}) {
+        const lead = getLeadById(leadId);
+        if (!lead || !taskKey) return;
+
+        const user = currentLeadUser();
+        const now = new Date().toISOString();
+        const taskMeta = normalizeLeadTaskMeta(lead.task_meta);
+        taskMeta[taskKey] = done
+            ? { ...(taskMeta[taskKey] || {}), completed_by: user.id, completed_by_name: user.name, completed_at: now }
+            : { ...(taskMeta[taskKey] || {}), completed_by: null, completed_by_name: null, completed_at: null, reopened_by: user.id, reopened_by_name: user.name, reopened_at: now };
+
+        syncLeadInMemory(leadId, { [taskKey]: done, task_meta: taskMeta });
+
+        const sb = window.supabaseClient;
+        if (sb) {
+            let payload = _leadTaskMetaAvailable ? { [taskKey]: done, task_meta: taskMeta } : { [taskKey]: done };
+            let { error } = await sb.from('leads').update(payload).eq('id', leadId);
+            if (error && _leadTaskMetaAvailable && /task_meta/i.test(error.message || '')) {
+                _leadTaskMetaAvailable = false;
+                payload = { [taskKey]: done };
+                ({ error } = await sb.from('leads').update(payload).eq('id', leadId));
+            }
+            if (error) throw error;
+            await insertLeadTaskActivity(lead, taskKey, done ? 'completed' : 'reopened', user);
+        }
+
+        if (window.applyFilters) window.applyFilters();
+        if (_drawerLeadId && String(_drawerLeadId) === String(leadId)) {
+            renderLeadDrawerTasks(getLeadById(leadId));
+            loadLeadTaskActivity(leadId);
+        }
+
+        if (!opts.silent && typeof hubToast !== 'undefined') {
+            const label = LEAD_TASK_LABELS[taskKey] || 'Tarefa';
+            hubToast(done ? `${label} concluída ✅` : `${label} reaberta`, done ? 'success' : 'info');
+        }
+    }
+
+    window.setLeadTaskStatus = setLeadTaskStatus;
 
     window.openLeadDrawer = async function(lead) {
+        lead.task_meta = normalizeLeadTaskMeta(lead.task_meta);
         _drawerLeadId = lead.id;
+        _leadReplyToNoteId = null;
         // Populate fields
         document.getElementById('drawer-lead-name').textContent = lead.name || '—';
         document.getElementById('drawer-field-name').value = lead.name || '';
@@ -4347,30 +4525,9 @@
         const langSel = document.getElementById('drawer-field-lang');
         if (langSel) langSel.value = lead.preferred_language || 'pt';
 
-        // Build tasks
-        const taskDefs = [
-            { key: 'task_start',    label: 'Convidar para Start' },
-            { key: 'task_gc',       label: 'Convidar para GC' },
-            { key: 'task_batismo',  label: 'Convite de Batismo' },
-            { key: 'task_cafe',     label: 'Café de Novos Membros' },
-            { key: 'task_followup', label: 'Follow-up Humano' }
-        ];
-        const tasksEl = document.getElementById('drawer-tasks');
-        if (tasksEl) {
-            tasksEl.innerHTML = taskDefs.map(t => {
-                const done = Boolean(lead[t.key]);
-                return `
-                <div class="hub-task-item ${done ? 'done' : ''}" id="task-row-${t.key}" onclick="toggleLeadTask('${t.key}', this)">
-                    <div class="hub-task-check">
-                        <svg viewBox="0 0 20 20">
-                            <circle class="check-circle" cx="10" cy="10" r="9" stroke-width="1.5"/>
-                            <polyline class="check-mark" points="6,10 9,13 14,7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <span class="hub-task-label">${t.label}</span>
-                </div>`;
-            }).join('');
-        }
+        renderLeadDrawerTasks(lead);
+        loadLeadNotes(lead.id);
+        loadLeadTaskActivity(lead.id);
 
         // Open panel
         document.getElementById('lead-drawer').classList.add('open');
@@ -4425,6 +4582,7 @@
         document.getElementById('lead-drawer-overlay').classList.remove('open');
         document.body.style.overflow = '';
         _drawerLeadId = null;
+        _leadReplyToNoteId = null;
     };
 
     window.saveDrawerLead = async function() {
@@ -4442,22 +4600,214 @@
         }
     };
 
+    function renderLeadDrawerTasks(lead) {
+        if (!lead) return;
+        const tasksEl = document.getElementById('drawer-tasks');
+        const progressEl = document.getElementById('drawer-task-progress');
+        const counts = leadWorkflowCounts(lead);
+        if (progressEl) {
+            const color = counts.pct === 100 ? '#16a34a' : counts.pct >= 40 ? '#d38400' : '#dc2626';
+            progressEl.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+                    <span style="font-size:.72rem;color:var(--text-muted);font-weight:700;">${counts.done}/${counts.total} concluídas</span>
+                    <span style="font-size:.72rem;color:${color};font-weight:800;">${counts.pct}%</span>
+                </div>
+                <div class="lead-drawer-progress-track"><div style="width:${counts.pct}%;background:${color};"></div></div>
+            `;
+        }
+        if (!tasksEl) return;
+        tasksEl.innerHTML = getLeadTaskDefs(lead).map(t => {
+            const done = t.auto ? t.done : Boolean(lead[t.key]);
+            const meta = t.auto
+                ? `<span class="lead-task-meta-done">${escHtml(t.meta || 'Automático')}</span>`
+                : formatLeadTaskMeta(lead, t.key);
+            return `
+            <button type="button" class="hub-task-item lead-drawer-task ${done ? 'done' : ''} ${t.auto ? 'auto' : ''}" id="task-row-${t.key}" ${t.auto ? 'disabled' : `onclick="toggleLeadTask('${t.key}', this)"`}>
+                <div class="hub-task-check">
+                    <svg viewBox="0 0 20 20">
+                        <circle class="check-circle" cx="10" cy="10" r="9" stroke-width="1.5"/>
+                        <polyline class="check-mark" points="6,10 9,13 14,7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;text-align:left;">
+                    <span class="hub-task-label">${escHtml(t.label)}</span>
+                    <span class="lead-task-meta">${meta}</span>
+                </div>
+            </button>`;
+        }).join('');
+    }
+
     window.toggleLeadTask = async function(taskKey, rowEl) {
         if (!_drawerLeadId) return;
-        const isDone = rowEl.classList.contains('done');
-        const newVal = !isDone;
-        rowEl.classList.toggle('done', newVal);
-        const sb = window.supabaseClient;
-        await sb.from('leads').update({ [taskKey]: newVal }).eq('id', _drawerLeadId);
-        // Update in-memory lead
-        const lead = (window.globalLeads || []).find(l => l.id === _drawerLeadId);
-        if (lead) lead[taskKey] = newVal;
-        // Recompute KPIs
-        if (window._allSaved) {
-            const saved = window._allSaved;
-            if (typeof updateTopKPIs === 'function') updateTopKPIs(saved);
+        const newVal = !rowEl.classList.contains('done');
+        rowEl.disabled = true;
+        try {
+            await setLeadTaskStatus(_drawerLeadId, taskKey, newVal);
+        } catch(e) {
+            if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar tarefa: ' + e.message, 'error');
+        } finally {
+            rowEl.disabled = false;
         }
-        if (typeof hubToast !== 'undefined') hubToast(newVal ? 'Tarefa concluída!' : 'Tarefa reaberta', newVal ? 'success' : 'info');
+    };
+
+    async function loadLeadTaskActivity(leadId) {
+        const el = document.getElementById('drawer-task-activity');
+        if (!el) return;
+        if (!_leadTaskActivityAvailable || !window.supabaseClient) {
+            el.innerHTML = '<div class="lead-drawer-empty">Histórico de tarefas será exibido após aplicar a migration.</div>';
+            return;
+        }
+        el.innerHTML = '<div class="lead-drawer-empty">Carregando histórico...</div>';
+        const { data, error } = await window.supabaseClient
+            .from('lead_task_activity')
+            .select('*')
+            .eq('lead_id', leadId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+        if (error) {
+            _leadTaskActivityAvailable = false;
+            el.innerHTML = '<div class="lead-drawer-empty">Histórico de tarefas será exibido após aplicar a migration.</div>';
+            return;
+        }
+        if (!data?.length) {
+            el.innerHTML = '<div class="lead-drawer-empty">Nenhuma alteração de tarefa ainda.</div>';
+            return;
+        }
+        el.innerHTML = data.map(item => {
+            const label = LEAD_TASK_LABELS[item.task_key] || item.task_key;
+            const isDone = item.action === 'completed';
+            return `
+                <div class="lead-task-activity-row">
+                    <span class="lead-task-activity-dot ${isDone ? 'done' : 'open'}"></span>
+                    <div>
+                        <div><b>${escHtml(item.user_name || 'Usuário')}</b> ${isDone ? 'concluiu' : 'reabriu'} ${escHtml(label)}</div>
+                        <span>${formatLeadDate(item.created_at)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadLeadNotes(leadId) {
+        const el = document.getElementById('drawer-notes-list');
+        if (!el) return;
+        const input = document.getElementById('drawer-note-input');
+        if (input) input.value = '';
+        window.clearLeadReplyTarget(false);
+
+        if (!_leadNotesAvailable || !window.supabaseClient) {
+            el.innerHTML = '<div class="lead-drawer-empty">Notas colaborativas serão exibidas após aplicar a migration.</div>';
+            return;
+        }
+
+        el.innerHTML = '<div class="lead-drawer-empty">Carregando notas...</div>';
+        const { data, error } = await window.supabaseClient
+            .from('lead_notes')
+            .select('*')
+            .eq('lead_id', leadId)
+            .order('created_at', { ascending: true });
+        if (error) {
+            _leadNotesAvailable = false;
+            el.innerHTML = '<div class="lead-drawer-empty">Notas colaborativas serão exibidas após aplicar a migration.</div>';
+            return;
+        }
+
+        renderLeadNotes(data || []);
+    }
+
+    function renderLeadNotes(notes) {
+        const el = document.getElementById('drawer-notes-list');
+        if (!el) return;
+        if (!notes.length) {
+            el.innerHTML = '<div class="lead-drawer-empty">Nenhuma nota ainda. Seja o primeiro a registrar o próximo passo.</div>';
+            return;
+        }
+        const children = {};
+        notes.forEach(n => {
+            const key = n.parent_id || 'root';
+            if (!children[key]) children[key] = [];
+            children[key].push(n);
+        });
+        const renderOne = (note, isReply) => {
+            const likedBy = Array.isArray(note.liked_by) ? note.liked_by : [];
+            const me = currentLeadUser().id;
+            const liked = me && likedBy.includes(me);
+            const replies = (children[note.id] || []).map(r => renderOne(r, true)).join('');
+            return `
+                <div class="lead-note ${isReply ? 'reply' : ''}">
+                    <div class="lead-note-avatar">${escHtml((note.author_name || 'U').trim().slice(0, 1).toUpperCase())}</div>
+                    <div class="lead-note-body">
+                        <div class="lead-note-meta">${escHtml(note.author_name || 'Usuário')} · ${formatLeadDate(note.created_at)}</div>
+                        <div class="lead-note-text">${escHtml(note.body || '')}</div>
+                        <div class="lead-note-actions">
+                            <button onclick="likeLeadNote('${note.id}')">${liked ? 'Curtido' : 'Curtir'} · ${likedBy.length}</button>
+                            ${isReply ? '' : `<button onclick="setLeadReplyTarget('${note.id}','${escHtml(note.author_name || 'Usuário').replace(/'/g, "\\'")}')">Responder</button>`}
+                        </div>
+                        ${replies ? `<div class="lead-note-replies">${replies}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+        el.innerHTML = (children.root || []).map(n => renderOne(n, false)).join('');
+    }
+
+    window.setLeadReplyTarget = function(noteId, authorName) {
+        _leadReplyToNoteId = noteId;
+        const ctx = document.getElementById('drawer-note-reply-context');
+        if (ctx) {
+            ctx.style.display = 'flex';
+            ctx.querySelector('span').textContent = `Respondendo ${authorName}`;
+        }
+        const input = document.getElementById('drawer-note-input');
+        if (input) input.focus();
+    };
+
+    window.clearLeadReplyTarget = function(focusInput = true) {
+        _leadReplyToNoteId = null;
+        const ctx = document.getElementById('drawer-note-reply-context');
+        if (ctx) ctx.style.display = 'none';
+        if (focusInput) document.getElementById('drawer-note-input')?.focus();
+    };
+
+    window.submitLeadNote = async function() {
+        if (!_drawerLeadId || !_leadNotesAvailable || !window.supabaseClient) return;
+        const input = document.getElementById('drawer-note-input');
+        const body = input?.value?.trim();
+        if (!body) return;
+        const lead = getLeadById(_drawerLeadId);
+        const user = currentLeadUser();
+        input.value = '';
+        const { error } = await window.supabaseClient.from('lead_notes').insert({
+            workspace_id: lead?.workspace_id || window.currentWorkspaceId,
+            lead_id: _drawerLeadId,
+            parent_id: _leadReplyToNoteId,
+            author_id: user.id,
+            author_name: user.name,
+            body
+        });
+        if (error) {
+            input.value = body;
+            if (typeof hubToast !== 'undefined') hubToast('Erro ao salvar nota: ' + error.message, 'error');
+            return;
+        }
+        window.clearLeadReplyTarget(false);
+        await loadLeadNotes(_drawerLeadId);
+    };
+
+    window.likeLeadNote = async function(noteId) {
+        if (!_drawerLeadId || !_leadNotesAvailable || !window.supabaseClient) return;
+        const { data: note, error: readErr } = await window.supabaseClient
+            .from('lead_notes')
+            .select('liked_by')
+            .eq('id', noteId)
+            .maybeSingle();
+        if (readErr) return;
+        const me = currentLeadUser().id;
+        if (!me) return;
+        const current = Array.isArray(note?.liked_by) ? note.liked_by : [];
+        const likedBy = current.includes(me) ? current.filter(id => id !== me) : [...current, me];
+        const { error } = await window.supabaseClient.from('lead_notes').update({ liked_by: likedBy }).eq('id', noteId);
+        if (!error) await loadLeadNotes(_drawerLeadId);
     };
 
     // ─── Period filter ────────────────────────────────────────────────
@@ -11757,8 +12107,10 @@ function loadMilaHistory() {
             var navEl = document.getElementById('nav-chat-ao-vivo');
             if (navEl) navEl.classList.add('active');
 
-            // Lazy init — run only once on first open
-            if (!_chatInitialized) {
+            var activeWorkspaceId = window.currentWorkspaceId || window._currentWorkspaceId || sessionStorage.getItem('ws_id') || null;
+            var needsChatInit = !_chatInitialized || (activeWorkspaceId && window.__chatAoVivoWorkspaceId !== activeWorkspaceId);
+
+            if (needsChatInit) {
                 _chatInitialized = true;
                 if (typeof window.initChatAoVivo === 'function') {
                     window.initChatAoVivo();
@@ -11775,6 +12127,8 @@ function loadMilaHistory() {
                         }
                     }, 100);
                 }
+            } else if (typeof window.refreshChatAoVivo === 'function') {
+                window.refreshChatAoVivo();
             }
         } else {
             // Delegate to original switchTab and ensure chat view is hidden
@@ -12696,23 +13050,25 @@ async function sendMilaMessage() {
     function renderTagFilterBar() {
         let bar = document.getElementById('tag-filter-bar');
         if (!bar) {
-            // Insert after .ops-filters or before leads-container
-            const ref = document.getElementById('leads-container');
-            if (!ref) return;
             bar = document.createElement('div');
             bar.id = 'tag-filter-bar';
-            bar.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0 4px;';
-            ref.parentElement.insertBefore(bar, ref);
         }
+        bar.className = 'lead-tag-filter-bar';
+        const toolbar = document.querySelector('#view-dashboard .toolbar');
+        const search = document.getElementById('searchInput');
+        const ref = document.getElementById('leads-container');
+        if (toolbar && bar.parentElement !== toolbar) toolbar.insertBefore(bar, search || null);
+        else if (!bar.parentElement && ref) ref.parentElement.insertBefore(bar, ref);
+
         const active = window._activeTagFilter || '';
         bar.innerHTML = `
-            <span style="font-size:.65rem;color:#666;text-transform:uppercase;letter-spacing:.8px;font-weight:700;">Tags:</span>
-            <span class="tag-pill${!active?'--active':''}" onclick="setTagFilter('')" style="background:${!active?'rgba(255,215,0,.12)':'rgba(255,255,255,.05)'};border:1px solid ${!active?'rgba(255,215,0,.3)':'rgba(255,255,255,.1)'};color:${!active?'#FFD700':'#777'};padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer;">Todas</span>
+            <span class="lead-tag-filter-label">Tags:</span>
+            <span class="lead-tag-filter-pill ${!active?'active':''}" onclick="setTagFilter('')">Todas</span>
             ${window._wsTags.map(t => {
                 const isA = active === t.name;
-                return `<span onclick="setTagFilter('${t.name}')" style="background:${t.color}${isA?'25':'10'};border:1px solid ${t.color}${isA?'60':'25'};color:${t.color};padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;cursor:pointer;">${t.name}</span>`;
+                return `<span class="lead-tag-filter-pill ${isA?'active':''}" onclick="setTagFilter('${t.name}')" style="${zeloTagChipStyle(t.color, isA)}">${t.name}</span>`;
             }).join('')}
-            <span onclick="openManageTags()" title="Gerenciar Tags" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#555;padding:3px 10px;border-radius:20px;font-size:.68rem;cursor:pointer;"> ⚙ Gerenciar</span>
+            <span class="lead-tag-manage-pill" onclick="openManageTags()" title="Gerenciar Tags">⚙ Gerenciar</span>
         `;
     }
 
@@ -12813,8 +13169,8 @@ async function sendMilaMessage() {
         container.innerHTML = tags.map(tag => {
             const wt = (window._wsTags||[]).find(t=>t.name===tag);
             const color = wt?.color||'#FFD700';
-            return `<span style="background:${color}18;color:${color};border:1px solid ${color}40;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;cursor:pointer;" onclick="removeTagFromLead('${leadId}','${tag}')" title="Remover tag">${tag} ×</span>`;
-        }).join('') + `<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;font-size:0.6rem;color:#777;cursor:pointer;" onclick="openTagPicker('${leadId}')" title="Adicionar tag">+ Tag</span>`;
+            return `<span style="${zeloTagChipStyle(color)}padding:2px 8px;border-radius:20px;font-size:0.62rem;cursor:pointer;" onclick="removeTagFromLead('${leadId}','${tag}')" title="Remover tag">${tag} ×</span>`;
+        }).join('') + `<span style="background:rgba(31,42,58,.06);border:1px solid rgba(31,42,58,.16);padding:2px 8px;border-radius:20px;font-size:0.62rem;color:var(--text-muted);font-weight:700;cursor:pointer;" onclick="openTagPicker('${leadId}')" title="Adicionar tag">+ Tag</span>`;
     }
 
     // ── Manage Tags Modal ──────────────────────────────────────────
@@ -14438,6 +14794,10 @@ function _syncThemeUI(isLight) {
     const pillLight = document.querySelector('.theme-pill-icon-light');
     if (pillDark)  pillDark.style.display  = isLight ? 'none' : '';
     if (pillLight) pillLight.style.display = isLight ? '' : 'none';
+
+    if (typeof window.refreshJourneyChartsTheme === 'function') {
+        window.refreshJourneyChartsTheme();
+    }
 }
 
 /** Reads localStorage and syncs the toggle UI — called on tab open. */
