@@ -161,9 +161,9 @@ import httpx
 def fire_welcome_template(
     lead_id: str,
     workspace_id: str,
-    template_name: str,
-    language_code: str,
-    delay_minutes: int
+    delay_minutes: int,
+    template_name: Optional[str] = None,
+    language_code: Optional[str] = None,
 ):
     """Background task: optionally wait, then call the Edge Function to send the template."""
     if delay_minutes > 0:
@@ -174,15 +174,18 @@ def fire_welcome_template(
         internal_secret = os.environ.get("ZELO_INTERNAL_SECRET") or os.environ.get("INTERNAL_FUNCTION_SECRET")
         if internal_secret:
             headers["x-zelo-internal-secret"] = internal_secret
+        payload = {
+            "lead_id": lead_id,
+            "workspace_id": workspace_id,
+        }
+        if template_name:
+            payload["template_name"] = template_name
+        if language_code:
+            payload["language_code"] = language_code
         resp = httpx.post(
             f"{EDGE_URL}/whatsapp-send-template",
             headers=headers,
-            json={
-                "lead_id": lead_id,
-                "workspace_id": workspace_id,
-                "template_name": template_name,
-                "language_code": language_code,
-            },
+            json=payload,
             timeout=15,
         )
         print(f"[AUTO] whatsapp-send-template → {resp.status_code}: {resp.text[:200]}")
@@ -228,39 +231,48 @@ async def new_lead_webhook(request: Request, background_tasks: BackgroundTasks):
         print(f"[AUTO] Workspace {workspace_id} automation disabled — skipping.")
         return {"status": "skipped", "reason": "automation_disabled"}
 
-    # Match source against rules array
-    # Rule structure: { "source": "consolida-form", "template": "consolidacao", "language": "pt_BR" }
+    # Match source against rules array. The Edge Function remains the source of
+    # truth for the exact template/message body so it can store conversation context.
     rules = auto_config.get("rules", [])
-    matched_template = None
-    matched_language = auto_config.get("default_language", "pt_BR")
+    matched_rule = None
 
     for rule in rules:
         if rule.get("source") == source:
-            matched_template = rule.get("template")  # None = explicitly disabled for this source
-            matched_language = rule.get("language", matched_language)
+            matched_rule = rule
             break
-    else:
-        # No rule matched → use workspace default
-        matched_template = auto_config.get("default_template")
 
-    if not matched_template:
+    if matched_rule and matched_rule.get("enabled") is False:
+        print(f"[AUTO] Rule for source '{source}' disabled in workspace {workspace_id}.")
+        return {"status": "skipped", "reason": "rule_disabled"}
+
+    if matched_rule:
+        if not matched_rule.get("template") and not matched_rule.get("message_body"):
+            print(f"[AUTO] Rule for source '{source}' has no template/message body in workspace {workspace_id}.")
+            return {"status": "skipped", "reason": "no_template_for_source"}
+        delay = int(matched_rule.get("delay_minutes", auto_config.get("delay_minutes", 0)) or 0)
+        queued_label = matched_rule.get("template") or "message_body"
+    else:
+        # No rule matched → use workspace default when configured.
+        queued_label = (auto_config.get("default_template") or "").strip()
+        if not queued_label:
+            print(f"[AUTO] No template configured for source '{source}' in workspace {workspace_id}.")
+            return {"status": "skipped", "reason": "no_template_for_source"}
+        delay = int(auto_config.get("delay_minutes", 0) or 0)
+
+    if not queued_label:
         print(f"[AUTO] No template configured for source '{source}' in workspace {workspace_id}.")
         return {"status": "skipped", "reason": "no_template_for_source"}
 
-    delay = int(auto_config.get("delay_minutes", 0))
-
-    print(f"[AUTO] Queuing template '{matched_template}' for lead {lead_id} (source={source}, delay={delay}min)")
+    print(f"[AUTO] Queuing WhatsApp automation '{queued_label}' for lead {lead_id} (source={source}, delay={delay}min)")
 
     background_tasks.add_task(
         fire_welcome_template,
         lead_id,
         workspace_id,
-        matched_template,
-        matched_language,
         delay,
     )
 
-    return {"status": "queued", "template": matched_template, "delay_minutes": delay}
+    return {"status": "queued", "template": queued_label, "delay_minutes": delay}
 
 
 @app.get("/webhook")

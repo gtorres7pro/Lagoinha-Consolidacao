@@ -100,6 +100,10 @@ function buildAutomationContext(args: {
   return `[AUTOMACAO_FORMULARIO] Ju iniciou esta conversa automaticamente apos o preenchimento de formulario. Quando a pessoa responder, continue a conversa considerando este contexto. ${details}.${preview}`;
 }
 
+function objectOrEmpty(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -121,7 +125,7 @@ Deno.serve(async (req: Request) => {
   // ── 1. Fetch lead ─────────────────────────────────────────────────────────
   const { data: lead, error: leadErr } = await sb
     .from("leads")
-    .select("id, name, phone, source, decisao, culto")
+    .select("id, name, phone, source, decisao, culto, bot_context")
     .eq("id", lead_id)
     .eq("workspace_id", workspace_id)
     .maybeSingle();
@@ -178,21 +182,50 @@ Deno.serve(async (req: Request) => {
   const automationCfg  = (ws as any).automation_config ?? {};
   const mode           = creds.whatsapp_mode ?? "meta"; // 'evolution' | 'meta' | 'none'
 
+  if (automationCfg.enabled === false) {
+    console.log("[TMPL] Workspace automation_config.enabled=false — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "automation_disabled" }), {
+      status: 200, headers: { "Content-Type": "application/json", ...CORS },
+    });
+  }
+
   // ── 4. Find matching automation rule for lead's source ────────────────────
   const rules: any[] = automationCfg.rules ?? [];
   const leadSource   = lead.source ?? body.source ?? "";
-  const matchedRule  = rules.find(
-    (r: any) => r.enabled !== false && r.source === leadSource
-  );
-
-  console.log(`[TMPL] lead source="${leadSource}" | workspace mode="${mode}" | matched rule: ${matchedRule ? JSON.stringify(matchedRule) : "none"}`);
-
-  // Effective channel: rule overrides workspace default
-  const effectiveChannel = matchedRule?.channel ?? mode;
+  const ruleForSource = rules.find((r: any) => r.source === leadSource);
+  const matchedRule  = ruleForSource?.enabled === false ? null : ruleForSource;
+  const defaultTemplate = String(automationCfg.default_template ?? "").trim() || null;
+  const defaultLanguage = String(automationCfg.default_language ?? "pt_BR").trim() || "pt_BR";
 
   // Template / message overrides from request body (allows manual calls)
   const overrideTemplate: string | null = body.template_name ?? null;
   const overrideLang: string | null     = body.language_code ?? null;
+
+  console.log(`[TMPL] lead source="${leadSource}" | workspace mode="${mode}" | matched rule: ${matchedRule ? JSON.stringify(matchedRule) : "none"}`);
+
+  if (ruleForSource?.enabled === false) {
+    console.log("[TMPL] Automation rule for this source is disabled — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "rule_disabled", source: leadSource }), {
+      status: 200, headers: { "Content-Type": "application/json", ...CORS },
+    });
+  }
+
+  if (matchedRule && !matchedRule.template && !matchedRule.message_body && !overrideTemplate && !body.message_body) {
+    console.log("[TMPL] Automation rule matched but has no template or message body — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "rule_has_no_message", source: leadSource }), {
+      status: 200, headers: { "Content-Type": "application/json", ...CORS },
+    });
+  }
+
+  if (!matchedRule && !overrideTemplate && !body.message_body && !defaultTemplate) {
+    console.log("[TMPL] No automation rule matched this lead source — skipping.");
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_matching_rule", source: leadSource }), {
+      status: 200, headers: { "Content-Type": "application/json", ...CORS },
+    });
+  }
+
+  // Effective channel: rule overrides workspace default
+  const effectiveChannel = matchedRule?.channel ?? mode;
 
   const firstName = (lead.name ?? "").split(" ")[0] || "Amigo";
   const vars      = { nome: firstName, culto: lead.culto ?? "", decisao: lead.decisao ?? "" };
@@ -200,6 +233,8 @@ Deno.serve(async (req: Request) => {
   let sendOk      = false;
   let waMessageId: string | null = null;
   let sentContent = "";
+  let automationContext = "";
+  let sentPreview = "";
 
   // ══════════════════════════════════════════════════════════════════════════
   // PATH A — Evolution API
@@ -217,6 +252,15 @@ Deno.serve(async (req: Request) => {
       ?? `Olá ${firstName}! 🙏 Seja bem-vindo(a) à Lagoinha. Em breve um de nossos líderes entrará em contato com você!`;
 
     sentContent = interpolate(rawMsg, vars);
+    sentPreview = sentContent;
+    automationContext = buildAutomationContext({
+      templateName: matchedRule?.template ?? defaultTemplate ?? "message_body",
+      languageCode: matchedRule?.language ?? defaultLanguage ?? "custom",
+      source: leadSource,
+      firstName,
+      preview: sentPreview,
+      lead,
+    });
     const toPhone = evoPhone(lead.phone);
 
     console.log(`[TMPL] Evolution: sending to ${toPhone} via instance "${instanceName}"`);
@@ -265,8 +309,8 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Meta WhatsApp credentials not configured" }), { status: 500, headers: CORS });
     }
 
-    const templateName = overrideTemplate ?? matchedRule?.template ?? "consolidacao";
-    const languageCode = overrideLang     ?? matchedRule?.language ?? "pt_BR";
+    const templateName = overrideTemplate ?? matchedRule?.template ?? defaultTemplate ?? "consolidacao";
+    const languageCode = overrideLang     ?? matchedRule?.language ?? defaultLanguage;
     const toPhone      = metaPhone(lead.phone);
     const wabaId       = creds.waba_id ?? creds.business_id ?? "";
     const templateBody = await fetchTemplateBody(waToken, wabaId, templateName, languageCode);
@@ -276,7 +320,8 @@ Deno.serve(async (req: Request) => {
       resolveVariable(ruleVars[variableName], variableName, index, lead, firstName)
     );
     const previewBody  = templateBody ? fillTemplatePreview(templateBody, varValues) : `Template ${templateName} enviado para ${firstName}`;
-    sentContent        = buildAutomationContext({
+    sentPreview        = previewBody;
+    automationContext  = buildAutomationContext({
       templateName,
       languageCode,
       source: leadSource,
@@ -284,6 +329,7 @@ Deno.serve(async (req: Request) => {
       preview: previewBody,
       lead,
     });
+    sentContent = `📨 Template: ${templateName} | ${previewBody}`;
 
     const templatePayload = {
       messaging_product: "whatsapp",
@@ -364,8 +410,20 @@ Deno.serve(async (req: Request) => {
     if (msgErr) console.error("[TMPL] Failed to save message:", msgErr.message);
     else console.log(`[TMPL] Message saved to DB (type=${persistType}).`);
 
+    const nextBotContext = {
+      ...objectOrEmpty(lead.bot_context),
+      automation_context: {
+        source: leadSource,
+        template_name: effectiveChannel === "meta" ? (overrideTemplate ?? matchedRule?.template ?? defaultTemplate ?? "consolidacao") : matchedRule?.template ?? defaultTemplate ?? "message_body",
+        language_code: effectiveChannel === "meta" ? (overrideLang ?? matchedRule?.language ?? defaultLanguage) : matchedRule?.language ?? defaultLanguage ?? "custom",
+        sent_message: sentPreview,
+        instruction: automationContext,
+        sent_at: now,
+      },
+    };
+
     const { error: luErr } = await sb.from("leads")
-      .update({ last_message_at: now })
+      .update({ last_message_at: now, bot_context: nextBotContext })
       .eq("id", lead_id)
       .eq("workspace_id", workspace_id);
     if (luErr) console.error("[TMPL] Failed to update last_message_at:", luErr.message);

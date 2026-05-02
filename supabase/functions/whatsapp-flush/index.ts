@@ -2,9 +2,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { isInternalRequest } from "../_shared/auth.ts";
 
-const SILENCE_MS = 5000;
-const GEMINI_TIMEOUT_MS = 12000;
-const GEMINI_MAX_ATTEMPTS = 2;
+const SILENCE_MS = 2500;
+const GEMINI_TIMEOUT_MS = 8000;
+const GEMINI_MAX_ATTEMPTS = 1;
+const OPENAI_TIMEOUT_MS = 10000;
+const INTER_CHUNK_DELAY_MS = 600;
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.tech";
@@ -58,6 +60,22 @@ function buildKnowledgeBaseBlock(kb: any, workspaceName?: string): string {
   ].filter(Boolean);
 
   return rows.length ? rows.join("\n") : "Sem base de conhecimento configurada.";
+}
+
+function buildAutomationContextBlock(botContext: any): string {
+  const automationContext = botContext?.automation_context;
+  if (!automationContext || typeof automationContext !== "object") return "";
+
+  const rows = [
+    automationContext.instruction,
+    automationContext.sent_message ? `Mensagem inicial enviada por template: ${automationContext.sent_message}` : "",
+    automationContext.source ? `Origem do formulario: ${automationContext.source}` : "",
+    automationContext.template_name ? `Template usado: ${automationContext.template_name}` : "",
+  ].filter(Boolean);
+
+  return rows.length
+    ? `\n\nCONTEXTO DA CONVERSA INICIADA POR AUTOMACAO:\n${rows.join("\n")}`
+    : "";
 }
 
 function splitOutgoingMessages(text: string): string[] {
@@ -199,19 +217,14 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
   if (!isInternalRequest(req)) return new Response("Unauthorized", { status: 401 });
 
-  let lead_id: string, message_created_at: string;
+  let lead_id: string;
   try {
     const b = await req.json();
-    lead_id = b.lead_id; message_created_at = b.message_created_at;
+    lead_id = b.lead_id;
   } catch { return new Response("Bad Request", { status: 400 }); }
   if (!lead_id) return new Response("Missing params", { status: 400 });
 
   await new Promise<void>(r => setTimeout(r, SILENCE_MS));
-
-  const { data: newer } = await sb.from("messages")
-    .select("id").eq("lead_id", lead_id).eq("direction", "inbound")
-    .gt("created_at", message_created_at).limit(1);
-  if (newer?.length) return new Response("skipped", { status: 200 });
 
   const { data: leadRecord } = await sb.from("leads")
     .select("id, phone, workspace_id, name, llm_lock_until, bot_context, has_responded")
@@ -615,6 +628,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   const JSON_OUTPUT_FORMAT = `\n\n---\nFORMATO DE SAIDA OBRIGATORIO (JSON PURO):\nResponda APENAS com JSON valido, sem markdown, sem texto extra antes ou depois:\n{\n  "whatsapp_reply": "Sua resposta oficial em texto (use ||| para separar multiplas mensagens)",\n  "whatsapp_audio_script": "Se o usuario mandou [ÁUDIO TRANSCRITO], escreva aqui uma versao adaptada para TTS (coloquial, fala humana, diga 'o link que mandei no texto abaixo'). Sendo nulo se não houver áudio.",\n  "whatsapp_text_complement": "Se gerou audio E houver LINKS, coloque apenas os LINKS ou infos clicaveis aqui para irem como texto de acompanhamento. Se nao houver audio ou link, envie null.",\n  "detected_intention": "none | escalation | batismo | voluntariado | wecare | cafe_pastor"\n}\n\nMapeamento detected_intention:\n- escalation: pastor, aconselhamento, oracao urgente, contato humano\n- cafe_pastor: quer falar com pastor, agendar cafe com pastor, agendamento pastoral\n- batismo: quer se batizar ou info de batismo\n- voluntariado: quer ser voluntario ou servir\n- wecare: quer GC, Start, conexao comunitaria\n- none: saudacao simples ou pergunta informativa\n\nNAO use tags [ACAO:...]. Use EXCLUSIVAMENTE o JSON acima.`;
   const knowledgeBaseBlock = buildKnowledgeBaseBlock(ws?.knowledge_base ?? {}, ws?.name);
   const KNOWLEDGE_BASE_SECTION = `\n\nBASE DE CONHECIMENTO DA IGREJA:\n${knowledgeBaseBlock}\n\nUse a base acima como fonte principal. Se algo nao estiver nela, responda com cuidado e ofereca ajuda humana.`;
+  const AUTOMATION_CONTEXT_SECTION = buildAutomationContextBlock(lead.bot_context);
 
   // ── Build system instruction ──────────────────────────────────────────────
   // Priority: ia_system_prompt from credentials > ju_prompt from KB > built-in default
@@ -624,21 +638,21 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
 
   if (customIaPrompt) {
     // Workspace-specific IA prompt configured via Automações > IA Atendente
-    systemInstruction = dateContext + "\n\n" + customIaPrompt + KNOWLEDGE_BASE_SECTION + JSON_OUTPUT_FORMAT;
+    systemInstruction = dateContext + "\n\n" + customIaPrompt + KNOWLEDGE_BASE_SECTION + AUTOMATION_CONTEXT_SECTION + JSON_OUTPUT_FORMAT;
     systemInstruction = systemInstruction
       .replace(/\{firstName\}/g, firstName)
       .replace(/\{NOME\}/g, firstName);
     console.log(`[FLUSH] using ia_system_prompt from credentials`);
   } else if (customJuPrompt) {
     // Legacy KB ju_prompt
-    systemInstruction = dateContext + "\n\n" + customJuPrompt + KNOWLEDGE_BASE_SECTION + JSON_OUTPUT_FORMAT;
+    systemInstruction = dateContext + "\n\n" + customJuPrompt + KNOWLEDGE_BASE_SECTION + AUTOMATION_CONTEXT_SECTION + JSON_OUTPUT_FORMAT;
     systemInstruction = systemInstruction
       .replace(/\{firstName\}/g, firstName)
       .replace(/\{NOME\}/g, firstName);
     console.log(`[FLUSH] using ju_prompt from knowledge_base`);
   } else {
     // Built-in default + KB fields
-    systemInstruction = `${dateContext}\n\nVocê é a **Ju**, a assistente virtual e recepcionista exclusiva desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.${KNOWLEDGE_BASE_SECTION}` + JSON_OUTPUT_FORMAT;
+    systemInstruction = `${dateContext}\n\nVocê é a **Ju**, a assistente virtual e recepcionista exclusiva desta igreja no WhatsApp. Nome do usuário: ${firstName}.\nDIRETRIZES: Amigável, calorosa, humana. Máximo 3 linhas por mensagem. Use ||| para separar múltiplas mensagens.${KNOWLEDGE_BASE_SECTION}${AUTOMATION_CONTEXT_SECTION}` + JSON_OUTPUT_FORMAT;
     console.log(`[FLUSH] using built-in default prompt (Ju)`);
   }
 
@@ -649,8 +663,8 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   };
 
   // ── Call Gemini ───────────────────────────────────────────────────────────
-  const primaryGeminiModel = creds?.llm_config?.gemini_model ?? "gemini-2.5-flash";
-  const fallbackGeminiModel = creds?.llm_config?.gemini_fallback_model ?? "gemini-2.0-flash";
+  const primaryGeminiModel = creds?.llm_config?.gemini_model ?? "gemini-2.0-flash";
+  const fallbackGeminiModel = creds?.llm_config?.gemini_fallback_model ?? "gemini-2.5-flash";
   const geminiModels = [...new Set([primaryGeminiModel, fallbackGeminiModel].filter(Boolean))];
   let finalReply = "⚠️ Nenhum provedor de IA respondeu.";
   let detectedIntention = "none";
@@ -764,14 +778,14 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
         response_format: { type: "json_object" },
         temperature: 0.4
       };
-      const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      const openAiRes = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${openAiKey}`
         },
         body: JSON.stringify(openAiBody)
-      });
+      }, OPENAI_TIMEOUT_MS);
       if (openAiRes.ok) {
         const oData = await openAiRes.json();
         const fallbackText = oData.choices[0]?.message?.content;
@@ -849,7 +863,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   for (const chunk of chunks) {
     if (!chunk) continue;
     await sendOutboundText(chunk);
-    if (chunks.length > 1) await new Promise<void>(r => setTimeout(r, 1200));
+    if (chunks.length > 1) await new Promise<void>(r => setTimeout(r, INTER_CHUNK_DELAY_MS));
   }
 
   if (!outboundDelivered) {
