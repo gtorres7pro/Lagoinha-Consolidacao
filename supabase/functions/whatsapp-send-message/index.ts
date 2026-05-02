@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const { error: pendingErr } = await sb.from("messages")
-      .update({ responded_at: nowIso })
+      .update({ responded_at: nowIso, bot_processing_at: null })
       .eq("workspace_id", workspace_id)
       .in("lead_id", relatedLeadIds)
       .eq("direction", "inbound")

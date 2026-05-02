@@ -261,13 +261,39 @@ Deno.serve(async (req: Request) => {
     return new Response("human lock active", { status: 200 });
   }
 
-  const { data: pending } = await sb.from("messages")
+  const { data: pendingCandidates } = await sb.from("messages")
     .select("id, content, type, created_at")
     .in("lead_id", conversationLeadIds)
     .eq("direction", "inbound").is("responded_at", null)
     .order("created_at", { ascending: true });
 
-  if (!pending?.length) return new Response("no pending", { status: 200 });
+  if (!pendingCandidates?.length) return new Response("no pending", { status: 200 });
+
+  const claimCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { data: claimedPending, error: claimError } = await sb.from("messages")
+    .update({ bot_processing_at: new Date().toISOString() })
+    .in("id", pendingCandidates.map((m: any) => m.id))
+    .is("responded_at", null)
+    .or(`bot_processing_at.is.null,bot_processing_at.lt.${claimCutoff}`)
+    .select("id, content, type, created_at");
+
+  if (claimError) {
+    console.error("[FLUSH] claim error:", claimError.message);
+    await sb.from("app_logs").insert({
+      workspace_id: lead.workspace_id,
+      type: "error",
+      title: "WhatsApp flush_claim_error",
+      description: JSON.stringify({ lead_id, reason: claimError.message }, null, 2),
+      status: "pending",
+      is_public: false,
+    });
+    return new Response(JSON.stringify({ ok: false, error: "claim_error" }), { status: 500 });
+  }
+
+  const pending = (claimedPending ?? [])
+    .sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)));
+
+  if (!pending.length) return new Response("already processing", { status: 200 });
 
   const ids = pending.map((m: any) => m.id);
   const userTextCombined = pending.map((m: any) => m.content).join("\n");
@@ -301,7 +327,9 @@ Deno.serve(async (req: Request) => {
 
   async function markInboundResponded() {
     if (inboundMarkedResponded) return;
-    await sb.from("messages").update({ responded_at: new Date().toISOString() }).in("id", ids);
+    await sb.from("messages")
+      .update({ responded_at: new Date().toISOString(), bot_processing_at: null })
+      .in("id", ids);
     inboundMarkedResponded = true;
   }
 
@@ -702,9 +730,36 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   let audioScript: string | null = null;
   let audioComplement: string | null = null;
 
+  function decodeLooseJsonString(value: string) {
+    return value
+      .replace(/\\n/g, "\n")
+      .replace(/\\"/g, "\"")
+      .replace(/\\\\/g, "\\")
+      .trim();
+  }
+
+  function looseJsonField(rawText: string, field: string): string | null {
+    const re = new RegExp(`"${field}"\\s*:\\s*"([\\s\\S]*?)"\\s*(?:,\\s*"|\\s*})`);
+    const match = rawText.match(re);
+    return match?.[1] ? decodeLooseJsonString(match[1]) : null;
+  }
+
   function consumeJsonResponse(rawText: string, providerLabel: string) {
     const cleaned = rawText.replace(/```json|```/g, "").trim();
-    const parsedJSON = JSON.parse(cleaned);
+    let parsedJSON: any;
+    try {
+      parsedJSON = JSON.parse(cleaned);
+    } catch (e) {
+      const looseReply = looseJsonField(cleaned, "whatsapp_reply");
+      if (!looseReply) throw e;
+      parsedJSON = {
+        whatsapp_reply: looseReply,
+        whatsapp_audio_script: looseJsonField(cleaned, "whatsapp_audio_script"),
+        whatsapp_text_complement: looseJsonField(cleaned, "whatsapp_text_complement"),
+        detected_intention: looseJsonField(cleaned, "detected_intention") || "none",
+      };
+      console.warn(`[FLUSH] ${providerLabel} returned malformed JSON; recovered whatsapp_reply loosely.`);
+    }
     if (parsedJSON.whatsapp_reply) {
       finalReply = parsedJSON.whatsapp_reply;
     } else {
@@ -857,10 +912,18 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   // ── Send response ─────────────────────────────────────────────────────────
   const isError = finalReply.startsWith("⚠️");
   if (isError) {
-    // Log technical error to app_logs so it doesn't appear as a sent WhatsApp message
-    await logAppError("flush_generation_error", { reason: finalReply });
-    // Send friendly fallback to user
-    finalReply = "Opa, minha inteligência artificial teve um pequeno engasgo de conexão agora. Pode me mandar um 'Oi' novamente em um minutinho? 😊";
+    await logAppError("flush_generation_error", {
+      reason: finalReply,
+      pending_ids: ids,
+      silent_to_user: true,
+    });
+    return new Response(JSON.stringify({
+      ok: false,
+      error: "generation_failed_silent",
+      processed: 0,
+      silent_to_user: true,
+      mode,
+    }), { status: 200 });
   }
 
   let chunks = splitOutgoingMessages(finalReply);
