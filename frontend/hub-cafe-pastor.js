@@ -253,7 +253,7 @@
         var today2 = new Date(); today2.setHours(0,0,0,0);
         var weekE  = new Date(today2.getTime() + 7*86400000);
         var kpiHtml =
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;">'
+            '<div class="cp-kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;">'
             + _calKpi('Total', all.length, '#60A5FA', 'agendamentos')
             + _calKpi('Confirmados', all.filter(function(a){return a.status==='confirmed';}).length, '#60A5FA', 'aguardando')
             + _calKpi('Concluídos',  all.filter(function(a){return a.status==='completed';}).length, '#4ADE80', 'realizados')
@@ -297,11 +297,11 @@
     }
 
     function _calKpi(title, val, color, sub) {
-        return '<div style="background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));'
+        return '<div class="cp-kpi-card" style="background:var(--bg-card-solid,#131318);border:1px solid var(--border,rgba(255,255,255,.07));'
             + 'border-top:3px solid ' + color + ';border-radius:12px;padding:14px;min-width:0;">'
-            + '<div style="font-size:.7rem;font-weight:600;color:var(--text-muted,#9ca3af);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">' + esc(title) + '</div>'
-            + '<div style="font-size:1.7rem;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>'
-            + '<div style="font-size:.7rem;color:var(--text-muted,#6b7280);margin-top:3px;">' + esc(sub) + '</div>'
+            + '<div class="cp-kpi-title" style="font-size:.7rem;font-weight:600;color:var(--text-muted,#9ca3af);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">' + esc(title) + '</div>'
+            + '<div class="cp-kpi-value" style="font-size:1.7rem;font-weight:800;color:' + color + ';line-height:1;">' + val + '</div>'
+            + '<div class="cp-kpi-sub" style="font-size:.7rem;color:var(--text-muted,#6b7280);margin-top:3px;">' + esc(sub) + '</div>'
             + '</div>';
     }
 

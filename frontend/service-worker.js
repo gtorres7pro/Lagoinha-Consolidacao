@@ -1,4 +1,4 @@
-const CACHE_VERSION = '20260501v1';
+const CACHE_VERSION = '20260502v1';
 const STATIC_CACHE = `zelo-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `zelo-runtime-${CACHE_VERSION}`;
 
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   '/hub.css',
   '/hub.js',
   '/hub-dashboard.js',
+  '/hub-cafe-pastor.js',
   '/hub-login.js'
 ];
 

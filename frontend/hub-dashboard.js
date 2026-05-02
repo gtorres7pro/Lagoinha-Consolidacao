@@ -14791,3 +14791,137 @@ async function reviewApplication(newStatus) {
     const label = newStatus === 'approved' ? '✅ Aplicação aprovada! PDF a ser gerado…' : '❌ Aplicação rejeitada.';
     showHubToast(label, newStatus === 'approved' ? 'success' : 'error');
 }
+
+/* ── Mobile header actions: primary button + overflow menu ─────────────── */
+(function initMobileHeaderActions() {
+    const mobileQuery = window.matchMedia('(max-width: 1023px)');
+    const primaryText = /(novo|nova|adicionar|agendar|criar|salvar|gerar|abrir|publicar|enviar)/i;
+    let scheduled = false;
+
+    function actionLabel(el) {
+        return (el.textContent || el.getAttribute('aria-label') || el.title || '').trim();
+    }
+
+    function isActionCandidate(el) {
+        return el && el.matches && el.matches('button, a.btn, a[role="button"]') && !el.closest('.mobile-action-split');
+    }
+
+    function pickPrimary(actions) {
+        return actions.find(el => el.classList.contains('btn-primary'))
+            || actions.find(el => primaryText.test(actionLabel(el)))
+            || actions[0];
+    }
+
+    function closeMenus(exceptMenu) {
+        document.querySelectorAll('.mobile-action-menu.open').forEach(menu => {
+            if (menu !== exceptMenu) {
+                menu.classList.remove('open');
+                const toggle = menu.parentElement && menu.parentElement.querySelector('.mobile-action-more');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    function enhanceGroup(group) {
+        if (!group || group.dataset.zeloSplit === '1') return;
+
+        const actions = Array.from(group.children).filter(isActionCandidate);
+        if (actions.length <= 1) return;
+
+        actions.forEach((el, index) => { el.dataset.zeloActionIndex = String(index); });
+
+        const primary = pickPrimary(actions);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mobile-action-split';
+
+        const menu = document.createElement('div');
+        menu.className = 'mobile-action-menu';
+
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'mobile-action-more';
+        more.setAttribute('aria-label', 'Mais ações');
+        more.setAttribute('aria-expanded', 'false');
+        more.innerHTML = '<span aria-hidden="true">&#9662;</span>';
+
+        group.insertBefore(wrapper, actions[0]);
+
+        primary.classList.add('mobile-action-primary');
+        wrapper.appendChild(primary);
+        wrapper.appendChild(more);
+        wrapper.appendChild(menu);
+
+        actions.filter(el => el !== primary).forEach(el => {
+            el.classList.add('mobile-action-item');
+            menu.appendChild(el);
+        });
+
+        more.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const willOpen = !menu.classList.contains('open');
+            closeMenus(menu);
+            menu.classList.toggle('open', willOpen);
+            more.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+
+        menu.addEventListener('click', () => {
+            menu.classList.remove('open');
+            more.setAttribute('aria-expanded', 'false');
+        });
+
+        group.dataset.zeloSplit = '1';
+    }
+
+    function restoreGroup(group) {
+        if (!group || group.dataset.zeloSplit !== '1') return;
+
+        const wrapper = Array.from(group.children).find(el => el.classList.contains('mobile-action-split'));
+        if (!wrapper) {
+            delete group.dataset.zeloSplit;
+            return;
+        }
+
+        const actions = Array.from(wrapper.querySelectorAll('[data-zelo-action-index]'))
+            .sort((a, b) => Number(a.dataset.zeloActionIndex) - Number(b.dataset.zeloActionIndex));
+
+        actions.forEach(el => {
+            el.classList.remove('mobile-action-primary', 'mobile-action-item');
+            delete el.dataset.zeloActionIndex;
+            group.insertBefore(el, wrapper);
+        });
+
+        wrapper.remove();
+        delete group.dataset.zeloSplit;
+    }
+
+    function refresh() {
+        scheduled = false;
+        const groups = Array.from(document.querySelectorAll('.top-bar > .actions'));
+        if (mobileQuery.matches) groups.forEach(enhanceGroup);
+        else groups.forEach(restoreGroup);
+    }
+
+    function scheduleRefresh() {
+        if (scheduled) return;
+        scheduled = true;
+        window.requestAnimationFrame(refresh);
+    }
+
+    function start() {
+        scheduleRefresh();
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.mobile-action-split')) closeMenus();
+        });
+        window.addEventListener('resize', scheduleRefresh, { passive: true });
+        if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', scheduleRefresh);
+        else if (mobileQuery.addListener) mobileQuery.addListener(scheduleRefresh);
+
+        const observer = new MutationObserver(scheduleRefresh);
+        observer.observe(document.body, { childList: true, subtree: true });
+        window.zeloRefreshMobileActions = scheduleRefresh;
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+    else start();
+})();
