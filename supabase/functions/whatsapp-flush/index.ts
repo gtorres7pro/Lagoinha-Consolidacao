@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { isInternalRequest } from "../_shared/auth.ts";
 
-const SILENCE_MS = 1800;
+const SILENCE_MS = 5000;
 const GEMINI_TIMEOUT_MS = 8000;
 const GEMINI_MAX_ATTEMPTS = 1;
 const OPENAI_TIMEOUT_MS = 8000;
@@ -16,6 +16,19 @@ const OUTBOUND_SEND_TIMEOUT_MS = 10000;
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
 function evoPhone(p: string)  { return p.startsWith("+") ? p.slice(1) : p; }
 function phoneDigits(p: string) { return String(p || "").replace(/\D/g, ""); }
+
+function normalizeForIntent(text: string): string {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isCafePastorRequest(text: string): boolean {
+  const t = normalizeForIntent(text);
+  if (/\b(urgente|emergencia|socorro|suicid|me matar|morrer|abuso|violencia)\b/.test(t)) return false;
+  return /(cafe\s+com\s+pastor|falar\s+com\s+(um\s+)?pastor|conversar\s+com\s+(um\s+)?pastor|marcar\s+.*pastor|agendar\s+.*pastor|atendimento\s+pastoral|aconselhamento\s+pastoral)/.test(t);
+}
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
   const controller = new AbortController();
@@ -261,13 +274,28 @@ Deno.serve(async (req: Request) => {
     return new Response("human lock active", { status: 200 });
   }
 
-  const { data: pendingCandidates } = await sb.from("messages")
+  let { data: pendingCandidates } = await sb.from("messages")
     .select("id, content, type, created_at")
     .in("lead_id", conversationLeadIds)
     .eq("direction", "inbound").is("responded_at", null)
     .order("created_at", { ascending: true });
 
   if (!pendingCandidates?.length) return new Response("no pending", { status: 200 });
+
+  const newestPendingAt = Math.max(
+    ...pendingCandidates.map((m: any) => new Date(m.created_at).getTime()).filter(Number.isFinite)
+  );
+  const remainingSilence = newestPendingAt ? SILENCE_MS - (Date.now() - newestPendingAt) : 0;
+  if (remainingSilence > 0) {
+    await new Promise<void>(r => setTimeout(r, remainingSilence));
+    const { data: refreshedPending } = await sb.from("messages")
+      .select("id, content, type, created_at")
+      .in("lead_id", conversationLeadIds)
+      .eq("direction", "inbound").is("responded_at", null)
+      .order("created_at", { ascending: true });
+    pendingCandidates = refreshedPending;
+    if (!pendingCandidates?.length) return new Response("no pending after debounce", { status: 200 });
+  }
 
   const claimCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
   const { data: claimedPending, error: claimError } = await sb.from("messages")
@@ -427,6 +455,101 @@ Deno.serve(async (req: Request) => {
     return `${days[s.day_label] || s.day_label} ${s.date.slice(8)} às ${s.time}`;
   }
 
+  function slotMatchesType(slot: any, apptType: string) {
+    return apptType === "both" || slot.session_type === apptType || slot.session_type === "both";
+  }
+
+  function availableSessionTypes(slots: any[]) {
+    const hasInperson = slots.some((s: any) => s.session_type === "inperson" || s.session_type === "both");
+    const hasOnline = slots.some((s: any) => s.session_type === "online" || s.session_type === "both");
+    return [
+      ...(hasInperson ? ["inperson"] : []),
+      ...(hasOnline ? ["online"] : []),
+    ];
+  }
+
+  function sessionTypeLabel(apptType: string) {
+    if (apptType === "inperson") return "presencial";
+    if (apptType === "online") return "online";
+    return "disponível";
+  }
+
+  async function startCafePastorFlow(source = "detected") {
+    const { pastors, slots } = await cpBotQuery();
+    const activePastors = (pastors as any[]) || [];
+    const availableSlots = ((slots as any[]) || []).filter(Boolean);
+
+    if (!activePastors.length || !availableSlots.length) {
+      await cpSaveCtx(null);
+      const noMsg = `Olá ${firstName}! Quero muito te ajudar com o Café com Pastor. No momento não encontrei horários abertos na agenda, mas vou deixar nossa equipe acompanhar por aqui para combinar com você.`;
+      if (await sendOutboundText(noMsg)) {
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
+      return new Response(JSON.stringify({ ok: true, cp_step: "no_slots_initial", source }), { status: 200 });
+    }
+
+    const types = availableSessionTypes(availableSlots);
+    const selectedType = types.length === 1 ? types[0] : "both";
+    const pastorsWithSlots = activePastors.filter((p: any) =>
+      availableSlots.some((s: any) => s.pastor_id === p.id && slotMatchesType(s, selectedType))
+    );
+
+    if (!pastorsWithSlots.length) {
+      await cpSaveCtx(null);
+      const noMsg = `Olá ${firstName}! Encontrei o Café com Pastor ativo, mas não achei horários livres agora. Vou deixar nossa equipe acompanhar por aqui para te ajudar.`;
+      if (await sendOutboundText(noMsg)) {
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
+      return new Response(JSON.stringify({ ok: true, cp_step: "no_matching_slots_initial", source }), { status: 200 });
+    }
+
+    if (selectedType !== "both" && pastorsWithSlots.length === 1) {
+      const pastor = pastorsWithSlots[0];
+      const pastorSlots = availableSlots
+        .filter((s: any) => s.pastor_id === pastor.id && slotMatchesType(s, selectedType))
+        .slice(0, 5);
+      const slotList = pastorSlots.map((s: any, i: number) => `${i+1}. ${fmtSlot(s)}`).join("\n");
+      const outMsg = `Claro, ${firstName}. Encontrei estes horários para o Café com Pastor ${sessionTypeLabel(selectedType)} com ${pastor.display_name}:
+
+${slotList}
+
+Digite o *número* do melhor horário para você. 📅`;
+      if (await sendOutboundText(outMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_slot", pastor_id: pastor.id, pastor_name: pastor.display_name, appointment_type: selectedType, slots: pastorSlots });
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
+      return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_slot", source }), { status: 200 });
+    }
+
+    if (selectedType !== "both") {
+      const pastorList = pastorsWithSlots.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\n");
+      const outMsg = `Claro, ${firstName}. Temos horários para o Café com Pastor ${sessionTypeLabel(selectedType)} com estes pastores:
+
+${pastorList}
+
+Responda com o *número* ou nome do pastor.`;
+      if (await sendOutboundText(outMsg)) {
+        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_pastor", appointment_type: selectedType, pastors: pastorsWithSlots });
+        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+      }
+      return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_pastor", source }), { status: 200 });
+    }
+
+    const pastorList = pastorsWithSlots.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\n");
+    const startMsg = `Olá ${firstName}! Que boa iniciativa — adoramos o Café com Pastor! ☕
+
+Temos estes pastores com horários disponíveis:
+
+${pastorList}
+
+Primeiro: prefere uma sessão *presencial* na igreja ou *online*?`;
+    if (await sendOutboundText(startMsg)) {
+      await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_type" });
+      await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
+    }
+    return new Response(JSON.stringify({ ok: true, cp_step: "awaiting_type", source }), { status: 200 });
+  }
+
   // ── Is cafe_pastor flow active? Check context OR freshly triggered ────────
   if (cpCtx?.flow === "cafe_pastor" && cpCtx?.step) {
     const step = cpCtx.step as string;
@@ -456,7 +579,8 @@ Deno.serve(async (req: Request) => {
 
       // Show pastor list
       const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\\n");
-      const outMsg = `Ótimo! Que tipo de sessão prefere: *presencial* ou *online*? Aqui estão os pastores disponíveis:
+      const typeText = apptType === "online" ? "online" : apptType === "inperson" ? "presenciais" : "disponíveis";
+      const outMsg = `Perfeito! Encontrei horários ${typeText} com estes pastores:
 
 ${pastorList}
 
@@ -510,9 +634,9 @@ ${list}`;
 
       if (!pastoSlots.length) {
         await cpSaveCtx(null);
-        const outMsg = `😕 ${chosenPastor.display_name} não tem horários disponíveis nos próximos dias. Gostaria de escolher outro pastor? Diga *sim* para recomeçar, ou acesse o link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
+        const outMsg = `😕 ${chosenPastor.display_name} não tem horários disponíveis nos próximos dias. Vou deixar nossa equipe acompanhar por aqui para te ajudar com esse agendamento.`;
         if (await sendOutboundText(outMsg)) {
-          await markLeadResponded();
+          await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
         }
         return new Response(JSON.stringify({ ok: true, cp_step: "no_slots" }), { status: 200 });
       }
@@ -598,9 +722,9 @@ Confirma? (Sim / Não)`;
       await cpSaveCtx(null); // Clear state
 
       if (!result?.ok) {
-        const outMsg = `Ops! Houve um erro ao confirmar o agendamento. 😕 Por favor, tente pelo link: https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
+        const outMsg = `Não consegui confirmar esse horário agora. Vou deixar nossa equipe acompanhar por aqui para fechar o agendamento com você.`;
         if (await sendOutboundText(outMsg)) {
-          await markLeadResponded();
+          await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
         }
         return new Response(JSON.stringify({ ok: true, cp_step: "book_error" }), { status: 200 });
       }
@@ -639,6 +763,10 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   if (!hasValidCreds(mode, creds)) {
     console.error(`[FLUSH] workspace=${ws?.id} mode=${mode} — missing send credentials`);
     return new Response("no creds", { status: 500 });
+  }
+
+  if (isCafePastorRequest(userTextCombined)) {
+    return await startCafePastorFlow("keyword");
   }
 
   const geminiKey: string = creds?.llm_config?.gemini_token
@@ -926,13 +1054,14 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     }), { status: 200 });
   }
 
-  let chunks = splitOutgoingMessages(finalReply);
+  const deferToCafePastor = detectedIntention === "cafe_pastor";
+  let chunks = deferToCafePastor ? [] : splitOutgoingMessages(finalReply);
 
   const hasAudio = pending.some((m: any) => m.type === "audio");
   const elevenLabsKey = creds?.llm_config?.elevenlabs_token;
   let audioSent = false;
 
-  if (hasAudio && elevenLabsKey && audioScript) {
+  if (!deferToCafePastor && hasAudio && elevenLabsKey && audioScript) {
     console.log("[TTS] Audio detected and script generated. Calling ElevenLabs TTS...");
     const audioBuffer = await generateElevenLabsAudio(audioScript, elevenLabsKey);
     if (audioBuffer) {
@@ -964,7 +1093,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
     if (chunks.length > 1) await new Promise<void>(r => setTimeout(r, INTER_CHUNK_DELAY_MS));
   }
 
-  if (!outboundDelivered) {
+  if (!outboundDelivered && !deferToCafePastor) {
     await logAppError("flush_no_outbound_delivered", {
       lead_id,
       pending_ids: ids,
@@ -978,30 +1107,7 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
   if (detectedIntention && detectedIntention !== "none") {
     // ── If cafe_pastor detected: start the booking flow ───────────────────────
     if (detectedIntention === "cafe_pastor") {
-      const { pastors, slots } = await cpBotQuery();
-      const activePastors = pastors as any[];
-      if (!activePastors.length) {
-        const pubLink = `https://zelo.7prolabs.com/cafe-pastor.html?ws=${lead.workspace_id}`;
-        const noMsg = `Olá ${firstName}! Adoramos a ideia de um Café com Pastor! ☕ No momento estamos organizando os horários. Acesse o link para agendar: ${pubLink}`;
-        if (await sendOutboundText(noMsg)) {
-          await markLeadResponded();
-        }
-        return new Response(JSON.stringify({ ok: true, cp_step: "no_pastors_initial" }), { status: 200 });
-      }
-      // Start flow: ask type
-      const pastorList = activePastors.map((p: any, i: number) => `${i+1}. ${p.display_name}`).join("\\n");
-      const startMsg = `Olá ${firstName}! Que boa iniciativa — adoramos o Café com Pastor! ☕
-
-Temos os seguintes pastores disponíveis:
-
-${pastorList}
-
-Primeiro: prefere uma sessão *presencial* na igreja ou *online* (vídeo chamada)?`;
-      if (await sendOutboundText(startMsg)) {
-        await cpSaveCtx({ flow: "cafe_pastor", step: "awaiting_type" });
-        await markLeadResponded({ inbox_status: "highlighted", inbox_priority: "cafe_pastor" });
-      }
-      return new Response(JSON.stringify({ ok: true, cp_step: "started" }), { status: 200 });
+      return await startCafePastorFlow("llm");
     }
 
     const titles: Record<string, string> = {

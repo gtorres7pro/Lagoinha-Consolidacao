@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
 
   // Fetch active pastors
   let query = sb.from("cafe_pastor_pastors")
-    .select("id, display_name, gender, bio, photo_url, session_duration_minutes, appointment_type")
+    .select("id, display_name, gender, bio, photo_url, session_duration_minutes")
     .eq("workspace_id", workspace_id)
     .eq("is_active", true);
 
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
     if (gender && gender !== "nao_informado" && !pastors?.length) {
       console.log(`[CPMatch] No pastors matched gender=${gender}, retrying without gender filter`);
       const { data: allPastors, error: allErr } = await sb.from("cafe_pastor_pastors")
-        .select("id, display_name, gender, bio, photo_url, session_duration_minutes, appointment_type")
+        .select("id, display_name, gender, bio, photo_url, session_duration_minutes")
         .eq("workspace_id", workspace_id)
         .eq("is_active", true)
         .order("display_name");

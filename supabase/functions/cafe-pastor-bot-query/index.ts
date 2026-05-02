@@ -26,7 +26,7 @@ async function queryAvailableSlots(workspace_id: string) {
   // 1. Get active pastors
   const { data: pastors, error: pErr } = await sb
     .from("cafe_pastor_pastors")
-    .select("id, display_name, gender, session_duration_minutes, appointment_type")
+    .select("id, display_name, gender, session_duration_minutes")
     .eq("workspace_id", workspace_id)
     .eq("is_active", true)
     .order("display_name");
