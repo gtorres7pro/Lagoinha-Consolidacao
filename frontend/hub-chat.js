@@ -28,6 +28,30 @@ let chatState = {
   currentUser: null,
 };
 
+async function resolveChatWorkspaceId(_sb, userWorkspaceId) {
+  const pathSlug = window.location.pathname.split('/').filter(Boolean)[0];
+  const slugWorkspace = (window._allWorkspaces || []).find(w => w.slug === pathSlug);
+  if (slugWorkspace?.id) return slugWorkspace.id;
+  if (pathSlug && !pathSlug.endsWith('.html')) {
+    try {
+      const { data: wsBySlug } = await _sb
+        .from('workspaces')
+        .select('id')
+        .eq('slug', pathSlug)
+        .maybeSingle();
+      if (wsBySlug?.id) return wsBySlug.id;
+    } catch (e) {
+      console.warn('[Chat] workspace slug resolution failed:', e);
+    }
+  }
+  return slugWorkspace?.id
+    || window.currentWorkspaceId
+    || window._currentWorkspaceId
+    || sessionStorage.getItem('ws_id')
+    || localStorage.getItem('currentWorkspaceId')
+    || userWorkspaceId;
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 async function initChatAoVivo() {
   let container = document.getElementById('view-chat-ao-vivo');
@@ -57,7 +81,8 @@ async function initChatAoVivo() {
 
   chatState.currentUser = userData;
   // Use the globally selected workspace first, then fallback to user's assigned workspace
-  chatState.workspaceId = window.currentWorkspaceId || sessionStorage.getItem('ws_id') || userData.workspace_id;
+  chatState.workspaceId = await resolveChatWorkspaceId(_sb, userData.workspace_id);
+  window.__chatAoVivoWorkspaceId = chatState.workspaceId;
 
   container.innerHTML = buildChatLayout();
   attachChatEvents();
@@ -866,7 +891,7 @@ async function loadKPIs() {
 // ─── LEADS ───────────────────────────────────────────────────────────────────
 async function loadLeads() {
   if (!chatState.workspaceId) return;
-  const { data: leads } = await window._sb
+  const { data: leads, error } = await window._sb
     .from('leads')
     .select('id, name, phone, inbox_status, inbox_priority, has_responded, llm_lock_until, wa_window_expires_at, last_message_at')
     .eq('workspace_id', chatState.workspaceId)
@@ -874,7 +899,20 @@ async function loadLeads() {
     .order('last_message_at', { ascending: false })
     .limit(200);
 
-  chatState.leads = leads ?? [];
+  if (error) {
+    console.error('[Chat] loadLeads error:', error);
+    const container = document.getElementById('chat-leads-list');
+    if (container) {
+      container.innerHTML = '<div class="chat-list-loading" style="padding:40px 20px;">Erro ao carregar conversas</div>';
+    }
+    return;
+  }
+
+  chatState.leads = (leads ?? []).map(l => ({
+    ...l,
+    inbox_status: l.inbox_status || 'neutral',
+    inbox_priority: l.inbox_priority || 'none',
+  }));
   renderLeadsList();
   updateSidebarBadge();
 }
@@ -2368,6 +2406,12 @@ async function sendNewConversation() {
 
 // ─── EXPOSE ─────────────────────────────────────────────────────────────
 window.initChatAoVivo = initChatAoVivo;
+window.refreshChatAoVivo = async function() {
+  if (!chatState.workspaceId) return initChatAoVivo();
+  await loadKPIs();
+  await loadLeads();
+  setupRealtime();
+};
 window.selectLead = selectLead;
 window.setChatFilter = setChatFilter;
 window.filterLeadsList = filterLeadsList;

@@ -3,14 +3,26 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { isInternalRequest } from "../_shared/auth.ts";
 
 const SILENCE_MS = 5000;
-const GEMINI_TIMEOUT_MS = 25000;
+const GEMINI_TIMEOUT_MS = 12000;
+const GEMINI_MAX_ATTEMPTS = 2;
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
 const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.tech";
 const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+const OUTBOUND_SEND_TIMEOUT_MS = 10000;
 
 function metaPhone(p: string) { return p.startsWith("+") ? p.slice(1) : p; }
 function evoPhone(p: string)  { return p.startsWith("+") ? p.slice(1) : p; }
+
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function kbText(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -58,11 +70,11 @@ function splitOutgoingMessages(text: string): string[] {
 async function sendTextMeta(token: string, phoneNumberId: string, phone: string, text: string): Promise<boolean> {
   const to = metaPhone(phone);
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+    const res = await fetchWithTimeout(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { body: text, preview_url: false } })
-    });
+    }, OUTBOUND_SEND_TIMEOUT_MS);
     if (!res.ok) console.error("WA Meta send error:", await res.text());
     return res.ok;
   } catch (e: any) {
@@ -75,14 +87,14 @@ async function generateElevenLabsAudio(text: string, apiKey: string): Promise<Ar
   const voiceId = "aCGr1Q44kFHtpFJqe5Ml"; // Kamila Torres
   const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=2`;
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetchWithTimeout(endpoint, {
       method: "POST",
       headers: { "xi-api-key": apiKey, "Content-Type": "application/json", "accept": "audio/mpeg" },
       body: JSON.stringify({
         text, model_id: "eleven_turbo_v2_5",
         voice_settings: { stability: 0.35, similarity_boost: 0.85 }
       })
-    });
+    }, 15000);
     if (!res.ok) { console.error("ElevenLabs failed:", await res.text()); return null; }
     return await res.arrayBuffer();
   } catch (e: any) { console.error("ElevenLabs exception:", e.message); return null; }
@@ -94,9 +106,9 @@ async function uploadMediaToWhatsApp(token: string, phoneId: string, audioBuffer
   const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
   formData.append("file", blob, "audio.mp3");
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/${phoneId}/media`, {
+    const res = await fetchWithTimeout(`https://graph.facebook.com/v20.0/${phoneId}/media`, {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData
-    });
+    }, OUTBOUND_SEND_TIMEOUT_MS);
     const data = await res.json();
     if (data.id) return data.id;
     console.error("Meta media upload failed:", data); return null;
@@ -106,10 +118,10 @@ async function uploadMediaToWhatsApp(token: string, phoneId: string, audioBuffer
 async function sendAudioMeta(token: string, phoneNumberId: string, phone: string, mediaId: string): Promise<boolean> {
   const to = metaPhone(phone);
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+    const res = await fetchWithTimeout(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "audio", audio: { id: mediaId } })
-    });
+    }, OUTBOUND_SEND_TIMEOUT_MS);
     if (!res.ok) console.error("WA Meta audio send error:", await res.text());
     return res.ok;
   } catch (e: any) { console.error("WA Meta audio send exception:", e.message); return false; }
@@ -120,11 +132,11 @@ async function sendAudioMeta(token: string, phoneNumberId: string, phone: string
 async function sendTextEvolution(instanceName: string, phone: string, text: string): Promise<boolean> {
   const number = evoPhone(phone);
   try {
-    const res = await fetch(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
+    const res = await fetchWithTimeout(`${EVOLUTION_URL}/message/sendText/${encodeURIComponent(instanceName)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": EVOLUTION_KEY },
       body: JSON.stringify({ number, text })
-    });
+    }, OUTBOUND_SEND_TIMEOUT_MS);
     if (!res.ok) { console.error("Evolution sendText error:", await res.text()); return false; }
     return true;
   } catch (e: any) { console.error("Evolution sendText exception:", e.message); return false; }
@@ -135,7 +147,7 @@ async function sendAudioEvolution(instanceName: string, phone: string, audioBuff
   // Evolution expects base64-encoded audio with mediatype
   const base64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
   try {
-    const res = await fetch(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instanceName)}`, {
+    const res = await fetchWithTimeout(`${EVOLUTION_URL}/message/sendMedia/${encodeURIComponent(instanceName)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": EVOLUTION_KEY },
       body: JSON.stringify({
@@ -145,7 +157,7 @@ async function sendAudioEvolution(instanceName: string, phone: string, audioBuff
         media: base64,
         fileName: "resposta.mp3"
       })
-    });
+    }, OUTBOUND_SEND_TIMEOUT_MS);
     if (!res.ok) { console.error("Evolution sendAudio error:", await res.text()); return false; }
     return true;
   } catch (e: any) { console.error("Evolution sendAudio exception:", e.message); return false; }
@@ -653,21 +665,16 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-        let retries = 3;
-        let delay = 1000;
+        let retries = GEMINI_MAX_ATTEMPTS;
+        let delay = 600;
 
         while (retries > 0) {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-
           try {
-            const res = await fetch(endpoint, {
+            const res = await fetchWithTimeout(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+            }, GEMINI_TIMEOUT_MS);
 
             const rawBody = await res.text();
             if (res.ok) {
@@ -714,7 +721,6 @@ O pastor receberá uma notificação. Qualquer dúvida, pode nos chamar aqui! �
               }
             }
           } catch (e: any) {
-            clearTimeout(timeoutId);
             if (e.name === "AbortError" || e.message.includes("fetch")) {
               console.error(`Gemini ${model} ${e.name}. Retrying in ${delay}ms...`);
               retries--;
