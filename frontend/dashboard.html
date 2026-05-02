@@ -25,7 +25,7 @@
             } catch (e) {}
         })();
     </script>
-    <link rel="stylesheet" href="/hub.css?v=20260502v3">
+    <link rel="stylesheet" href="/hub.css?v=20260502v4">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"
             integrity="sha384-NjOMWX/9jMIy9Lerrv8fNnbCxbdHWZ2eIND8LhjTaJ3jb9tkasA9+ITPvVcTGZFG"
             crossorigin="anonymous"></script>
@@ -2065,6 +2065,7 @@
                     <input type="date" id="topDateEnd" class="select-filter" style="padding:4px 8px;width:140px;background:transparent;border:none;color:#d1d7db;font-size:0.8rem;" onchange="applyTopCustomDate()">
                 </div>
 
+                <div id="tag-filter-bar" class="lead-tag-filter-bar" aria-label="Filtros por tag"></div>
                 <input type="text" class="search-bar" placeholder="Buscar pessoa ou celular..." id="searchInput" style="flex:1;min-width:200px;">
                 <button class="btn btn-outline" style="border-width:0;color:var(--text-dim);text-decoration:underline;font-size:0.8rem;padding:0;" onclick="clearFilters()">Limpar</button>
                 <button id="bulk-toggle-btn" class="btn btn-outline" style="font-size:0.8rem;padding:6px 14px;" onclick="toggleBulkMode()">☑️ Selecionar</button>
@@ -4370,17 +4371,23 @@ graph TD
              style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(14px);z-index:9500;justify-content:flex-end;">
             <div id="task-modal-panel" style="background:linear-gradient(180deg,#0f1120 0%,#0a0c17 100%);border-left:1.5px solid rgba(255,215,0,.12);width:min(680px,100vw);height:100%;overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .38s cubic-bezier(.4,0,.2,1);">
                 <!-- Gold accent bar -->
-                <div style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,transparent);flex-shrink:0;"></div>
+                <div class="task-modal-accent" style="height:3px;background:linear-gradient(90deg,#FFD700,#FF8C00,transparent);flex-shrink:0;"></div>
 
                 <!-- Modal Header -->
-                <div style="padding:24px 26px 18px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid rgba(255,255,255,.05);">
+                <div class="task-modal-topbar" style="padding:16px 26px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.05);">
                     <div style="flex:1;">
-                        <div id="task-modal-source-badge" style="display:none;margin-bottom:10px;"></div>
-                        <input id="task-modal-title" type="text" placeholder="Título da tarefa..."
-                               style="width:100%;font-size:1.25rem;font-weight:900;background:transparent;border:none;outline:none;color:#fff;padding:0;line-height:1.3;letter-spacing:-.01em;">
-                        <div id="task-modal-created-row" style="margin-top:6px;font-size:.72rem;color:rgba(255,255,255,.25);">Criada em: <span id="task-modal-created">—</span></div>
+                        <h2 id="task-modal-heading" style="font-size:1.05rem;font-weight:900;margin:0;color:#fff;line-height:1.2;">Nova Tarefa</h2>
                     </div>
                     <button onclick="closeTaskModal()" style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);cursor:pointer;flex-shrink:0;font-size:.85rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">✕</button>
+                </div>
+
+                <!-- Task name -->
+                <div class="task-modal-name-field" style="padding:18px 26px 0;">
+                    <label style="font-size:.72rem;color:rgba(255,255,255,.45);font-weight:800;letter-spacing:.03em;display:block;margin-bottom:8px;">Nome da Tarefa:</label>
+                    <input id="task-modal-title" type="text" placeholder="Digite o nome da tarefa"
+                           style="width:100%;font-size:.95rem;font-weight:750;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;outline:none;color:#fff;padding:13px 14px;line-height:1.3;box-sizing:border-box;">
+                    <div id="task-modal-source-badge" style="display:none;margin-top:10px;"></div>
+                    <div id="task-modal-created-row" style="margin-top:8px;font-size:.72rem;color:rgba(255,255,255,.25);">Criada em: <span id="task-modal-created">—</span></div>
                 </div>
 
                 <!-- Status + Priority pill row -->
@@ -9037,7 +9044,7 @@ graph TD
 
 
 
-    <script src="/hub-dashboard.js?v=20260502v3"></script>
+    <script src="/hub-dashboard.js?v=20260502v4"></script>
     <script src="/hub-whatsapp.js?v=20260414v1"></script>
 
     <script src="/hub-start.js?v=1"></script>
@@ -9047,7 +9054,7 @@ graph TD
     <script src="/hub-retencao.js?v=20260413v2"></script>
     <script src="/hub-regionais.js?v=20260413v1"></script>
     <script src="/hub-bi.js?v=20260413v1"></script>
-    <script src="/task-manager.js?v=20260420v2"></script>
+    <script src="/task-manager.js?v=20260502v4"></script>
     <!-- Incluir biblioteca PapaParse para processamento de CSV no frontend -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="/birthdays.js?v=20260402v1"></script>

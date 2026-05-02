@@ -611,7 +611,11 @@ window.openTaskModal = async function (taskId, defaultStatus) {
     setVal('task-modal-assignee', '');
 
     const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('task-modal-heading', taskId ? 'Editar Tarefa' : 'Nova Tarefa');
     setText('task-modal-created', '—');
+
+    const createdRow = document.getElementById('task-modal-created-row');
+    if (createdRow) createdRow.style.display = taskId ? '' : 'none';
 
     const srcBadge = document.getElementById('task-modal-source-badge');
     if (srcBadge) srcBadge.style.display = 'none';
@@ -654,10 +658,6 @@ window.openTaskModal = async function (taskId, defaultStatus) {
         }
     } else {
         // New task — reset new-feature fields
-        if (srcBadge) {
-            srcBadge.style.display = '';
-            srcBadge.innerHTML = '<span class="task-modal-badge">Nova tarefa</span>';
-        }
         setText('task-modal-created', 'Agora');
         const setVal2 = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
         setVal2('task-modal-recurrence', '');

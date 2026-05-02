@@ -4480,31 +4480,44 @@
 
         const user = currentLeadUser();
         const now = new Date().toISOString();
+        const previousDone = Boolean(lead[taskKey]);
+        const previousMeta = typeof structuredClone === 'function'
+            ? structuredClone(normalizeLeadTaskMeta(lead.task_meta))
+            : JSON.parse(JSON.stringify(normalizeLeadTaskMeta(lead.task_meta)));
         const taskMeta = normalizeLeadTaskMeta(lead.task_meta);
         taskMeta[taskKey] = done
             ? { ...(taskMeta[taskKey] || {}), completed_by: user.id, completed_by_name: user.name, completed_at: now }
             : { ...(taskMeta[taskKey] || {}), completed_by: null, completed_by_name: null, completed_at: null, reopened_by: user.id, reopened_by_name: user.name, reopened_at: now };
 
         syncLeadInMemory(leadId, { [taskKey]: done, task_meta: taskMeta });
-
-        const sb = window.supabaseClient;
-        if (sb) {
-            let payload = _leadTaskMetaAvailable ? { [taskKey]: done, task_meta: taskMeta } : { [taskKey]: done };
-            let { error } = await sb.from('leads').update(payload).eq('id', leadId);
-            if (error && _leadTaskMetaAvailable && /task_meta/i.test(error.message || '')) {
-                _leadTaskMetaAvailable = false;
-                payload = { [taskKey]: done };
-                ({ error } = await sb.from('leads').update(payload).eq('id', leadId));
-            }
-            if (error) throw error;
-            await insertLeadTaskActivity(lead, taskKey, done ? 'completed' : 'reopened', user);
-        }
-
         if (window.applyFilters) window.applyFilters();
         if (_drawerLeadId && String(_drawerLeadId) === String(leadId)) {
             renderLeadDrawerTasks(getLeadById(leadId));
-            loadLeadTaskActivity(leadId);
         }
+
+        try {
+            const sb = window.supabaseClient;
+            if (sb) {
+                let payload = _leadTaskMetaAvailable ? { [taskKey]: done, task_meta: taskMeta } : { [taskKey]: done };
+                let { error } = await sb.from('leads').update(payload).eq('id', leadId);
+                if (error && _leadTaskMetaAvailable && /task_meta/i.test(error.message || '')) {
+                    _leadTaskMetaAvailable = false;
+                    payload = { [taskKey]: done };
+                    ({ error } = await sb.from('leads').update(payload).eq('id', leadId));
+                }
+                if (error) throw error;
+                await insertLeadTaskActivity(lead, taskKey, done ? 'completed' : 'reopened', user);
+            }
+        } catch (error) {
+            syncLeadInMemory(leadId, { [taskKey]: previousDone, task_meta: previousMeta });
+            if (window.applyFilters) window.applyFilters();
+            if (_drawerLeadId && String(_drawerLeadId) === String(leadId)) {
+                renderLeadDrawerTasks(getLeadById(leadId));
+            }
+            throw error;
+        }
+
+        if (_drawerLeadId && String(_drawerLeadId) === String(leadId)) loadLeadTaskActivity(leadId);
 
         if (!opts.silent && typeof hubToast !== 'undefined') {
             const label = LEAD_TASK_LABELS[taskKey] || 'Tarefa';
@@ -13056,9 +13069,10 @@ async function sendMilaMessage() {
         bar.className = 'lead-tag-filter-bar';
         const toolbar = document.querySelector('#view-dashboard .toolbar');
         const search = document.getElementById('searchInput');
-        const ref = document.getElementById('leads-container');
-        if (toolbar && bar.parentElement !== toolbar) toolbar.insertBefore(bar, search || null);
-        else if (!bar.parentElement && ref) ref.parentElement.insertBefore(bar, ref);
+        if (!toolbar) return;
+        if (bar.parentElement !== toolbar || (search && bar.nextElementSibling !== search)) {
+            toolbar.insertBefore(bar, search || null);
+        }
 
         const active = window._activeTagFilter || '';
         bar.innerHTML = `
