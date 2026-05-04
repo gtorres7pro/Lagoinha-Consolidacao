@@ -306,10 +306,16 @@
     <!-- Leads -->
     <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
       <div class="section-title">Pessoas</div>
-      <button onclick="downloadPublicReportCSV()" style="display:flex;align-items:center;gap:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:#FFD700;padding:8px 16px;border-radius:10px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:0.2s;font-family:inherit;" onmouseover="this.style.background='rgba(255,215,0,0.15)'" onmouseout="this.style.background='rgba(255,215,0,0.08)'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Baixar Relatório CSV
-      </button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button onclick="downloadPublicReportExcel()" style="display:flex;align-items:center;gap:6px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.28);color:#34D399;padding:8px 16px;border-radius:10px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:0.2s;font-family:inherit;" onmouseover="this.style.background='rgba(52,211,153,0.18)'" onmouseout="this.style.background='rgba(52,211,153,0.1)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
+          Baixar Excel
+        </button>
+        <button onclick="downloadPublicReportCSV()" style="display:flex;align-items:center;gap:6px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.25);color:#FFD700;padding:8px 16px;border-radius:10px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:0.2s;font-family:inherit;" onmouseover="this.style.background='rgba(255,215,0,0.15)'" onmouseout="this.style.background='rgba(255,215,0,0.08)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar CSV
+        </button>
+      </div>
     </div>
     <div id="leads-loading" class="spinner"></div>
     <div id="leads-grid" class="leads-grid" style="display:none;"></div>
@@ -766,8 +772,28 @@ function hexToRgb(hex) {
 function _csvEsc(val) {
   if (val == null) return '';
   const s = String(val);
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes('\t') || /^\s/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
+}
+function _csvExcelText(val) {
+  const s = String(val ?? '').trim();
+  return s ? `="${s.replace(/"/g, '""')}"` : '';
+}
+function _csvPhone(val) {
+  const raw = String(val || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return raw;
+  if (digits.length === 10) return `+1 (${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  if (digits.startsWith('1') && digits.length === 11) return `+1 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+  if (digits.startsWith('55') && digits.length >= 12) {
+    const area = digits.slice(2,4);
+    const rest = digits.slice(4);
+    if (rest.length === 9) return `+55 (${area}) ${rest.slice(0,5)}-${rest.slice(5)}`;
+    if (rest.length === 8) return `+55 (${area}) ${rest.slice(0,4)}-${rest.slice(4)}`;
+  }
+  if (digits.startsWith('351') && digits.length === 12) return `+351 ${digits.slice(3,6)} ${digits.slice(6,9)} ${digits.slice(9)}`;
+  return raw.startsWith('+') ? '+' + digits : digits;
 }
 function _dlBlob(csv, filename) {
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -776,6 +802,118 @@ function _dlBlob(csv, filename) {
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
   setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+}
+function _dlBlobRaw(content, filename, type) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+}
+const PUBLIC_REPORT_HEADERS = ['Nome','Telefone','Email','Decisão','Culto','Cidade','Estado','País','GC','Batismo','Idade','Sexo','Estado Civil','Melhor Horário','Tags','Data'];
+function _publicReportRows(leads) {
+  return leads.map(l => [
+    l.name,
+    _csvPhone(l.phone),
+    l.email,
+    l.decisao,
+    l.culto,
+    l.cidade,
+    l.estado,
+    l.pais,
+    l.gc_status,
+    l.batizado,
+    l.idade,
+    l.sexo,
+    l.estado_civil,
+    l.melhor_horario,
+    (l.tags||[]).join('; '),
+    l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : ''
+  ]);
+}
+function _xmlEsc(val) {
+  return String(val ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _colName(n) {
+  let s = '';
+  while (n > 0) {
+    const m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - m) / 26);
+  }
+  return s;
+}
+function _crc32(bytes) {
+  if (!_crc32.table) {
+    _crc32.table = Array.from({ length: 256 }, (_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      return c >>> 0;
+    });
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = _crc32.table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function _zipDateTime(date = new Date()) {
+  const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = Math.max(1980, date.getFullYear()) - 1980;
+  return { time, date: (year << 9) | (month << 5) | day };
+}
+function _u16(n) { const a = new Uint8Array(2); new DataView(a.buffer).setUint16(0, n, true); return a; }
+function _u32(n) { const a = new Uint8Array(4); new DataView(a.buffer).setUint32(0, n >>> 0, true); return a; }
+function _xlsxBlob(files) {
+  const enc = new TextEncoder();
+  const dt = _zipDateTime();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  files.forEach(file => {
+    const nameBytes = enc.encode(file.name);
+    const dataBytes = enc.encode(file.content);
+    const crc = _crc32(dataBytes);
+    const local = new Uint8Array([
+      ..._u32(0x04034b50), ..._u16(20), ..._u16(0x0800), ..._u16(0),
+      ..._u16(dt.time), ..._u16(dt.date), ..._u32(crc), ..._u32(dataBytes.length), ..._u32(dataBytes.length),
+      ..._u16(nameBytes.length), ..._u16(0), ...nameBytes
+    ]);
+    localParts.push(local, dataBytes);
+    const central = new Uint8Array([
+      ..._u32(0x02014b50), ..._u16(20), ..._u16(20), ..._u16(0x0800), ..._u16(0),
+      ..._u16(dt.time), ..._u16(dt.date), ..._u32(crc), ..._u32(dataBytes.length), ..._u32(dataBytes.length),
+      ..._u16(nameBytes.length), ..._u16(0), ..._u16(0), ..._u16(0), ..._u16(0), ..._u32(0), ..._u32(offset), ...nameBytes
+    ]);
+    centralParts.push(central);
+    offset += local.length + dataBytes.length;
+  });
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array([
+    ..._u32(0x06054b50), ..._u16(0), ..._u16(0), ..._u16(files.length), ..._u16(files.length),
+    ..._u32(centralSize), ..._u32(offset), ..._u16(0)
+  ]);
+  return new Blob([...localParts, ...centralParts, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function _makeXlsx(rows) {
+  const sheetRows = rows.map((row, rIdx) => {
+    const cells = row.map((cell, cIdx) => {
+      const ref = `${_colName(cIdx + 1)}${rIdx + 1}`;
+      const style = rIdx === 0 ? ' s="1"' : '';
+      return `<c r="${ref}" t="inlineStr"${style}><is><t xml:space="preserve">${_xmlEsc(cell)}</t></is></c>`;
+    }).join('');
+    return `<row r="${rIdx + 1}">${cells}</row>`;
+  }).join('');
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${PUBLIC_REPORT_HEADERS.map((_, i) => `<col min="${i + 1}" max="${i + 1}" width="${i === 1 ? 18 : i === 14 ? 24 : 15}" customWidth="1"/>`).join('')}</cols><sheetData>${sheetRows}</sheetData></worksheet>`;
+  return _xlsxBlob([
+    { name: '[Content_Types].xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+    { name: '_rels/.rels', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+    { name: 'xl/workbook.xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Relatorio" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+    { name: 'xl/_rels/workbook.xml.rels', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { name: 'xl/styles.xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><sz val="11"/><name val="Aptos"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="49" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>' },
+    { name: 'xl/worksheets/sheet1.xml', content: sheetXml }
+  ]);
 }
 function _launchConfetti() {
   const colors = ['#FFD700','#FFA000','#FF6B6B','#34D399','#60A5FA','#A78BFA','#F472B6','#fff'];
@@ -802,20 +940,20 @@ function downloadPublicReportCSV() {
   const leads = window._filteredPublicLeads || window._allLeads || [];
   if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
   const now = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
-  const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','Cidade','Estado','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
-  const rows = leads.map(l => [
-    _csvEsc(l.name),_csvEsc(l.phone),_csvEsc(l.email),
-    _csvEsc(l.type==='saved'?'Salvo':'Visitante'),
-    _csvEsc(l.decisao),_csvEsc(l.culto),_csvEsc(l.cidade),_csvEsc(l.estado),_csvEsc(l.pais),
-    _csvEsc(l.gc_status),_csvEsc(l.batizado),_csvEsc(l.idade),
-    _csvEsc(l.sexo),_csvEsc(l.melhor_horario),
-    _csvEsc((l.tags||[]).join('; ')),
-    _csvEsc(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
-  ]);
-  const csv = [headers.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const rows = _publicReportRows(leads).map(r => r.map((cell, idx) => _csvEsc(idx === 1 || idx === 10 ? _csvExcelText(cell) : cell)));
+  const csv = [PUBLIC_REPORT_HEADERS.join(','),...rows.map(r=>r.join(','))].join('\n');
   _dlBlob(csv, `relatorio_consolidacao_${now}.csv`);
   _launchConfetti();
   setTimeout(() => alert('🎉 Download concluído! ' + leads.length + ' registro(s) exportados.'), 500);
+}
+function downloadPublicReportExcel() {
+  const leads = window._filteredPublicLeads || window._allLeads || [];
+  if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
+  const now = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  const rows = [PUBLIC_REPORT_HEADERS, ..._publicReportRows(leads)];
+  _dlBlobRaw(_makeXlsx(rows), `relatorio_consolidacao_${now}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  _launchConfetti();
+  setTimeout(() => alert('🎉 Excel concluído! ' + leads.length + ' registro(s) exportados.'), 500);
 }
 </script>
 </body>

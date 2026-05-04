@@ -13527,8 +13527,30 @@ async function sendMilaMessage() {
     function csvEscape(val) {
         if (val == null) return '';
         const s = String(val);
-        if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+        if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes('\t') || /^\s/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
         return s;
+    }
+
+    function csvExcelText(val) {
+        const s = String(val ?? '').trim();
+        return s ? `="${s.replace(/"/g, '""')}"` : '';
+    }
+
+    function csvPhone(val) {
+        const raw = String(val || '').trim();
+        if (!raw) return '';
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return raw;
+        if (digits.length === 10) return `+1 (${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        if (digits.startsWith('1') && digits.length === 11) return `+1 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+        if (digits.startsWith('55') && digits.length >= 12) {
+            const area = digits.slice(2,4);
+            const rest = digits.slice(4);
+            if (rest.length === 9) return `+55 (${area}) ${rest.slice(0,5)}-${rest.slice(5)}`;
+            if (rest.length === 8) return `+55 (${area}) ${rest.slice(0,4)}-${rest.slice(4)}`;
+        }
+        if (digits.startsWith('351') && digits.length === 12) return `+351 ${digits.slice(3,6)} ${digits.slice(6,9)} ${digits.slice(9)}`;
+        return raw.startsWith('+') ? '+' + digits : digits;
     }
 
     function downloadBlob(csv, filename) {
@@ -13660,13 +13682,12 @@ async function sendMilaMessage() {
         if (!leads.length) { alert('Nenhum dado para exportar.'); return; }
 
         const now = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-        const headers = ['Nome','Telefone','Email','Tipo','Decisão','Culto','País','GC','Batismo','Idade','Sexo','Melhor Horário','Tags','Data'];
+        const headers = ['Nome','Telefone','Email','Decisão','Culto','Cidade','Estado','País','GC','Batismo','Idade','Sexo','Estado Civil','Melhor Horário','Tags','Data'];
         const rows = leads.map(l => [
-            csvEscape(l.name), csvEscape(l.phone), csvEscape(l.email),
-            csvEscape(l.type === 'saved' ? 'Salvo' : 'Visitante'),
-            csvEscape(l.decisao), csvEscape(l.culto), csvEscape(l.pais),
-            csvEscape(l.gc_status), csvEscape(l.batizado), csvEscape(l.idade),
-            csvEscape(l.sexo), csvEscape(l.melhor_horario),
+            csvEscape(l.name), csvEscape(csvExcelText(csvPhone(l.phone))), csvEscape(l.email),
+            csvEscape(l.decisao), csvEscape(l.culto), csvEscape(l.cidade), csvEscape(l.estado), csvEscape(l.pais),
+            csvEscape(l.gc_status), csvEscape(l.batizado), csvEscape(csvExcelText(l.idade)),
+            csvEscape(l.sexo), csvEscape(l.estado_civil), csvEscape(l.melhor_horario),
             csvEscape((l.tags||[]).join('; ')),
             csvEscape(l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '')
         ]);
