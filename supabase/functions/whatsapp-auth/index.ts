@@ -7,6 +7,8 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
+const GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") || "v25.0";
+
 async function exchangeToken(shortToken: string) {
   const APP_ID = Deno.env.get('FB_APP_ID');
   const APP_SECRET = Deno.env.get('FB_APP_SECRET');
@@ -19,14 +21,31 @@ async function exchangeToken(shortToken: string) {
     client_secret: APP_SECRET,
     fb_exchange_token: shortToken,
   });
-  const res = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?${params}`);
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token?${params}`);
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error?.message || 'Failed to exchange Facebook token');
   return data.access_token as string;
 }
 
+async function exchangeCode(code: string) {
+  const APP_ID = Deno.env.get('FB_APP_ID');
+  const APP_SECRET = Deno.env.get('FB_APP_SECRET');
+  if (!APP_ID || !APP_SECRET) throw new Error('Missing FB_APP_ID or FB_APP_SECRET in environment variables');
+  if (!code) throw new Error('Missing Embedded Signup authorization code');
+
+  const params = new URLSearchParams({
+    client_id: APP_ID,
+    client_secret: APP_SECRET,
+    code,
+  });
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token?${params}`);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error?.message || 'Failed to exchange Embedded Signup code');
+  return data.access_token as string;
+}
+
 async function fetchAccounts(longToken: string) {
-  const bizRes = await fetch(`https://graph.facebook.com/v20.0/me/businesses`, {
+  const bizRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/me/businesses`, {
     headers: { 'Authorization': `Bearer ${longToken}` },
   });
   const bizData = await bizRes.json();
@@ -35,20 +54,20 @@ async function fetchAccounts(longToken: string) {
   const accounts: any[] = [];
   const businesses = bizData.data || [];
   for (const biz of businesses) {
-    const wabaRes = await fetch(`https://graph.facebook.com/v20.0/${biz.id}/client_whatsapp_business_accounts`, {
+    const wabaRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${biz.id}/client_whatsapp_business_accounts`, {
       headers: { 'Authorization': `Bearer ${longToken}` },
     });
     const wabaData = await wabaRes.json();
     const wabas = wabaData.data || [];
 
-    const wabaOwnedRes = await fetch(`https://graph.facebook.com/v20.0/${biz.id}/owned_whatsapp_business_accounts`, {
+    const wabaOwnedRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${biz.id}/owned_whatsapp_business_accounts`, {
       headers: { 'Authorization': `Bearer ${longToken}` },
     });
     const wabaOwnedData = await wabaOwnedRes.json();
     wabas.push(...(wabaOwnedData.data || []));
 
     for (const waba of wabas) {
-      const phoneRes = await fetch(`https://graph.facebook.com/v20.0/${waba.id}/phone_numbers`, {
+      const phoneRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${waba.id}/phone_numbers`, {
         headers: { 'Authorization': `Bearer ${longToken}` },
       });
       const phoneData = await phoneRes.json();
@@ -65,6 +84,58 @@ async function fetchAccounts(longToken: string) {
     }
   }
   return accounts;
+}
+
+async function fetchAccountFromSession(longToken: string, sessionInfo: Record<string, any>) {
+  const wabaIds = [
+    sessionInfo?.waba_id,
+    ...(Array.isArray(sessionInfo?.waba_ids) ? sessionInfo.waba_ids : []),
+  ].filter(Boolean);
+
+  const accounts: any[] = [];
+  for (const wabaId of [...new Set(wabaIds)]) {
+    const wabaRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${wabaId}?fields=id,name`, {
+      headers: { 'Authorization': `Bearer ${longToken}` },
+    });
+    const waba = await wabaRes.json();
+    if (!wabaRes.ok || waba.error) {
+      console.warn(`[WA-AUTH] Could not fetch WABA ${wabaId}:`, waba.error?.message || JSON.stringify(waba));
+      continue;
+    }
+
+    const phoneRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name`, {
+      headers: { 'Authorization': `Bearer ${longToken}` },
+    });
+    const phoneData = await phoneRes.json();
+    if (!phoneRes.ok || phoneData.error) {
+      console.warn(`[WA-AUTH] Could not fetch phones for WABA ${wabaId}:`, phoneData.error?.message || JSON.stringify(phoneData));
+      continue;
+    }
+
+    for (const phone of (phoneData.data || [])) {
+      if (!accounts.some((a) => a.phone_id === phone.id)) {
+        accounts.push({
+          waba_id: waba.id,
+          waba_name: waba.name,
+          phone_id: phone.id,
+          phone_display: phone.display_phone_number || phone.verified_name || phone.id,
+        });
+      }
+    }
+  }
+
+  return accounts;
+}
+
+async function subscribeAppToWaba(longToken: string, wabaId: string) {
+  if (!wabaId) throw new Error('Missing WABA ID for webhook subscription');
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${wabaId}/subscribed_apps`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${longToken}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(data.error?.message || 'Failed to subscribe app to WABA webhooks');
+  return data;
 }
 
 async function getWorkspaceCredentials(workspaceId: string) {
@@ -95,6 +166,44 @@ function publicAccount(account: any) {
     phone_id: account?.phone_id || '',
     phone_display: account?.phone_display || account?.phone_id || '',
   };
+}
+
+async function persistMetaAccount(args: {
+  workspaceId: string,
+  longToken: string,
+  account: any,
+  signupMode?: string,
+  sessionInfo?: Record<string, any>,
+}) {
+  const { credentials } = await getWorkspaceCredentials(args.workspaceId);
+  const account = publicAccount(args.account);
+  if (!account.phone_id || !account.waba_id) throw new Error('Missing WhatsApp account selection');
+
+  let webhookSubscribed = false;
+  try {
+    await subscribeAppToWaba(args.longToken, account.waba_id);
+    webhookSubscribed = true;
+  } catch (e: any) {
+    console.warn('[WA-AUTH] WABA webhook subscription failed:', e.message);
+  }
+
+  await updateCredentials(args.workspaceId, {
+    ...credentials,
+    whatsapp_mode: 'meta',
+    whatsapp_token: args.longToken,
+    phone_id: account.phone_id,
+    business_id: account.waba_id,
+    waba_id: account.waba_id,
+    waba_name: account.waba_name,
+    phone_display: account.phone_display,
+    meta_connected_at: new Date().toISOString(),
+    meta_signup_mode: args.signupMode || 'embedded_signup',
+    meta_finish_event: args.sessionInfo?.finish_event || null,
+    meta_business_id: args.sessionInfo?.business_id || null,
+    ...(webhookSubscribed ? { meta_webhook_subscribed_at: new Date().toISOString() } : {}),
+  });
+
+  return { account, webhookSubscribed };
 }
 
 Deno.serve(async (req) => {
@@ -133,20 +242,45 @@ Deno.serve(async (req) => {
       const matched = accounts.find((a) => a.phone_id === requested.phone_id && a.waba_id === requested.waba_id);
       if (!matched) throw new Error('Selected WhatsApp account is not available for this Facebook user');
 
-      const { credentials } = await getWorkspaceCredentials(workspace_id);
-      const account = publicAccount(matched);
-      await updateCredentials(workspace_id, {
-        ...credentials,
-        whatsapp_mode: 'meta',
-        whatsapp_token: longToken,
-        phone_id: account.phone_id,
-        business_id: account.waba_id,
-        waba_id: account.waba_id,
-        waba_name: account.waba_name,
-        phone_display: account.phone_display,
-        meta_connected_at: new Date().toISOString(),
+      const { account, webhookSubscribed } = await persistMetaAccount({
+        workspaceId: workspace_id,
+        longToken,
+        account: matched,
+        signupMode: 'legacy_access_token',
       });
-      return json({ status: 'saved', account });
+      return json({ status: 'saved', account, webhook_subscribed: webhookSubscribed });
+    }
+
+    if (action === 'complete-embedded-signup') {
+      const code = String(body.code || '').trim();
+      const sessionInfo = body.session_info && typeof body.session_info === 'object' ? body.session_info : {};
+      const longToken = await exchangeCode(code);
+
+      const sessionAccounts = await fetchAccountFromSession(longToken, sessionInfo);
+      const fallbackAccounts = sessionAccounts.length ? [] : await fetchAccounts(longToken).catch((e) => {
+        console.warn('[WA-AUTH] fallback fetchAccounts failed:', e.message);
+        return [];
+      });
+      const accounts = sessionAccounts.length ? sessionAccounts : fallbackAccounts;
+      if (!accounts.length) {
+        throw new Error('Meta conectou o WABA, mas não retornou nenhum Phone Number ID. Complete a verificação do número no popup de coexistência e tente novamente.');
+      }
+
+      const requestedPhoneId = sessionInfo.phone_number_id || '';
+      const requestedWabaId = sessionInfo.waba_id || '';
+      const matched = accounts.find((a) =>
+        (requestedPhoneId && a.phone_id === requestedPhoneId) ||
+        (requestedWabaId && a.waba_id === requestedWabaId)
+      ) || accounts[0];
+
+      const { account, webhookSubscribed } = await persistMetaAccount({
+        workspaceId: workspace_id,
+        longToken,
+        account: matched,
+        signupMode: body.signup_mode || 'embedded_signup',
+        sessionInfo,
+      });
+      return json({ status: 'saved', account, webhook_subscribed: webhookSubscribed });
     }
 
     if (action === 'status') {
@@ -255,6 +389,6 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error:', error.message);
-    return json({ error: error.message }, 400);
+    return json({ ok: false, error: error.message });
   }
 });

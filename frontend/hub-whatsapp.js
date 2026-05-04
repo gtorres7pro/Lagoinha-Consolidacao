@@ -9,6 +9,12 @@
     'use strict';
 
     const META_APP_ID = '934037612918640';
+    const META_CONFIG_ID = (
+        window.ZELO_META_WHATSAPP_CONFIG_ID ||
+        document.querySelector('meta[name="zelo-meta-whatsapp-config-id"]')?.content ||
+        ''
+    ).trim();
+    const META_COEXISTENCE_FEATURE = 'whatsapp_business_app_onboarding';
     const EDGE_URL = 'https://uyseheucqikgcorrygzc.supabase.co/functions/v1';
 
     let _wsId = null;
@@ -22,11 +28,31 @@
         return data || {};
     }
 
+    function _setSignupStatus(msg, color, bg) {
+        const statusEl = document.getElementById('wa-signup-status');
+        if (!statusEl) return;
+        statusEl.style.display = 'block';
+        statusEl.style.color = color;
+        statusEl.style.background = bg;
+        statusEl.style.border = `1px solid ${color}40`;
+        statusEl.style.borderRadius = '8px';
+        statusEl.style.padding = '12px';
+        statusEl.textContent = msg;
+    }
+
+    async function _waitForSignupSessionInfo(timeoutMs = 1600) {
+        const started = Date.now();
+        while (!window._waSessionInfo && Date.now() - started < timeoutMs) {
+            await new Promise(res => setTimeout(res, 100));
+        }
+        return window._waSessionInfo || {};
+    }
+
     // ── Load Facebook SDK ─────────────────────────────────────
     function _loadFBSDK() {
         if (document.getElementById('facebook-jssdk')) return;
         window.fbAsyncInit = function () {
-            FB.init({ appId: META_APP_ID, autoLogAppEvents: true, xfbml: true, version: 'v21.0' });
+            FB.init({ appId: META_APP_ID, autoLogAppEvents: true, xfbml: true, version: 'v25.0' });
             _fbSDKReady = true;
             console.log('[WA] FB SDK ready');
         };
@@ -71,42 +97,44 @@
     window.launchWhatsAppSignup = function () {
         const statusEl = document.getElementById('wa-signup-status');
         if (!window.FB) {
-            if (statusEl) {
-                statusEl.style.display = 'block';
-                statusEl.style.color = '#fbbf24';
-                statusEl.style.background = 'rgba(251,191,36,0.08)';
-                statusEl.style.border = '1px solid rgba(251,191,36,0.2)';
-                statusEl.style.borderRadius = '8px';
-                statusEl.textContent = '⏳ SDK do Facebook carregando... Tente novamente em 2 segundos.';
-            }
+            _setSignupStatus('⏳ SDK do Facebook carregando... Tente novamente em 2 segundos.', '#fbbf24', 'rgba(251,191,36,0.08)');
+            return;
+        }
+
+        if (!META_CONFIG_ID) {
+            _setSignupStatus(
+                '⚠️ Falta o Meta Configuration ID do Embedded Signup. Crie a configuração “WhatsApp Embedded Signup” no Meta e adicione o ID no Zelo.',
+                '#fbbf24',
+                'rgba(251,191,36,0.08)'
+            );
             return;
         }
 
         // Reset any cached session info from a previous attempt
         window._waSessionInfo = null;
+        window._waSignupError = null;
 
         FB.login(function (response) {
             if (response.authResponse) {
                 _handleFBLoginSuccess(response.authResponse);
             } else {
-                if (statusEl) {
-                    statusEl.style.display = 'block';
-                    statusEl.style.color = '#f87171';
-                    statusEl.style.background = 'rgba(248,113,113,0.08)';
-                    statusEl.style.border = '1px solid rgba(248,113,113,0.2)';
-                    statusEl.style.borderRadius = '8px';
-                    statusEl.textContent = '❌ Login cancelado ou negado. Tente novamente.';
-                }
+                const reported = window._waSignupError?.data;
+                const reportedMsg = reported?.error_message || reported?.current_step;
+                _setSignupStatus(
+                    reportedMsg ? `❌ Cadastro cancelado pela Meta: ${reportedMsg}` : '❌ Login cancelado ou negado. Tente novamente.',
+                    '#f87171',
+                    'rgba(248,113,113,0.08)'
+                );
             }
         }, {
-            scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
+            config_id: META_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true,
             extras: {
-                sessionInfoVersion: 2,
-                featureType: 'whatsapp_embedded_signup',
-                setup: {
-                    business: {},
-                    phone: { display_phone_number_country_code: 'BR' },
-                }
+                version: 'v4',
+                setup: {},
+                featureType: META_COEXISTENCE_FEATURE,
+                sessionInfoVersion: '3',
             }
         });
     };
@@ -115,32 +143,39 @@
         const statusEl = document.getElementById('wa-signup-status');
         const signupBtn = document.getElementById('wa-signup-btn');
 
-        function _setStatus(msg, color, bg) {
-            if (!statusEl) return;
-            statusEl.style.display = 'block';
-            statusEl.style.color = color;
-            statusEl.style.background = bg;
-            statusEl.style.border = `1px solid ${color}40`;
-            statusEl.style.borderRadius = '8px';
-            statusEl.style.padding = '12px';
-            statusEl.textContent = msg;
-        }
-
-        _setStatus('⏳ Processando credenciais Meta...', '#fbbf24', 'rgba(251,191,36,0.08)');
+        _setSignupStatus('⏳ Processando credenciais Meta...', '#fbbf24', 'rgba(251,191,36,0.08)');
         if (signupBtn) signupBtn.disabled = true;
 
         try {
+            const sessionInfo = await _waitForSignupSessionInfo();
+            if (authResponse.code) {
+                const saved = await _waAuth('complete-embedded-signup', {
+                    code: authResponse.code,
+                    session_info: sessionInfo,
+                    signup_mode: 'coexistence',
+                });
+                const account = saved.account || {};
+                window._waSessionInfo = null;
+                _setSignupStatus(`✅ Conectado: ${account.phone_display || account.phone_id}`, '#4ade80', 'rgba(74,222,128,0.08)');
+                _showConnected({
+                    phone_display: account.phone_display || account.phone_id,
+                    waba_id: account.waba_id,
+                    connected_at: new Date().toISOString()
+                });
+                return;
+            }
+
             const token = authResponse.accessToken;
+            if (!token) throw new Error('Meta não retornou código ou token de autorização.');
             await new Promise(res => setTimeout(res, 800));
             const accountsData = await _waAuth('fetch-accounts', { short_lived_token: token });
             const accounts = accountsData.accounts || [];
             if (!accounts.length) {
-                _setStatus('⚠️ Não encontramos um número WhatsApp Business vinculado. Verifique se seu WABA está aprovado e use a configuração manual abaixo.', '#fbbf24', 'rgba(251,191,36,0.08)');
+                _setSignupStatus('⚠️ Não encontramos um número WhatsApp Business vinculado. Verifique se seu WABA está aprovado e use a configuração manual abaixo.', '#fbbf24', 'rgba(251,191,36,0.08)');
                 if (signupBtn) signupBtn.disabled = false;
                 return;
             }
 
-            const sessionInfo = window._waSessionInfo || {};
             const selected = accounts.find(a =>
                 (sessionInfo.phone_number_id && a.phone_id === sessionInfo.phone_number_id) ||
                 (sessionInfo.waba_id && a.waba_id === sessionInfo.waba_id)
@@ -154,12 +189,12 @@
             window._waSessionInfo = null; // Clear after use
 
             const account = saved.account || selected;
-            _setStatus(`✅ Conectado: ${account.phone_display || account.phone_id}`, '#4ade80', 'rgba(74,222,128,0.08)');
+            _setSignupStatus(`✅ Conectado: ${account.phone_display || account.phone_id}`, '#4ade80', 'rgba(74,222,128,0.08)');
             _showConnected({ phone_display: account.phone_display || account.phone_id, waba_id: account.waba_id, connected_at: new Date().toISOString() });
 
         } catch (e) {
             console.error('[WA] FB login error:', e);
-            _setStatus(`❌ Erro: ${e.message}`, '#f87171', 'rgba(248,113,113,0.08)');
+            _setSignupStatus(`❌ Erro: ${e.message}`, '#f87171', 'rgba(248,113,113,0.08)');
         } finally {
             if (signupBtn) signupBtn.disabled = false;
         }
@@ -245,19 +280,26 @@
     }
 
     // ── Capture Meta Embedded Signup sessionInfo via postMessage ─
-    // Meta sends waba_id + phone_number_id in a 'FINISH' event during Embedded Signup.
+    // Meta sends waba_id + phone_number_id in FINISH events during Embedded Signup.
     // This is the most reliable channel — the Graph API traversal below serves as fallback.
     window.addEventListener('message', function (event) {
         if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
         try {
             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            if (data && data.type === 'WA_EMBEDDED_SIGNUP' && data.event === 'FINISH') {
+            if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+            if (String(data.event || '').startsWith('FINISH')) {
                 const info = data.data || {};
                 window._waSessionInfo = {
                     waba_id: info.waba_id || null,
+                    waba_ids: info.waba_ids || [],
                     phone_number_id: info.phone_number_id || null,
+                    business_id: info.business_id || null,
+                    finish_event: data.event || null,
                 };
                 console.log('[WA] sessionInfo received via postMessage:', window._waSessionInfo);
+            } else if (data.event === 'CANCEL' || data.event === 'ERROR') {
+                window._waSignupError = data;
+                console.log('[WA] Embedded Signup did not finish:', data);
             }
         } catch (_) { /* ignore non-JSON messages */ }
     });
