@@ -99,6 +99,62 @@ function normalizePhoneForMeta(raw: unknown, workspace: any): string {
   return digits;
 }
 
+async function ensureBirthdayLead(args: {
+  supabaseAdmin: any;
+  birthday: any;
+  phone: string;
+  sentAt: string;
+}): Promise<string> {
+  const phoneCandidates = [...new Set([
+    String(args.birthday.phone ?? "").trim(),
+    args.phone,
+    `+${args.phone}`,
+  ].filter(Boolean))];
+
+  const { data: existingLeads, error: leadLookupError } = await args.supabaseAdmin
+    .from("leads")
+    .select("id")
+    .eq("workspace_id", args.birthday.workspace_id)
+    .in("phone", phoneCandidates)
+    .limit(1);
+
+  if (leadLookupError) throw leadLookupError;
+  const existingId = existingLeads?.[0]?.id;
+  if (existingId) {
+    const { error: updateError } = await args.supabaseAdmin
+      .from("leads")
+      .update({ last_message_at: args.sentAt })
+      .eq("id", existingId)
+      .eq("workspace_id", args.birthday.workspace_id);
+    if (updateError) throw updateError;
+    return existingId;
+  }
+
+  const { data: insertedLead, error: insertError } = await args.supabaseAdmin
+    .from("leads")
+    .insert({
+      workspace_id: args.birthday.workspace_id,
+      name: String(args.birthday.name ?? "").trim() || "Aniversariante",
+      phone: `+${args.phone}`,
+      email: args.birthday.email ?? null,
+      preferred_language: "pt",
+      type: "birthday",
+      source: "aniversariantes",
+      tags: ["Aniversariante"],
+      tasks: [],
+      last_message_at: args.sentAt,
+      bot_context: {
+        birthday_id: args.birthday.id,
+        birthday_source: "aniversariantes",
+      },
+    })
+    .select("id")
+    .single();
+
+  if (insertError) throw insertError;
+  return insertedLead.id;
+}
+
 async function readJson(req: Request): Promise<Record<string, any>> {
   try {
     const parsed = await req.json();
@@ -320,6 +376,28 @@ serve(async (req) => {
         }
 
         const waMessageId = data?.messages?.[0]?.id ?? null;
+        const sentAt = new Date().toISOString();
+        const leadId = await ensureBirthdayLead({
+          supabaseAdmin,
+          birthday,
+          phone: toPhone,
+          sentAt,
+        });
+
+        const { error: messageError } = await supabaseAdmin.from("messages").insert({
+          lead_id: leadId,
+          workspace_id: birthday.workspace_id,
+          direction: "outbound",
+          type: "template",
+          content: `📨 Template: ${templateName} | Olá, ${personFirstName}! A Lagoinha Orlando Church quer te parabenizar nesse dia tão especial.`,
+          automated: true,
+          responded_at: sentAt,
+          wa_message_id: waMessageId,
+        });
+        if (messageError) {
+          throw new Error(`Message sent but chat log failed: ${messageError.message}`);
+        }
+
         const { error: recordError } = await supabaseAdmin.from("birthday_message_sends").upsert({
           birthday_id: birthday.id,
           workspace_id: birthday.workspace_id,
