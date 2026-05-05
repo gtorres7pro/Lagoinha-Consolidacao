@@ -1,5 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  addDaysToDateKey,
+  dayOfWeekForDateKey,
+  formatZonedDateKey,
+  normalizeTimeZone,
+  zonedDateTimeToUtc,
+} from "../_shared/cafe-pastor.ts";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
@@ -24,12 +31,14 @@ Deno.serve(async (req: Request) => {
 
   console.log(`[CPMatch] ws=${workspace_id} session_type=${session_type} gender=${gender}`);
 
-  // Fetch workspace config for min_advance_hours
+  // Fetch workspace config for local-time slot generation.
   const { data: config } = await sb.from("cafe_pastor_config")
-    .select("min_advance_hours")
+    .select("min_advance_hours, booking_window_days, timezone")
     .eq("workspace_id", workspace_id)
     .maybeSingle();
   const minAdvanceHours = config?.min_advance_hours ?? 2;
+  const bookingWindowDays = Math.max(1, Math.min(config?.booking_window_days ?? 14, 90));
+  const timeZone = normalizeTimeZone(config?.timezone);
 
   // Fetch active pastors
   let query = sb.from("cafe_pastor_pastors")
@@ -58,18 +67,26 @@ Deno.serve(async (req: Request) => {
         return json({ ok: true, pastors: [], slots: [], _debug: { reason: "no_active_pastors" } });
       }
       // Use all pastors as fallback (cross-gender matching)
-      return await computeSlots(allPastors, workspace_id, session_type, minAdvanceHours);
+      return await computeSlots(allPastors, workspace_id, session_type, minAdvanceHours, bookingWindowDays, timeZone);
     }
     return json({ ok: true, pastors: [], slots: [], _debug: { reason: "no_pastors_match" } });
   }
 
-  return await computeSlots(pastors, workspace_id, session_type, minAdvanceHours);
+  return await computeSlots(pastors, workspace_id, session_type, minAdvanceHours, bookingWindowDays, timeZone);
 });
 
-async function computeSlots(pastors: any[], workspace_id: string, session_type: string | undefined, minAdvanceHours: number) {
+async function computeSlots(
+  pastors: any[],
+  workspace_id: string,
+  session_type: string | undefined,
+  minAdvanceHours: number,
+  bookingWindowDays: number,
+  timeZone: string,
+) {
   const pastorIds = pastors.map((p: any) => p.id);
-  const todayStr = new Date().toISOString().split("T")[0];
-  const in14Days = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
+  const todayStr = formatZonedDateKey(new Date(), timeZone);
+  const windowEndDate = addDaysToDateKey(todayStr, bookingWindowDays - 1);
+  const windowEndIso = zonedDateTimeToUtc(windowEndDate, "23:59:59", timeZone).toISOString();
 
   // Fetch availability rules
   const { data: avail } = await sb.from("cafe_pastor_availability")
@@ -81,26 +98,23 @@ async function computeSlots(pastors: any[], workspace_id: string, session_type: 
   // Fetch blocked slots
   const { data: blocked } = await sb.from("cafe_pastor_blocked_slots")
     .select("pastor_id, blocked_date, blocked_start, blocked_end")
-    .in("pastor_id", pastorIds).gte("blocked_date", todayStr).lte("blocked_date", in14Days);
+    .in("pastor_id", pastorIds).gte("blocked_date", todayStr).lte("blocked_date", windowEndDate);
 
   // Fetch existing appointments
   const { data: existing } = await sb.from("cafe_pastor_appointments")
     .select("pastor_id, scheduled_at, duration_minutes")
     .in("pastor_id", pastorIds)
     .gte("scheduled_at", new Date().toISOString())
-    .lte("scheduled_at", new Date(Date.now() + 14 * 86400000).toISOString())
+    .lte("scheduled_at", windowEndIso)
     .not("status", "in", "(cancelled,no_show)");
 
   const slots: any[] = [];
   const DAY_NAMES = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
   const advanceMs = minAdvanceHours * 3600000;
 
-  for (let dayOffset = 0; dayOffset <= 13; dayOffset++) {
-    const date = new Date();
-    date.setDate(date.getDate() + dayOffset);
-    date.setHours(0, 0, 0, 0);
-    const dateStr = date.toISOString().split("T")[0];
-    const dow = date.getDay();
+  for (let dayOffset = 0; dayOffset < bookingWindowDays; dayOffset++) {
+    const dateStr = addDaysToDateKey(todayStr, dayOffset);
+    const dow = dayOfWeekForDateKey(dateStr);
 
     for (const pastor of pastors as any[]) {
       const rule = (avail ?? []).find((a: any) =>
@@ -116,7 +130,9 @@ async function computeSlots(pastors: any[], workspace_id: string, session_type: 
 
       let slotH = startH, slotM = startM;
       while (slotH * 60 + slotM + duration <= endH * 60 + endM) {
-        const slotISO = `${dateStr}T${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}:00`;
+        const wallTime = `${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}:00`;
+        const slotStartUtc = zonedDateTimeToUtc(dateStr, wallTime, timeZone);
+        const slotISO = slotStartUtc.toISOString();
         const slotEndMins = slotH * 60 + slotM + duration;
 
         const isBlocked = dayBlocks.some((b: any) => {
@@ -131,12 +147,12 @@ async function computeSlots(pastors: any[], workspace_id: string, session_type: 
           if (e.pastor_id !== pastor.id) return false;
           const exStart = new Date(e.scheduled_at).getTime();
           const exEnd = exStart + (e.duration_minutes || duration) * 60000;
-          const slotStart = new Date(slotISO).getTime();
+          const slotStart = slotStartUtc.getTime();
           return slotStart < exEnd && (slotStart + duration * 60000) > exStart;
         });
 
         // Use config min_advance_hours instead of hardcoded 2h
-        const isPast = new Date(slotISO).getTime() < Date.now() + advanceMs;
+        const isPast = slotStartUtc.getTime() < Date.now() + advanceMs;
 
         if (!isBlocked && !isBooked && !isPast) {
           slots.push({
@@ -145,8 +161,9 @@ async function computeSlots(pastors: any[], workspace_id: string, session_type: 
             pastor_photo: pastor.photo_url,
             date: dateStr,
             day_label: DAY_NAMES[dow],
-            time: `${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}`,
+            time: wallTime.slice(0, 5),
             slot_iso: slotISO,
+            timezone: timeZone,
             session_type: rule.session_type,
             duration_minutes: duration,
           });

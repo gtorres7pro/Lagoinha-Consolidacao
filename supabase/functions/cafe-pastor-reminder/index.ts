@@ -1,5 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  buildManageAppointmentUrl,
+  escapeHtml,
+  formatCpDateTime,
+  getCafePastorContext,
+} from "../_shared/cafe-pastor.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -42,14 +48,14 @@ Deno.serve(async (req: Request) => {
 
   for (const appt of appointments as any[]) {
     const pastor = appt.cafe_pastor_pastors;
-    const pastorName = pastor?.display_name ?? "o pastor";
-    const scheduledDate = new Date(appt.scheduled_at).toLocaleString("pt-BR", {
-      weekday: "long", day: "2-digit", month: "long",
-      hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"
-    });
+    const pastorNameRaw = pastor?.display_name ?? "o pastor";
+    const pastorName = escapeHtml(pastorNameRaw);
+    const context = await getCafePastorContext(sb, appt.workspace_id);
+    const scheduledDate = formatCpDateTime(appt.scheduled_at, context.timeZone, false);
+    const manageUrl = await buildManageAppointmentUrl(appt);
     const typeLabel = appt.appointment_type === "inperson" ? "🏛️ Presencial" : "💻 Online";
     const sessionLink = appt.session_link
-      ? `<p style="margin:12px 0 0"><a href="${appt.session_link}" style="color:#FFD700;font-weight:600">📹 Entrar na reunião online</a></p>` : "";
+      ? `<p style="margin:12px 0 0"><a href="${escapeHtml(appt.session_link)}" style="color:#FFD700;font-weight:600">📹 Entrar na reunião online</a></p>` : "";
 
     const requesterHtml = `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f4f4f5;padding:40px 20px;margin:0">
 <table width="600" style="background:#fff;border-radius:16px;overflow:hidden;margin:0 auto">
@@ -58,7 +64,7 @@ Deno.serve(async (req: Request) => {
     <p style="color:#aaa;margin:6px 0 0;font-size:13px">Seu atendimento é amanhã!</p>
   </td></tr>
   <tr><td style="padding:32px">
-    <p>Olá <b>${appt.requester_name || "Amigo(a)"}</b>!</p>
+    <p>Olá <b>${escapeHtml(appt.requester_name || "Amigo(a)")}</b>!</p>
     <p style="color:#444">Apenas um lembrete de que você tem uma sessão de Café com Pastor amanhã:</p>
     <div style="background:#fffbef;border:1px solid #FFD700;border-radius:12px;padding:20px;margin:20px 0">
       <table style="width:100%;border-collapse:collapse">
@@ -69,6 +75,9 @@ Deno.serve(async (req: Request) => {
       ${sessionLink}
     </div>
     <p style="color:#555;font-size:13px">📌 Se precisar cancelar ou remarcar, entre em contato com até 1 hora de antecedência.</p>
+    <div style="text-align:center;margin:22px 0 4px">
+      <a href="${escapeHtml(manageUrl)}" style="display:inline-block;background:#111;color:#FFD700;border:1px solid #FFD700;padding:12px 24px;border-radius:999px;font-weight:700;text-decoration:none;font-size:14px">Cancelar ou remarcar</a>
+    </div>
     <div style="text-align:center;margin-top:24px">
       <p style="color:#888;font-size:13px;margin:0 0 6px">Com amor,</p>
       <p style="color:#111;font-weight:700">❤️ Equipe Pastoral</p>
@@ -90,8 +99,8 @@ Deno.serve(async (req: Request) => {
     <p style="color:#444">Lembramos que você tem um atendimento amanhã:</p>
     <div style="background:#f9f9fa;border-left:4px solid #FFD700;border-radius:8px;padding:20px;margin:20px 0">
       <table style="width:100%;border-collapse:collapse">
-        <tr><td style="color:#888;font-size:13px;padding:6px 0;width:35%">👤 Pessoa</td><td style="color:#111;font-weight:600">${appt.requester_name || "—"}</td></tr>
-        <tr><td style="color:#888;font-size:13px;padding:6px 0">📱 Telefone</td><td style="color:#111">${appt.requester_phone || "—"}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0;width:35%">👤 Pessoa</td><td style="color:#111;font-weight:600">${escapeHtml(appt.requester_name || "—")}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:6px 0">📱 Telefone</td><td style="color:#111">${escapeHtml(appt.requester_phone || "—")}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:6px 0">📅 Data</td><td style="color:#111;font-weight:600;text-transform:capitalize">${scheduledDate}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:6px 0">Modalidade</td><td style="color:#111">${typeLabel}</td></tr>
       </table>
@@ -116,7 +125,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             from: "Zelo Pro <nao-responda@7pro.tech>",
             to: appt.requester_email,
-            subject: `⏰ Lembrete: Café com Pastor amanhã — ${pastorName}`,
+            subject: `⏰ Lembrete: Café com Pastor amanhã — ${pastorNameRaw}`,
             html: requesterHtml
           })
         });

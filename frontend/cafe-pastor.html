@@ -148,6 +148,7 @@
 
         /* ── Error / loading ── */
         .error-msg { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.3); border-radius: 10px; padding: 12px 16px; font-size: .85rem; color: #f87171; margin-bottom: 16px; }
+        .info-msg { background: rgba(212,165,116,.08); border: 1px solid rgba(212,165,116,.28); border-radius: 10px; padding: 12px 16px; font-size: .85rem; color: rgba(212,165,116,.95); margin-bottom: 16px; }
         .loader-wrap { text-align: center; padding: 40px 0; }
         .spinner { width: 32px; height: 32px; border: 3px solid rgba(212,165,116,.2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 14px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -199,7 +200,8 @@ var STATE = {
     sessionCategory: '', // individual | couple | family
     sessionType: '',     // online | inperson
     selectedSlot: null,
-    apptId: null
+    apptId: null,
+    rescheduled: false
 };
 
 /* ── Country dial codes ── */
@@ -221,12 +223,61 @@ var COUNTRIES = [
     { flag:'🇵🇾', name:'Paraguai',         dial:'+595' },
 ];
 
+function cpTz() {
+    return isValidTimeZone(STATE.cfg && STATE.cfg.timezone) ? STATE.cfg.timezone : 'America/Sao_Paulo';
+}
+function isValidTimeZone(tz) {
+    if (!tz) return false;
+    try { new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date()); return true; }
+    catch(e) { return false; }
+}
+function getSlotIso(slot) {
+    if (!slot) return new Date().toISOString();
+    if (slot.date && slot.time) return zonedDateTimeToIso(slot.date, slot.time, cpTz());
+    var raw = slot.slot_iso || slot.datetime || slot.slot_datetime || slot;
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? String(raw) : d.toISOString();
+}
+function getSlotDate(slot) {
+    return new Date(getSlotIso(slot));
+}
+function zonedDateTimeToIso(dateKey, time, timeZone) {
+    var dateParts = String(dateKey).split('-').map(Number);
+    var timeParts = String(time).split(':').map(Number);
+    var wallAsUtc = Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0] || 0, timeParts[1] || 0, timeParts[2] || 0);
+    var firstOffset = getTimeZoneOffsetMs(new Date(wallAsUtc), timeZone);
+    var utcMs = wallAsUtc - firstOffset;
+    var secondOffset = getTimeZoneOffsetMs(new Date(utcMs), timeZone);
+    if (secondOffset !== firstOffset) utcMs = wallAsUtc - secondOffset;
+    return new Date(utcMs).toISOString();
+}
+function getTimeZoneOffsetMs(date, timeZone) {
+    var p = zonedParts(date, timeZone);
+    var asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    return asUtc - date.getTime();
+}
+function zonedParts(date, timeZone) {
+    var parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date);
+    var map = {};
+    parts.forEach(function(part) { if (part.type !== 'literal') map[part.type] = part.value; });
+    return {
+        year: Number(map.year), month: Number(map.month), day: Number(map.day),
+        hour: Number(map.hour), minute: Number(map.minute), second: Number(map.second)
+    };
+}
+
 /* ═══════════════════════════════════════════════════════════════
    BOOTSTRAP
 ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(window.location.search);
     var wsParam = params.get('ws'); // accepts slug OR uuid
+    STATE.rescheduled = params.get('rescheduled') === '1';
     if (!wsParam) { showError('Parâmetro ?ws= ausente na URL.'); return; }
     init(wsParam);
 });
@@ -251,6 +302,7 @@ async function init(wsParam) {
             showError('O módulo Café com Pastor não está ativo para esta igreja.');
             return;
         }
+        cfg.timezone = isValidTimeZone(cfg.timezone) ? cfg.timezone : 'America/Sao_Paulo';
         STATE.cfg = cfg;
 
         // Update page title
@@ -304,6 +356,7 @@ function renderPersonal() {
 
     set('cp-content',
         hdr('☕ Café com Pastor', wsNote)
+        + (STATE.rescheduled ? '<div class="info-msg">Seu horário anterior foi cancelado. Escolha um novo atendimento abaixo.</div>' : '')
 
         + '<div class="field"><label class="req">Nome completo</label>'
         + '<input id="f-name" type="text" placeholder="Como podemos te chamar?" value="' + esc(STATE.name) + '" /></div>'
@@ -499,9 +552,9 @@ async function renderSlots() {
 
     STATE.selectedSlot = null;
     var items = STATE.slots.map(function(slot, i) {
-        var d = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
-        var dateStr = d.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
-        var timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        var d = getSlotDate(slot);
+        var dateStr = d.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', timeZone: cpTz() });
+        var timeStr = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone: cpTz() });
         return '<div class="slot-item" onclick="selectSlot(' + i + ')" id="slot-' + i + '">'
             + '<div><div class="slot-date">' + cap(dateStr) + '</div>'
             + '<div class="slot-time">' + timeStr + ' · ' + (slot.duration_minutes || STATE.cfg.default_duration_minutes || 60) + 'min</div></div>'
@@ -557,9 +610,9 @@ window.submitSlot = function() {
 ═══════════════════════════════════════════════════════════════ */
 function renderConfirm() {
     var slot = STATE.selectedSlot;
-    var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
-    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    var dt = getSlotDate(slot);
+    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone: cpTz() });
+    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone: cpTz() });
     var dur = slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60;
     var typeLabel = STATE.sessionType === 'online' ? '💻 Online' : '🏛️ Presencial';
 
@@ -607,7 +660,7 @@ window.submitBooking = async function() {
 
     try {
         var slot = STATE.selectedSlot;
-        var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
+        var scheduledIso = getSlotIso(slot);
 
         // Try edge function first
         var booked = false;
@@ -619,7 +672,8 @@ window.submitBooking = async function() {
                 body: JSON.stringify({
                     workspace_id: STATE.wsId,
                     pastor_id: (STATE.selectedSlot && STATE.selectedSlot.pastor_id) || null,
-                    scheduled_at: dt.toISOString(),
+                    scheduled_at: scheduledIso,
+                    timezone: cpTz(),
                     duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
                     requester_name: STATE.name,
                     requester_email: STATE.email || null,
@@ -645,7 +699,7 @@ window.submitBooking = async function() {
                 requester_email: STATE.email || null,
                 requester_phone: STATE.phone,
                 appointment_type: STATE.sessionType,
-                scheduled_at: dt.toISOString(),
+                scheduled_at: scheduledIso,
                 duration_minutes: slot.duration_minutes || (STATE.cfg && STATE.cfg.default_duration_minutes) || 60,
                 briefing_data: { gender: STATE.gender, session_category: STATE.sessionCategory, source: 'public_form' },
                 status: 'pending'
@@ -671,9 +725,9 @@ window.submitBooking = async function() {
 ═══════════════════════════════════════════════════════════════ */
 function renderSuccess() {
     var slot = STATE.selectedSlot;
-    var dt = new Date(slot.slot_iso || slot.datetime || slot.slot_datetime || slot);
-    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    var dt = getSlotDate(slot);
+    var dateStr = dt.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone: cpTz() });
+    var timeStr = dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone: cpTz() });
 
     set('step-dots', ''); // hide dots
     set('cp-content',

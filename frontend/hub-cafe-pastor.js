@@ -26,11 +26,64 @@
         return window._currentWsId || window.currentWorkspaceId || (window._currentWorkspace && window._currentWorkspace.id);
     };
 
+    var isValidTimeZone = function(tz) {
+        if (!tz) return false;
+        try { new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date()); return true; }
+        catch(e) { return false; }
+    };
+
+    var cpTz = function() {
+        return isValidTimeZone(_cpConfig && _cpConfig.timezone) ? _cpConfig.timezone : 'America/Sao_Paulo';
+    };
+
     var fmtDT = function(iso) {
         if (!iso) return '—';
         var d = new Date(iso);
-        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        return d.toLocaleDateString('pt-BR', { timeZone: cpTz() }) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:cpTz()});
     };
+
+    var cpDateKey = function(iso) {
+        if (!iso) return 'sem-data';
+        var p = zonedParts(new Date(iso), cpTz());
+        return p.year + '-' + String(p.month).padStart(2,'0') + '-' + String(p.day).padStart(2,'0');
+    };
+
+    var zonedTodayKey = function() {
+        var p = zonedParts(new Date(), cpTz());
+        return p.year + '-' + String(p.month).padStart(2,'0') + '-' + String(p.day).padStart(2,'0');
+    };
+
+    var zonedDateTimeToIso = function(dateKey, time, timeZone) {
+        var dp = String(dateKey).split('-').map(Number);
+        var tp = String(time).split(':').map(Number);
+        var wallAsUtc = Date.UTC(dp[0], dp[1]-1, dp[2], tp[0]||0, tp[1]||0, tp[2]||0);
+        var firstOffset = getTimeZoneOffsetMs(new Date(wallAsUtc), timeZone);
+        var utcMs = wallAsUtc - firstOffset;
+        var secondOffset = getTimeZoneOffsetMs(new Date(utcMs), timeZone);
+        if (secondOffset !== firstOffset) utcMs = wallAsUtc - secondOffset;
+        return new Date(utcMs).toISOString();
+    };
+
+    function getTimeZoneOffsetMs(date, timeZone) {
+        var p = zonedParts(date, timeZone);
+        var asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+        return asUtc - date.getTime();
+    }
+
+    function zonedParts(date, timeZone) {
+        var parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: isValidTimeZone(timeZone) ? timeZone : 'America/Sao_Paulo',
+            year:'numeric', month:'2-digit', day:'2-digit',
+            hour:'2-digit', minute:'2-digit', second:'2-digit',
+            hourCycle:'h23'
+        }).formatToParts(date);
+        var map = {};
+        parts.forEach(function(part) { if (part.type !== 'literal') map[part.type] = part.value; });
+        return {
+            year:Number(map.year), month:Number(map.month), day:Number(map.day),
+            hour:Number(map.hour), minute:Number(map.minute), second:Number(map.second)
+        };
+    }
 
     var STATUS = {
         pending:   { label:'Pendente',   color:'#FBBF24' },
@@ -57,6 +110,8 @@
                      + 'font-weight:700;font-size:.88rem;cursor:pointer;';
     var CSS_BTN_GHOST = 'background:var(--bg-card,rgba(0,0,0,.035));color:var(--text);border:1px solid var(--border);'
                       + 'padding:10px 18px;border-radius:8px;font-weight:600;font-size:.88rem;cursor:pointer;';
+    var CSS_BTN_DANGER = 'background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.45);'
+                      + 'padding:10px 18px;border-radius:8px;font-weight:700;font-size:.88rem;cursor:pointer;';
 
     var lbl = function(txt, sub) {
         return '<label style="display:block;font-size:.8rem;font-weight:600;color:#c8a87c;margin-bottom:6px;">'
@@ -346,14 +401,14 @@
         return _cpAppts.filter(function(a) {
             if (!a.scheduled_at) return false;
             if (_cpApptFilter.pastor && a.pastor_id !== _cpApptFilter.pastor) return false;
-            return a.scheduled_at.substring(0,10) === dateStr;
+            return cpDateKey(a.scheduled_at) === dateStr;
         });
     }
 
     function _calEventPill(a) {
         var s = STATUS[a.status] || {color:'#aaa'};
         var pastor = _cpPastors.find(function(p){ return p.id === a.pastor_id; });
-        var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+        var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:cpTz()}) : '';
         return '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;background:' + s.color + '22;border-left:3px solid ' + s.color + ';'
             + 'color:var(--text,#fff);border-radius:5px;padding:3px 7px;font-size:.73rem;margin-bottom:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'
             + time + ' ' + esc(a.requester_name || '?') + (pastor ? ' · ' + esc(pastor.display_name) : '')
@@ -461,7 +516,7 @@
             events.forEach(function(a) {
                 var s = STATUS[a.status] || {label:a.status,color:'#aaa'};
                 var pastor = _cpPastors.find(function(p){ return p.id === a.pastor_id; });
-                var time = new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+                var time = new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:cpTz()});
                 var typeIco = a.appointment_type==='online'?'💻':'🏛️';
                 html += '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;display:flex;gap:14px;align-items:flex-start;'
                     + 'padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.07);margin-bottom:10px;'
@@ -494,7 +549,7 @@
         // Group by date
         var byDate = {};
         list.forEach(function(a) {
-            var key = a.scheduled_at ? a.scheduled_at.substring(0,10) : 'sem-data';
+            var key = a.scheduled_at ? cpDateKey(a.scheduled_at) : 'sem-data';
             if (!byDate[key]) byDate[key] = [];
             byDate[key].push(a);
         });
@@ -512,7 +567,7 @@
             byDate[key].forEach(function(a) {
                 var s = STATUS[a.status] || {label:a.status,color:'#aaa'};
                 var pastor = _cpPastors.find(function(p){ return p.id===a.pastor_id; });
-                var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+                var time = a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:cpTz()}) : '—';
                 var typeIco = a.appointment_type==='online'?'💻':'🏛️';
                 html += '<div onclick="cpOpenAppt(\'' + esc(a.id) + '\')" style="cursor:pointer;display:flex;gap:12px;align-items:center;'
                     + 'padding:12px 14px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.07));margin-bottom:6px;'
@@ -540,8 +595,7 @@
 
     /* ─── MANUAL APPOINTMENT MODAL ────────────────────────────────────── */
     window.cpNewApptModal = function() {
-        var today = new Date();
-        var dateDefault = today.toISOString().split('T')[0];
+        var dateDefault = zonedTodayKey();
         var timeDefault = '10:00';
 
         var pastorOpts = _cpPastors.map(function(p){
@@ -589,7 +643,7 @@
             requester_phone:($('cpa-phone')||{}).value.trim() || null,
             requester_gender:($('cpa-gender')||{}).value || null,
             appointment_type:($('cpa-type')||{}).value || 'inperson',
-            scheduled_at:   date + 'T' + time + ':00',
+            scheduled_at:   zonedDateTimeToIso(date, time + ':00', cpTz()),
             duration_minutes:parseInt(($('cpa-dur')||{}).value)||60,
             status:         ($('cpa-status')||{}).value || 'confirmed',
             pastor_notes:   ($('cpa-notes')||{}).value.trim() || null,
@@ -618,6 +672,10 @@
         var pastorOpts = '<option value="">— Sem pastor —</option>' + _cpPastors.map(function(p){
             return '<option value="' + esc(p.id) + '"' + (a.pastor_id===p.id?' selected':'') + '>' + esc(p.display_name) + '</option>';
         }).join('');
+        var canCancel = a.status !== 'cancelled' && a.status !== 'completed' && a.status !== 'no_show';
+        var cancelBtn = canCancel
+            ? '<button onclick="cpCancelAppt(\'' + esc(a.id) + '\')" style="' + CSS_BTN_DANGER + 'width:100%;padding:12px;margin-top:8px;">Cancelar atendimento</button>'
+            : '';
 
         var briefingRows = '';
         if (a.briefing_data && typeof a.briefing_data === 'object') {
@@ -675,6 +733,7 @@
             + _panelSec('⚙️ Status',
                 '<select id="cp-appt-status" style="' + CSS_SELECT + '">' + statusOpts + '</select>'
             )
+            + cancelBtn
 
             + '<div style="display:flex;gap:8px;margin-top:8px;">'
             + '<button onclick="cpSaveAppt(\'' + esc(a.id) + '\')" style="' + CSS_BTN_GOLD + 'flex:1;padding:12px;">💾 Salvar</button>'
@@ -702,6 +761,38 @@
             var p = $('cp-appt-panel'); if (p) p.remove();
             _cpRenderAgenda();
         } catch(err) { toast('Erro: ' + (err.message||err), 'error'); }
+    };
+
+    window.cpCancelAppt = async function(apptId) {
+        var a = _cpAppts.find(function(x){ return x.id === apptId; });
+        if (!a) { toast('Agendamento não encontrado.', 'error'); return; }
+        if (a.status === 'cancelled') { toast('Este atendimento já está cancelado.', 'info'); return; }
+
+        var who = a.requester_name || a.requester_email || 'este atendimento';
+        if (!window.confirm('Cancelar o atendimento de ' + who + '?')) return;
+
+        var existingNotes = (($('cp-appt-notes')||{}).value || a.pastor_notes || '').trim();
+        var cancelNote = '[' + new Date().toISOString() + '] Cancelado pelo painel.';
+        var notes = existingNotes ? existingNotes + '\n' + cancelNote : cancelNote;
+
+        try {
+            var { error } = await _sb().from('cafe_pastor_appointments')
+                .update({ status:'cancelled', pastor_notes:notes, updated_at:new Date().toISOString() })
+                .eq('id', apptId);
+            if (error) throw error;
+
+            var idx = _cpAppts.findIndex(function(x){ return x.id === apptId; });
+            if (idx >= 0) {
+                _cpAppts[idx].status = 'cancelled';
+                _cpAppts[idx].pastor_notes = notes;
+                _cpAppts[idx].updated_at = new Date().toISOString();
+            }
+
+            toast('Atendimento cancelado.', 'success');
+            var p = $('cp-appt-panel'); if (p) p.remove();
+            _cpRenderAgenda();
+            if (_cpPanel === 'pessoas') _cpRenderPessoas();
+        } catch(err) { toast('Erro ao cancelar: ' + (err.message||err), 'error'); }
     };
 
     function _panelSec(title, body) {
@@ -1093,7 +1184,10 @@
             + _field('Janela de agendamento (dias)', '<input id="cp-cfg-window" type="number" style="' + CSS_INPUT + '" value="' + (cfg.booking_window_days||30) + '" min="1" max="90"/>')
             + '</div>'
 
-            + '<div style="margin-bottom:12px;">' + _field('Aviso mínimo (horas antes)', '<input id="cp-cfg-advance" type="number" style="' + CSS_INPUT + '" value="' + (cfg.min_advance_hours||24) + '" min="0" max="168"/>') + '</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">'
+            + _field('Aviso mínimo (horas antes)', '<input id="cp-cfg-advance" type="number" style="' + CSS_INPUT + '" value="' + (cfg.min_advance_hours||24) + '" min="0" max="168"/>')
+            + _field('Fuso horário da igreja', '<select id="cp-cfg-timezone" style="' + CSS_SELECT + '">' + _cpTimezoneOptions(cfg.timezone || 'America/Sao_Paulo') + '</select>')
+            + '</div>'
 
             + '<div style="margin-bottom:12px;"><label style="display:block;font-size:.79rem;font-weight:600;color:rgba(200,180,150,.9);margin-bottom:8px;">Tipos de sessão disponíveis</label>'
             + '<div style="display:flex;gap:20px;">'
@@ -1135,6 +1229,26 @@
         return '<div>' + lbl(label) + inputHtml + '</div>';
     }
 
+    function _cpTimezoneOptions(selected) {
+        var zones = [
+            ['America/Porto_Velho', 'América/Porto Velho (UTC-4)'],
+            ['America/Sao_Paulo', 'América/São Paulo (UTC-3)'],
+            ['America/Manaus', 'América/Manaus (UTC-4)'],
+            ['America/Cuiaba', 'América/Cuiabá (UTC-4)'],
+            ['America/New_York', 'América/Nova Iorque (UTC-5/-4)'],
+            ['America/Chicago', 'América/Chicago (UTC-6/-5)'],
+            ['America/Los_Angeles', 'América/Los Angeles (UTC-8/-7)'],
+            ['Europe/Lisbon', 'Europa/Lisboa (UTC+0/+1)'],
+            ['Europe/London', 'Europa/Londres (UTC+0/+1)'],
+            ['Europe/Madrid', 'Europa/Madrid (UTC+1/+2)'],
+            ['Africa/Luanda', 'África/Luanda (UTC+1)'],
+            ['Africa/Maputo', 'África/Maputo (UTC+2)'],
+        ];
+        return zones.map(function(z) {
+            return '<option value="' + z[0] + '"' + (z[0] === selected ? ' selected' : '') + '>' + z[1] + '</option>';
+        }).join('');
+    }
+
     window.cpSaveConfig = async function() {
         var wsId = getWsId();
         if (!wsId) { toast('Workspace não identificado.', 'error'); return; }
@@ -1152,6 +1266,7 @@
             default_duration_minutes:  parseInt(($('cp-cfg-dur')||{}).value)||60,
             booking_window_days:       parseInt(($('cp-cfg-window')||{}).value)||30,
             min_advance_hours:         parseInt(($('cp-cfg-advance')||{}).value)||24,
+            timezone:                  ($('cp-cfg-timezone')||{}).value || 'America/Sao_Paulo',
             session_types:             types,
             church_address:            ($('cp-cfg-address')||{}).value || null,
             meeting_link_instructions: ($('cp-cfg-instructions')||{}).value || null,

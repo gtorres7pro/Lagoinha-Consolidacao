@@ -117,19 +117,7 @@ function processCSVRows(rows) {
 
         if (!name || !dateStr) continue;
 
-        // Clean phone (Format to standard 55XX9XXXXYYYY, assuming BR if not specified)
-        let cleanedPhone = phone ? phone.replace(/\D/g, '') : null;
-        if (cleanedPhone) {
-            // Se já tem '+', confiamos no DDI da pessoa (EUA +1, BR +55, etc)
-            if (!phone.includes('+')) {
-                if (cleanedPhone.length >= 10 && cleanedPhone.length <= 11) {
-                    // Se não começa com 55 e não parece ser um EUA sem + (1 seguido de 10 num)
-                    if (!cleanedPhone.startsWith('55') && !(cleanedPhone.length === 11 && cleanedPhone.startsWith('1'))) {
-                        cleanedPhone = '55' + cleanedPhone;
-                    }
-                }
-            }
-        }
+        const cleanedPhone = normalizeBirthdayPhone(phone);
 
         // Parse date
         // Try DD/MM/YYYY or YYYY-MM-DD
@@ -186,6 +174,41 @@ function getCaseInsensitiveKey(obj, targetKey) {
         }
     }
     return null;
+}
+
+function getBirthdayDefaultDialingCode() {
+    const ws = (window._allWorkspaces || []).find(w => w.id === window.currentWorkspaceId) || {};
+    const country = String(ws.country || '').trim().toUpperCase();
+    const slug = String(ws.slug || window._currentWorkspaceSlug || window.currentWorkspaceSlug || '').trim().toLowerCase();
+
+    if (country === 'US' || country === 'USA' || country === 'CA' || country === 'CANADA' || slug === 'orlando') return '1';
+    if (country === 'PT' || country === 'PRT' || country === 'PORTUGAL') return '351';
+    return '55';
+}
+
+function normalizeBirthdayPhone(phone) {
+    if (!phone) return null;
+    const original = String(phone).trim();
+    let digits = original.replace(/\D/g, '');
+    if (!digits) return null;
+    if (original.includes('+')) return digits;
+
+    const defaultDialingCode = getBirthdayDefaultDialingCode();
+    if (defaultDialingCode === '1') {
+        if (digits.length === 10) return '1' + digits;
+        if (digits.length === 11 && digits.startsWith('1')) return digits;
+        return digits;
+    }
+
+    if (defaultDialingCode === '351') {
+        if (digits.length === 9) return '351' + digits;
+        return digits;
+    }
+
+    if (digits.length >= 10 && digits.length <= 11 && !digits.startsWith('55')) {
+        return '55' + digits;
+    }
+    return digits;
 }
 
 

@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ADMIN_ROLES, authorizeInternalOrWorkspaceUser } from "../_shared/auth.ts";
+import {
+  buildManageAppointmentUrl,
+  escapeHtml,
+  formatCpDateTime,
+  getCafePastorContext,
+} from "../_shared/cafe-pastor.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -43,16 +49,15 @@ Deno.serve(async (req: Request) => {
 
   if (!RESEND_API_KEY) return new Response("Resend not configured", { status: 500 });
 
-  const pastorName = appt.cafe_pastor_pastors?.display_name ?? appt.pastor_name ?? "o pastor";
-  const requesterName = appt.requester_name || "Amigo(a)";
+  const pastorName = escapeHtml(appt.cafe_pastor_pastors?.display_name ?? appt.pastor_name ?? "o pastor");
+  const requesterName = escapeHtml(appt.requester_name || "Amigo(a)");
+  const context = await getCafePastorContext(sb, workspaceId);
+  const manageUrl = await buildManageAppointmentUrl(appt);
 
-  const scheduledDate = new Date(appt.scheduled_at).toLocaleString("pt-BR", {
-    weekday: "long", day: "2-digit", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"
-  });
+  const scheduledDate = formatCpDateTime(appt.scheduled_at, context.timeZone);
   const typeLabel = appt.appointment_type === "inperson" ? "☕ Presencial" : "💻 Online";
   const sessionLink = appt.session_link
-    ? `<p style="margin:16px 0 0"><a href="${appt.session_link}" style="color:#FFD700;font-weight:600">📹 Link da Reunião Online</a></p>`
+    ? `<p style="margin:16px 0 0"><a href="${escapeHtml(appt.session_link)}" style="color:#FFD700;font-weight:600">📹 Link da Reunião Online</a></p>`
     : "";
 
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f4f4f5;padding:40px 20px;margin:0">
@@ -74,6 +79,9 @@ Deno.serve(async (req: Request) => {
     </div>
     <div style="background:#f9f9fa;border-radius:10px;padding:18px 20px;margin-bottom:28px">
       <p style="margin:0;color:#555;font-size:13px;line-height:1.6">📌 <b>Lembre-se:</b> Você pode cancelar ou remarcar seu atendimento com até 24 horas de antecedência. Em caso de dúvidas, entre em contato conosco.</p>
+    </div>
+    <div style="text-align:center;margin-bottom:30px">
+      <a href="${escapeHtml(manageUrl)}" style="display:inline-block;background:#111;color:#FFD700;border:1px solid #FFD700;padding:13px 26px;border-radius:999px;font-weight:700;text-decoration:none;font-size:14px">Cancelar ou remarcar atendimento</a>
     </div>
     <div style="text-align:center">
       <p style="color:#888;font-size:13px;margin:0 0 8px">Com amor,</p>

@@ -1,5 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  addDaysToDateKey,
+  dayOfWeekForDateKey,
+  formatZonedDateKey,
+  normalizeTimeZone,
+  zonedDateTimeToUtc,
+} from "../_shared/cafe-pastor.ts";
 
 const sb = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -46,16 +53,16 @@ async function queryAvailableSlots(workspace_id: string) {
     .in("pastor_id", pastorIds)
     .eq("is_active", true);
 
-  // 3. Get blocked slots for next 7 days
-  const todayStr = new Date().toISOString().split("T")[0];
-  const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-
-  // Fetch config for min_advance_hours
+  // 3. Get blocked slots for next 7 days in the workspace timezone.
   const { data: config } = await sb.from("cafe_pastor_config")
-    .select("min_advance_hours")
+    .select("min_advance_hours, timezone")
     .eq("workspace_id", workspace_id)
     .maybeSingle();
   const advanceMs = (config?.min_advance_hours ?? 2) * 3600000;
+  const timeZone = normalizeTimeZone(config?.timezone);
+  const todayStr = formatZonedDateKey(new Date(), timeZone);
+  const in7Days = addDaysToDateKey(todayStr, 6);
+  const windowEndIso = zonedDateTimeToUtc(in7Days, "23:59:59", timeZone).toISOString();
   const { data: blocked } = await sb
     .from("cafe_pastor_blocked_slots")
     .select("pastor_id, blocked_date, blocked_start, blocked_end")
@@ -69,7 +76,7 @@ async function queryAvailableSlots(workspace_id: string) {
     .select("pastor_id, scheduled_at, duration_minutes")
     .in("pastor_id", pastorIds)
     .gte("scheduled_at", new Date().toISOString())
-    .lte("scheduled_at", new Date(Date.now() + 7 * 86400000).toISOString())
+    .lte("scheduled_at", windowEndIso)
     .not("status", "in", "(cancelled,no_show)");
 
   // 5. Compute available slots per pastor for next 7 days
@@ -77,11 +84,8 @@ async function queryAvailableSlots(workspace_id: string) {
   const DAY_NAMES = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
   for (let dayOffset = 0; dayOffset <= 6; dayOffset++) {
-    const date = new Date();
-    date.setDate(date.getDate() + dayOffset);
-    date.setHours(0, 0, 0, 0);
-    const dateStr = date.toISOString().split("T")[0];
-    const dow = date.getDay(); // 0=Sun
+    const dateStr = addDaysToDateKey(todayStr, dayOffset);
+    const dow = dayOfWeekForDateKey(dateStr); // 0=Sun
 
     for (const pastor of pastors as any[]) {
       const rule = (avail ?? []).find(
@@ -101,7 +105,9 @@ async function queryAvailableSlots(workspace_id: string) {
 
       let slotH = startH, slotM = startM;
       while (slotH * 60 + slotM + duration <= endH * 60 + endM) {
-        const slotISO = `${dateStr}T${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}:00`;
+        const wallTime = `${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}:00`;
+        const slotStartUtc = zonedDateTimeToUtc(dateStr, wallTime, timeZone);
+        const slotISO = slotStartUtc.toISOString();
         const slotEnd = slotH * 60 + slotM + duration;
 
         // Skip if blocked
@@ -118,13 +124,13 @@ async function queryAvailableSlots(workspace_id: string) {
           if (e.pastor_id !== pastor.id) return false;
           const exStart = new Date(e.scheduled_at).getTime();
           const exEnd = exStart + (e.duration_minutes || duration) * 60000;
-          const slotStart = new Date(slotISO).getTime();
+          const slotStart = slotStartUtc.getTime();
           const slotEndTs = slotStart + duration * 60000;
           return slotStart < exEnd && slotEndTs > exStart;
         });
 
         // Skip if in the past (with 2hr buffer)
-        const isPast = new Date(slotISO).getTime() < Date.now() + advanceMs;
+        const isPast = slotStartUtc.getTime() < Date.now() + advanceMs;
 
         if (!isBlocked && !isBooked && !isPast) {
           slots.push({
@@ -132,8 +138,9 @@ async function queryAvailableSlots(workspace_id: string) {
             pastor_name: pastor.display_name,
             date: dateStr,
             day_label: DAY_NAMES[dow],
-            time: `${String(slotH).padStart(2,"0")}:${String(slotM).padStart(2,"0")}`,
+            time: wallTime.slice(0, 5),
             slot_iso: slotISO,
+            timezone: timeZone,
             session_type: rule.session_type, // 'online' | 'inperson' | 'both'
           });
         }

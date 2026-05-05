@@ -65,20 +65,35 @@ function resolveVariable(raw: unknown, variableName: string, index: number, lead
   return value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => ctx[key] ?? "");
 }
 
-async function fetchTemplateBody(token: string, wabaId: string, templateName: string, languageCode: string): Promise<string> {
-  if (!token || !wabaId) return "";
+type TemplateDetails = {
+  body: string;
+  languageCode: string;
+  status: string;
+};
+
+async function fetchTemplateDetails(token: string, wabaId: string, templateName: string, languageCode: string): Promise<TemplateDetails> {
+  if (!token || !wabaId) return { body: "", languageCode, status: "" };
   const fields = encodeURIComponent("name,language,status,components");
   const res = await fetch(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=${fields}&limit=100`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     console.warn("[TMPL] Could not fetch template body:", await res.text());
-    return "";
+    return { body: "", languageCode, status: "" };
   }
   const data = await res.json();
-  const template = (data?.data ?? []).find((t: any) => t.name === templateName && t.language === languageCode);
+  const candidates = (data?.data ?? []).filter((t: any) => t.name === templateName);
+  const template =
+    candidates.find((t: any) => t.language === languageCode && t.status === "APPROVED")
+    ?? candidates.find((t: any) => t.language === languageCode)
+    ?? candidates.find((t: any) => t.status === "APPROVED")
+    ?? candidates[0];
   const body = template?.components?.find((c: any) => c.type === "BODY")?.text;
-  return typeof body === "string" ? body : "";
+  return {
+    body: typeof body === "string" ? body : "",
+    languageCode: template?.language || languageCode,
+    status: template?.status || "",
+  };
 }
 
 function buildAutomationContext(args: {
@@ -310,12 +325,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const templateName = overrideTemplate ?? matchedRule?.template ?? defaultTemplate ?? "consolidacao";
-    const languageCode = overrideLang     ?? matchedRule?.language ?? defaultLanguage;
+    const preferredLanguage = overrideLang ?? matchedRule?.language ?? defaultLanguage;
     const toPhone      = metaPhone(lead.phone);
     const wabaId       = creds.waba_id ?? creds.business_id ?? "";
-    const templateBody = await fetchTemplateBody(waToken, wabaId, templateName, languageCode);
-    const templateVars = extractTemplateVariables(templateBody);
+    const templateDetails = await fetchTemplateDetails(waToken, wabaId, templateName, preferredLanguage);
+    const languageCode = templateDetails.languageCode;
+    const templateBody = templateDetails.body;
     const ruleVars     = matchedRule?.variables ?? {};
+    const templateVars = templateBody
+      ? extractTemplateVariables(templateBody)
+      : Object.keys(ruleVars).filter(Boolean);
     const varValues    = templateVars.map((variableName, index) =>
       resolveVariable(ruleVars[variableName], variableName, index, lead, firstName)
     );

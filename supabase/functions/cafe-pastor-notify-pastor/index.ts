@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ADMIN_ROLES, authorizeInternalOrWorkspaceUser } from "../_shared/auth.ts";
+import { escapeHtml, formatCpDateTime, getCafePastorContext } from "../_shared/cafe-pastor.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -54,10 +55,8 @@ Deno.serve(async (req: Request) => {
   if (!toEmail) { console.warn("[notify-pastor] No email for pastor", appt.pastor_id); return new Response("No email", { status: 200 }); }
   if (!RESEND_API_KEY) return new Response("Resend not configured", { status: 500 });
 
-  const scheduledDate = new Date(appt.scheduled_at).toLocaleString("pt-BR", {
-    weekday: "long", day: "2-digit", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"
-  });
+  const context = await getCafePastorContext(sb, workspaceId);
+  const scheduledDate = formatCpDateTime(appt.scheduled_at, context.timeZone);
   const typeLabel = appt.appointment_type === "inperson" ? "🏛️ Presencial" : "💻 Online";
   const source = appt.briefing_data?.source === "whatsapp_bot" ? "WhatsApp (Ju)" : "Formulário Web";
 
@@ -68,12 +67,12 @@ Deno.serve(async (req: Request) => {
     <p style="color:#aaa;margin:6px 0 0;font-size:13px">Café com Pastor — Zelo Pro</p>
   </td></tr>
   <tr><td style="padding:36px 32px">
-    <p style="margin:0 0 20px">Olá <b>${pastor.display_name}</b>,</p>
+    <p style="margin:0 0 20px">Olá <b>${escapeHtml(pastor.display_name)}</b>,</p>
     <p style="margin:0 0 24px;color:#444">Um novo atendimento foi agendado com você:</p>
     <div style="background:#f9f9fa;border-left:4px solid #FFD700;border-radius:8px;padding:20px 24px;margin-bottom:28px">
       <table style="width:100%;border-collapse:collapse">
-        <tr><td style="color:#888;font-size:13px;padding:5px 0;width:35%">👤 Pessoa</td><td style="color:#111;font-weight:600;font-size:14px">${appt.requester_name || "—"}</td></tr>
-        <tr><td style="color:#888;font-size:13px;padding:5px 0">📱 Telefone</td><td style="color:#111;font-size:14px">${appt.requester_phone || "—"}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:5px 0;width:35%">👤 Pessoa</td><td style="color:#111;font-weight:600;font-size:14px">${escapeHtml(appt.requester_name || "—")}</td></tr>
+        <tr><td style="color:#888;font-size:13px;padding:5px 0">📱 Telefone</td><td style="color:#111;font-size:14px">${escapeHtml(appt.requester_phone || "—")}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:5px 0">📅 Data/Hora</td><td style="color:#111;font-weight:600;font-size:14px">${scheduledDate}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:5px 0">Modalidade</td><td style="color:#111;font-size:14px">${typeLabel}</td></tr>
         <tr><td style="color:#888;font-size:13px;padding:5px 0">Origem</td><td style="color:#555;font-size:13px">${source}</td></tr>
