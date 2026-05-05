@@ -13,6 +13,11 @@ const EVOLUTION_URL = Deno.env.get("EVOLUTION_URL") ?? "https://evolution.7pro.t
 const EVOLUTION_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
 if (!EVOLUTION_KEY) console.warn("[TMPL] EVOLUTION_API_KEY env var not set — Evolution sends will fail");
 
+const START_TAGS: Record<string, { name: string; color: string }> = {
+  "visitante-form": { name: "Visitantes", color: "#60A5FA" },
+  "consolida-form": { name: "Consolidação", color: "#FBBF24" },
+};
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 /** Strip leading + for Meta API */
@@ -219,6 +224,29 @@ function objectOrEmpty(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function startTagForSource(source: string): { name: string; color: string } | null {
+  const normalized = source.trim().toLowerCase();
+  return START_TAGS[normalized] ?? null;
+}
+
+function mergeTag(existing: unknown, tagName: string): string[] {
+  const tags = Array.isArray(existing)
+    ? existing.map((tag) => String(tag ?? "").trim()).filter(Boolean)
+    : [];
+  return [...new Set([...tags, tagName])];
+}
+
+async function ensureWorkspaceTag(workspaceId: string, tag: { name: string; color: string }) {
+  const { error } = await sb
+    .from("workspace_tags")
+    .upsert({
+      workspace_id: workspaceId,
+      name: tag.name,
+      color: tag.color,
+    }, { onConflict: "workspace_id,name" });
+  if (error) console.warn(`[TMPL] Could not ensure workspace tag "${tag.name}":`, error.message);
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -240,7 +268,7 @@ Deno.serve(async (req: Request) => {
   // ── 1. Fetch lead ─────────────────────────────────────────────────────────
   const { data: lead, error: leadErr } = await sb
     .from("leads")
-    .select("id, name, phone, source, decisao, culto, bot_context")
+    .select("id, name, phone, source, decisao, culto, bot_context, tags")
     .eq("id", lead_id)
     .eq("workspace_id", workspace_id)
     .maybeSingle();
@@ -557,8 +585,21 @@ Deno.serve(async (req: Request) => {
       },
     };
 
+    const startTag = startTagForSource(leadSource);
+    const leadUpdate: Record<string, any> = {
+      last_message_at: now,
+      bot_context: nextBotContext,
+      has_responded: false,
+      inbox_status: "neutral",
+    };
+
+    if (startTag) {
+      await ensureWorkspaceTag(workspace_id, startTag);
+      leadUpdate.tags = mergeTag(lead.tags, startTag.name);
+    }
+
     const { error: luErr } = await sb.from("leads")
-      .update({ last_message_at: now, bot_context: nextBotContext })
+      .update(leadUpdate)
       .eq("id", lead_id)
       .eq("workspace_id", workspace_id);
     if (luErr) console.error("[TMPL] Failed to update last_message_at:", luErr.message);

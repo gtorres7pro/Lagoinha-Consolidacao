@@ -4,8 +4,9 @@ import { CORS_HEADERS, isInternalRequest, json } from "../_shared/auth.ts";
 
 const DEFAULT_TIME_ZONE = "America/New_York";
 const DEFAULT_SEND_HOUR = 9;
-const DEFAULT_TEMPLATE_NAME = "happy_birthday";
+const DEFAULT_TEMPLATE_NAME = "happy_birthday_text";
 const DEFAULT_TEMPLATE_LANGUAGE = "en";
+const BIRTHDAY_TAG = { name: "Aniversário", color: "#F472B6" };
 
 type LocalParts = {
   year: number;
@@ -143,6 +144,24 @@ function firstName(name: unknown): string {
   return String(name ?? "").trim().split(/\s+/)[0] || "Amigo";
 }
 
+function mergeTag(existing: unknown, tagName: string): string[] {
+  const tags = Array.isArray(existing)
+    ? existing.map((tag) => String(tag ?? "").trim()).filter(Boolean)
+    : [];
+  return [...new Set([...tags.filter((tag) => tag !== "Aniversariante"), tagName])];
+}
+
+async function ensureWorkspaceTag(supabaseAdmin: any, workspaceId: string, tag: { name: string; color: string }) {
+  const { error } = await supabaseAdmin
+    .from("workspace_tags")
+    .upsert({
+      workspace_id: workspaceId,
+      name: tag.name,
+      color: tag.color,
+    }, { onConflict: "workspace_id,name" });
+  if (error) console.warn(`[birthday] Could not ensure workspace tag "${tag.name}":`, error.message);
+}
+
 function normalizePhoneForMeta(raw: unknown, workspace: any): string {
   const original = String(raw ?? "").trim();
   let digits = original.replace(/\D/g, "");
@@ -174,6 +193,8 @@ async function ensureBirthdayLead(args: {
   phone: string;
   sentAt: string;
 }): Promise<string> {
+  await ensureWorkspaceTag(args.supabaseAdmin, args.birthday.workspace_id, BIRTHDAY_TAG);
+
   const phoneCandidates = [...new Set([
     String(args.birthday.phone ?? "").trim(),
     args.phone,
@@ -182,7 +203,7 @@ async function ensureBirthdayLead(args: {
 
   const { data: existingLeads, error: leadLookupError } = await args.supabaseAdmin
     .from("leads")
-    .select("id")
+    .select("id, tags")
     .eq("workspace_id", args.birthday.workspace_id)
     .in("phone", phoneCandidates)
     .limit(1);
@@ -192,7 +213,12 @@ async function ensureBirthdayLead(args: {
   if (existingId) {
     const { error: updateError } = await args.supabaseAdmin
       .from("leads")
-      .update({ last_message_at: args.sentAt })
+      .update({
+        tags: mergeTag(existingLeads?.[0]?.tags, BIRTHDAY_TAG.name),
+        last_message_at: args.sentAt,
+        has_responded: false,
+        inbox_status: "neutral",
+      })
       .eq("id", existingId)
       .eq("workspace_id", args.birthday.workspace_id);
     if (updateError) throw updateError;
@@ -209,9 +235,11 @@ async function ensureBirthdayLead(args: {
       preferred_language: "pt",
       type: "birthday",
       source: "aniversariantes",
-      tags: ["Aniversariante"],
+      tags: [BIRTHDAY_TAG.name],
       tasks: [],
       last_message_at: args.sentAt,
+      has_responded: false,
+      inbox_status: "neutral",
       bot_context: {
         birthday_id: args.birthday.id,
         birthday_source: "aniversariantes",

@@ -261,9 +261,11 @@ async function handleStatusWebhook(value: any, rawBody: string, req: Request) {
     if (state !== "failed") continue;
 
     const { data: msg } = await sb.from("messages")
-      .select("id, lead_id, content")
+      .select("id, lead_id, content, direction, automated, created_at")
       .eq("wa_message_id", waMessageId)
       .maybeSingle();
+
+    const failureText = JSON.stringify(status.errors ?? []);
 
     await logAppEvent({
       workspaceId: ws.id,
@@ -276,6 +278,37 @@ async function handleStatusWebhook(value: any, rawBody: string, req: Request) {
         content_preview: msg?.content ? String(msg.content).slice(0, 180) : null,
       }, null, 2),
     });
+
+    await sb.from("birthday_message_sends")
+      .update({
+        status: "failed",
+        error: failureText.slice(0, 1000),
+      })
+      .eq("wa_message_id", waMessageId);
+
+    if (msg?.id && msg.direction === "outbound") {
+      const { data: inboundAfter } = await sb.from("messages")
+        .select("id")
+        .eq("workspace_id", ws.id)
+        .eq("lead_id", msg.lead_id)
+        .eq("direction", "inbound")
+        .gt("created_at", msg.created_at)
+        .limit(1);
+
+      const { error: deleteErr } = await sb.from("messages").delete().eq("id", msg.id);
+      if (deleteErr) {
+        console.warn("[WH-META] failed delivery message cleanup failed:", deleteErr.message);
+      } else {
+        console.log(`[WH-META] removed failed outbound chat row ${msg.id}`);
+      }
+
+      if (msg.automated && !inboundAfter?.length) {
+        await sb.from("leads")
+          .update({ inbox_status: "archived" })
+          .eq("id", msg.lead_id)
+          .eq("workspace_id", ws.id);
+      }
+    }
   }
 
   return new Response("EVENT_RECEIVED", { status: 200 });
@@ -449,7 +482,7 @@ Deno.serve(async (req: Request) => {
     }
     const lockExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { error: lockLeadErr } = await sb.from("leads")
-      .update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow })
+      .update({ wa_window_expires_at: lockExpiry, has_responded: true, last_message_at: lockNow, inbox_status: "highlighted" })
       .in("id", relatedLeadIds);
     if (lockLeadErr) {
       await logAppEvent({
@@ -478,7 +511,7 @@ Deno.serve(async (req: Request) => {
 
   const windowExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   await sb.from("leads")
-    .update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now })
+    .update({ wa_window_expires_at: windowExpiry, has_responded: true, last_message_at: now, inbox_status: "highlighted" })
     .in("id", relatedLeadIds);
 
   // Fire automation without delaying Meta's webhook acknowledgement.
