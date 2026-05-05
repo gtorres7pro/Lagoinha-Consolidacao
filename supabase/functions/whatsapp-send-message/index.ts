@@ -8,6 +8,178 @@ function phoneDigits(phone: string) {
   return String(phone || "").replace(/\D/g, "");
 }
 
+type TemplateDetails = {
+  languageCode: string;
+  headerParameters: Record<string, any>[];
+};
+
+function objectValue(value: unknown): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
+}
+
+function firstHttpsUrl(values: unknown[]): string {
+  for (const value of values) {
+    const text = typeof value === "string" ? value.trim() : "";
+    if (/^https:\/\//i.test(text)) return text;
+  }
+  return "";
+}
+
+function templateHeaderMediaUrl(creds: Record<string, any>, templateName: string): string {
+  const names = [...new Set([templateName, templateName.toLowerCase()].filter(Boolean))];
+  const mediaConfig = objectValue(creds.whatsapp_template_media);
+  const headerUrls = objectValue(creds.whatsapp_template_header_urls);
+  const perTemplate = names.map((name) => mediaConfig[name]).find(Boolean);
+  const perTemplateObj = objectValue(perTemplate);
+
+  return firstHttpsUrl([
+    perTemplate,
+    perTemplateObj.header_url,
+    perTemplateObj.header_image_url,
+    perTemplateObj.image_url,
+    ...names.map((name) => headerUrls[name]),
+    ...names.map((name) => creds[`${name}_header_image_url`]),
+  ]);
+}
+
+function templateHeaderMediaId(creds: Record<string, any>, templateName: string): string {
+  const names = [...new Set([templateName, templateName.toLowerCase()].filter(Boolean))];
+  const mediaConfig = objectValue(creds.whatsapp_template_media);
+  const perTemplate = names.map((name) => mediaConfig[name]).find(Boolean);
+  const perTemplateObj = objectValue(perTemplate);
+
+  const configured = String(
+    perTemplateObj.header_media_id
+      ?? perTemplateObj.header_image_id
+      ?? perTemplateObj.media_id
+      ?? perTemplateObj.image_id
+      ?? names.map((name) => creds[`${name}_header_image_id`]).find(Boolean)
+      ?? "",
+  ).trim();
+  return configured;
+}
+
+function configuredHeaderParameters(creds: Record<string, any>, templateName: string): Record<string, any>[] {
+  const mediaId = templateHeaderMediaId(creds, templateName);
+  if (mediaId) return [{ type: "image", image: { id: mediaId } }];
+
+  const mediaUrl = templateHeaderMediaUrl(creds, templateName);
+  if (mediaUrl) return [{ type: "image", image: { link: mediaUrl } }];
+
+  return [];
+}
+
+function buildHeaderParameters(component: any, overrideLink = "", overrideId = ""): Record<string, any>[] {
+  if (!component || String(component.type || "").toUpperCase() !== "HEADER") return [];
+
+  const format = String(component.format ?? "").toUpperCase();
+  const handle = component.example?.header_handle?.[0];
+  const link = overrideLink || (handle ? String(handle) : "");
+
+  if (format === "IMAGE" && overrideId) {
+    return [{ type: "image", image: { id: overrideId } }];
+  }
+
+  if (format === "IMAGE" && link) {
+    return [{ type: "image", image: { link } }];
+  }
+
+  if (format === "VIDEO" && overrideId) {
+    return [{ type: "video", video: { id: overrideId } }];
+  }
+
+  if (format === "VIDEO" && link) {
+    return [{ type: "video", video: { link } }];
+  }
+
+  if (format === "DOCUMENT" && overrideId) {
+    return [{ type: "document", document: { id: overrideId } }];
+  }
+
+  if (format === "DOCUMENT" && link) {
+    return [{ type: "document", document: { link } }];
+  }
+
+  return [];
+}
+
+function hasTemplateComponent(components: any[], type: string): boolean {
+  return components.some((component) => String(component?.type ?? "").toLowerCase() === type.toLowerCase());
+}
+
+async function fetchTemplateDetails(args: {
+  token: string;
+  wabaId: string;
+  templateName: string;
+  preferredLanguage: string;
+  headerMediaUrl?: string;
+  headerMediaId?: string;
+}): Promise<TemplateDetails> {
+  const fallback = {
+    languageCode: args.preferredLanguage,
+    headerParameters: [],
+  };
+
+  if (!args.token || !args.wabaId || !args.templateName) return fallback;
+
+  const fields = encodeURIComponent("name,language,status,components");
+  const res = await fetch(`https://graph.facebook.com/v21.0/${args.wabaId}/message_templates?fields=${fields}&limit=100`, {
+    headers: { Authorization: `Bearer ${args.token}` },
+  });
+
+  if (!res.ok) {
+    console.warn("[WA-SEND] Could not fetch Meta template metadata:", await res.text());
+    return fallback;
+  }
+
+  const meta = await res.json();
+  const candidates = (meta?.data ?? []).filter((template: any) => template.name === args.templateName);
+  const template =
+    candidates.find((item: any) => item.language === args.preferredLanguage && item.status === "APPROVED")
+    ?? candidates.find((item: any) => item.language === args.preferredLanguage)
+    ?? candidates.find((item: any) => item.status === "APPROVED")
+    ?? candidates[0];
+
+  if (!template) return fallback;
+
+  const header = template.components?.find((component: any) => String(component?.type ?? "").toUpperCase() === "HEADER");
+  return {
+    languageCode: template.language || args.preferredLanguage,
+    headerParameters: buildHeaderParameters(header, args.headerMediaUrl, args.headerMediaId),
+  };
+}
+
+async function buildTemplatePayload(tpl: any, creds: Record<string, any>): Promise<Record<string, any>> {
+  if (!tpl?.name) throw new Error("Template name is required");
+
+  const components = Array.isArray(tpl.components)
+    ? tpl.components.filter((component: any) => component && typeof component === "object")
+    : [];
+  const preferredLanguage = String(tpl.language ?? "pt_BR");
+  const templateName = String(tpl.name);
+  const templateDetails = await fetchTemplateDetails({
+    token: String(creds.whatsapp_token ?? ""),
+    wabaId: String(creds.waba_id ?? creds.business_id ?? ""),
+    templateName,
+    preferredLanguage,
+    headerMediaUrl: templateHeaderMediaUrl(creds, templateName),
+    headerMediaId: templateHeaderMediaId(creds, templateName),
+  });
+
+  const enrichedComponents = [...components];
+  const configuredHeader = configuredHeaderParameters(creds, templateName);
+  const headerParameters = configuredHeader.length ? configuredHeader : templateDetails.headerParameters;
+  if (headerParameters.length && !hasTemplateComponent(enrichedComponents, "header")) {
+    enrichedComponents.unshift({ type: "header", parameters: headerParameters });
+  }
+
+  return {
+    name: tpl.name,
+    language: { code: templateDetails.languageCode },
+    components: enrichedComponents,
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return text("Method Not Allowed", 405);
@@ -98,15 +270,12 @@ Deno.serve(async (req: Request) => {
     } else if (message.type === "template") {
       // message.content expected as: { name, language, components? }
       const tpl = typeof message.content === "string" ? JSON.parse(message.content) : message.content;
+      const template = await buildTemplatePayload(tpl, creds);
       apiBody = {
         messaging_product: "whatsapp",
         to: toPhone,
         type: "template",
-        template: {
-          name: tpl.name,
-          language: { code: tpl.language ?? "pt_BR" },
-          components: tpl.components ?? [],
-        },
+        template,
       };
     } else if (message.type === "image") {
       const image: Record<string, string> = { link: mediaLinkFromMessage() };

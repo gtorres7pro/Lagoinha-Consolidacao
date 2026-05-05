@@ -49,22 +49,91 @@ function extractTemplateVariables(body: string): string[] {
   return [...new Set(matches.map((m) => m.replace(/[{}]/g, "").trim()).filter(Boolean))];
 }
 
-function buildHeaderParameters(component: any): Record<string, any>[] {
+function objectValue(value: unknown): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
+}
+
+function firstHttpsUrl(values: unknown[]): string {
+  for (const value of values) {
+    const text = typeof value === "string" ? value.trim() : "";
+    if (/^https:\/\//i.test(text)) return text;
+  }
+  return "";
+}
+
+function templateHeaderMediaUrl(creds: Record<string, any>, templateName: string): string {
+  const names = [...new Set([templateName, templateName.toLowerCase()].filter(Boolean))];
+  const mediaConfig = objectValue(creds.whatsapp_template_media);
+  const headerUrls = objectValue(creds.whatsapp_template_header_urls);
+  const perTemplate = names.map((name) => mediaConfig[name]).find(Boolean);
+  const perTemplateObj = objectValue(perTemplate);
+
+  return firstHttpsUrl([
+    perTemplate,
+    perTemplateObj.header_url,
+    perTemplateObj.header_image_url,
+    perTemplateObj.image_url,
+    ...names.map((name) => headerUrls[name]),
+    ...names.map((name) => creds[`${name}_header_image_url`]),
+  ]);
+}
+
+function templateHeaderMediaId(creds: Record<string, any>, templateName: string): string {
+  const names = [...new Set([templateName, templateName.toLowerCase()].filter(Boolean))];
+  const mediaConfig = objectValue(creds.whatsapp_template_media);
+  const perTemplate = names.map((name) => mediaConfig[name]).find(Boolean);
+  const perTemplateObj = objectValue(perTemplate);
+
+  const configured = String(
+    perTemplateObj.header_media_id
+      ?? perTemplateObj.header_image_id
+      ?? perTemplateObj.media_id
+      ?? perTemplateObj.image_id
+      ?? names.map((name) => creds[`${name}_header_image_id`]).find(Boolean)
+      ?? "",
+  ).trim();
+  return configured;
+}
+
+function configuredHeaderParameters(creds: Record<string, any>, templateName: string): Record<string, any>[] {
+  const mediaId = templateHeaderMediaId(creds, templateName);
+  if (mediaId) return [{ type: "image", image: { id: mediaId } }];
+
+  const mediaUrl = templateHeaderMediaUrl(creds, templateName);
+  if (mediaUrl) return [{ type: "image", image: { link: mediaUrl } }];
+
+  return [];
+}
+
+function buildHeaderParameters(component: any, overrideLink = "", overrideId = ""): Record<string, any>[] {
   if (!component || component.type !== "HEADER") return [];
 
   const format = String(component.format ?? "").toUpperCase();
   const handle = component.example?.header_handle?.[0];
+  const link = overrideLink || (handle ? String(handle) : "");
 
-  if (format === "IMAGE" && handle) {
-    return [{ type: "image", image: { link: String(handle) } }];
+  if (format === "IMAGE" && overrideId) {
+    return [{ type: "image", image: { id: overrideId } }];
   }
 
-  if (format === "VIDEO" && handle) {
-    return [{ type: "video", video: { link: String(handle) } }];
+  if (format === "IMAGE" && link) {
+    return [{ type: "image", image: { link } }];
   }
 
-  if (format === "DOCUMENT" && handle) {
-    return [{ type: "document", document: { link: String(handle) } }];
+  if (format === "VIDEO" && overrideId) {
+    return [{ type: "video", video: { id: overrideId } }];
+  }
+
+  if (format === "VIDEO" && link) {
+    return [{ type: "video", video: { link } }];
+  }
+
+  if (format === "DOCUMENT" && overrideId) {
+    return [{ type: "document", document: { id: overrideId } }];
+  }
+
+  if (format === "DOCUMENT" && link) {
+    return [{ type: "document", document: { link } }];
   }
 
   return [];
@@ -169,6 +238,8 @@ async function fetchTemplateDetails(args: {
   wabaId: string;
   templateName: string;
   preferredLanguage: string;
+  headerMediaUrl?: string;
+  headerMediaId?: string;
 }): Promise<TemplateDetails> {
   const fallback = {
     languageCode: args.preferredLanguage,
@@ -206,7 +277,7 @@ async function fetchTemplateDetails(args: {
     languageCode: template.language || args.preferredLanguage,
     status: template.status || "",
     variables: variables.length ? variables : fallback.variables,
-    headerParameters: buildHeaderParameters(header),
+    headerParameters: buildHeaderParameters(header, args.headerMediaUrl, args.headerMediaId),
   };
 }
 
@@ -330,6 +401,8 @@ serve(async (req) => {
             wabaId,
             templateName,
             preferredLanguage,
+            headerMediaUrl: templateHeaderMediaUrl(creds, templateName),
+            headerMediaId: templateHeaderMediaId(creds, templateName),
           }));
         }
         const template = await templateCache.get(cacheKey)!;
@@ -345,8 +418,10 @@ serve(async (req) => {
           text: index === 0 ? personFirstName : "",
           ...(/^\d+$/.test(variableName) ? {} : { parameter_name: variableName }),
         }));
+        const configuredHeader = configuredHeaderParameters(creds, templateName);
+        const headerParameters = configuredHeader.length ? configuredHeader : template.headerParameters;
         const components = [
-          ...(template.headerParameters.length ? [{ type: "header", parameters: template.headerParameters }] : []),
+          ...(headerParameters.length ? [{ type: "header", parameters: headerParameters }] : []),
           ...(parameters.length ? [{ type: "body", parameters }] : []),
         ];
 
