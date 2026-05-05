@@ -19,6 +19,7 @@ type TemplateDetails = {
   languageCode: string;
   status: string;
   variables: string[];
+  headerParameters: Record<string, any>[];
 };
 
 function pad2(value: number): string {
@@ -46,6 +47,27 @@ function localParts(date: Date, timeZone: string): LocalParts {
 function extractTemplateVariables(body: string): string[] {
   const matches = body.match(/\{\{\s*[\w.]+\s*\}\}/g) ?? [];
   return [...new Set(matches.map((m) => m.replace(/[{}]/g, "").trim()).filter(Boolean))];
+}
+
+function buildHeaderParameters(component: any): Record<string, any>[] {
+  if (!component || component.type !== "HEADER") return [];
+
+  const format = String(component.format ?? "").toUpperCase();
+  const handle = component.example?.header_handle?.[0];
+
+  if (format === "IMAGE" && handle) {
+    return [{ type: "image", image: { link: String(handle) } }];
+  }
+
+  if (format === "VIDEO" && handle) {
+    return [{ type: "video", video: { link: String(handle) } }];
+  }
+
+  if (format === "DOCUMENT" && handle) {
+    return [{ type: "document", document: { link: String(handle) } }];
+  }
+
+  return [];
 }
 
 function firstName(name: unknown): string {
@@ -96,6 +118,7 @@ async function fetchTemplateDetails(args: {
     languageCode: args.preferredLanguage,
     status: "",
     variables: ["1"],
+    headerParameters: [],
   };
 
   if (!args.token || !args.wabaId) return fallback;
@@ -121,11 +144,13 @@ async function fetchTemplateDetails(args: {
   if (!template) return fallback;
 
   const body = template.components?.find((component: any) => component.type === "BODY")?.text ?? "";
+  const header = template.components?.find((component: any) => component.type === "HEADER");
   const variables = extractTemplateVariables(body);
   return {
     languageCode: template.language || args.preferredLanguage,
     status: template.status || "",
     variables: variables.length ? variables : fallback.variables,
+    headerParameters: buildHeaderParameters(header),
   };
 }
 
@@ -214,7 +239,6 @@ serve(async (req) => {
       const phoneNumId = creds.phone_number_id ?? creds.phone_id;
       const wabaId = creds.waba_id ?? creds.business_id ?? "";
       const name = String(birthday.name ?? "");
-      const sendKey = `birthday:${nowParts.dateKey}:${birthday.id}`;
 
       try {
         if (!waToken || !phoneNumId) {
@@ -229,12 +253,13 @@ serve(async (req) => {
         }
 
         const { data: existing } = await supabaseAdmin
-          .from("messages")
+          .from("birthday_message_sends")
           .select("id")
+          .eq("birthday_id", birthday.id)
           .eq("workspace_id", birthday.workspace_id)
-          .eq("direction", "outbound")
-          .eq("automated", true)
-          .like("content", `%[${sendKey}]%`)
+          .eq("send_date", nowParts.dateKey)
+          .eq("template_name", templateName)
+          .eq("status", "success")
           .limit(1);
 
         if (existing?.length) {
@@ -264,6 +289,10 @@ serve(async (req) => {
           text: index === 0 ? personFirstName : "",
           ...(/^\d+$/.test(variableName) ? {} : { parameter_name: variableName }),
         }));
+        const components = [
+          ...(template.headerParameters.length ? [{ type: "header", parameters: template.headerParameters }] : []),
+          ...(parameters.length ? [{ type: "body", parameters }] : []),
+        ];
 
         const payload: Record<string, any> = {
           messaging_product: "whatsapp",
@@ -272,9 +301,7 @@ serve(async (req) => {
           template: {
             name: templateName,
             language: { code: template.languageCode },
-            ...(parameters.length ? {
-              components: [{ type: "body", parameters }],
-            } : {}),
+            ...(components.length ? { components } : {}),
           },
         };
 
@@ -293,19 +320,34 @@ serve(async (req) => {
         }
 
         const waMessageId = data?.messages?.[0]?.id ?? null;
-        await supabaseAdmin.from("messages").insert({
-          lead_id: null,
+        const { error: recordError } = await supabaseAdmin.from("birthday_message_sends").upsert({
+          birthday_id: birthday.id,
           workspace_id: birthday.workspace_id,
-          direction: "outbound",
-          type: "template",
-          content: `Automated Birthday Message: ${templateName} [${sendKey}]`,
-          automated: true,
+          send_date: nowParts.dateKey,
+          template_name: templateName,
+          status: "success",
           wa_message_id: waMessageId,
+          error: null,
+        }, {
+          onConflict: "birthday_id,send_date,template_name",
         });
+        if (recordError) {
+          throw new Error(`Message sent but send record failed: ${recordError.message}`);
+        }
 
         results.push({ id: birthday.id, name, status: "success", wa_message_id: waMessageId });
       } catch (dispatchError) {
         console.error(`[birthday] Failed for ${name}:`, dispatchError);
+        await supabaseAdmin.from("birthday_message_sends").upsert({
+          birthday_id: birthday.id,
+          workspace_id: birthday.workspace_id,
+          send_date: nowParts.dateKey,
+          template_name: templateName,
+          status: "failed",
+          error: String(dispatchError),
+        }, {
+          onConflict: "birthday_id,send_date,template_name",
+        });
         results.push({ id: birthday.id, name, status: "failed", error: String(dispatchError) });
       }
     }

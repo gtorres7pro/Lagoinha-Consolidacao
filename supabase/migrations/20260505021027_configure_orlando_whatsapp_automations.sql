@@ -38,6 +38,24 @@ update public.workspaces
 create extension if not exists pg_cron with schema extensions;
 create extension if not exists pg_net with schema extensions;
 
+create table if not exists public.birthday_message_sends (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  birthday_id uuid not null references public.birthdays(id) on delete cascade,
+  send_date date not null,
+  template_name text not null,
+  status text not null,
+  wa_message_id text,
+  error text,
+  created_at timestamptz not null default now(),
+  unique (birthday_id, send_date, template_name)
+);
+
+alter table public.birthday_message_sends enable row level security;
+
+create index if not exists birthday_message_sends_workspace_date_idx
+  on public.birthday_message_sends (workspace_id, send_date);
+
 do $$
 begin
   if exists (select 1 from cron.job where jobname = 'orlando-happy-birthday-9am-ny') then
@@ -64,7 +82,8 @@ select cron.schedule(
       'expected_hour', 9,
       'template_name', 'happy_birthday',
       'template_language', 'en'
-    )
+    ),
+    timeout_milliseconds := 120000
   );
   $$
 );
