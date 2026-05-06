@@ -139,6 +139,11 @@
         });
     };
 
+    window.reconnectMeta = function () {
+        if (!confirm('Atualizar o acesso do WhatsApp com a Meta? Isso não apaga a conexão atual; apenas renova as permissões e salva o número selecionado novamente.')) return;
+        launchWhatsAppSignup();
+    };
+
     async function _handleFBLoginSuccess(authResponse) {
         const statusEl = document.getElementById('wa-signup-status');
         const signupBtn = document.getElementById('wa-signup-btn');

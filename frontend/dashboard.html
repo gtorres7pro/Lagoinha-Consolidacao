@@ -2661,7 +2661,10 @@
                                     <div style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:2px;">WABA: <span id="wa-meta-waba">—</span></div>
                                 </div>
                             </div>
-                            <button onclick="disconnectMeta()" style="background:rgba(255,59,48,0.08);color:#ff3b30;border:1px solid rgba(255,59,48,0.2);padding:7px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;font-family:var(--font);white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(255,59,48,0.15)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">Desconectar</button>
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                                <button onclick="reconnectMeta()" style="background:rgba(24,119,242,0.1);color:#60a5fa;border:1px solid rgba(96,165,250,0.28);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:var(--font);white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(24,119,242,0.18)'" onmouseout="this.style.background='rgba(24,119,242,0.1)'">Atualizar acesso</button>
+                                <button onclick="disconnectMeta()" style="background:rgba(255,59,48,0.08);color:#ff3b30;border:1px solid rgba(255,59,48,0.2);padding:7px 16px;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;font-family:var(--font);white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(255,59,48,0.15)'" onmouseout="this.style.background='rgba(255,59,48,0.08)'">Desconectar</button>
+                            </div>
                         </div>
                         <div id="wa-meta-date" style="font-size:0.72rem;color:rgba(255,255,255,0.25);margin-top:8px;"></div>
                     </div>
@@ -9046,7 +9049,7 @@ graph TD
 
 
     <script src="/hub-dashboard.js?v=20260502v6"></script>
-    <script src="/hub-whatsapp.js?v=20260504v2"></script>
+    <script src="/hub-whatsapp.js?v=20260506v1"></script>
 
     <script src="/hub-start.js?v=1"></script>
     <script src="/hub-cantina.js?v=20260411v5"></script>
